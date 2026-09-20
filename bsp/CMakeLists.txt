@@ -1,43 +1,18 @@
-# BSP selection via use_bsp(<TILE>...). Only requested tiles are compiled.
+# BSP exposed modules: variables carrying their source files.
 
-set(BSP_EXPOSED_MODULES SYS DELAY USART LED KEY EXTI WDG BTIM GTIM ATIM TPAD)
+set(BSP_DIR "${CMAKE_SOURCE_DIR}/bsp")
 
-set(BSP_MODULE_SYS   sys.c)
-set(BSP_MODULE_DELAY delay.c)
-set(BSP_MODULE_USART usart.c)
-set(BSP_MODULE_LED   led.c)
-set(BSP_MODULE_KEY   key.c)
-set(BSP_MODULE_EXTI  exti.c)
-set(BSP_MODULE_WDG   wdg.c)
-set(BSP_MODULE_BTIM  btim.c)
-set(BSP_MODULE_GTIM  gtim.c)
-set(BSP_MODULE_ATIM  atim.c)
-set(BSP_MODULE_TPAD  tpad.c)
+set(BSP_EXPOSED_MODULES BSP_CORE BSP_EXTI BSP_WDG BSP_TIM BSP_TPAD)
 
-# Idempotent: bsp.c + syscalls.c are added once, tiles are de-duplicated.
-macro(use_bsp)
-    if(NOT _BSP_CORE_ADDED)
-        cache_list_append(APP_INCLUDES "${CMAKE_SOURCE_DIR}/bsp")
-        cache_list_append(APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/bsp.c")
-        cache_list_append(APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/syscalls.c")
-        set(_BSP_CORE_ADDED TRUE CACHE INTERNAL "" FORCE)
-        set(_BSP_TILES "" CACHE INTERNAL "" FORCE)
-    endif()
-
-    foreach(_tile ${ARGV})
-        if(NOT _tile IN_LIST BSP_EXPOSED_MODULES)
-            message(FATAL_ERROR "BSP module not exposed: ${_tile}")
-        endif()
-        if(NOT _tile IN_LIST _BSP_TILES)
-            cache_list_append(_BSP_TILES "${_tile}")
-            cache_list_append(APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/${BSP_MODULE_${_tile}}")
-            if(_tile STREQUAL "DELAY")
-                if(OS STREQUAL "freertos")
-                    cache_list_append(APP_DEFINES "BSP_SUPPORT_OS=1")
-                else()
-                    cache_list_append(APP_DEFINES "BSP_SUPPORT_OS=0")
-                endif()
-            endif()
-        endif()
-    endforeach()
-endmacro()
+set(BSP_CORE
+    ${BSP_DIR}/bsp.c
+    ${BSP_DIR}/syscalls.c
+    ${BSP_DIR}/sys.c
+    ${BSP_DIR}/delay.c
+    ${BSP_DIR}/usart.c
+    ${BSP_DIR}/led.c
+    ${BSP_DIR}/key.c)
+set(BSP_EXTI ${BSP_DIR}/exti.c)
+set(BSP_WDG  ${BSP_DIR}/wdg.c)
+set(BSP_TIM  ${BSP_DIR}/btim.c ${BSP_DIR}/gtim.c ${BSP_DIR}/atim.c)
+set(BSP_TPAD ${BSP_DIR}/tpad.c)
