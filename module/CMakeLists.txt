@@ -7,7 +7,7 @@ set(MODULE_CMSIS_CORE_DIR
     "${CMAKE_SOURCE_DIR}/module/cmsis-core/${MODULE_CMSIS_CORE_VERSION}")
 
 # The version file provides HAL_DRIVER_SRC_DIR / HAL_DRIVER_INC_DIR and the
-# HAL_MODULE_<name> -> source file mapping.
+# HAL_MODULE_<NAME> -> source file mapping.
 include(${CMAKE_SOURCE_DIR}/module/stm32f4xx-hal-driver/${MODULE_HAL_DRIVER_VERSION}/CMakeLists.txt)
 
 # HAL modules this project exposes to applications.
@@ -19,8 +19,8 @@ set(HAL_EXPOSED_MODULES
 # Append the CMSIS core headers to the calling app (once).
 macro(use_cmsis_core)
     if(NOT _CMSIS_ADDED)
-        list(APPEND APP_SYSTEM_INCLUDES "${MODULE_CMSIS_CORE_DIR}/Include")
-        set(_CMSIS_ADDED TRUE)
+        cache_list_append(APP_SYSTEM_INCLUDES "${MODULE_CMSIS_CORE_DIR}/Include")
+        set(_CMSIS_ADDED TRUE CACHE INTERNAL "" FORCE)
     endif()
 endmacro()
 
@@ -29,12 +29,12 @@ endmacro()
 # Idempotent: HAL core is added once, modules are de-duplicated.
 macro(use_hal_driver)
     if(NOT _HAL_CORE_ADDED)
-        list(APPEND APP_SYSTEM_INCLUDES "${HAL_DRIVER_INC_DIR}")
-        list(APPEND APP_DEFINES "USE_HAL_DRIVER")
-        list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
+        cache_list_append(APP_SYSTEM_INCLUDES "${HAL_DRIVER_INC_DIR}")
+        cache_list_append(APP_DEFINES "USE_HAL_DRIVER")
+        cache_list_append(APP_SOURCES "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
         set(_hal_srcs "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
-        set(_HAL_CORE_ADDED TRUE)
-        set(_HAL_MODULES "")
+        set(_HAL_CORE_ADDED TRUE CACHE INTERNAL "" FORCE)
+        set(_HAL_MODULES "" CACHE INTERNAL "" FORCE)
     else()
         set(_hal_srcs "")
     endif()
@@ -44,9 +44,9 @@ macro(use_hal_driver)
             message(FATAL_ERROR "HAL module not exposed: ${_m}")
         endif()
         if(NOT _m IN_LIST _HAL_MODULES)
-            list(APPEND _HAL_MODULES ${_m})
+            cache_list_append(_HAL_MODULES "${_m}")
             foreach(_f ${HAL_MODULE_${_m}})
-                list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/${_f}")
+                cache_list_append(APP_SOURCES "${HAL_DRIVER_SRC_DIR}/${_f}")
                 list(APPEND _hal_srcs "${HAL_DRIVER_SRC_DIR}/${_f}")
             endforeach()
         endif()

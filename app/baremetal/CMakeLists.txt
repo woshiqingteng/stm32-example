@@ -1,14 +1,36 @@
-# Baremetal experiments: common setup lives here, each app adds only its extras.
+# Baremetal experiments: common setup here, each app adds only its extras.
 
 set(BAREMETAL_COMMON_HAL RCC CORTEX GPIO UART)
-set(BAREMETAL_COMMON_BSP sys delay usart led key)
+set(BAREMETAL_COMMON_BSP SYS DELAY USART LED KEY)
 
-macro(baremetal_begin NAME)
+# app_baremetal_add(NAME [HAL <MODULE>...] [BSP <TILE>...] [DEPS <dep>...])
+macro(app_baremetal_add NAME)
+    set(_hal "")
+    set(_bsp "")
+    set(_deps "")
+    set(_kw "")
+
+    foreach(_a ${ARGN})
+        if(_a STREQUAL "HAL" OR _a STREQUAL "BSP" OR _a STREQUAL "DEPS")
+            set(_kw "${_a}")
+        elseif(_kw STREQUAL "HAL")
+            list(APPEND _hal ${_a})
+        elseif(_kw STREQUAL "BSP")
+            list(APPEND _bsp ${_a})
+        elseif(_kw STREQUAL "DEPS")
+            list(APPEND _deps ${_a})
+        endif()
+    endforeach()
+
     app_begin(${NAME})
     use_target()
     use_cmsis_core()
-    use_hal_driver(${BAREMETAL_COMMON_HAL})
-    use_bsp(${BAREMETAL_COMMON_BSP})
+    use_hal_driver(${BAREMETAL_COMMON_HAL} ${_hal})
+    use_bsp(${BAREMETAL_COMMON_BSP} ${_bsp})
+    if(_deps)
+        use_dep(${_deps})
+    endif()
+    app_add()
 endmacro()
 
 add_subdirectory(01_led)
