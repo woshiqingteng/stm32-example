@@ -4,20 +4,17 @@
 find_program(OPENOCD_EXECUTABLE openocd)
 add_custom_target(flash)
 
-# flow_compile(TARGET SOURCES <file>... [OUTDIR <dir>] [DEFS <def>...])
+# flow_compile(TARGET SOURCES <file>... [DEFS <def>...])
 function(flow_compile TARGET)
     set(_srcs "")
-    set(_outdir "${CMAKE_BINARY_DIR}/${TARGET}")
     set(_defs "")
     set(_kw "")
 
     foreach(_a ${ARGN})
-        if(_a STREQUAL "SOURCES" OR _a STREQUAL "OUTDIR" OR _a STREQUAL "DEFS")
+        if(_a STREQUAL "SOURCES" OR _a STREQUAL "DEFS")
             set(_kw "${_a}")
         elseif(_kw STREQUAL "SOURCES")
             list(APPEND _srcs "${_a}")
-        elseif(_kw STREQUAL "OUTDIR")
-            set(_outdir "${_a}")
         elseif(_kw STREQUAL "DEFS")
             list(APPEND _defs "${_a}")
         endif()
@@ -35,7 +32,7 @@ function(flow_compile TARGET)
     target_link_options(${TARGET} PRIVATE -T${STM32_LINKER_SCRIPT}
         -Wl,-Map=$<TARGET_FILE_DIR:${TARGET}>/${TARGET}.map)
     set_target_properties(${TARGET} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${_outdir}"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         OUTPUT_NAME "${TARGET}")
 
     set(_dir "$<TARGET_FILE_DIR:${TARGET}>")
