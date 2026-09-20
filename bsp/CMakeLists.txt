@@ -1,11 +1,19 @@
-# BSP tile selection via use_bsp(<tile>...).
+# BSP selection via use_bsp(<tile>...).
+# Idempotent: bsp.c + syscalls.c are added once, tiles are de-duplicated.
 
-# Append bsp.c plus the requested tiles to the calling app.
 macro(use_bsp)
-    list(APPEND APP_INCLUDES "${CMAKE_SOURCE_DIR}")
-    list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/bsp.c")
-    list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/syscalls.c")
+    if(NOT _BSP_CORE_ADDED)
+        list(APPEND APP_INCLUDES "${CMAKE_SOURCE_DIR}/bsp")
+        list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/bsp.c")
+        list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/syscalls.c")
+        set(_BSP_CORE_ADDED TRUE)
+        set(_BSP_TILES "")
+    endif()
+
     foreach(_tile ${ARGV})
-        list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/${_tile}.c")
+        if(NOT _tile IN_LIST _BSP_TILES)
+            list(APPEND _BSP_TILES ${_tile})
+            list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/${_tile}.c")
+        endif()
     endforeach()
 endmacro()

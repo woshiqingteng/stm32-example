@@ -4,7 +4,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "bsp/led.h"
+#include "led.h"
 
 #define LED0_GPIO_PORT         GPIOB
 #define LED0_GPIO_PIN          GPIO_PIN_1

@@ -8,7 +8,10 @@ set(MODULE_CMSIS_CORE_DIR
 
 include(${CMAKE_SOURCE_DIR}/module/stm32f4xx-hal-driver/${MODULE_HAL_DRIVER_VERSION}/CMakeLists.txt)
 
-# Append the CMSIS core headers to the calling app.
+# Append the CMSIS core headers to the calling app (once).
 macro(use_cmsis_core)
-    list(APPEND APP_SYSTEM_INCLUDES "${MODULE_CMSIS_CORE_DIR}/Include")
+    if(NOT _CMSIS_ADDED)
+        list(APPEND APP_SYSTEM_INCLUDES "${MODULE_CMSIS_CORE_DIR}/Include")
+        set(_CMSIS_ADDED TRUE)
+    endif()
 endmacro()

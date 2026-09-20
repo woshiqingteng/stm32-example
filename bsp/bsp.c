@@ -4,11 +4,11 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "bsp/bsp.h"
-#include "bsp/sys.h"
-#include "bsp/delay.h"
-#include "bsp/usart.h"
-#include "bsp/led.h"
+#include "bsp.h"
+#include "sys.h"
+#include "delay.h"
+#include "usart.h"
+#include "led.h"
 
 #define BSP_SYSCLK_MHZ  168U
 

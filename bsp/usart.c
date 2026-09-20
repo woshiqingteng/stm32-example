@@ -6,7 +6,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "bsp/usart.h"
+#include "usart.h"
 
 #define USART1_TX_PORT    GPIOA
 #define USART1_TX_PIN     GPIO_PIN_9

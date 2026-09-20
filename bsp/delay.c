@@ -4,7 +4,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "bsp/delay.h"
+#include "delay.h"
 
 static uint32_t g_fac_us = 0;
 
