@@ -1,3 +1,1 @@
-baremetal_begin(01_led)
-
-app_add()
+app_baremetal_add(01_led)

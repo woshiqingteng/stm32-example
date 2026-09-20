@@ -1,4 +1,4 @@
-# Link/flash helpers (openocd + cmsis-dap).
+# Link/artifact/flash helpers (openocd + cmsis-dap).
 
 set(OPENOCD_EXECUTABLE "D:/app/openocd/v0.12.0/i686-w64-mingw32/bin/openocd.exe"
     CACHE FILEPATH "openocd executable")
@@ -9,6 +9,30 @@ endif()
 set(OPENOCD_INTERFACE "interface/cmsis-dap.cfg" CACHE STRING "openocd interface config")
 set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg" CACHE STRING "openocd target config")
 set(FLASH_ADDRESS "0x08000000" CACHE STRING "Flash base address")
+
+# Inline listing helper (kept here instead of a separate source file).
+set(FLOW_GEN_LST_SCRIPT "${CMAKE_BINARY_DIR}/gen_lst.cmake")
+file(WRITE "${FLOW_GEN_LST_SCRIPT}"
+     "execute_process(COMMAND \${OBJDUMP} -h -S \${INPUT} OUTPUT_FILE \${OUTPUT})\n")
+
+# Always produce .bin; also .hex/.lst when MCU_GEN_FULL_ARTIFACT is ON.
+function(flow_add_artifacts tgt)
+    add_custom_command(TARGET ${tgt} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${tgt}>
+                $<TARGET_FILE_DIR:${tgt}>/${tgt}.bin
+        COMMENT "objcopy: ${tgt}.bin")
+    if(MCU_GEN_FULL_ARTIFACT)
+        add_custom_command(TARGET ${tgt} POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${tgt}>
+                    $<TARGET_FILE_DIR:${tgt}>/${tgt}.hex
+            COMMAND ${CMAKE_COMMAND}
+                    -DOBJDUMP=${CMAKE_OBJDUMP}
+                    -DINPUT=$<TARGET_FILE:${tgt}>
+                    -DOUTPUT=$<TARGET_FILE_DIR:${tgt}>/${tgt}.lst
+                    -P ${FLOW_GEN_LST_SCRIPT}
+            COMMENT "objcopy: ${tgt}.hex/.lst")
+    endif()
+endfunction()
 
 add_custom_target(flash)
 
