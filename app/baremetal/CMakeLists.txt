@@ -1,7 +1,7 @@
 # Baremetal experiments: common setup lives here, each app adds only its extras.
 
 set(BAREMETAL_COMMON_HAL RCC CORTEX GPIO UART)
-set(BAREMETAL_COMMON_BSP sys delay usart led)
+set(BAREMETAL_COMMON_BSP sys delay usart led key)
 
 macro(baremetal_begin NAME)
     app_begin(${NAME})

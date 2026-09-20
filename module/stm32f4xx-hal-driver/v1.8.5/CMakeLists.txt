@@ -1,4 +1,4 @@
-# STM32F4xx HAL driver: per-module source selection via use_hal_driver(<MODULE>...).
+# STM32F4xx HAL driver (v1.8.5): paths + name -> source file mapping.
 
 set(HAL_DRIVER_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/Src")
 set(HAL_DRIVER_INC_DIR "${CMAKE_CURRENT_LIST_DIR}/Inc")
@@ -20,35 +20,3 @@ set(HAL_MODULE_TIM_EX        stm32f4xx_hal_tim_ex.c)
 set(HAL_MODULE_EXTI          stm32f4xx_hal_exti.c)
 set(HAL_MODULE_IWDG          stm32f4xx_hal_iwdg.c)
 set(HAL_MODULE_WWDG          stm32f4xx_hal_wwdg.c)
-
-# use_hal_driver(<MODULE>...) appends HAL core + the requested modules to the calling app.
-# Idempotent: HAL core is added once, modules are de-duplicated.
-macro(use_hal_driver)
-    if(NOT _HAL_CORE_ADDED)
-        list(APPEND APP_SYSTEM_INCLUDES "${HAL_DRIVER_INC_DIR}")
-        list(APPEND APP_DEFINES "USE_HAL_DRIVER")
-        list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
-        set(_hal_srcs "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
-        set(_HAL_CORE_ADDED TRUE)
-        set(_HAL_MODULES "")
-    else()
-        set(_hal_srcs "")
-    endif()
-
-    foreach(_m ${ARGV})
-        if(NOT DEFINED HAL_MODULE_${_m})
-            message(FATAL_ERROR "Unknown HAL module: ${_m}")
-        endif()
-        if(NOT _m IN_LIST _HAL_MODULES)
-            list(APPEND _HAL_MODULES ${_m})
-            foreach(_f ${HAL_MODULE_${_m}})
-                list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/${_f}")
-                list(APPEND _hal_srcs "${HAL_DRIVER_SRC_DIR}/${_f}")
-            endforeach()
-        endif()
-    endforeach()
-
-    if(_hal_srcs)
-        set_source_files_properties(${_hal_srcs} PROPERTIES COMPILE_OPTIONS "-w")
-    endif()
-endmacro()

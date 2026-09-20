@@ -16,15 +16,6 @@
       }
     },
     {
-      "name": "debug-freertos",
-      "inherits": "debug",
-      "displayName": "gcc / openedv_stm32f4 / freertos / debug",
-      "binaryDir": "${sourceDir}/build/debug-freertos",
-      "cacheVariables": {
-        "OS": "freertos"
-      }
-    },
-    {
       "name": "release",
       "displayName": "gcc / openedv_stm32f4 / baremetal / release",
       "generator": "Ninja",
@@ -35,15 +26,6 @@
         "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
         "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "release-freertos",
-      "inherits": "release",
-      "displayName": "gcc / openedv_stm32f4 / freertos / release",
-      "binaryDir": "${sourceDir}/build/release-freertos",
-      "cacheVariables": {
-        "OS": "freertos"
       }
     }
   ],
