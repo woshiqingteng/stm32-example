@@ -1,0 +1,31 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "gcc / openedv_stm32f4 / baremetal",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
+      "cacheVariables": {
+        "TOOLCHAIN": "gcc",
+        "BOARD": "openedv_stm32f4",
+        "OS": "baremetal"
+      }
+    },
+    {
+      "name": "dev-freertos",
+      "inherits": "dev",
+      "displayName": "gcc / openedv_stm32f4 / freertos",
+      "binaryDir": "${sourceDir}/build/dev-freertos",
+      "cacheVariables": {
+        "OS": "freertos"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "dev-freertos", "configurePreset": "dev-freertos" }
+  ]
+}

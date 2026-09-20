@@ -1,0 +1,43 @@
+# STM32F4xx HAL driver: per-module source selection via use_hal_driver(<MODULE>...).
+
+set(HAL_DRIVER_SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/Src")
+set(HAL_DRIVER_INC_DIR "${CMAKE_CURRENT_LIST_DIR}/Inc")
+
+set(HAL_MODULE_RCC           stm32f4xx_hal_rcc.c)
+set(HAL_MODULE_RCC_EX        stm32f4xx_hal_rcc_ex.c)
+set(HAL_MODULE_FLASH         stm32f4xx_hal_flash.c)
+set(HAL_MODULE_FLASH_EX      stm32f4xx_hal_flash_ex.c)
+set(HAL_MODULE_FLASH_RAMFUNC stm32f4xx_hal_flash_ramfunc.c)
+set(HAL_MODULE_GPIO          stm32f4xx_hal_gpio.c)
+set(HAL_MODULE_CORTEX        stm32f4xx_hal_cortex.c)
+set(HAL_MODULE_PWR           stm32f4xx_hal_pwr.c)
+set(HAL_MODULE_PWR_EX        stm32f4xx_hal_pwr_ex.c)
+set(HAL_MODULE_DMA           stm32f4xx_hal_dma.c)
+set(HAL_MODULE_DMA_EX        stm32f4xx_hal_dma_ex.c)
+set(HAL_MODULE_UART          stm32f4xx_hal_uart.c)
+set(HAL_MODULE_TIM           stm32f4xx_hal_tim.c)
+set(HAL_MODULE_TIM_EX        stm32f4xx_hal_tim_ex.c)
+set(HAL_MODULE_EXTI          stm32f4xx_hal_exti.c)
+set(HAL_MODULE_IWDG          stm32f4xx_hal_iwdg.c)
+set(HAL_MODULE_WWDG          stm32f4xx_hal_wwdg.c)
+
+# use_hal_driver(<MODULE>...) appends HAL core + the requested modules to the calling app.
+macro(use_hal_driver)
+    list(APPEND APP_SYSTEM_INCLUDES "${HAL_DRIVER_INC_DIR}")
+    list(APPEND APP_DEFINES "USE_HAL_DRIVER")
+
+    set(_hal_srcs "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
+    list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/stm32f4xx_hal.c")
+
+    foreach(_m ${ARGV})
+        if(NOT DEFINED HAL_MODULE_${_m})
+            message(FATAL_ERROR "Unknown HAL module: ${_m}")
+        endif()
+        foreach(_f ${HAL_MODULE_${_m}})
+            list(APPEND APP_SOURCES "${HAL_DRIVER_SRC_DIR}/${_f}")
+            list(APPEND _hal_srcs "${HAL_DRIVER_SRC_DIR}/${_f}")
+        endforeach()
+    endforeach()
+
+    set_source_files_properties(${_hal_srcs} PROPERTIES COMPILE_OPTIONS "-w")
+endmacro()
