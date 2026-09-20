@@ -1,24 +1,15 @@
-# Board / CPU / function selection.
+# Board / CPU selection happens in the toolchain file (global scope).
+# This directory only exposes global cache values used by the layers.
 
-set(TOOLCHAIN "gcc" CACHE STRING "Toolchain: gcc")
-set(BOARD "openedv_stm32f4" CACHE STRING "Board")
-set(OS "baremetal" CACHE STRING "OS: baremetal or freertos")
-
-set(MCU_GEN_FULL_ARTIFACT OFF CACHE BOOL "Also generate .hex and .lst")
-
-include(${CMAKE_CURRENT_LIST_DIR}/board/${BOARD}.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/cpu/${CPU}.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/func/flow.cmake)
-
-if(NOT CMAKE_OBJCOPY)
-    find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy REQUIRED)
+if(NOT TOOLCHAIN STREQUAL "gcc")
+    message(FATAL_ERROR "Unsupported TOOLCHAIN: ${TOOLCHAIN}")
 endif()
-if(NOT CMAKE_OBJDUMP)
-    find_program(CMAKE_OBJDUMP arm-none-eabi-objdump REQUIRED)
-endif()
+
+find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy)
+find_program(CMAKE_OBJDUMP arm-none-eabi-objdump)
 
 if(OS STREQUAL "freertos")
-    add_compile_definitions(BSP_SUPPORT_OS=1)
+    set(BSP_SUPPORT_OS 1 CACHE INTERNAL "" FORCE)
 else()
-    add_compile_definitions(BSP_SUPPORT_OS=0)
+    set(BSP_SUPPORT_OS 0 CACHE INTERNAL "" FORCE)
 endif()

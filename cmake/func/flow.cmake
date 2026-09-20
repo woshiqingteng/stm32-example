@@ -1,10 +1,6 @@
-# Link/artifact/flash helpers (openocd + cmsis-dap).
+# Link / artifact / flash helpers and the complete baremetal app flow.
 
-set(OPENOCD_EXECUTABLE "D:/app/openocd/v0.12.0/i686-w64-mingw32/bin/openocd.exe"
-    CACHE FILEPATH "openocd executable")
-if(NOT EXISTS "${OPENOCD_EXECUTABLE}")
-    find_program(OPENOCD_EXECUTABLE openocd)
-endif()
+find_program(OPENOCD_EXECUTABLE openocd)
 
 set(OPENOCD_INTERFACE "interface/cmsis-dap.cfg" CACHE STRING "openocd interface config")
 set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg" CACHE STRING "openocd target config")
@@ -89,7 +85,13 @@ function(flow_app_baremetal NAME)
     add_executable(${_tgt} ${_srcs})
     target_include_directories(${_tgt} PRIVATE
         "${TARGET_DIR}" "${BSP_DIR}" "${CMSIS_CORE_INCLUDE}" "${HAL_INC}")
-    target_compile_definitions(${_tgt} PRIVATE "USE_HAL_DRIVER" "${DEVICE_DEFINE}")
+    target_compile_definitions(${_tgt} PRIVATE
+        "USE_HAL_DRIVER" "${DEVICE_DEFINE}" "BSP_SUPPORT_OS=${BSP_SUPPORT_OS}")
+
+    if(HAL_SOURCES)
+        set_source_files_properties(${HAL_SOURCES} PROPERTIES COMPILE_OPTIONS "-w")
+    endif()
+
     target_link_options(${_tgt} PRIVATE
         -T${TARGET_LD_SCRIPT}
         -Wl,-Map=$<TARGET_FILE_DIR:${_tgt}>/${_tgt}.map)
