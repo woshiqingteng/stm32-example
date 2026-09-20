@@ -1,6 +1,10 @@
 # Link/flash helpers (openocd + cmsis-dap).
 
-find_program(OPENOCD_EXECUTABLE openocd)
+set(OPENOCD_EXECUTABLE "D:/app/openocd/v0.12.0/i686-w64-mingw32/bin/openocd.exe"
+    CACHE FILEPATH "openocd executable")
+if(NOT EXISTS "${OPENOCD_EXECUTABLE}")
+    find_program(OPENOCD_EXECUTABLE openocd)
+endif()
 
 set(OPENOCD_INTERFACE "interface/cmsis-dap.cfg" CACHE STRING "openocd interface config")
 set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg" CACHE STRING "openocd target config")
