@@ -1,6 +1,20 @@
-# BSP selection via use_bsp(<tile>...).
-# Idempotent: bsp.c + syscalls.c are added once, tiles are de-duplicated.
+# BSP selection via use_bsp(<tile>...). Only requested tiles are compiled.
 
+set(BSP_EXPOSED_MODULES sys delay usart led key exti wdg btim gtim atim tpad)
+
+set(BSP_MODULE_sys   sys.c)
+set(BSP_MODULE_delay delay.c)
+set(BSP_MODULE_usart usart.c)
+set(BSP_MODULE_led   led.c)
+set(BSP_MODULE_key   key.c)
+set(BSP_MODULE_exti  exti.c)
+set(BSP_MODULE_wdg   wdg.c)
+set(BSP_MODULE_btim  btim.c)
+set(BSP_MODULE_gtim  gtim.c)
+set(BSP_MODULE_atim  atim.c)
+set(BSP_MODULE_tpad  tpad.c)
+
+# Idempotent: bsp.c + syscalls.c are added once, tiles are de-duplicated.
 macro(use_bsp)
     if(NOT _BSP_CORE_ADDED)
         list(APPEND APP_INCLUDES "${CMAKE_SOURCE_DIR}/bsp")
@@ -11,9 +25,19 @@ macro(use_bsp)
     endif()
 
     foreach(_tile ${ARGV})
+        if(NOT _tile IN_LIST BSP_EXPOSED_MODULES)
+            message(FATAL_ERROR "BSP module not exposed: ${_tile}")
+        endif()
         if(NOT _tile IN_LIST _BSP_TILES)
             list(APPEND _BSP_TILES ${_tile})
-            list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/${_tile}.c")
+            list(APPEND APP_SOURCES "${CMAKE_SOURCE_DIR}/bsp/${BSP_MODULE_${_tile}}")
+            if(_tile STREQUAL "delay")
+                if(OS STREQUAL "freertos")
+                    list(APPEND APP_DEFINES "BSP_SUPPORT_OS=1")
+                else()
+                    list(APPEND APP_DEFINES "BSP_SUPPORT_OS=0")
+                endif()
+            endif()
         endif()
     endforeach()
 endmacro()
