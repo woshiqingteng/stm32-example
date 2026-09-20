@@ -12,7 +12,7 @@
         "TOOLCHAIN": "gcc",
         "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
-        "APPS": "01_led",
+        "APPS": "01_led;02_key;03_exti;04_usart;05_iwdg;06_wwdg;07_btim;08_1_gtim_int;08_2_gtim_pwm;08_3_gtim_cap;08_4_gtim_cnt;09_1_atim_npwm;09_2_atim_oc;09_3_atim_cplm;09_4_atim_pwmin;10_tpad",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -26,7 +26,7 @@
         "TOOLCHAIN": "gcc",
         "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
-        "APPS": "01_led",
+        "APPS": "01_led;02_key;03_exti;04_usart;05_iwdg;06_wwdg;07_btim;08_1_gtim_int;08_2_gtim_pwm;08_3_gtim_cap;08_4_gtim_cnt;09_1_atim_npwm;09_2_atim_oc;09_3_atim_cplm;09_4_atim_pwmin;10_tpad",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }

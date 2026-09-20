@@ -1,8 +1,8 @@
 /**
  * @file    usart.c
- * @brief   USART1 driver with newlib-nano _write redirection.
+ * @brief   USART1 driver: TX via newlib-nano _write, RX interrupt line reception.
  *
- * MSP content (clock/GPIO) is inlined into usart_init() instead of implementing HAL_UART_MspInit().
+ * MSP content (clock/GPIO/NVIC) is inlined into usart_init() instead of HAL_UART_MspInit().
  */
 
 #include "stm32f4xx_hal.h"
@@ -16,11 +16,16 @@
 
 UART_HandleTypeDef g_uart1_handle;
 
+static uint8_t          g_rx_byte;
+static uint8_t          g_rx_buf[USART_REC_LEN];
+static uint16_t         g_rx_len;
+static usart_rx_state_t g_rx_state;
+
 void usart_init(uint32_t baudrate)
 {
     GPIO_InitTypeDef gpio_init = {0};
 
-    /* ---- MSP begin: clock + GPIO ---- */
+    /* ---- MSP begin: clock + GPIO + NVIC ---- */
     __HAL_RCC_USART1_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -45,14 +50,75 @@ void usart_init(uint32_t baudrate)
     g_uart1_handle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
     g_uart1_handle.Init.OverSampling = UART_OVERSAMPLING_16;
     HAL_UART_Init(&g_uart1_handle);
+
+    HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
+    HAL_UART_Receive_IT(&g_uart1_handle, &g_rx_byte, 1);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        if ((g_rx_state == USART_RX_CR) && (g_rx_byte == '\n'))
+        {
+            g_rx_state = USART_RX_READY;
+        }
+        else if (g_rx_state != USART_RX_READY)
+        {
+            if (g_rx_byte == '\r')
+            {
+                g_rx_state = USART_RX_CR;
+            }
+            else
+            {
+                if (g_rx_state == USART_RX_CR)
+                {
+                    g_rx_state = USART_RX_IDLE;
+                }
+                if (g_rx_len < (USART_REC_LEN - 1U))
+                {
+                    g_rx_buf[g_rx_len++] = g_rx_byte;
+                }
+                else
+                {
+                    g_rx_len = 0;
+                }
+            }
+        }
+
+        HAL_UART_Receive_IT(&g_uart1_handle, &g_rx_byte, 1);
+    }
+}
+
+void USART1_IRQHandler(void)
+{
+    HAL_UART_IRQHandler(&g_uart1_handle);
+}
+
+usart_rx_state_t usart_rx_state(void)
+{
+    return g_rx_state;
+}
+
+uint16_t usart_rx_len(void)
+{
+    return g_rx_len;
+}
+
+const uint8_t *usart_rx_buf(void)
+{
+    return g_rx_buf;
+}
+
+void usart_rx_clear(void)
+{
+    g_rx_len   = 0;
+    g_rx_state = USART_RX_IDLE;
 }
 
 /**
  * @brief  newlib-nano stdout hook: send a buffer over USART1.
- * @param  file Unused file descriptor.
- * @param  ptr  Data buffer.
- * @param  len  Number of bytes.
- * @return Number of bytes written.
  */
 int _write(int file, char *ptr, int len)
 {

@@ -11,6 +11,12 @@
 #include "usart.h"
 #include "led.h"
 #include "key.h"
+#include "exti.h"
+#include "wdg.h"
+#include "btim.h"
+#include "gtim.h"
+#include "atim.h"
+#include "tpad.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);

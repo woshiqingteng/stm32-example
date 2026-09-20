@@ -1,6 +1,6 @@
 /**
  * @file    usart.h
- * @brief   USART1 interface.
+ * @brief   USART1 interface (TX via _write, RX line reception).
  */
 
 #ifndef BSP_USART_H
@@ -8,7 +8,28 @@
 
 #include <stdint.h>
 
-/** @brief  Initialise USART1 (PA9 TX / PA10 RX). @param baudrate Baud rate in bps. */
+#define USART_REC_LEN 200U
+
+typedef enum
+{
+    USART_RX_IDLE = 0, /*!< waiting for start */
+    USART_RX_CR,       /*!< '\r' seen, waiting for '\n' */
+    USART_RX_READY,    /*!< complete line in the buffer */
+} usart_rx_state_t;
+
+/** @brief  Initialise USART1 (PA9 TX / PA10 RX) and start line reception. */
 void usart_init(uint32_t baudrate);
+
+/** @brief  Current reception state. */
+usart_rx_state_t usart_rx_state(void);
+
+/** @brief  Number of bytes in the received line. */
+uint16_t usart_rx_len(void);
+
+/** @brief  Received line buffer. */
+const uint8_t *usart_rx_buf(void);
+
+/** @brief  Reset reception (ready for a new line). */
+void usart_rx_clear(void);
 
 #endif /* BSP_USART_H */

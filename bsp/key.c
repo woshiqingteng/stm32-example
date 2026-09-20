@@ -5,6 +5,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "key.h"
+#include "delay.h"
 
 typedef struct
 {
@@ -56,4 +57,51 @@ key_state_t key_read(key_id_t id)
     }
 
     return (level == GPIO_PIN_SET) ? KEY_PRESSED : KEY_RELEASED;
+}
+
+key_id_t key_scan(bool continuous)
+{
+    static bool key_up = true;
+    key_id_t id = KEY_NONE;
+    bool any;
+
+    if (continuous)
+    {
+        key_up = true;
+    }
+
+    if (key_up)
+    {
+        any = (key_read(KEY0) == KEY_PRESSED) || (key_read(KEY1) == KEY_PRESSED) ||
+              (key_read(KEY2) == KEY_PRESSED) || (key_read(KEY_WKUP) == KEY_PRESSED);
+        if (any)
+        {
+            delay_ms(10);
+            key_up = false;
+
+            if (key_read(KEY0) == KEY_PRESSED)
+            {
+                id = KEY0;
+            }
+            else if (key_read(KEY1) == KEY_PRESSED)
+            {
+                id = KEY1;
+            }
+            else if (key_read(KEY2) == KEY_PRESSED)
+            {
+                id = KEY2;
+            }
+            else if (key_read(KEY_WKUP) == KEY_PRESSED)
+            {
+                id = KEY_WKUP;
+            }
+        }
+    }
+    else if ((key_read(KEY0) == KEY_RELEASED) && (key_read(KEY1) == KEY_RELEASED) &&
+             (key_read(KEY2) == KEY_RELEASED) && (key_read(KEY_WKUP) == KEY_RELEASED))
+    {
+        key_up = true;
+    }
+
+    return id;
 }

@@ -1,0 +1,41 @@
+/**
+ * @file    main.c
+ * @brief   08_4_gtim_cnt: TIM2_CH1 (PA0) external pulse counter; KEY0 restarts.
+ */
+
+#include <stdio.h>
+#include "bsp.h"
+
+int main(void)
+{
+    uint32_t old_count = 0;
+    uint32_t blink = 0;
+
+    bsp_init();
+    gtim_timx_cnt_chy_init(0);
+    gtim_timx_cnt_chy_restart();
+
+    for (;;)
+    {
+        uint32_t count;
+
+        if (key_scan(false) == KEY0)
+        {
+            gtim_timx_cnt_chy_restart();
+        }
+
+        count = gtim_timx_cnt_chy_get_count();
+        if (count != old_count)
+        {
+            printf("CNT:%lu\r\n", (unsigned long)count);
+            old_count = count;
+        }
+
+        if ((++blink % 20U) == 0U)
+        {
+            led_toggle(LED0);
+        }
+
+        delay_ms(10);
+    }
+}
