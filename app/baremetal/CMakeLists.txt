@@ -1,5 +1,5 @@
 # Baremetal app tree: select the exposed modules here; cmake/func/flow.cmake
-# only compiles the assembled source list.
+# only compiles the assembled source list. OS is baremetal, so no OS flag here.
 
 include(${CMAKE_SOURCE_DIR}/cmake/func/flow.cmake)
 
@@ -16,8 +16,7 @@ function(app_baremetal_add NAME)
 
     flow_compile(app_baremetal_${NAME}
         SOURCES ${_srcs}
-        OUTDIR  ${CMAKE_BINARY_DIR}/baremetal/${NAME}
-        DEFS    BSP_SUPPORT_OS=${BSP_SUPPORT_OS})
+        OUTDIR  ${CMAKE_BINARY_DIR}/baremetal/${NAME})
 endfunction()
 
 foreach(_app ${APPS})
