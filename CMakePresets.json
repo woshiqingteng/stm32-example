@@ -4,13 +4,13 @@
   "configurePresets": [
     {
       "name": "debug",
-      "displayName": "gcc / openedv_stm32f429 / baremetal / debug",
+      "displayName": "gcc / openedv_stm32f4 / baremetal / debug",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/debug",
       "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
       "cacheVariables": {
         "TOOLCHAIN": "gcc",
-        "BOARD": "openedv_stm32f429",
+        "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
         "APPS": "01_led",
         "CMAKE_BUILD_TYPE": "Debug"
@@ -18,13 +18,13 @@
     },
     {
       "name": "release",
-      "displayName": "gcc / openedv_stm32f429 / baremetal / release",
+      "displayName": "gcc / openedv_stm32f4 / baremetal / release",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/release",
       "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
       "cacheVariables": {
         "TOOLCHAIN": "gcc",
-        "BOARD": "openedv_stm32f429",
+        "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
         "APPS": "01_led",
         "CMAKE_BUILD_TYPE": "Release"

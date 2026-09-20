@@ -85,16 +85,17 @@ function(flow_app_baremetal NAME)
     set(_tgt "app_${OS}_${NAME}")
     add_executable(${_tgt} ${_srcs})
     target_include_directories(${_tgt} PRIVATE
-        "${TARGET_DIR}" "${BSP_DIR}" "${CMSIS_CORE_INCLUDE}" "${HAL_INC}")
+        "${STM32_TARGET_DIR}" "${BSP_DIR}" "${CMSIS_CORE_INCLUDE}" "${HAL_INC}")
     target_compile_definitions(${_tgt} PRIVATE
-        "USE_HAL_DRIVER" "${DEVICE_DEFINE}" "BSP_SUPPORT_OS=${BSP_SUPPORT_OS}")
+        "USE_HAL_DRIVER" "${STM32_DEVICE_MACRO}" "HSE_VALUE=${STM32_HSE_VALUE}"
+        "BSP_SUPPORT_OS=${BSP_SUPPORT_OS}")
 
     if(HAL_SOURCES)
         set_source_files_properties(${HAL_SOURCES} PROPERTIES COMPILE_OPTIONS "-w")
     endif()
 
     target_link_options(${_tgt} PRIVATE
-        -T${TARGET_LD_SCRIPT}
+        -T${STM32_LINKER_SCRIPT}
         -Wl,-Map=$<TARGET_FILE_DIR:${_tgt}>/${_tgt}.map)
     set_target_properties(${_tgt} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OS}/${NAME}"
