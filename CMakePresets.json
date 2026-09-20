@@ -12,6 +12,7 @@
         "TOOLCHAIN": "gcc",
         "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
+        "APPS": "01_led",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -25,6 +26,7 @@
         "TOOLCHAIN": "gcc",
         "BOARD": "openedv_stm32f4",
         "OS": "baremetal",
+        "APPS": "01_led",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }
