@@ -9,7 +9,6 @@ set(MCU_GEN_FULL_ARTIFACT OFF CACHE BOOL "Also generate .hex and .lst")
 include(${CMAKE_CURRENT_LIST_DIR}/board/${BOARD}.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cpu/${CPU}.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/func/flow.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/func/app.cmake)
 
 if(NOT CMAKE_OBJCOPY)
     find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy REQUIRED)
