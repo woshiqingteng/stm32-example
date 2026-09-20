@@ -1,7 +1,7 @@
 # Baremetal app tree: declare common modules here; link/flash mechanics come
-# from cmake/func/firmware.cmake.
+# from cmake/func/flow.cmake.
 
-include(${CMAKE_SOURCE_DIR}/cmake/func/firmware.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/func/flow.cmake)
 
 set(BAREMETAL_COMMON_HAL HAL_CORE HAL_UART)
 set(BAREMETAL_COMMON_BSP BSP_CORE)
