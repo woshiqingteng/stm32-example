@@ -24,6 +24,12 @@ macro(app_begin NAME)
     set(APP_INCLUDES "")
     set(APP_SYSTEM_INCLUDES "")
     set(APP_DEFINES "")
+    set(_CMSIS_ADDED FALSE)
+    set(_TARGET_ADDED FALSE)
+    set(_HAL_CORE_ADDED FALSE)
+    set(_HAL_MODULES "")
+    set(_BSP_CORE_ADDED FALSE)
+    set(_BSP_TILES "")
 endmacro()
 
 # Create app_<os>_<name> from the accumulated sources and emit the .bin.

@@ -4,10 +4,10 @@
  */
 
 #include <stdio.h>
-#include "bsp/bsp.h"
-#include "bsp/sys.h"
-#include "bsp/delay.h"
-#include "bsp/led.h"
+#include "bsp.h"
+#include "sys.h"
+#include "delay.h"
+#include "led.h"
 
 int main(void)
 {

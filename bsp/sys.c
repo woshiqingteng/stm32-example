@@ -6,7 +6,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "bsp/sys.h"
+#include "sys.h"
 
 uint32_t sys_clk_get_hz(void)
 {
