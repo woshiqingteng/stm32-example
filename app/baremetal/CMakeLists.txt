@@ -29,7 +29,7 @@ function(app_baremetal_add NAME)
         list(APPEND _srcs ${${_m}})
     endforeach()
 
-    flow_compile(app_baremetal_${NAME} SOURCES ${_srcs})
+    flow_firmware(app_baremetal_${NAME} SOURCES ${_srcs})
 endfunction()
 
 foreach(_app ${APPS})
