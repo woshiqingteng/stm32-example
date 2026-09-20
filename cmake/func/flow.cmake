@@ -64,8 +64,8 @@ endif()
 
 # Complete application flow: resolve module tokens to sources, create the target,
 # link it, and wire artifacts + flashing.
-# app_baremetal_add(NAME SOURCES <file>... [MODULES <token>...])
-macro(app_baremetal_add NAME)
+# flow_app_baremetal(NAME SOURCES <file>... [MODULES <token>...])
+function(flow_app_baremetal NAME)
     set(_sources "")
     set(_modules "")
     set(_kw "")
@@ -99,4 +99,4 @@ macro(app_baremetal_add NAME)
 
     flow_add_artifacts(${_tgt})
     flow_add_flash(${NAME} $<TARGET_FILE_DIR:${_tgt}>/${_tgt}.bin ${_tgt})
-endmacro()
+endfunction()
