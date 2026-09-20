@@ -1,37 +1,26 @@
-# Generic firmware target: link -> artifacts -> flash. App/OS agnostic.
+# Generic compile/link/artifact/flash for one firmware target.
+# Module/source selection is done by the caller; this file only compiles.
 
 find_program(OPENOCD_EXECUTABLE openocd)
 add_custom_target(flash)
 
-# add_firmware(TARGET [OUTDIR <dir>] [SOURCES <file>...] [MODULES <token>...] [DEFS <def>...])
-#   SOURCES default to main.c in the caller directory;
-#   each MODULE token resolves to its source list (${<token>}).
-function(add_firmware TARGET)
-    set(_outdir "${CMAKE_BINARY_DIR}/${TARGET}")
+# flow_compile(TARGET SOURCES <file>... [OUTDIR <dir>] [DEFS <def>...])
+function(flow_compile TARGET)
     set(_srcs "")
-    set(_mods "")
+    set(_outdir "${CMAKE_BINARY_DIR}/${TARGET}")
     set(_defs "")
     set(_kw "")
 
     foreach(_a ${ARGN})
-        if(_a STREQUAL "OUTDIR" OR _a STREQUAL "SOURCES" OR _a STREQUAL "MODULES" OR _a STREQUAL "DEFS")
+        if(_a STREQUAL "SOURCES" OR _a STREQUAL "OUTDIR" OR _a STREQUAL "DEFS")
             set(_kw "${_a}")
+        elseif(_kw STREQUAL "SOURCES")
+            list(APPEND _srcs "${_a}")
         elseif(_kw STREQUAL "OUTDIR")
             set(_outdir "${_a}")
-        elseif(_kw STREQUAL "SOURCES")
-            list(APPEND _srcs "${CMAKE_CURRENT_SOURCE_DIR}/${_a}")
-        elseif(_kw STREQUAL "MODULES")
-            list(APPEND _mods "${_a}")
         elseif(_kw STREQUAL "DEFS")
             list(APPEND _defs "${_a}")
         endif()
-    endforeach()
-
-    if(NOT _srcs)
-        set(_srcs "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
-    endif()
-    foreach(_m ${_mods})
-        list(APPEND _srcs ${${_m}})
     endforeach()
 
     add_executable(${TARGET} ${_srcs})
