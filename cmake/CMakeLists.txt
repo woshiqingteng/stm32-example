@@ -1,12 +1,9 @@
-# Board / CPU selection happens in the toolchain file (global scope).
-# This directory only exposes global cache values used by the layers.
+# Board selection (the board fixes the CPU), CPU flags, then the toolchain.
+# The preset still points CMAKE_TOOLCHAIN_FILE at this directory's toolchain file.
 
-if(NOT TOOLCHAIN STREQUAL "gcc")
-    message(FATAL_ERROR "Unsupported TOOLCHAIN: ${TOOLCHAIN}")
-endif()
-
-find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy)
-find_program(CMAKE_OBJDUMP arm-none-eabi-objdump)
+include("${CMAKE_CURRENT_LIST_DIR}/board/${BOARD}.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cpu/${CPU}.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/toolchain/arm_${TOOLCHAIN}.cmake")
 
 if(OS STREQUAL "freertos")
     set(BSP_SUPPORT_OS 1 CACHE INTERNAL "" FORCE)
