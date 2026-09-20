@@ -1,5 +1,5 @@
-# arm-none-eabi-gcc toolchain file (pre-project) + toolchain tools.
-# Board/CPU selection lives in cmake/CMakeLists.txt.
+# arm-none-eabi-gcc toolchain file (pre-project). Board/CPU selection is in
+# cmake/CMakeLists.txt; this file also provides the toolchain binaries.
 
 if(NOT CMAKE_C_COMPILER)
     set(CMAKE_SYSTEM_NAME Generic)
@@ -14,5 +14,5 @@ if(NOT CMAKE_C_COMPILER)
     set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 endif()
 
-find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy)
-find_program(CMAKE_OBJDUMP arm-none-eabi-objdump)
+set(CMAKE_OBJCOPY arm-none-eabi-objcopy CACHE FILEPATH "" FORCE)
+set(CMAKE_OBJDUMP arm-none-eabi-objdump CACHE FILEPATH "" FORCE)
