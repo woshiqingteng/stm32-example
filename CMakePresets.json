@@ -3,29 +3,52 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
   "configurePresets": [
     {
-      "name": "dev",
-      "displayName": "gcc / openedv_stm32f4 / baremetal",
+      "name": "debug",
+      "displayName": "gcc / openedv_stm32f4 / baremetal / debug",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/dev",
+      "binaryDir": "${sourceDir}/build/debug",
       "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
       "cacheVariables": {
         "TOOLCHAIN": "gcc",
         "BOARD": "openedv_stm32f4",
-        "OS": "baremetal"
+        "OS": "baremetal",
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "dev-freertos",
-      "inherits": "dev",
-      "displayName": "gcc / openedv_stm32f4 / freertos",
-      "binaryDir": "${sourceDir}/build/dev-freertos",
+      "name": "debug-freertos",
+      "inherits": "debug",
+      "displayName": "gcc / openedv_stm32f4 / freertos / debug",
+      "binaryDir": "${sourceDir}/build/debug-freertos",
+      "cacheVariables": {
+        "OS": "freertos"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "gcc / openedv_stm32f4 / baremetal / release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
+      "cacheVariables": {
+        "TOOLCHAIN": "gcc",
+        "BOARD": "openedv_stm32f4",
+        "OS": "baremetal",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "release-freertos",
+      "inherits": "release",
+      "displayName": "gcc / openedv_stm32f4 / freertos / release",
+      "binaryDir": "${sourceDir}/build/release-freertos",
       "cacheVariables": {
         "OS": "freertos"
       }
     }
   ],
   "buildPresets": [
-    { "name": "dev", "configurePreset": "dev" },
-    { "name": "dev-freertos", "configurePreset": "dev-freertos" }
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "release", "configurePreset": "release" }
   ]
 }
