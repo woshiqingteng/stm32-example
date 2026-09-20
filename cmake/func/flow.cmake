@@ -2,10 +2,6 @@
 
 find_program(OPENOCD_EXECUTABLE openocd)
 
-set(OPENOCD_INTERFACE  "interface/cmsis-dap.cfg" CACHE STRING "openocd interface config")
-set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg"     CACHE STRING "openocd target config")
-set(FLASH_ADDRESS      "0x08000000"              CACHE STRING "flash base address")
-
 # Inline listing helper for MCU_GEN_FULL_ARTIFACT (.lst), no shell redirection.
 set(FLOW_GEN_LST "${CMAKE_BINARY_DIR}/gen_lst.cmake")
 file(WRITE "${FLOW_GEN_LST}"
@@ -64,8 +60,8 @@ function(flow_app_baremetal NAME)
     endif()
 
     add_custom_target(flash_${NAME}
-        COMMAND ${OPENOCD_EXECUTABLE} -f ${OPENOCD_INTERFACE} -f ${OPENOCD_TARGET_CFG}
-                -c "program ${_dir}/${_tgt}.bin ${FLASH_ADDRESS} verify reset exit"
+        COMMAND ${OPENOCD_EXECUTABLE} -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg
+                -c "program ${_dir}/${_tgt}.bin 0x08000000 verify reset exit"
         DEPENDS ${_tgt}
         VERBATIM)
     add_dependencies(flash flash_${NAME})
