@@ -17,5 +17,12 @@ else()
 endif()
 
 add_compile_options(${CPU_FLAGS} -std=gnu11 -ffunction-sections -fdata-sections -Wall -Wextra)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-Og -g3 -DDEBUG)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(-O2 -DNDEBUG)
+endif()
+
 add_link_options(${CPU_FLAGS} -Wl,--gc-sections -Wl,--no-warn-rwx-segments
                  -specs=nano.specs -specs=nosys.specs -Wl,--print-memory-usage)
