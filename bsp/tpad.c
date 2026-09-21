@@ -36,8 +36,8 @@ static void tpad_reset(void)
     HAL_GPIO_WritePin(TPAD_GPIO_PORT, TPAD_GPIO_PIN, GPIO_PIN_RESET);
     delay_ms(5);
 
-    TIM2->SR  = 0;
-    TIM2->CNT = 0;
+    __HAL_TIM_CLEAR_FLAG(&g_tpad_handle, TIM_FLAG_UPDATE | TIM_FLAG_CC1);
+    __HAL_TIM_SET_COUNTER(&g_tpad_handle, 0U);
 
     gpio_init.Mode      = GPIO_MODE_AF_PP;
     gpio_init.Pull      = GPIO_NOPULL;

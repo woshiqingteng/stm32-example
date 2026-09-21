@@ -145,10 +145,10 @@ static void rtc_clock_config(void)
     RCC_PeriphCLKInitTypeDef pclk = {0};
     uint16_t                 retry = RTC_LSE_RETRY;
 
-    /* Start LSE and wait for it to become ready. */
-    RCC->BDCR |= RCC_BDCR_LSEON;
+    /* Start LSE and probe for it to decide the RTC clock source. */
+    __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
 
-    while ((retry > 0U) && ((RCC->BDCR & RCC_BDCR_LSERDY) == 0U))
+    while ((retry > 0U) && (__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY) == RESET))
     {
         retry--;
         delay_ms(RTC_LSE_POLL_MS);
@@ -158,7 +158,7 @@ static void rtc_clock_config(void)
 
     if (retry == 0U)
     {
-        RCC->BDCR &= ~RCC_BDCR_LSEON;
+        __HAL_RCC_LSE_CONFIG(RCC_LSE_OFF);
 
         osc.OscillatorType = RCC_OSCILLATORTYPE_LSI;
         osc.LSIState       = RCC_LSI_ON;
@@ -172,11 +172,8 @@ static void rtc_clock_config(void)
     }
     else
     {
-        osc.OscillatorType = RCC_OSCILLATORTYPE_LSE;
-        osc.LSEState       = RCC_LSE_ON;
-        osc.PLL.PLLState   = RCC_PLL_NONE;
-        (void)HAL_RCC_OscConfig(&osc);
-
+        /* LSE is already enabled and ready above, so no HAL_RCC_OscConfig
+         * (which would repeat the same LSE configuration) is required. */
         pclk.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
         (void)HAL_RCCEx_PeriphCLKConfig(&pclk);
 

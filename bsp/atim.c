@@ -24,6 +24,7 @@
 #define ATIM_OC_COMPARE_CH2          500U
 #define ATIM_OC_COMPARE_CH3          750U
 #define ATIM_OC_COMPARE_CH4          1000U
+#define ATIM_OC_GPIO_PINS            (GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9)
 
 #define ATIM_PWMIN_ARR               0xFFFFU
 #define ATIM_PWMIN_PSC_DEFAULT       0U
@@ -40,6 +41,13 @@ static atim_isr_hook_t g_atim_cc_hook;
 
 static void atim_npwm_isr(void);
 static void atim_pwmin_process(void);
+
+/* F4 HAL has no public setter for the repetition counter (RCR), so it is
+ * written directly. */
+static void atim_set_repetition(uint16_t n)
+{
+    TIM8->RCR = n;
+}
 
 /* ===================== TIM8 NPWM (PC6 / CH1) ===================== */
 
@@ -116,13 +124,13 @@ static void atim_npwm_isr(void)
 
     if (npwm != 0U)
     {
-        TIM8->RCR = (uint16_t)(npwm - 1U);
+        atim_set_repetition((uint16_t)(npwm - 1U));
         HAL_TIM_GenerateEvent(&g_atim_npwm_handle, TIM_EVENTSOURCE_UPDATE);
         __HAL_TIM_ENABLE(&g_atim_npwm_handle);
     }
     else
     {
-        TIM8->CR1 &= ~TIM_CR1_CEN;
+        __HAL_TIM_DISABLE(&g_atim_npwm_handle);
     }
 
     __HAL_TIM_CLEAR_IT(&g_atim_npwm_handle, TIM_IT_UPDATE);
@@ -140,15 +148,12 @@ void atim_timx_comp_pwm_init(uint16_t arr, uint16_t psc)
     __HAL_RCC_TIM8_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
+    gpio_init.Pin       = ATIM_OC_GPIO_PINS;
     gpio_init.Mode      = GPIO_MODE_AF_PP;
     gpio_init.Pull      = GPIO_NOPULL;
     gpio_init.Speed     = GPIO_SPEED_FREQ_HIGH;
     gpio_init.Alternate = GPIO_AF3_TIM8;
-    for (uint16_t pin = GPIO_PIN_6; pin <= GPIO_PIN_9; pin = (uint16_t)(pin << 1))
-    {
-        gpio_init.Pin = pin;
-        HAL_GPIO_Init(GPIOC, &gpio_init);
-    }
+    HAL_GPIO_Init(GPIOC, &gpio_init);
 
     g_atim_comp_handle.Instance               = TIM8;
     g_atim_comp_handle.Init.Prescaler         = psc;
@@ -431,7 +436,7 @@ static void atim_pwmin_process(void)
                 g_atim_pwmin_cval++;
             }
 
-            TIM8->CR1 &= ~TIM_CR1_CEN;
+            __HAL_TIM_DISABLE(&g_atim_pwmin_handle);
             __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
             __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC2);
             __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_UPDATE);

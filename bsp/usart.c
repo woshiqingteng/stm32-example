@@ -21,6 +21,8 @@
 #define USART1_IRQ_PREEMP_PRIORITY  3U
 #define USART1_IRQ_SUB_PRIORITY     3U
 
+#define USART_TX_TIMEOUT_MS         1000U
+
 UART_HandleTypeDef g_uart1_handle;
 
 static usart_rx_byte_cb_t g_rx_byte_cb;
@@ -144,21 +146,14 @@ void usart_rx_clear(void)
  */
 int _write(int file, char *ptr, int len)
 {
-    int i;
-
     (void)file;
 
-    for (i = 0; i < len; i++)
+    if (len <= 0)
     {
-        while ((USART1->SR & USART_SR_TXE) == 0U)
-        {
-        }
-        USART1->DR = (uint16_t)(uint8_t)ptr[i];
+        return 0;
     }
 
-    while ((USART1->SR & USART_SR_TC) == 0U)
-    {
-    }
+    (void)HAL_UART_Transmit(&g_uart1_handle, (uint8_t *)ptr, (uint16_t)len, USART_TX_TIMEOUT_MS);
 
     return len;
 }

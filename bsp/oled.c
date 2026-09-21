@@ -99,7 +99,6 @@ typedef enum
 #define OLED_ASCII_FIRST        0x20U
 #define OLED_ASCII_LAST         0x7EU
 #define OLED_FONT_ROWS          8U
-#define OLED_FONT_MSB           0x80U
 #define OLED_8X16_BYTES_PER_COL 2U
 #define OLED_DECIMAL_BASE       10U
 
@@ -177,9 +176,10 @@ static uint8_t oled_char_width(oled_font_t size)
     return (size == OLED_FONT_6X8) ? OLED_6X8_WIDTH : OLED_8X16_WIDTH;
 }
 
-static uint8_t oled_font_byte_bit(uint8_t byte, uint8_t row)
+/* Font bytes are MSB-first: row 0 is bit 7. */
+static uint8_t glyph_bit(uint8_t byte, uint8_t row)
 {
-    return (uint8_t)((byte & (uint8_t)(OLED_FONT_MSB >> row)) ? 1U : 0U);
+    return (uint8_t)((byte >> (7U - row)) & 1U);
 }
 
 static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
@@ -204,7 +204,7 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
             for (row = 0; row < OLED_FONT_ROWS; row++)
             {
                 oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
-                                oled_font_byte_bit(font_byte, row));
+                                glyph_bit(font_byte, row));
             }
         }
     }
@@ -216,14 +216,14 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
             for (row = 0; row < OLED_FONT_ROWS; row++)
             {
                 oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
-                                oled_font_byte_bit(font_byte, row));
+                                glyph_bit(font_byte, row));
             }
 
             font_byte = oled_asc2_1608[idx][(OLED_8X16_BYTES_PER_COL * col) + 1U];
             for (row = 0; row < OLED_FONT_ROWS; row++)
             {
                 oled_draw_point((uint8_t)(x + col), (uint8_t)(y + OLED_FONT_ROWS + row),
-                                oled_font_byte_bit(font_byte, row));
+                                glyph_bit(font_byte, row));
             }
         }
     }

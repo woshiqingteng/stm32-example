@@ -78,12 +78,9 @@
 #define LTDC_IDX_SHIFT_1    1U
 #define LTDC_IDX_SHIFT_2    2U
 
-/* Layer defaults. */
+/* Layer defaults. Blending factors are passed as HAL LTDC_BLENDING_FACTORx_* enums. */
 #define LTDC_LAYER_ALPHA            255U
 #define LTDC_LAYER_ALPHA0           0U
-#define LTDC_BLENDING_FACTOR1       6U
-#define LTDC_BLENDING_FACTOR2       7U
-#define LTDC_BLENDING_FACTOR1_SHIFT 8U
 
 /* Byte lanes of a packed RGB colour. */
 #define LTDC_COLOR_RED_MASK    0x00FF0000U
@@ -92,9 +89,8 @@
 #define LTDC_COLOR_RED_SHIFT   16U
 #define LTDC_COLOR_GREEN_SHIFT 8U
 
-/* DMA2D helpers. */
-#define DMA2D_TIMEOUT_MAX   0x1FFFFFU
-#define DMA2D_NLR_PL_SHIFT  16U
+/* DMA2D transfer poll timeout (ms). */
+#define LTDC_DMA2D_TIMEOUT  0x1FFFFFU
 
 /** @brief  Panel orientation: 0 swaps the native raster, 1 keeps it. */
 typedef enum
@@ -145,7 +141,7 @@ void ltdc_clear(uint32_t color);
 uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr);
 void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
 void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
-                                 uint8_t alpha0, uint8_t bfac1, uint8_t bfac2, uint32_t bkcolor);
+                                 uint8_t alpha0, uint32_t bfac1, uint32_t bfac2, uint32_t bkcolor);
 uint16_t ltdc_panelid_read(void);
 void ltdc_init(void);
 

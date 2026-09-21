@@ -137,7 +137,17 @@ gtim_cap_state_t gtim_timx_cap_chy_state(void)
 
 uint32_t gtim_timx_cap_chy_value(void)
 {
-    return (g_gtim_cap_overflows * GTIM_TIMER_MODULUS) + g_gtim_cap_value;
+    uint32_t value;
+    uint32_t primask = __get_PRIMASK();
+
+    __disable_irq();
+    value = (g_gtim_cap_overflows * GTIM_TIMER_MODULUS) + g_gtim_cap_value;
+    if (primask == 0U)
+    {
+        __enable_irq();
+    }
+
+    return value;
 }
 
 void gtim_timx_cap_chy_clear(void)
@@ -231,7 +241,17 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
 
 uint32_t gtim_timx_cnt_chy_get_count(void)
 {
-    return (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
+    uint32_t count;
+    uint32_t primask = __get_PRIMASK();
+
+    __disable_irq();
+    count = (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
+    if (primask == 0U)
+    {
+        __enable_irq();
+    }
+
+    return count;
 }
 
 void gtim_timx_cnt_chy_restart(void)

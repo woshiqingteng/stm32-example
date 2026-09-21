@@ -46,6 +46,7 @@ static ADC_HandleTypeDef g_adc_scan_handle;
 static DMA_HandleTypeDef g_adc_dma_stream;
 static adc_dma_mode_t    g_adc_dma_mode = ADC_DMA_MODE_NONE;
 static adc_dma_cb_t      g_adc_dma_hook;
+static uint16_t         *g_adc_dma_buf;
 
 static void adc_gpio_config(uint32_t pins)
 {
@@ -132,7 +133,6 @@ uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times)
 static void adc_dma_arm(uint16_t len)
 {
     ADC_HandleTypeDef *hadc;
-    uint32_t flag;
 
     if (g_adc_dma_mode == ADC_DMA_MODE_NONE)
     {
@@ -140,24 +140,19 @@ static void adc_dma_arm(uint16_t len)
     }
 
     hadc = (g_adc_dma_mode == ADC_DMA_MODE_SCAN) ? &g_adc_scan_handle : &g_adc_dma_handle;
-    flag = __HAL_DMA_GET_TC_FLAG_INDEX(&g_adc_dma_stream);
 
+    /* Stop the ADC so HAL_ADC_Start_DMA re-enables it and restarts the scan
+     * sequence from rank 1 (matches the previous arm behaviour). */
     __HAL_ADC_DISABLE(hadc);
-    __HAL_DMA_DISABLE(&g_adc_dma_stream);
-    __HAL_DMA_CLEAR_FLAG(&g_adc_dma_stream, flag);
-
-    g_adc_dma_stream.Instance->NDTR = len;
-    __HAL_DMA_ENABLE(&g_adc_dma_stream);
-
-    SET_BIT(hadc->Instance->CR2, ADC_CR2_DMA);
-    __HAL_ADC_ENABLE(hadc);
-    SET_BIT(hadc->Instance->CR2, ADC_CR2_SWSTART);
+    (void)HAL_ADC_Start_DMA(hadc, (uint32_t *)g_adc_dma_buf, (uint32_t)len);
 }
 
 static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
 {
     ADC_HandleTypeDef *hadc = (mode == ADC_DMA_MODE_SCAN) ? &g_adc_scan_handle : &g_adc_dma_handle;
     uint32_t i;
+
+    (void)len; /* the transfer length is supplied by adc_dma_arm()/HAL_ADC_Start_DMA(). */
 
     /* ---- MSP begin: clocks + GPIO + NVIC ---- */
     __HAL_RCC_ADC1_CLK_ENABLE();
@@ -180,7 +175,8 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
     g_adc_dma_stream.Init.Priority            = DMA_PRIORITY_MEDIUM;
     HAL_DMA_Init(&g_adc_dma_stream);
 
-    hadc->DMA_Handle = &g_adc_dma_stream;
+    g_adc_dma_stream.Parent = hadc;
+    hadc->DMA_Handle        = &g_adc_dma_stream;
 
     if (mode == ADC_DMA_MODE_SCAN)
     {
@@ -197,9 +193,7 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
         adc_channel_config(hadc, ADC_CH5, ADC_RANK_FIRST);
     }
 
-    HAL_DMA_Start(&g_adc_dma_stream, (uint32_t)&ADC_INSTANCE->DR, (uint32_t)buf, (uint32_t)len);
-    __HAL_DMA_ENABLE_IT(&g_adc_dma_stream, DMA_IT_TC);
-
+    g_adc_dma_buf  = buf;
     g_adc_dma_mode = mode;
 }
 
@@ -230,15 +224,15 @@ void adc_register_dma_hook(adc_dma_cb_t cb)
 
 void DMA2_Stream4_IRQHandler(void)
 {
-    uint32_t flag = __HAL_DMA_GET_TC_FLAG_INDEX(&g_adc_dma_stream);
+    HAL_DMA_IRQHandler(&g_adc_dma_stream);
+}
 
-    if (__HAL_DMA_GET_FLAG(&g_adc_dma_stream, flag) != RESET)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    (void)hadc;
+
+    if (g_adc_dma_hook != 0)
     {
-        __HAL_DMA_CLEAR_FLAG(&g_adc_dma_stream, flag);
-
-        if (g_adc_dma_hook != 0)
-        {
-            g_adc_dma_hook();
-        }
+        g_adc_dma_hook();
     }
 }

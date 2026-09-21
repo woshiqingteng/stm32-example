@@ -22,6 +22,7 @@ set(HAL_SRC_RTC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_rtc.c
 set(HAL_SRC_RNG     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_rng.c CACHE INTERNAL "")
 set(HAL_SRC_LTDC    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_ltdc.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_ltdc_ex.c CACHE INTERNAL "")
+set(HAL_SRC_DMA2D   ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dma2d.c CACHE INTERNAL "")
 set(HAL_SRC_SRAM    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sram.c CACHE INTERNAL "")
 set(HAL_SRC_SDRAM   ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sdram.c CACHE INTERNAL "")
 set(HAL_SRC_FMC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_fmc.c CACHE INTERNAL "")

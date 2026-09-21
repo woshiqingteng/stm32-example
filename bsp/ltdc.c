@@ -118,13 +118,28 @@ uint32_t ltdc_read_point(uint16_t x, uint16_t y)
 #endif
 }
 
+/* HAL_DMA2D R2M expects an ARGB8888 colour value and converts it to the output
+ * format internally. Callers pass packed RGB565 colours, so expand first to
+ * keep the same output bytes as the previous direct OCOLR write. */
+static uint32_t ltdc_expand_color(uint32_t color)
+{
+#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB565
+    uint32_t r = (color >> 11) & 0x1FU;
+    uint32_t g = (color >> 5) & 0x3FU;
+    uint32_t b = color & 0x1FU;
+
+    return (r << 19) | (g << 10) | (b << 3);
+#else
+    return color;
+#endif
+}
+
 void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
 {
     uint32_t psx;
     uint32_t psy;
     uint32_t pex;
     uint32_t pey;
-    uint32_t timeout = 0;
     uint16_t offline;
     uint32_t addr;
 
@@ -158,27 +173,16 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
             lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
 
     __HAL_RCC_DMA2D_CLK_ENABLE();
-    DMA2D->IFCR = DMA2D_FLAG_TC | DMA2D_FLAG_TE | DMA2D_FLAG_TW |
-                  DMA2D_FLAG_CAE | DMA2D_FLAG_CTC | DMA2D_FLAG_CE;
-    DMA2D->CR &= ~DMA2D_CR_START;
-    DMA2D->CR = DMA2D_R2M;
-    DMA2D->OPFCCR = LTDC_PIXFORMAT;
-    DMA2D->OOR = offline;
-    DMA2D->OMAR = addr;
-    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << DMA2D_NLR_PL_SHIFT);
-    DMA2D->OCOLR = color;
-    DMA2D->CR |= DMA2D_CR_START;
 
-    while ((DMA2D->ISR & DMA2D_FLAG_TC) == 0U)
-    {
-        timeout++;
-        if (timeout > DMA2D_TIMEOUT_MAX)
-        {
-            break;
-        }
-    }
+    g_dma2d_handle.Instance          = DMA2D;
+    g_dma2d_handle.Init.Mode         = DMA2D_R2M;
+    g_dma2d_handle.Init.ColorMode    = LTDC_PIXFORMAT;
+    g_dma2d_handle.Init.OutputOffset = offline;
+    (void)HAL_DMA2D_Init(&g_dma2d_handle);
 
-    DMA2D->IFCR |= DMA2D_FLAG_TC;
+    (void)HAL_DMA2D_Start(&g_dma2d_handle, ltdc_expand_color(color), addr,
+                          (pex - psx + 1U), (pey - psy + 1U));
+    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT);
 }
 
 void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color)
@@ -187,7 +191,6 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
     uint32_t psy;
     uint32_t pex;
     uint32_t pey;
-    uint32_t timeout = 0;
     uint16_t offline;
     uint32_t addr;
 
@@ -211,26 +214,23 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
             lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
 
     __HAL_RCC_DMA2D_CLK_ENABLE();
-    DMA2D->CR = DMA2D_M2M;
-    DMA2D->FGPFCCR = LTDC_PIXFORMAT;
-    DMA2D->FGOR = 0U;
-    DMA2D->OOR = offline;
-    DMA2D->CR &= ~DMA2D_CR_START;
-    DMA2D->FGMAR = (uint32_t)color;
-    DMA2D->OMAR = addr;
-    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << DMA2D_NLR_PL_SHIFT);
-    DMA2D->CR |= DMA2D_CR_START;
 
-    while ((DMA2D->ISR & DMA2D_FLAG_TC) == 0U)
-    {
-        timeout++;
-        if (timeout > DMA2D_TIMEOUT_MAX)
-        {
-            break;
-        }
-    }
+    g_dma2d_handle.Instance          = DMA2D;
+    g_dma2d_handle.Init.Mode         = DMA2D_M2M;
+    g_dma2d_handle.Init.ColorMode    = LTDC_PIXFORMAT;
+    g_dma2d_handle.Init.OutputOffset = offline;
+    (void)HAL_DMA2D_Init(&g_dma2d_handle);
 
-    DMA2D->IFCR |= DMA2D_FLAG_TC;
+    /* Foreground layer describes the source rectangle (no row stride offset). */
+    g_dma2d_handle.LayerCfg[DMA2D_FOREGROUND_LAYER].InputColorMode = LTDC_PIXFORMAT;
+    g_dma2d_handle.LayerCfg[DMA2D_FOREGROUND_LAYER].InputOffset    = 0U;
+    g_dma2d_handle.LayerCfg[DMA2D_FOREGROUND_LAYER].AlphaMode      = DMA2D_NO_MODIF_ALPHA;
+    g_dma2d_handle.LayerCfg[DMA2D_FOREGROUND_LAYER].InputAlpha     = 0U;
+    (void)HAL_DMA2D_ConfigLayer(&g_dma2d_handle, DMA2D_FOREGROUND_LAYER);
+
+    (void)HAL_DMA2D_Start(&g_dma2d_handle, (uint32_t)color, addr,
+                          (pex - psx + 1U), (pey - psy + 1U));
+    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT);
 }
 
 void ltdc_clear(uint32_t color)
@@ -262,7 +262,7 @@ void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uin
 }
 
 void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
-                                 uint8_t alpha0, uint8_t bfac1, uint8_t bfac2, uint32_t bkcolor)
+                                 uint8_t alpha0, uint32_t bfac1, uint32_t bfac2, uint32_t bkcolor)
 {
     LTDC_LayerCfgTypeDef playercfg = {0};
 
@@ -273,8 +273,8 @@ void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t 
     playercfg.PixelFormat = pixformat;
     playercfg.Alpha = alpha;
     playercfg.Alpha0 = alpha0;
-    playercfg.BlendingFactor1 = (uint32_t)bfac1 << LTDC_BLENDING_FACTOR1_SHIFT;
-    playercfg.BlendingFactor2 = (uint32_t)bfac2;
+    playercfg.BlendingFactor1 = bfac1;
+    playercfg.BlendingFactor2 = bfac2;
     playercfg.FBStartAdress = bufaddr;
     playercfg.ImageWidth = lcdltdc.pwidth;
     playercfg.ImageHeight = lcdltdc.pheight;
@@ -410,7 +410,8 @@ void ltdc_init(void)
 
     ltdc_layer_parameter_config(LTDC_ACTIVE_LAYER_0, (uint32_t)g_ltdc_framebuf[0], LTDC_PIXFORMAT,
                                 LTDC_LAYER_ALPHA, LTDC_LAYER_ALPHA0,
-                                LTDC_BLENDING_FACTOR1, LTDC_BLENDING_FACTOR2, LTDC_BACKLAYERCOLOR);
+                                LTDC_BLENDING_FACTOR1_PAxCA, LTDC_BLENDING_FACTOR2_PAxCA,
+                                LTDC_BACKLAYERCOLOR);
     ltdc_layer_window_config(LTDC_ACTIVE_LAYER_0, 0U, 0U, (uint16_t)lcdltdc.pwidth, (uint16_t)lcdltdc.pheight);
 
     ltdc_select_layer(LTDC_ACTIVE_LAYER_0);

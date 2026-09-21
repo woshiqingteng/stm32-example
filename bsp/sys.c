@@ -11,6 +11,13 @@
 /* Upper bound on the HSI-ready poll so a dead oscillator cannot hang boot. */
 #define SYS_HSI_READY_TIMEOUT 0xFFFFU
 
+/* This HAL release has no public NVIC vector-table setter, so the CMSIS SCB
+ * access is wrapped here. */
+static void sys_set_vector_table(uint32_t vector_table)
+{
+    SCB->VTOR = vector_table;
+}
+
 uint32_t sys_clk_get_hz(void)
 {
     return HAL_RCC_GetHCLKFreq();
@@ -51,7 +58,7 @@ HAL_StatusTypeDef sys_clk_init(uint32_t plln, uint32_t pllm, uint32_t pllp, uint
         return status;
     }
 
-    SCB->VTOR = FLASH_BASE;
+    sys_set_vector_table(FLASH_BASE);
 
     return HAL_OK;
 }

@@ -11,7 +11,6 @@
 /* Packed glyphs are MSB-first and half as wide as they are tall. */
 #define LCD_CHAR_WIDTH_DIV  2U
 #define LCD_FONT_BITS       8U
-#define LCD_FONT_MSB_MASK   0x80U
 
 /* Packed bytes per glyph for each supported raster. */
 #define LCD_FONT_1206_BYTES 12U
@@ -61,6 +60,12 @@ static const lcd_font_desc_t *lcd_font_get(uint8_t size)
     }
 
     return 0;
+}
+
+/* Packed glyphs are MSB-first: row 0 is bit 7. */
+static uint8_t glyph_bit(uint8_t byte, uint8_t row)
+{
+    return (uint8_t)((byte >> (7U - row)) & 1U);
 }
 
 void lcd_init(void)
@@ -127,7 +132,6 @@ void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t
 
 void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode_t mode, uint16_t color)
 {
-    uint8_t temp;
     uint8_t t1;
     uint8_t t;
     uint16_t y0 = y;
@@ -147,11 +151,9 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode
 
     for (t = 0; t < csize; t++)
     {
-        temp = pfont[t];
-
         for (t1 = 0; t1 < LCD_FONT_BITS; t1++)
         {
-            if ((temp & LCD_FONT_MSB_MASK) != 0U)
+            if (glyph_bit(pfont[t], t1) != 0U)
             {
                 lcd_draw_point(x, y, color);
             }
@@ -160,7 +162,6 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode
                 lcd_draw_point(x, y, (uint16_t)g_back_color);
             }
 
-            temp <<= 1;
             y++;
 
             if (y >= lcddev.height)

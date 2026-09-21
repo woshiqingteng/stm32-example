@@ -100,9 +100,9 @@ static void sdram_send_command(sdram_command_t command, sdram_refresh_t refresh,
 
 static void sdram_initialization_sequence(void)
 {
-    uint16_t mode = SDRAM_MODE_BURST_LEN_1 | SDRAM_MODE_BURST_SEQ |
-                    SDRAM_MODE_CAS_LATENCY_3 | SDRAM_MODE_STANDARD |
-                    SDRAM_MODE_WRITEBURST_1;
+    /* Burst length = 1, sequential burst order and standard (non-test) mode are
+     * all encoded as 0, so only the non-zero mode-register fields are ORed. */
+    uint16_t mode = SDRAM_MODE_CAS_LATENCY_3 | SDRAM_MODE_WRITEBURST_1;
 
     sdram_send_command(SDRAM_CMD_CLK_ENABLE, SDRAM_REFRESH_SINGLE, SDRAM_MODE_NONE);
     delay_us(SDRAM_CLK_ENABLE_DELAY_US);
@@ -144,6 +144,8 @@ void sdram_init(void)
 
 void sdram_write_buffer(const uint8_t *src, uint32_t offset, uint32_t len)
 {
+    /* volatile: the SDRAM is memory-mapped I/O-like, so the accesses must not
+     * be folded or reordered by the compiler. */
     volatile uint8_t *dst = (volatile uint8_t *)(SDRAM_BASE_ADDR + offset);
 
     while (len-- != 0U)
@@ -154,6 +156,7 @@ void sdram_write_buffer(const uint8_t *src, uint32_t offset, uint32_t len)
 
 void sdram_read_buffer(uint8_t *dst, uint32_t offset, uint32_t len)
 {
+    /* volatile: keep the actual read accesses to the external SDRAM. */
     const volatile uint8_t *src = (const volatile uint8_t *)(SDRAM_BASE_ADDR + offset);
 
     while (len-- != 0U)
