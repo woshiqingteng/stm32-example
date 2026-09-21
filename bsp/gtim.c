@@ -9,6 +9,7 @@
 #include "gtim.h"
 
 #define GTIM_CAP_MAX_OVERFLOW 63U
+#define GTIM_CAP_INVALID_VALUE 0xFFFFU
 
 /* ---- TIM3 update interrupt ---- */
 static TIM_HandleTypeDef g_gtim_int_handle;
@@ -177,7 +178,7 @@ void TIM5_IRQHandler(void)
             {
                 TIM_RESET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1);
                 TIM_SET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1, TIM_ICPOLARITY_RISING);
-                g_gtim_cap_value = 0xFFFFU;
+                g_gtim_cap_value = GTIM_CAP_INVALID_VALUE;
                 g_gtim_cap_state = GTIM_CAP_DONE;
             }
         }

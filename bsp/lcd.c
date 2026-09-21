@@ -1,17 +1,19 @@
 /**
  * @file    lcd.c
- * @brief   MCU TFT-LCD (SSD1963, portrait 480x800) driver on the FMC 8080 bus.
+ * @brief   Unified screen driver.
  *
- * Only the SSD1963 controller is implemented. All other controller branches
- * are collapsed into an empty "other" path; the SSD1963 register init is kept.
+ * MCU screen: SSD1963 controller on the FMC 8080 bus (implemented here).
+ * RGB screen: forwarded to the lower-level LTDC driver (ltdc.c).
+ * lcd_init() detects which panel is attached.
  */
 
+#include <stdio.h>
 #include "stm32f4xx_hal.h"
 #include "lcd.h"
 #include "lcdfont.h"
 #include "delay.h"
 
-/* FMC control pins and backlight. */
+/* FMC control pins and backlight (MCU screen). */
 #define LCD_CS_PORT GPIOD
 #define LCD_CS_PIN  GPIO_PIN_7
 
@@ -91,20 +93,22 @@ typedef enum
 #define LCD_ASCII_FIRST 0x20U
 #define LCD_ASCII_LAST  0x7EU
 
-static SRAM_HandleTypeDef g_lcd_sram_handle;
-static uint16_t g_lcd_id = SSD1963_ID_1963;
-
-/* Display orientation: the panel raster is fixed, portrait swaps the
- * column/page addressing commands (matching the vendor driver). */
+/** @brief  Which screen is attached. */
 typedef enum
 {
-    LCD_DIR_PORTRAIT  = 0,
-    LCD_DIR_LANDSCAPE = 1
-} lcd_dir_t;
+    LCD_MODE_MCU = 0,
+    LCD_MODE_RGB = 1
+} lcd_mode_t;
 
-static uint8_t g_lcd_dir = LCD_DIR_PORTRAIT;
-static uint16_t g_lcd_width = LCD_SSD_PANEL_VER;  /* portrait: 480 */
-static uint16_t g_lcd_height = LCD_SSD_PANEL_HOR; /* portrait: 800 */
+static lcd_mode_t g_lcd_mode = LCD_MODE_MCU;
+static uint16_t g_lcd_rgb_id = 0U;
+
+/* MCU screen state. */
+static SRAM_HandleTypeDef g_lcd_sram_handle;
+static uint16_t g_mcu_id = SSD1963_ID_1963;
+static uint8_t g_mcu_dir = LCD_DIR_PORTRAIT;
+static uint16_t g_mcu_width = LCD_SSD_PANEL_VER;  /* portrait: 480 */
+static uint16_t g_mcu_height = LCD_SSD_PANEL_HOR; /* portrait: 800 */
 
 static void lcd_wr_data(uint16_t data)
 {
@@ -129,7 +133,7 @@ static void lcd_set_window(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
     uint16_t xcmd = SSD1963_SET_COLUMN;
     uint16_t ycmd = SSD1963_SET_PAGE;
 
-    if (g_lcd_dir == LCD_DIR_PORTRAIT)
+    if (g_mcu_dir == LCD_DIR_PORTRAIT)
     {
         /* Portrait: the native column axis is drawn as the page axis. */
         xcmd = SSD1963_SET_PAGE;
@@ -151,172 +155,95 @@ static void lcd_set_window(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey)
     lcd_wr_regno(SSD1963_WRITE_MEM);
 }
 
-void lcd_display_dir(uint8_t dir)
+static void lcd_bus_init(void)
 {
-    g_lcd_dir = dir;
+    GPIO_InitTypeDef gpio = {0};
+    FMC_NORSRAM_TimingTypeDef read_timing = {0};
+    FMC_NORSRAM_TimingTypeDef write_timing = {0};
 
-    if (dir == LCD_DIR_PORTRAIT)
-    {
-        g_lcd_width  = LCD_SSD_PANEL_VER;
-        g_lcd_height = LCD_SSD_PANEL_HOR;
-    }
-    else
-    {
-        g_lcd_width  = LCD_SSD_PANEL_HOR;
-        g_lcd_height = LCD_SSD_PANEL_VER;
-    }
+    /* MSP begin */
+    __HAL_RCC_FMC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    gpio.Mode      = GPIO_MODE_AF_PP;
+    gpio.Pull      = GPIO_PULLUP;
+    gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
+    gpio.Alternate = GPIO_AF12_FMC;
+
+    gpio.Pin = LCD_CS_PIN | LCD_WR_PIN | LCD_RD_PIN | LCD_RS_PIN |
+               GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_8 | GPIO_PIN_9 |
+               GPIO_PIN_10 | GPIO_PIN_14 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOD, &gpio);
+
+    gpio.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 |
+               GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOE, &gpio);
+
+    gpio.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio.Pull = GPIO_PULLUP;
+    gpio.Pin  = LCD_BL_PIN;
+    HAL_GPIO_Init(LCD_BL_PORT, &gpio);
+    LCD_BL_OFF();
+    /* MSP end */
+
+    g_lcd_sram_handle.Instance        = FMC_NORSRAM_DEVICE;
+    g_lcd_sram_handle.Extended        = FMC_NORSRAM_EXTENDED_DEVICE;
+    g_lcd_sram_handle.Init.NSBank             = FMC_NORSRAM_BANK1;
+    g_lcd_sram_handle.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
+    g_lcd_sram_handle.Init.MemoryType         = FMC_MEMORY_TYPE_SRAM;
+    g_lcd_sram_handle.Init.MemoryDataWidth    = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+    g_lcd_sram_handle.Init.BurstAccessMode    = FMC_BURST_ACCESS_MODE_DISABLE;
+    g_lcd_sram_handle.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
+    g_lcd_sram_handle.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
+    g_lcd_sram_handle.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
+    g_lcd_sram_handle.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
+    g_lcd_sram_handle.Init.ExtendedMode       = FMC_EXTENDED_MODE_ENABLE;
+    g_lcd_sram_handle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
+    g_lcd_sram_handle.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
+    g_lcd_sram_handle.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ASYNC;
+
+    read_timing.AddressSetupTime = 0x0FU;
+    read_timing.AddressHoldTime  = 0x00U;
+    read_timing.DataSetupTime    = 0x46U;
+    read_timing.AccessMode       = FMC_ACCESS_MODE_A;
+
+    write_timing.AddressSetupTime = 0x0FU;
+    write_timing.AddressHoldTime  = 0x00U;
+    write_timing.DataSetupTime    = 0x0FU;
+    write_timing.AccessMode       = FMC_ACCESS_MODE_A;
+
+    (void)HAL_SRAM_Init(&g_lcd_sram_handle, &read_timing, &write_timing);
+    delay_ms(LCD_POWER_ON_DELAY_MS);
 }
 
-void lcd_draw_point(uint16_t x, uint16_t y, uint16_t color)
+static void lcd_bus_speedup(void)
 {
-    if ((x >= g_lcd_width) || (y >= g_lcd_height))
-    {
-        return;
-    }
+    FMC_NORSRAM_TimingTypeDef write_timing = {0};
 
-    lcd_set_window(x, y, x, y);
-    lcd_wr_data(color);
+    write_timing.AddressSetupTime = 0x02U;
+    write_timing.AddressHoldTime  = 0x00U;
+    write_timing.DataSetupTime    = 0x02U;
+    write_timing.AccessMode       = FMC_ACCESS_MODE_A;
+
+    (void)FMC_NORSRAM_Extended_Timing_Init(g_lcd_sram_handle.Extended, &write_timing,
+                                           g_lcd_sram_handle.Init.NSBank,
+                                           g_lcd_sram_handle.Init.ExtendedMode);
 }
 
-void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
+static void lcd_read_id(void)
 {
-    uint32_t count;
-    uint32_t index;
+    lcd_wr_regno(SSD1963_READ_ID);
+    (void)lcd_rd_data();
+    g_mcu_id = lcd_rd_data();
+    g_mcu_id <<= 8;
+    g_mcu_id |= lcd_rd_data();
 
-    if ((sx > ex) || (sy > ey))
+    if (g_mcu_id == SSD1963_ID_5761)
     {
-        return;
+        g_mcu_id = SSD1963_ID_1963;
     }
-
-    if (ex >= g_lcd_width)
-    {
-        ex = g_lcd_width - 1U;
-    }
-
-    if (ey >= g_lcd_height)
-    {
-        ey = g_lcd_height - 1U;
-    }
-
-    count = ((uint32_t)(ex - sx) + 1U) * ((uint32_t)(ey - sy) + 1U);
-
-    lcd_set_window(sx, sy, ex, ey);
-    for (index = 0; index < count; index++)
-    {
-        lcd_wr_data(color);
-    }
-}
-
-void lcd_clear(uint16_t color)
-{
-    lcd_fill(0U, 0U, (uint16_t)(g_lcd_width - 1U), (uint16_t)(g_lcd_height - 1U), color);
-}
-
-static void lcd_show_char(uint16_t x, uint16_t y, char chr, uint16_t color)
-{
-    const uint8_t *pfont;
-    uint16_t y0 = y;
-    uint8_t t;
-    uint8_t t1;
-    uint8_t temp;
-
-    if ((chr < (char)LCD_ASCII_FIRST) || (chr > (char)LCD_ASCII_LAST))
-    {
-        return;
-    }
-
-    pfont = (const uint8_t *)asc2_1608[(uint8_t)chr - LCD_ASCII_FIRST];
-
-    for (t = 0; t < LCD_FONT_8X16; t++)
-    {
-        temp = pfont[t];
-
-        for (t1 = 0; t1 < 8U; t1++)
-        {
-            if ((temp & 0x80U) != 0U)
-            {
-                lcd_draw_point(x, y, color);
-            }
-
-            temp <<= 1;
-            y++;
-
-            if ((uint16_t)(y - y0) == LCD_FONT_8X16)
-            {
-                y = y0;
-                x++;
-                break;
-            }
-        }
-    }
-}
-
-void lcd_show_string(uint16_t x, uint16_t y, const char *str, uint8_t size, uint16_t color)
-{
-    if (size != LCD_FONT_8X16)
-    {
-        return;
-    }
-
-    while ((*str >= (char)LCD_ASCII_FIRST) && (*str <= (char)LCD_ASCII_LAST))
-    {
-        if (x > (g_lcd_width - LCD_CHAR_WIDTH))
-        {
-            x = 0U;
-            y += LCD_FONT_8X16;
-        }
-
-        lcd_show_char(x, y, *str, color);
-        x += LCD_CHAR_WIDTH;
-        str++;
-    }
-}
-
-static uint32_t lcd_pow(uint8_t m, uint8_t n)
-{
-    uint32_t result = 1U;
-
-    while (n-- != 0U)
-    {
-        result *= m;
-    }
-
-    return result;
-}
-
-void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color)
-{
-    uint8_t t;
-    uint8_t digit;
-    uint8_t enshow = 0U;
-
-    if (size != LCD_FONT_8X16)
-    {
-        return;
-    }
-
-    for (t = 0; t < len; t++)
-    {
-        digit = (uint8_t)((num / lcd_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
-
-        if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
-        {
-            if (digit == 0U)
-            {
-                lcd_show_char((uint16_t)(x + (LCD_CHAR_WIDTH * t)), y, ' ', color);
-                continue;
-            }
-
-            enshow = 1U;
-        }
-
-        lcd_show_char((uint16_t)(x + (LCD_CHAR_WIDTH * t)), y, (char)('0' + digit), color);
-    }
-}
-
-uint16_t lcd_get_id(void)
-{
-    return g_lcd_id;
 }
 
 static void lcd_ssd1963_reginit(void)
@@ -398,114 +325,244 @@ static void lcd_ssd1963_reginit(void)
     lcd_wr_data(SSD1963_ADDR_L2R_U2D);
 }
 
-static void lcd_read_id(void)
+void lcd_display_dir(uint8_t dir)
 {
-    lcd_wr_regno(SSD1963_READ_ID);
-    (void)lcd_rd_data();
-    g_lcd_id = lcd_rd_data();
-    g_lcd_id <<= 8;
-    g_lcd_id |= lcd_rd_data();
-
-    if (g_lcd_id == SSD1963_ID_5761)
+    if (g_lcd_mode == LCD_MODE_RGB)
     {
-        g_lcd_id = SSD1963_ID_1963;
+        ltdc_display_dir(dir);
+        return;
+    }
+
+    g_mcu_dir = dir;
+
+    if (dir == LCD_DIR_PORTRAIT)
+    {
+        g_mcu_width  = LCD_SSD_PANEL_VER;
+        g_mcu_height = LCD_SSD_PANEL_HOR;
+    }
+    else
+    {
+        g_mcu_width  = LCD_SSD_PANEL_HOR;
+        g_mcu_height = LCD_SSD_PANEL_VER;
     }
 }
 
-static void lcd_bus_init(void)
+void lcd_draw_point(uint16_t x, uint16_t y, uint16_t color)
 {
-    GPIO_InitTypeDef gpio = {0};
-    FMC_NORSRAM_TimingTypeDef read_timing = {0};
-    FMC_NORSRAM_TimingTypeDef write_timing = {0};
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        ltdc_draw_point(x, y, color);
+        return;
+    }
 
-    /* MSP begin */
-    __HAL_RCC_FMC_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-    __HAL_RCC_GPIOE_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    if ((x >= g_mcu_width) || (y >= g_mcu_height))
+    {
+        return;
+    }
 
-    gpio.Mode      = GPIO_MODE_AF_PP;
-    gpio.Pull      = GPIO_PULLUP;
-    gpio.Speed     = GPIO_SPEED_FREQ_HIGH;
-    gpio.Alternate = GPIO_AF12_FMC;
-
-    gpio.Pin = LCD_CS_PIN | LCD_WR_PIN | LCD_RD_PIN | LCD_RS_PIN |
-               GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_8 | GPIO_PIN_9 |
-               GPIO_PIN_10 | GPIO_PIN_14 | GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOD, &gpio);
-
-    gpio.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 |
-               GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOE, &gpio);
-
-    gpio.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Pin  = LCD_BL_PIN;
-    HAL_GPIO_Init(LCD_BL_PORT, &gpio);
-    LCD_BL_OFF();
-    /* MSP end */
-
-    g_lcd_sram_handle.Instance        = FMC_NORSRAM_DEVICE;
-    g_lcd_sram_handle.Extended        = FMC_NORSRAM_EXTENDED_DEVICE;
-    g_lcd_sram_handle.Init.NSBank             = FMC_NORSRAM_BANK1;
-    g_lcd_sram_handle.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
-    g_lcd_sram_handle.Init.MemoryType         = FMC_MEMORY_TYPE_SRAM;
-    g_lcd_sram_handle.Init.MemoryDataWidth    = FMC_NORSRAM_MEM_BUS_WIDTH_16;
-    g_lcd_sram_handle.Init.BurstAccessMode    = FMC_BURST_ACCESS_MODE_DISABLE;
-    g_lcd_sram_handle.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
-    g_lcd_sram_handle.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
-    g_lcd_sram_handle.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
-    g_lcd_sram_handle.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
-    g_lcd_sram_handle.Init.ExtendedMode       = FMC_EXTENDED_MODE_ENABLE;
-    g_lcd_sram_handle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
-    g_lcd_sram_handle.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
-    g_lcd_sram_handle.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ASYNC;
-
-    read_timing.AddressSetupTime = 0x0FU;
-    read_timing.AddressHoldTime  = 0x00U;
-    read_timing.DataSetupTime    = 0x46U;
-    read_timing.AccessMode       = FMC_ACCESS_MODE_A;
-
-    write_timing.AddressSetupTime = 0x0FU;
-    write_timing.AddressHoldTime  = 0x00U;
-    write_timing.DataSetupTime    = 0x0FU;
-    write_timing.AccessMode       = FMC_ACCESS_MODE_A;
-
-    (void)HAL_SRAM_Init(&g_lcd_sram_handle, &read_timing, &write_timing);
-    delay_ms(LCD_POWER_ON_DELAY_MS);
+    lcd_set_window(x, y, x, y);
+    lcd_wr_data(color);
 }
 
-static void lcd_bus_speedup(void)
+void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
 {
-    FMC_NORSRAM_TimingTypeDef write_timing = {0};
+    uint32_t count;
+    uint32_t index;
 
-    write_timing.AddressSetupTime = 0x02U;
-    write_timing.AddressHoldTime  = 0x00U;
-    write_timing.DataSetupTime    = 0x02U;
-    write_timing.AccessMode       = FMC_ACCESS_MODE_A;
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        ltdc_fill(sx, sy, ex, ey, color);
+        return;
+    }
 
-    (void)FMC_NORSRAM_Extended_Timing_Init(g_lcd_sram_handle.Extended, &write_timing,
-                                           g_lcd_sram_handle.Init.NSBank,
-                                           g_lcd_sram_handle.Init.ExtendedMode);
+    if ((sx > ex) || (sy > ey))
+    {
+        return;
+    }
+
+    if (ex >= g_mcu_width)
+    {
+        ex = g_mcu_width - 1U;
+    }
+
+    if (ey >= g_mcu_height)
+    {
+        ey = g_mcu_height - 1U;
+    }
+
+    count = ((uint32_t)(ex - sx) + 1U) * ((uint32_t)(ey - sy) + 1U);
+
+    lcd_set_window(sx, sy, ex, ey);
+    for (index = 0; index < count; index++)
+    {
+        lcd_wr_data(color);
+    }
+}
+
+void lcd_clear(uint16_t color)
+{
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        ltdc_clear(color);
+        return;
+    }
+
+    lcd_fill(0U, 0U, (uint16_t)(g_mcu_width - 1U), (uint16_t)(g_mcu_height - 1U), color);
+}
+
+static void lcd_show_char(uint16_t x, uint16_t y, char chr, uint16_t color)
+{
+    const uint8_t *pfont;
+    uint16_t y0 = y;
+    uint8_t t;
+    uint8_t t1;
+    uint8_t temp;
+
+    if ((chr < (char)LCD_ASCII_FIRST) || (chr > (char)LCD_ASCII_LAST))
+    {
+        return;
+    }
+
+    pfont = (const uint8_t *)asc2_1608[(uint8_t)chr - LCD_ASCII_FIRST];
+
+    for (t = 0; t < LCD_FONT_8X16; t++)
+    {
+        temp = pfont[t];
+
+        for (t1 = 0; t1 < 8U; t1++)
+        {
+            if ((temp & 0x80U) != 0U)
+            {
+                lcd_draw_point(x, y, color);
+            }
+
+            temp <<= 1;
+            y++;
+
+            if ((uint16_t)(y - y0) == LCD_FONT_8X16)
+            {
+                y = y0;
+                x++;
+                break;
+            }
+        }
+    }
+}
+
+static uint32_t lcd_pow(uint8_t m, uint8_t n)
+{
+    uint32_t result = 1U;
+
+    while (n-- != 0U)
+    {
+        result *= m;
+    }
+
+    return result;
+}
+
+void lcd_show_string(uint16_t x, uint16_t y, const char *str, uint8_t size, uint16_t color)
+{
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        ltdc_show_string(x, y, str, size, color);
+        return;
+    }
+
+    if (size != LCD_FONT_8X16)
+    {
+        return;
+    }
+
+    while ((*str >= (char)LCD_ASCII_FIRST) && (*str <= (char)LCD_ASCII_LAST))
+    {
+        if (x > (g_mcu_width - LCD_CHAR_WIDTH))
+        {
+            x = 0U;
+            y += LCD_FONT_8X16;
+        }
+
+        lcd_show_char(x, y, *str, color);
+        x += LCD_CHAR_WIDTH;
+        str++;
+    }
+}
+
+void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color)
+{
+    uint8_t t;
+    uint8_t digit;
+    uint8_t enshow = 0U;
+
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        ltdc_show_num(x, y, num, len, size, color);
+        return;
+    }
+
+    if (size != LCD_FONT_8X16)
+    {
+        return;
+    }
+
+    for (t = 0; t < len; t++)
+    {
+        digit = (uint8_t)((num / lcd_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
+
+        if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
+        {
+            if (digit == 0U)
+            {
+                lcd_show_char((uint16_t)(x + (LCD_CHAR_WIDTH * t)), y, ' ', color);
+                continue;
+            }
+
+            enshow = 1U;
+        }
+
+        lcd_show_char((uint16_t)(x + (LCD_CHAR_WIDTH * t)), y, (char)('0' + digit), color);
+    }
+}
+
+uint16_t lcd_get_id(void)
+{
+    if (g_lcd_mode == LCD_MODE_RGB)
+    {
+        return g_lcd_rgb_id;
+    }
+
+    return g_mcu_id;
 }
 
 void lcd_init(void)
 {
-    lcd_bus_init();
-    lcd_read_id();
+    g_lcd_rgb_id = ltdc_panelid_read();
 
-    /* Only the SSD1963 controller is supported. */
-    if (g_lcd_id == SSD1963_ID_1963)
+    if (g_lcd_rgb_id == LTDC_PANEL_ID_4384)
     {
-        lcd_ssd1963_reginit();
+        g_lcd_mode = LCD_MODE_RGB;
+        ltdc_init();
+        g_mcu_id = 0U;
     }
     else
     {
-        /* other controllers intentionally not implemented. */
+        g_lcd_mode = LCD_MODE_MCU;
+        lcd_bus_init();
+        lcd_read_id();
+
+        if (g_mcu_id == SSD1963_ID_1963)
+        {
+            lcd_ssd1963_reginit();
+        }
+        else
+        {
+            /* other controllers intentionally not implemented. */
+        }
+
+        lcd_bus_speedup();
+        LCD_BL_ON();
     }
 
-    lcd_bus_speedup();
     lcd_display_dir(LCD_DIR_PORTRAIT);
-    LCD_BL_ON();
     lcd_clear(WHITE);
 }

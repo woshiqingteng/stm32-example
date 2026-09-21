@@ -5,6 +5,7 @@
  *          an explicit mode enum.
  */
 
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 #include "atim.h"
 
@@ -325,7 +326,7 @@ uint32_t atim_timx_pwmin_chy_cval(void)
 
 static void atim_pwmin_process(void)
 {
-    static uint8_t first_done = 0;
+    static bool first_done = false;
 
     if (g_atim_pwmin_state == ATIM_PWMIN_DONE)
     {
@@ -343,7 +344,7 @@ static void atim_pwmin_process(void)
 
         if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1) == 0)
         {
-            first_done = 0;
+            first_done = false;
             if (g_atim_pwmin_psc == 0U)
             {
                 g_atim_pwmin_psc = 1;
@@ -370,11 +371,11 @@ static void atim_pwmin_process(void)
         }
     }
 
-    if (first_done == 0U)
+    if (first_done == false)
     {
         if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1))
         {
-            first_done = 1;
+            first_done = true;
         }
         __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
         __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
@@ -400,7 +401,7 @@ static void atim_pwmin_process(void)
                     g_atim_pwmin_cval++;
                 }
 
-                first_done = 0;
+                first_done = false;
                 TIM8->CR1 &= ~TIM_CR1_CEN;
                 __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
                 __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC2);
