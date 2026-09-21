@@ -2,10 +2,11 @@
  * @file    delay.c
  * @brief   SysTick based delay, following the vendor delay.c structure.
  *
+ * SysTick_Handler() is provided here for both builds:
+ *   baremetal : only keeps the HAL tick alive (HAL_IncTick).
+ *   freertos  : also chains to the RTOS tick once the scheduler is running.
  * The OS branch uses the FreeRTOS API directly (vTaskSuspendAll/xTaskResumeAll,
- * vTaskDelay, xPortIsInsideInterrupt, xTaskGetSchedulerState). The 1 ms SysTick
- * interrupt stays enabled; SysTick_Handler() chains to the RTOS tick while the
- * scheduler is running.
+ * vTaskDelay, xPortIsInsideInterrupt, xTaskGetSchedulerState).
  */
 
 #include "stm32f4xx_hal.h"
@@ -21,17 +22,19 @@ static uint32_t g_fac_us = 0;
 void xPortSysTickHandler(void);
 
 static uint16_t g_fac_ms = 0;
+#endif
 
 void SysTick_Handler(void)
 {
     HAL_IncTick();
 
+#if USE_FREERTOS
     if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
     {
         xPortSysTickHandler();
     }
-}
 #endif
+}
 
 void delay_init(uint16_t sysclk)
 {
@@ -50,14 +53,16 @@ void delay_us(uint32_t nus)
     uint32_t tcnt = 0;
     uint32_t reload = SysTick->LOAD;
 #if USE_FREERTOS
-    BaseType_t scheduler_running = (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED);
+    BaseType_t scheduler_running = pdFALSE;
 #endif
 
     ticks = nus * g_fac_us;
 
 #if USE_FREERTOS
-    if (scheduler_running != pdFALSE)
+    if ((xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) &&
+        (xPortIsInsideInterrupt() == 0))
     {
+        scheduler_running = pdTRUE;
         vTaskSuspendAll();
     }
 #endif
