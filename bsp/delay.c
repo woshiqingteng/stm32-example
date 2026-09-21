@@ -2,9 +2,10 @@
  * @file    delay.c
  * @brief   SysTick based delay, following the vendor delay.c structure.
  *
- * The OS branch uses FreeRTOS primitives (vTaskSuspendAll/xTaskResumeAll,
- * vTaskDelay, xPortIsInsideInterrupt). The 1 ms SysTick interrupt stays enabled;
- * SysTick_Handler() chains to the RTOS tick when the scheduler is running.
+ * The OS branch uses the FreeRTOS API directly (vTaskSuspendAll/xTaskResumeAll,
+ * vTaskDelay, xPortIsInsideInterrupt, xTaskGetSchedulerState). The 1 ms SysTick
+ * interrupt stays enabled; SysTick_Handler() chains to the RTOS tick while the
+ * scheduler is running.
  */
 
 #include "stm32f4xx_hal.h"
@@ -21,28 +22,11 @@ void xPortSysTickHandler(void);
 
 static uint16_t g_fac_ms = 0;
 
-#define delay_osrunning (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
-
-static void delay_osschedlock(void)
-{
-    vTaskSuspendAll();
-}
-
-static void delay_osschedunlock(void)
-{
-    (void)xTaskResumeAll();
-}
-
-static void delay_ostimedly(uint32_t ticks)
-{
-    vTaskDelay(ticks);
-}
-
 void SysTick_Handler(void)
 {
     HAL_IncTick();
 
-    if (delay_osrunning)
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
     {
         xPortSysTickHandler();
     }
@@ -66,15 +50,15 @@ void delay_us(uint32_t nus)
     uint32_t tcnt = 0;
     uint32_t reload = SysTick->LOAD;
 #if USE_FREERTOS
-    BaseType_t sched = delay_osrunning;
+    BaseType_t scheduler_running = (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED);
 #endif
 
     ticks = nus * g_fac_us;
 
 #if USE_FREERTOS
-    if (sched)
+    if (scheduler_running != pdFALSE)
     {
-        delay_osschedlock();
+        vTaskSuspendAll();
     }
 #endif
 
@@ -101,9 +85,9 @@ void delay_us(uint32_t nus)
     }
 
 #if USE_FREERTOS
-    if (sched)
+    if (scheduler_running != pdFALSE)
     {
-        delay_osschedunlock();
+        (void)xTaskResumeAll();
     }
 #endif
 }
@@ -111,11 +95,12 @@ void delay_us(uint32_t nus)
 void delay_ms(uint16_t nms)
 {
 #if USE_FREERTOS
-    if (delay_osrunning && (xPortIsInsideInterrupt() == 0))
+    if ((xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) &&
+        (xPortIsInsideInterrupt() == 0))
     {
         if (nms >= g_fac_ms)
         {
-            delay_ostimedly((uint32_t)(nms / g_fac_ms));
+            vTaskDelay((TickType_t)(nms / g_fac_ms));
         }
 
         nms %= g_fac_ms;
