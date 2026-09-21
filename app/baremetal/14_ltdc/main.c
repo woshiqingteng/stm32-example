@@ -1,12 +1,12 @@
 /**
  * @file    main.c
- * @brief   14_ltdc: RGB LTDC colour cycle demo with an SDRAM frame buffer.
+ * @brief   14_ltdc: RGB LTDC colour cycle demo (mirrors the vendor exp14).
  */
 
 #include <stdio.h>
 #include "bsp.h"
 #include "sdram.h"
-#include "ltdc.h"
+#include "lcd.h"
 
 #define LTDC_COLOR_COUNT 12U
 
@@ -17,22 +17,24 @@ int main(void)
         WHITE, BLACK, BLUE, RED, MAGENTA, GREEN,
         CYAN, YELLOW, BRRED, GRAY, LGRAY, BROWN
     };
+    char lcd_id[16];
     uint8_t x = 0;
 
     bsp_init();
     sdram_init();
-    ltdc_init();
+    lcd_init();
 
-    printf("14_ltdc ready\r\n");
+    g_point_color = RED;
+    sprintf(lcd_id, "LCD ID:%04X", (unsigned int)lcddev.id);
+    printf("14_ltdc ready, %s\r\n", lcd_id);
 
     for (;;)
     {
-        ltdc_clear(colors[x]);
-        ltdc_show_string(10, 40, "STM32", 16, RED);
-        ltdc_show_string(10, 70, "LTDC TEST", 16, RED);
-        ltdc_show_string(10, 100, "ATOM@ALIENTEK", 16, RED);
-        ltdc_show_string(10, 130, "LCD ID:4384", 16, RED);
-        ltdc_show_num(10, 160, x, 2, 16, RED);
+        lcd_clear(colors[x]);
+        lcd_show_string(10, 40, 240, 32, 32, "STM32", RED);
+        lcd_show_string(10, 80, 240, 24, 24, "LTDC TEST", RED);
+        lcd_show_string(10, 110, 240, 16, 16, "ATOM@ALIENTEK", RED);
+        lcd_show_string(10, 130, 240, 16, 16, lcd_id, RED);
 
         printf("color index %u\r\n", (unsigned)x);
 

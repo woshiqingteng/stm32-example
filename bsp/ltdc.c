@@ -1,105 +1,308 @@
 /**
  * @file    ltdc.c
- * @brief   RGB LCD driver using LTDC with an SDRAM frame buffer.
+ * @brief   RGB screen driver (LTDC + SDRAM frame buffer), ported from the
+ *          vendor example (ltdc.c). Clock/GPIO are initialised inline in
+ *          ltdc_init(); there is no HAL_LTDC_MspInit().
  *
- * Only the 4.3 inch panel (id 0x4384, native 800x480 raster) is implemented;
- * all other panel ids are collapsed into an empty "other" path. Portrait is
- * obtained like the vendor driver: keep the native raster and rotate the
- * drawing coordinates (see ltdc_display_dir()).
+ * Only the 4.3 inch panel (id 0x4384) is implemented. The frame buffer lives in
+ * the on-board SDRAM; the declared region is accessed through a pointer because
+ * GCC has no __attribute__((at(...))).
  */
 
-#include <stdio.h>
-#include "stm32f4xx_hal.h"
+#include "lcd.h"
 #include "ltdc.h"
-#include "lcdfont.h"
 
-/* LTDC control and backlight pins. */
-#define LTDC_BL_PORT    GPIOB
-#define LTDC_BL_PIN     GPIO_PIN_5
-#define LTDC_DE_PORT    GPIOF
-#define LTDC_DE_PIN     GPIO_PIN_10
-#define LTDC_VSYNC_PORT GPIOI
-#define LTDC_VSYNC_PIN  GPIO_PIN_9
-#define LTDC_HSYNC_PORT GPIOI
-#define LTDC_HSYNC_PIN  GPIO_PIN_10
-#define LTDC_CLK_PORT   GPIOG
-#define LTDC_CLK_PIN    GPIO_PIN_7
+_ltdc_dev lcdltdc;
+LTDC_HandleTypeDef g_ltdc_handle;
+DMA2D_HandleTypeDef g_dma2d_handle;
+uint32_t *g_ltdc_framebuf[2];
 
-#define LTDC_BL_ON()  HAL_GPIO_WritePin(LTDC_BL_PORT, LTDC_BL_PIN, GPIO_PIN_SET)
-#define LTDC_BL_OFF() HAL_GPIO_WritePin(LTDC_BL_PORT, LTDC_BL_PIN, GPIO_PIN_RESET)
+void ltdc_switch(uint8_t sw)
+{
+    if (sw != 0U)
+    {
+        __HAL_LTDC_ENABLE(&g_ltdc_handle);
+    }
+    else
+    {
+        __HAL_LTDC_DISABLE(&g_ltdc_handle);
+    }
+}
 
-/* Panel id strap pins. */
-#define LTDC_ID_R7_PORT GPIOG
-#define LTDC_ID_R7_PIN  GPIO_PIN_6
-#define LTDC_ID_G7_PORT GPIOI
-#define LTDC_ID_G7_PIN  GPIO_PIN_2
-#define LTDC_ID_B7_PORT GPIOI
-#define LTDC_ID_B7_PIN  GPIO_PIN_7
+void ltdc_layer_switch(uint8_t layerx, uint8_t sw)
+{
+    if (sw != 0U)
+    {
+        __HAL_LTDC_LAYER_ENABLE(&g_ltdc_handle, layerx);
+    }
+    else
+    {
+        __HAL_LTDC_LAYER_DISABLE(&g_ltdc_handle, layerx);
+    }
 
-/* Panel id strap value for the 4.3 inch panel. */
-#define LTDC_IDX_4384 4U
+    __HAL_LTDC_RELOAD_CONFIG(&g_ltdc_handle);
+}
 
-/* 4.3 inch panel native raster timing (800 x 480). */
-#define LTDC_4384_HSW 48U
-#define LTDC_4384_HBP 88U
-#define LTDC_4384_HFP 40U
-#define LTDC_4384_VSW 3U
-#define LTDC_4384_VBP 32U
-#define LTDC_4384_VFP 13U
+void ltdc_select_layer(uint8_t layerx)
+{
+    lcdltdc.activelayer = layerx;
+}
 
-#define LTDC_PLLSAIN_33MHZ 396U
-#define LTDC_PLLSAIR_33MHZ 3U
-#define LTDC_PLLSAIDIVR_33MHZ RCC_PLLSAIDIVR_4
+void ltdc_display_dir(uint8_t dir)
+{
+    lcdltdc.dir = dir;
 
-/* 8x16 font metrics. */
-#define LTDC_FONT_8X16   16U
-#define LTDC_CHAR_WIDTH  8U
-#define LTDC_ASCII_FIRST 0x20U
-#define LTDC_ASCII_LAST  0x7EU
+    if (dir == 0U)
+    {
+        lcdltdc.width  = lcdltdc.pheight;
+        lcdltdc.height = lcdltdc.pwidth;
+    }
+    else
+    {
+        lcdltdc.width  = lcdltdc.pwidth;
+        lcdltdc.height = lcdltdc.pheight;
+    }
+}
 
-/* Pixel format and layer. */
-#define LTDC_LAYER_INDEX 0U
-#define LTDC_LAYER_ALPHA 255U
-#define LTDC_LAYER_ALPHA0 0U
+void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
+{
+#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
+    if (lcdltdc.dir != 0U)
+    {
+        *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                      lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) = color;
+    }
+    else
+    {
+        *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                      lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y)) = color;
+    }
+#else
+    if (lcdltdc.dir != 0U)
+    {
+        *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                      lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) = (uint16_t)color;
+    }
+    else
+    {
+        *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                      lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y)) = (uint16_t)color;
+    }
+#endif
+}
 
-static LTDC_HandleTypeDef g_ltdc_handle;
-static uint16_t *const g_ltdc_framebuf = (uint16_t *)LTDC_FRAME_BUF_ADDR;
+uint32_t ltdc_read_point(uint16_t x, uint16_t y)
+{
+#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
+    if (lcdltdc.dir != 0U)
+    {
+        return *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                             lcdltdc.pixsize * (lcdltdc.pwidth * y + x));
+    }
+    else
+    {
+        return *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                             lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y));
+    }
+#else
+    if (lcdltdc.dir != 0U)
+    {
+        return *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                             lcdltdc.pixsize * (lcdltdc.pwidth * y + x));
+    }
+    else
+    {
+        return *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                             lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y));
+    }
+#endif
+}
 
-/* Native raster size (fixed by the panel) and logical size (depends on dir). */
-static uint16_t g_ltdc_pwidth  = LTDC_PANEL_WIDTH;
-static uint16_t g_ltdc_pheight = LTDC_PANEL_HEIGHT;
-static uint16_t g_ltdc_width   = LTDC_PANEL_HEIGHT; /* portrait 480 */
-static uint16_t g_ltdc_height  = LTDC_PANEL_WIDTH;  /* portrait 800 */
-static uint8_t  g_ltdc_dir     = LTDC_DIR_PORTRAIT;
+void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
+{
+    uint32_t psx;
+    uint32_t psy;
+    uint32_t pex;
+    uint32_t pey;
+    uint32_t timeout = 0;
+    uint16_t offline;
+    uint32_t addr;
 
-static uint16_t g_ltdc_hsw = LTDC_4384_HSW;
-static uint16_t g_ltdc_hbp = LTDC_4384_HBP;
-static uint16_t g_ltdc_hfp = LTDC_4384_HFP;
-static uint16_t g_ltdc_vsw = LTDC_4384_VSW;
-static uint16_t g_ltdc_vbp = LTDC_4384_VBP;
-static uint16_t g_ltdc_vfp = LTDC_4384_VFP;
+    if (lcdltdc.dir != 0U)
+    {
+        psx = sx;
+        psy = sy;
+        pex = ex;
+        pey = ey;
+    }
+    else
+    {
+        if (ex >= lcdltdc.pheight)
+        {
+            ex = lcdltdc.pheight - 1U;
+        }
+
+        if (sx >= lcdltdc.pheight)
+        {
+            sx = lcdltdc.pheight - 1U;
+        }
+
+        psx = sy;
+        psy = lcdltdc.pheight - ex - 1U;
+        pex = ey;
+        pey = lcdltdc.pheight - sx - 1U;
+    }
+
+    offline = (uint16_t)(lcdltdc.pwidth - (pex - psx + 1U));
+    addr = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+            lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
+
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+    DMA2D->CR &= ~(DMA2D_CR_START);
+    DMA2D->CR = DMA2D_R2M;
+    DMA2D->OPFCCR = LTDC_PIXFORMAT;
+    DMA2D->OOR = offline;
+    DMA2D->OMAR = addr;
+    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << 16);
+    DMA2D->OCOLR = color;
+    DMA2D->CR |= DMA2D_CR_START;
+
+    while ((DMA2D->ISR & (DMA2D_FLAG_TC)) == 0U)
+    {
+        timeout++;
+        if (timeout > 0x1FFFFFU)
+        {
+            break;
+        }
+    }
+
+    DMA2D->IFCR |= DMA2D_FLAG_TC;
+}
+
+void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color)
+{
+    uint32_t psx;
+    uint32_t psy;
+    uint32_t pex;
+    uint32_t pey;
+    uint32_t timeout = 0;
+    uint16_t offline;
+    uint32_t addr;
+
+    if (lcdltdc.dir != 0U)
+    {
+        psx = sx;
+        psy = sy;
+        pex = ex;
+        pey = ey;
+    }
+    else
+    {
+        psx = sy;
+        psy = lcdltdc.pheight - ex - 1U;
+        pex = ey;
+        pey = lcdltdc.pheight - sx - 1U;
+    }
+
+    offline = (uint16_t)(lcdltdc.pwidth - (pex - psx + 1U));
+    addr = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+            lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
+
+    RCC->AHB1ENR |= 1U << 23;
+    DMA2D->CR = 0U << 16;
+    DMA2D->FGPFCCR = LTDC_PIXFORMAT;
+    DMA2D->FGOR = 0U;
+    DMA2D->OOR = offline;
+    DMA2D->CR &= ~(1U << 0);
+    DMA2D->FGMAR = (uint32_t)color;
+    DMA2D->OMAR = addr;
+    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << 16);
+    DMA2D->CR |= 1U << 0;
+
+    while ((DMA2D->ISR & (1U << 1)) == 0U)
+    {
+        timeout++;
+        if (timeout > 0x1FFFFFU)
+        {
+            break;
+        }
+    }
+
+    DMA2D->IFCR |= 1U << 1;
+}
+
+void ltdc_clear(uint32_t color)
+{
+    ltdc_fill(0U, 0U, (uint16_t)(lcdltdc.width - 1U), (uint16_t)(lcdltdc.height - 1U), color);
+}
+
+uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr)
+{
+    RCC_PeriphCLKInitTypeDef periphclk_initure = {0};
+
+    periphclk_initure.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
+    periphclk_initure.PLLSAI.PLLSAIN = pllsain;
+    periphclk_initure.PLLSAI.PLLSAIR = pllsair;
+    periphclk_initure.PLLSAIDivR = pllsaidivr;
+
+    if (HAL_RCCEx_PeriphCLKConfig(&periphclk_initure) == HAL_OK)
+    {
+        return 0U;
+    }
+
+    return 1U;
+}
+
+void ltdc_layer_window_config(uint8_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
+{
+    (void)HAL_LTDC_SetWindowPosition(&g_ltdc_handle, sx, sy, layerx);
+    (void)HAL_LTDC_SetWindowSize(&g_ltdc_handle, width, height, layerx);
+}
+
+void ltdc_layer_parameter_config(uint8_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
+                                 uint8_t alpha0, uint8_t bfac1, uint8_t bfac2, uint32_t bkcolor)
+{
+    LTDC_LayerCfgTypeDef playercfg = {0};
+
+    playercfg.WindowX0 = 0U;
+    playercfg.WindowY0 = 0U;
+    playercfg.WindowX1 = lcdltdc.pwidth;
+    playercfg.WindowY1 = lcdltdc.pheight;
+    playercfg.PixelFormat = pixformat;
+    playercfg.Alpha = alpha;
+    playercfg.Alpha0 = alpha0;
+    playercfg.BlendingFactor1 = (uint32_t)bfac1 << 8;
+    playercfg.BlendingFactor2 = (uint32_t)bfac2;
+    playercfg.FBStartAdress = bufaddr;
+    playercfg.ImageWidth = lcdltdc.pwidth;
+    playercfg.ImageHeight = lcdltdc.pheight;
+    playercfg.Backcolor.Red = (uint8_t)(bkcolor & 0x00FF0000U) >> 16;
+    playercfg.Backcolor.Green = (uint8_t)(bkcolor & 0x0000FF00U) >> 8;
+    playercfg.Backcolor.Blue = (uint8_t)bkcolor & 0x000000FFU;
+
+    (void)HAL_LTDC_ConfigLayer(&g_ltdc_handle, &playercfg, layerx);
+}
 
 uint16_t ltdc_panelid_read(void)
 {
-    GPIO_InitTypeDef gpio = {0};
-    uint8_t idx;
+    GPIO_InitTypeDef gpio_init_struct = {0};
+    uint8_t idx = 0;
 
     __HAL_RCC_GPIOG_CLK_ENABLE();
     __HAL_RCC_GPIOI_CLK_ENABLE();
 
-    gpio.Mode  = GPIO_MODE_INPUT;
-    gpio.Pull  = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_init_struct.Pin = GPIO_PIN_6;
+    gpio_init_struct.Mode = GPIO_MODE_INPUT;
+    gpio_init_struct.Pull = GPIO_PULLUP;
+    gpio_init_struct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOG, &gpio_init_struct);
 
-    gpio.Pin = LTDC_ID_R7_PIN;
-    HAL_GPIO_Init(LTDC_ID_R7_PORT, &gpio);
+    gpio_init_struct.Pin = GPIO_PIN_2 | GPIO_PIN_7;
+    HAL_GPIO_Init(GPIOI, &gpio_init_struct);
 
-    gpio.Pin = LTDC_ID_G7_PIN | LTDC_ID_B7_PIN;
-    HAL_GPIO_Init(GPIOI, &gpio);
-
-    idx = (uint8_t)HAL_GPIO_ReadPin(LTDC_ID_R7_PORT, LTDC_ID_R7_PIN);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(LTDC_ID_G7_PORT, LTDC_ID_G7_PIN) << 1);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(LTDC_ID_B7_PORT, LTDC_ID_B7_PIN) << 2);
+    idx = (uint8_t)HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_6);
+    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2) << 1);
+    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_7) << 2);
 
     if (idx == LTDC_IDX_4384)
     {
@@ -109,297 +312,102 @@ uint16_t ltdc_panelid_read(void)
     return 0U;
 }
 
-uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr)
-{
-    RCC_PeriphCLKInitTypeDef periph_clk = {0};
-
-    periph_clk.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
-    periph_clk.PLLSAI.PLLSAIN      = pllsain;
-    periph_clk.PLLSAI.PLLSAIR      = pllsair;
-    periph_clk.PLLSAIDivR          = pllsaidivr;
-
-    if (HAL_RCCEx_PeriphCLKConfig(&periph_clk) == HAL_OK)
-    {
-        return 0U;
-    }
-
-    return 1U;
-}
-
-void ltdc_display_dir(uint8_t dir)
-{
-    g_ltdc_dir = dir;
-
-    if (dir == LTDC_DIR_PORTRAIT)
-    {
-        g_ltdc_width  = g_ltdc_pheight;
-        g_ltdc_height = g_ltdc_pwidth;
-    }
-    else
-    {
-        g_ltdc_width  = g_ltdc_pwidth;
-        g_ltdc_height = g_ltdc_pheight;
-    }
-}
-
-void ltdc_draw_point(uint16_t x, uint16_t y, uint16_t color)
-{
-    uint32_t index;
-
-    if ((x >= g_ltdc_width) || (y >= g_ltdc_height))
-    {
-        return;
-    }
-
-    if (g_ltdc_dir == LTDC_DIR_PORTRAIT)
-    {
-        index = ((uint32_t)g_ltdc_pwidth * (uint32_t)(g_ltdc_pheight - x - 1U)) + y;
-    }
-    else
-    {
-        index = ((uint32_t)g_ltdc_pwidth * y) + x;
-    }
-
-    g_ltdc_framebuf[index] = color;
-}
-
-void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
-{
-    uint16_t x;
-    uint16_t y;
-
-    if ((sx > ex) || (sy > ey))
-    {
-        return;
-    }
-
-    for (y = sy; y <= ey; y++)
-    {
-        for (x = sx; x <= ex; x++)
-        {
-            ltdc_draw_point(x, y, color);
-        }
-    }
-}
-
-void ltdc_clear(uint16_t color)
-{
-    ltdc_fill(0U, 0U, (uint16_t)(g_ltdc_width - 1U), (uint16_t)(g_ltdc_height - 1U), color);
-}
-
-static void ltdc_show_char(uint16_t x, uint16_t y, char chr, uint16_t color)
-{
-    const uint8_t *pfont;
-    uint16_t y0 = y;
-    uint8_t t;
-    uint8_t t1;
-    uint8_t temp;
-
-    if ((chr < (char)LTDC_ASCII_FIRST) || (chr > (char)LTDC_ASCII_LAST))
-    {
-        return;
-    }
-
-    pfont = (const uint8_t *)asc2_1608[(uint8_t)chr - LTDC_ASCII_FIRST];
-
-    for (t = 0; t < LTDC_FONT_8X16; t++)
-    {
-        temp = pfont[t];
-
-        for (t1 = 0; t1 < 8U; t1++)
-        {
-            if ((temp & 0x80U) != 0U)
-            {
-                ltdc_draw_point(x, y, color);
-            }
-
-            temp <<= 1;
-            y++;
-
-            if ((uint16_t)(y - y0) == LTDC_FONT_8X16)
-            {
-                y = y0;
-                x++;
-                break;
-            }
-        }
-    }
-}
-
-void ltdc_show_string(uint16_t x, uint16_t y, const char *str, uint8_t size, uint16_t color)
-{
-    if (size != LTDC_FONT_8X16)
-    {
-        return;
-    }
-
-    while ((*str >= (char)LTDC_ASCII_FIRST) && (*str <= (char)LTDC_ASCII_LAST))
-    {
-        if (x > (g_ltdc_width - LTDC_CHAR_WIDTH))
-        {
-            x = 0U;
-            y += LTDC_FONT_8X16;
-        }
-
-        ltdc_show_char(x, y, *str, color);
-        x += LTDC_CHAR_WIDTH;
-        str++;
-    }
-}
-
-static uint32_t ltdc_pow(uint8_t m, uint8_t n)
-{
-    uint32_t result = 1U;
-
-    while (n-- != 0U)
-    {
-        result *= m;
-    }
-
-    return result;
-}
-
-void ltdc_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color)
-{
-    uint8_t t;
-    uint8_t digit;
-    uint8_t enshow = 0U;
-
-    if (size != LTDC_FONT_8X16)
-    {
-        return;
-    }
-
-    for (t = 0; t < len; t++)
-    {
-        digit = (uint8_t)((num / ltdc_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
-
-        if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
-        {
-            if (digit == 0U)
-            {
-                ltdc_show_char((uint16_t)(x + (LTDC_CHAR_WIDTH * t)), y, ' ', color);
-                continue;
-            }
-
-            enshow = 1U;
-        }
-
-        ltdc_show_char((uint16_t)(x + (LTDC_CHAR_WIDTH * t)), y, (char)('0' + digit), color);
-    }
-}
-
 void ltdc_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
-    LTDC_LayerCfgTypeDef layer = {0};
-    uint16_t panel_id;
+    GPIO_InitTypeDef gpio_init_struct = {0};
+    uint16_t ltdcid;
 
-    panel_id = ltdc_panelid_read();
-    printf("LTDC panel id:0x%04X\r\n", (unsigned int)panel_id);
+    ltdcid = ltdc_panelid_read();
 
-    /* Only the 4.3 inch panel (native 800x480) is implemented. */
-    if (panel_id == LTDC_PANEL_ID_4384)
+    if (ltdcid == LTDC_PANEL_ID_4384)
     {
-        g_ltdc_pwidth  = LTDC_PANEL_WIDTH;
-        g_ltdc_pheight = LTDC_PANEL_HEIGHT;
-        g_ltdc_hsw     = LTDC_4384_HSW;
-        g_ltdc_hbp     = LTDC_4384_HBP;
-        g_ltdc_hfp     = LTDC_4384_HFP;
-        g_ltdc_vsw     = LTDC_4384_VSW;
-        g_ltdc_vbp     = LTDC_4384_VBP;
-        g_ltdc_vfp     = LTDC_4384_VFP;
-        (void)ltdc_clk_set(LTDC_PLLSAIN_33MHZ, LTDC_PLLSAIR_33MHZ, LTDC_PLLSAIDIVR_33MHZ);
+        lcdltdc.pwidth = LTDC_PANEL_WIDTH;
+        lcdltdc.pheight = LTDC_PANEL_HEIGHT;
+        lcdltdc.hbp = 88U;
+        lcdltdc.hfp = 40U;
+        lcdltdc.hsw = 48U;
+        lcdltdc.vbp = 32U;
+        lcdltdc.vfp = 13U;
+        lcdltdc.vsw = 3U;
+        (void)ltdc_clk_set(396U, 3U, RCC_PLLSAIDIVR_4);
     }
     else
     {
         /* other panels intentionally not implemented. */
     }
 
-    /* Default to portrait (480 x 800 logical). */
-    ltdc_display_dir(LTDC_DIR_PORTRAIT);
+    lcddev.width = (uint16_t)lcdltdc.pwidth;
+    lcddev.height = (uint16_t)lcdltdc.pheight;
+
+    g_ltdc_framebuf[0] = (uint32_t *)LTDC_FRAME_BUF_ADDR;
+    lcdltdc.pixsize = 2U;
 
     /* MSP begin */
     __HAL_RCC_LTDC_CLK_ENABLE();
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOF_CLK_ENABLE();
     __HAL_RCC_GPIOG_CLK_ENABLE();
     __HAL_RCC_GPIOH_CLK_ENABLE();
     __HAL_RCC_GPIOI_CLK_ENABLE();
 
-    gpio.Mode  = GPIO_MODE_OUTPUT_PP;
-    gpio.Pull  = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_init_struct.Pin = LTDC_BL_PIN;
+    gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_init_struct.Pull = GPIO_PULLUP;
+    gpio_init_struct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(LTDC_BL_PORT, &gpio_init_struct);
 
-    gpio.Pin = LTDC_BL_PIN;
-    HAL_GPIO_Init(LTDC_BL_PORT, &gpio);
-    LTDC_BL_OFF();
+    gpio_init_struct.Pin = LTDC_DE_PIN;
+    gpio_init_struct.Mode = GPIO_MODE_AF_PP;
+    gpio_init_struct.Alternate = GPIO_AF14_LTDC;
+    HAL_GPIO_Init(LTDC_DE_PORT, &gpio_init_struct);
 
-    gpio.Mode      = GPIO_MODE_AF_PP;
-    gpio.Alternate = GPIO_AF14_LTDC;
+    gpio_init_struct.Pin = LTDC_VSYNC_PIN;
+    HAL_GPIO_Init(LTDC_VSYNC_PORT, &gpio_init_struct);
 
-    gpio.Pin = LTDC_DE_PIN;
-    HAL_GPIO_Init(LTDC_DE_PORT, &gpio);
+    gpio_init_struct.Pin = LTDC_HSYNC_PIN;
+    HAL_GPIO_Init(LTDC_HSYNC_PORT, &gpio_init_struct);
 
-    gpio.Pin = LTDC_VSYNC_PIN;
-    HAL_GPIO_Init(LTDC_VSYNC_PORT, &gpio);
+    gpio_init_struct.Pin = LTDC_CLK_PIN;
+    HAL_GPIO_Init(LTDC_CLK_PORT, &gpio_init_struct);
 
-    gpio.Pin = LTDC_HSYNC_PIN;
-    HAL_GPIO_Init(LTDC_HSYNC_PORT, &gpio);
+    gpio_init_struct.Pin = GPIO_PIN_6 | GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOG, &gpio_init_struct);
 
-    gpio.Pin = LTDC_CLK_PIN;
-    HAL_GPIO_Init(LTDC_CLK_PORT, &gpio);
+    gpio_init_struct.Pin = GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 |
+                           GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOH, &gpio_init_struct);
 
-    gpio.Pin = GPIO_PIN_6 | GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOG, &gpio);
-
-    gpio.Pin = GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 |
-               GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOH, &gpio);
-
-    gpio.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 |
-               GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
-    HAL_GPIO_Init(GPIOI, &gpio);
+    gpio_init_struct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 |
+                           GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
+    HAL_GPIO_Init(GPIOI, &gpio_init_struct);
     /* MSP end */
 
-    g_ltdc_handle.Instance         = LTDC;
-    g_ltdc_handle.Init.HSPolarity  = LTDC_HSPOLARITY_AL;
-    g_ltdc_handle.Init.VSPolarity  = LTDC_VSPOLARITY_AL;
-    g_ltdc_handle.Init.DEPolarity  = LTDC_DEPOLARITY_AL;
-    g_ltdc_handle.Init.PCPolarity  = LTDC_PCPOLARITY_IPC;
-    g_ltdc_handle.Init.HorizontalSync     = (uint32_t)(g_ltdc_hsw - 1U);
-    g_ltdc_handle.Init.VerticalSync       = (uint32_t)(g_ltdc_vsw - 1U);
-    g_ltdc_handle.Init.AccumulatedHBP     = (uint32_t)(g_ltdc_hsw + g_ltdc_hbp - 1U);
-    g_ltdc_handle.Init.AccumulatedVBP     = (uint32_t)(g_ltdc_vsw + g_ltdc_vbp - 1U);
-    g_ltdc_handle.Init.AccumulatedActiveW = (uint32_t)(g_ltdc_hsw + g_ltdc_hbp + g_ltdc_pwidth - 1U);
-    g_ltdc_handle.Init.AccumulatedActiveH = (uint32_t)(g_ltdc_vsw + g_ltdc_vbp + g_ltdc_pheight - 1U);
-    g_ltdc_handle.Init.TotalWidth         = (uint32_t)(g_ltdc_hsw + g_ltdc_hbp + g_ltdc_pwidth + g_ltdc_hfp - 1U);
-    g_ltdc_handle.Init.TotalHeigh         = (uint32_t)(g_ltdc_vsw + g_ltdc_vbp + g_ltdc_pheight + g_ltdc_vfp - 1U);
-    g_ltdc_handle.Init.Backcolor.Red      = 0U;
-    g_ltdc_handle.Init.Backcolor.Green    = 0U;
-    g_ltdc_handle.Init.Backcolor.Blue     = 0U;
+    g_ltdc_handle.Instance = LTDC;
+    g_ltdc_handle.Init.HSPolarity = LTDC_HSPOLARITY_AL;
+    g_ltdc_handle.Init.VSPolarity = LTDC_VSPOLARITY_AL;
+    g_ltdc_handle.Init.DEPolarity = LTDC_DEPOLARITY_AL;
+    g_ltdc_handle.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
+    g_ltdc_handle.Init.HorizontalSync = lcdltdc.hsw - 1U;
+    g_ltdc_handle.Init.VerticalSync = lcdltdc.vsw - 1U;
+    g_ltdc_handle.Init.AccumulatedHBP = lcdltdc.hsw + lcdltdc.hbp - 1U;
+    g_ltdc_handle.Init.AccumulatedVBP = lcdltdc.vsw + lcdltdc.vbp - 1U;
+    g_ltdc_handle.Init.AccumulatedActiveW = lcdltdc.hsw + lcdltdc.hbp + lcdltdc.pwidth - 1U;
+    g_ltdc_handle.Init.AccumulatedActiveH = lcdltdc.vsw + lcdltdc.vbp + lcdltdc.pheight - 1U;
+    g_ltdc_handle.Init.TotalWidth = lcdltdc.hsw + lcdltdc.hbp + lcdltdc.pwidth + lcdltdc.hfp - 1U;
+    g_ltdc_handle.Init.TotalHeigh = lcdltdc.vsw + lcdltdc.vbp + lcdltdc.pheight + lcdltdc.vfp - 1U;
+    g_ltdc_handle.Init.Backcolor.Red = 0U;
+    g_ltdc_handle.Init.Backcolor.Green = 0U;
+    g_ltdc_handle.Init.Backcolor.Blue = 0U;
     g_ltdc_handle.State = HAL_LTDC_STATE_RESET;
 
     (void)HAL_LTDC_Init(&g_ltdc_handle);
 
-    layer.WindowX0       = 0U;
-    layer.WindowY0       = 0U;
-    layer.WindowX1       = g_ltdc_pwidth;
-    layer.WindowY1       = g_ltdc_pheight;
-    layer.PixelFormat    = LTDC_PIXEL_FORMAT_RGB565;
-    layer.Alpha          = LTDC_LAYER_ALPHA;
-    layer.Alpha0         = LTDC_LAYER_ALPHA0;
-    layer.BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA;
-    layer.BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA;
-    layer.FBStartAdress  = (uint32_t)g_ltdc_framebuf;
-    layer.ImageWidth     = g_ltdc_pwidth;
-    layer.ImageHeight    = g_ltdc_pheight;
-    layer.Backcolor.Red   = 0U;
-    layer.Backcolor.Green = 0U;
-    layer.Backcolor.Blue  = 0U;
+    ltdc_layer_parameter_config(0U, (uint32_t)g_ltdc_framebuf[0], LTDC_PIXFORMAT, 255U, 0U, 6U, 7U, LTDC_BACKLAYERCOLOR);
+    ltdc_layer_window_config(0U, 0U, 0U, (uint16_t)lcdltdc.pwidth, (uint16_t)lcdltdc.pheight);
 
-    (void)HAL_LTDC_ConfigLayer(&g_ltdc_handle, &layer, LTDC_LAYER_INDEX);
-
-    ltdc_clear(WHITE);
-    LTDC_BL_ON();
+    ltdc_select_layer(0U);
+    LTDC_BL(1);
+    ltdc_clear(0xFFFFFFFFU);
 }

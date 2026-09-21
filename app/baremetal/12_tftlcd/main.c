@@ -2,15 +2,15 @@
  * @file    main.c
  * @brief   12_tftlcd: screen colour cycle demo.
  *
- * NOTE: the MCU screen (SSD1963) driver and the lcd forwarding layer have been
- * removed; this former MCU-screen experiment drives the RGB (LTDC) screen
- * directly through the ltdc driver.
+ * NOTE: the MCU screen (SSD1963/FMC) driver has been removed; this former
+ * MCU-screen experiment now drives the RGB (LTDC) screen via the same lcd API
+ * as 14_ltdc.
  */
 
 #include <stdio.h>
 #include "bsp.h"
 #include "sdram.h"
-#include "ltdc.h"
+#include "lcd.h"
 
 #define LCD_COLOR_COUNT 12U
 
@@ -21,24 +21,24 @@ int main(void)
         WHITE, BLACK, BLUE, RED, MAGENTA, GREEN,
         CYAN, YELLOW, BRRED, GRAY, LGRAY, BROWN
     };
-    char lcd_id[24];
+    char lcd_id[16];
     uint8_t x = 0;
 
     bsp_init();
     sdram_init();
-    ltdc_init();
+    lcd_init();
 
-    sprintf(lcd_id, "LCD ID:%04X", (unsigned int)ltdc_panelid_read());
+    g_point_color = RED;
+    sprintf(lcd_id, "LCD ID:%04X", (unsigned int)lcddev.id);
     printf("12_tftlcd ready (RGB screen), %s\r\n", lcd_id);
 
     for (;;)
     {
-        ltdc_clear(colors[x]);
-        ltdc_show_string(10, 40, "STM32", 16, RED);
-        ltdc_show_string(10, 70, "RGB SCREEN", 16, RED);
-        ltdc_show_string(10, 100, "ATOM@ALIENTEK", 16, RED);
-        ltdc_show_string(10, 130, lcd_id, 16, RED);
-        ltdc_show_num(10, 160, x, 2, 16, RED);
+        lcd_clear(colors[x]);
+        lcd_show_string(10, 40, 240, 32, 32, "STM32", RED);
+        lcd_show_string(10, 80, 240, 24, 24, "LTDC TEST", RED);
+        lcd_show_string(10, 110, 240, 16, 16, "ATOM@ALIENTEK", RED);
+        lcd_show_string(10, 130, 240, 16, 16, lcd_id, RED);
 
         printf("color index %u\r\n", (unsigned)x);
 
