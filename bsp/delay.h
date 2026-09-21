@@ -8,8 +8,8 @@
 
 #include <stdint.h>
 
-#ifndef BSP_SUPPORT_OS
-#define BSP_SUPPORT_OS 0
+#ifndef USE_FREERTOS
+#define USE_FREERTOS 0
 #endif
 
 /** @brief  Initialise the delay multiplier. @param sysclk HCLK frequency in MHz. */
