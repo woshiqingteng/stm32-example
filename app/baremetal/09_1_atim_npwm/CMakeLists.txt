@@ -1,1 +1,1 @@
-app_baremetal_add(09_1_atim_npwm ${HAL_TIM} ${BSP_TIM} main.c)
+add_baremetal_app(09_1_atim_npwm SOURCES main.c HAL ${HAL_SRC_TIM} BSP ${BSP_SRC_TIM})

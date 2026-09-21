@@ -1,1 +1,1 @@
-app_baremetal_add(03_exti ${BSP_EXTI} main.c)
+add_baremetal_app(03_exti SOURCES main.c BSP ${BSP_SRC_EXTI})

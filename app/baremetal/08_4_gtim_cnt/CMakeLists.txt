@@ -1,1 +1,1 @@
-app_baremetal_add(08_4_gtim_cnt ${HAL_TIM} ${BSP_TIM} main.c)
+add_baremetal_app(08_4_gtim_cnt SOURCES main.c HAL ${HAL_SRC_TIM} BSP ${BSP_SRC_TIM})

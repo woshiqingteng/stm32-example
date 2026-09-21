@@ -1,1 +1,1 @@
-app_baremetal_add(02_key main.c)
+add_baremetal_app(02_key SOURCES main.c)

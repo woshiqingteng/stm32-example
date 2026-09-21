@@ -1,38 +1,48 @@
 {
-  "version": 6,
-  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
   "configurePresets": [
     {
-      "name": "debug",
-      "displayName": "gcc / openedv_stm32f4 / baremetal / debug",
+      "name": "base",
+      "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/debug",
-      "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
       "cacheVariables": {
-        "TOOLCHAIN": "gcc",
+        "TOOLCHAIN": "arm_gcc",
         "BOARD": "openedv_stm32f4",
-        "OS": "baremetal",
-        "APPS": "01_led;02_key;03_exti;04_usart;05_iwdg;06_wwdg;07_btim;08_1_gtim_int;08_2_gtim_pwm;08_3_gtim_cap;08_4_gtim_cnt;09_1_atim_npwm;09_2_atim_oc;09_3_atim_cplm;09_4_atim_pwmin;10_tpad",
+        "APP_TARGET": "app_baremetal_01_led"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "displayName": "Debug",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
       "name": "release",
-      "displayName": "gcc / openedv_stm32f4 / baremetal / release",
-      "generator": "Ninja",
+      "inherits": "base",
+      "displayName": "Release",
       "binaryDir": "${sourceDir}/build/release",
-      "toolchainFile": "${sourceDir}/cmake/toolchain/arm_gcc.cmake",
       "cacheVariables": {
-        "TOOLCHAIN": "gcc",
-        "BOARD": "openedv_stm32f4",
-        "OS": "baremetal",
-        "APPS": "01_led;02_key;03_exti;04_usart;05_iwdg;06_wwdg;07_btim;08_1_gtim_int;08_2_gtim_pwm;08_3_gtim_cap;08_4_gtim_cnt;09_1_atim_npwm;09_2_atim_oc;09_3_atim_cplm;09_4_atim_pwmin;10_tpad",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],
   "buildPresets": [
-    { "name": "debug", "configurePreset": "debug" },
-    { "name": "release", "configurePreset": "release" }
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
   ]
 }

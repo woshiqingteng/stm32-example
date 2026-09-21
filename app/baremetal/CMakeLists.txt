@@ -1,31 +1,22 @@
-# Baremetal app tree: common modules, target build, artifacts and flashing.
+set(BAREMETAL_HAL_COMMON
+    ${HAL_SRC_CORE} ${HAL_SRC_CORTEX} ${HAL_SRC_GPIO}
+    ${HAL_SRC_RCC}  ${HAL_SRC_PWR}    ${HAL_SRC_FLASH}
+    ${HAL_SRC_UART} ${HAL_SRC_DMA})
+set(BAREMETAL_BSP_COMMON
+    ${BSP_SRC_BSP} ${BSP_SRC_SYS} ${BSP_SRC_DELAY}
+    ${BSP_SRC_USART} ${BSP_SRC_LED} ${BSP_SRC_KEY})
 
-include(${CMAKE_SOURCE_DIR}/cmake/func/flow.cmake)
+function(add_baremetal_app name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;HAL;BSP" ${ARGN})
+    set(_target app_baremetal_${name})
+    add_executable(${_target} ${ARG_SOURCES})
+    target_link_libraries(${_target} PRIVATE bsp)
 
-# Common module sources shared by every baremetal app (expanded lists).
-set(BAREMETAL_COMMON
-    ${TARGET_STM32F4}
-    ${HAL_CORE} ${HAL_DMA} ${HAL_UART}
-    ${BSP_CORE})
+    target_sources(bsp           PRIVATE ${BAREMETAL_BSP_COMMON} ${ARG_BSP})
+    target_sources(stm32f4xx_hal PRIVATE ${BAREMETAL_HAL_COMMON} ${ARG_HAL})
 
-# app_baremetal_add(NAME [HAL <var>...] [BSP <var>...] <project file>...)
-#   Order: project name, HAL modules, BSP modules, then the project's own files
-#   (relative, e.g. main.c). The shared sources above are added here.
-function(app_baremetal_add NAME)
-    set(_srcs "")
-    set(_mods "")
-
-    foreach(_a ${ARGN})
-        if(IS_ABSOLUTE "${_a}")
-            list(APPEND _mods "${_a}")
-        else()
-            list(APPEND _srcs "${CMAKE_CURRENT_SOURCE_DIR}/${_a}")
-        endif()
-    endforeach()
-
-    flow_firmware(app_baremetal_${NAME} SOURCES ${_srcs} ${BAREMETAL_COMMON} ${_mods})
+    mcu_generate(${_target} ${name})
+    mcu_flash(${_target} ${name})
 endfunction()
 
-foreach(_app ${APPS})
-    add_subdirectory(${_app})
-endforeach()
+add_subdirectory(${APP_NAME})

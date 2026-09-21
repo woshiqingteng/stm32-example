@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(stm32_example LANGUAGES C)
+if(NOT TOOLCHAIN)
+    message(FATAL_ERROR "TOOLCHAIN not set")
+endif()
+include(cmake/toolchain/${TOOLCHAIN}.cmake)
+message(STATUS "Toolchain : ${TOOLCHAIN}")
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/cmake)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/module)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/target)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/bsp)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
+project(stm32-example LANGUAGES C ASM)
+
+add_subdirectory(cmake)
+add_subdirectory(target)
+add_subdirectory(module)
+add_subdirectory(bsp)
+add_subdirectory(app)

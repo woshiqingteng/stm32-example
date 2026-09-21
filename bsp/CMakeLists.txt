@@ -1,20 +1,21 @@
-# BSP exposed modules: CACHE INTERNAL variables carrying their source files.
+set(BSP_SRC_BSP    ${CMAKE_CURRENT_SOURCE_DIR}/bsp.c CACHE INTERNAL "")
+set(BSP_SRC_SYS    ${CMAKE_CURRENT_SOURCE_DIR}/sys.c CACHE INTERNAL "")
+set(BSP_SRC_DELAY  ${CMAKE_CURRENT_SOURCE_DIR}/delay.c CACHE INTERNAL "")
+set(BSP_SRC_USART  ${CMAKE_CURRENT_SOURCE_DIR}/usart.c CACHE INTERNAL "")
+set(BSP_SRC_LED    ${CMAKE_CURRENT_SOURCE_DIR}/led.c CACHE INTERNAL "")
+set(BSP_SRC_KEY    ${CMAKE_CURRENT_SOURCE_DIR}/key.c CACHE INTERNAL "")
+set(BSP_SRC_EXTI   ${CMAKE_CURRENT_SOURCE_DIR}/exti.c CACHE INTERNAL "")
 
-set(BSP_DIR "${CMAKE_SOURCE_DIR}/bsp" CACHE INTERNAL "" FORCE)
+set(BSP_SRC_ADC    ${CMAKE_CURRENT_SOURCE_DIR}/adc.c CACHE INTERNAL "")
+set(BSP_SRC_DMA    ${CMAKE_CURRENT_SOURCE_DIR}/dma.c CACHE INTERNAL "")
 
-set(BSP_EXPOSED_MODULES BSP_CORE BSP_EXTI BSP_WDG BSP_TIM BSP_TPAD
-    CACHE INTERNAL "" FORCE)
+set(BSP_SRC_WDG    ${CMAKE_CURRENT_SOURCE_DIR}/wdg.c CACHE INTERNAL "")
+set(BSP_SRC_TIM    ${CMAKE_CURRENT_SOURCE_DIR}/btim.c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/gtim.c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/atim.c CACHE INTERNAL "")
+set(BSP_SRC_TPAD   ${CMAKE_CURRENT_SOURCE_DIR}/tpad.c CACHE INTERNAL "")
 
-set(BSP_CORE
-    ${BSP_DIR}/bsp.c
-    ${BSP_DIR}/syscalls.c
-    ${BSP_DIR}/sys.c
-    ${BSP_DIR}/delay.c
-    ${BSP_DIR}/usart.c
-    ${BSP_DIR}/led.c
-    ${BSP_DIR}/key.c
-    CACHE INTERNAL "" FORCE)
-set(BSP_EXTI ${BSP_DIR}/exti.c CACHE INTERNAL "" FORCE)
-set(BSP_WDG  ${BSP_DIR}/wdg.c CACHE INTERNAL "" FORCE)
-set(BSP_TIM  ${BSP_DIR}/btim.c ${BSP_DIR}/gtim.c ${BSP_DIR}/atim.c CACHE INTERNAL "" FORCE)
-set(BSP_TPAD ${BSP_DIR}/tpad.c CACHE INTERNAL "" FORCE)
+add_library(bsp STATIC)
+
+target_include_directories(bsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(bsp PUBLIC stm32f4xx_hal target_stm32f4)

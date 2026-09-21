@@ -1,1 +1,1 @@
-app_baremetal_add(10_tpad ${HAL_TIM} ${BSP_TPAD} main.c)
+add_baremetal_app(10_tpad SOURCES main.c HAL ${HAL_SRC_TIM} BSP ${BSP_SRC_TPAD})

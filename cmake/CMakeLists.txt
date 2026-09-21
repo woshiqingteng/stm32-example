@@ -1,10 +1,15 @@
-# Select the board (which fixes the CPU) and the toolchain, then global settings.
-
-include("${CMAKE_CURRENT_LIST_DIR}/board/${BOARD}.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/toolchain/arm_${TOOLCHAIN}.cmake")
-
-if(OS STREQUAL "freertos")
-    set(BSP_SUPPORT_OS 1 CACHE INTERNAL "" FORCE)
-else()
-    set(BSP_SUPPORT_OS 0 CACHE INTERNAL "" FORCE)
+if(NOT BOARD)
+    message(FATAL_ERROR "BOARD not set")
 endif()
+include(board/${BOARD}.cmake)
+message(STATUS "Board     : ${BOARD}")
+
+if(APP_TARGET MATCHES "^app_([a-zA-Z0-9]+)_(.+)$")
+    set(OS       ${CMAKE_MATCH_1} CACHE INTERNAL "" FORCE)
+    set(APP_NAME ${CMAKE_MATCH_2} CACHE INTERNAL "" FORCE)
+else()
+    message(FATAL_ERROR "Invalid APP_TARGET: ${APP_TARGET} (expect app_<os>_<name>)")
+endif()
+message(STATUS "App       : ${APP_TARGET}  OS: ${OS}  name: ${APP_NAME}")
+
+include(${CMAKE_CURRENT_LIST_DIR}/func/flow.cmake)

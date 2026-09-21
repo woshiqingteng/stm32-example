@@ -1,9 +1,12 @@
 /*
- * Linker script for STM32F429IGTx (openedv ATK-F429)
- * FLASH 1024K @ 0x08000000, RAM 192K @ 0x20000000, CCMRAM 64K @ 0x10000000
+ * Linker script for STM32F429IGTx (openedv ATK-F429), RAM execution.
+ * RAM 192K @ 0x20000000, CCMRAM 64K @ 0x10000000
  */
 
 ENTRY(Reset_Handler)
+
+/* Force the static-library member holding the vector table to be linked. */
+EXTERN(g_isr_vector)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
@@ -11,7 +14,6 @@ MEMORY
 {
   CCMRAM (xrw) : ORIGIN = 0x10000000, LENGTH = 64K
   RAM    (xrw) : ORIGIN = 0x20000000, LENGTH = 192K
-  FLASH  (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
 }
 
 SECTIONS
@@ -21,7 +23,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector))
     . = ALIGN(4);
-  } >FLASH
+  } >RAM
 
   .text :
   {
@@ -35,7 +37,7 @@ SECTIONS
     KEEP(*(.fini))
     . = ALIGN(4);
     _etext = .;
-  } >FLASH
+  } >RAM
 
   .rodata :
   {
@@ -43,26 +45,26 @@ SECTIONS
     *(.rodata)
     *(.rodata*)
     . = ALIGN(4);
-  } >FLASH
+  } >RAM
 
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
-  } >FLASH
+  } >RAM
 
   .ARM :
   {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } >FLASH
+  } >RAM
 
   .preinit_array :
   {
     PROVIDE_HIDDEN(__preinit_array_start = .);
     KEEP(*(.preinit_array*))
     PROVIDE_HIDDEN(__preinit_array_end = .);
-  } >FLASH
+  } >RAM
 
   .init_array :
   {
@@ -70,7 +72,7 @@ SECTIONS
     KEEP(*(SORT(.init_array.*)))
     KEEP(*(.init_array*))
     PROVIDE_HIDDEN(__init_array_end = .);
-  } >FLASH
+  } >RAM
 
   .fini_array :
   {
@@ -78,19 +80,17 @@ SECTIONS
     KEEP(*(SORT(.fini_array.*)))
     KEEP(*(.fini_array*))
     PROVIDE_HIDDEN(__fini_array_end = .);
-  } >FLASH
+  } >RAM
 
-  _sidata = LOADADDR(.data);
-
+  . = ALIGN(4);
   .data :
   {
-    . = ALIGN(4);
     _sdata = .;
     *(.data)
     *(.data*)
     . = ALIGN(4);
     _edata = .;
-  } >RAM AT> FLASH
+  } >RAM
 
   . = ALIGN(4);
   .bss :

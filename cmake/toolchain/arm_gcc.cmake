@@ -1,19 +1,29 @@
-# arm-none-eabi-gcc toolchain (pre-project). Board/CPU selection is in
-# cmake/CMakeLists.txt; this file also provides the toolchain binaries.
-
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+
+set(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+
+set(CMAKE_OBJCOPY      ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_SIZE         ${TOOLCHAIN_PREFIX}size)
+set(CMAKE_OBJDUMP      ${TOOLCHAIN_PREFIX}objdump)
+
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
-set(CMAKE_C_COMPILER   arm-none-eabi-gcc)
-set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
-set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
-
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(CMAKE_OBJCOPY arm-none-eabi-objcopy CACHE FILEPATH "" FORCE)
-set(CMAKE_OBJDUMP arm-none-eabi-objdump CACHE FILEPATH "" FORCE)
-set(CMAKE_SIZE    arm-none-eabi-size    CACHE FILEPATH "" FORCE)
+set(CMAKE_C_FLAGS "-std=gnu11 -Wall -ffunction-sections -fdata-sections" CACHE STRING "" FORCE)
+
+set(CMAKE_C_FLAGS_DEBUG   "-Og -g3 -DDEBUG"  CACHE STRING "" FORCE)
+set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG"     CACHE STRING "" FORCE)
+
+set(CMAKE_EXE_LINKER_FLAGS "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections -Wl,--undefined=_write" CACHE STRING "" FORCE)
+
+set(OPENOCD openocd CACHE FILEPATH "openocd executable")
+set(OPENOCD_INTERFACE cmsis-dap.cfg CACHE STRING "openocd interface config")
+set(OPENOCD_TARGET    stm32f4x.cfg   CACHE STRING "openocd target config")
