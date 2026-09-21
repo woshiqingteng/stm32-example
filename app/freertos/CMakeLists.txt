@@ -17,7 +17,7 @@ function(add_freertos_app name)
     add_executable(${_target} ${ARG_SOURCES})
     target_link_libraries(${_target} PRIVATE bsp freertos)
 
-    target_include_directories(freertos PUBLIC ${FREERTOS_APP_DIR})
+    target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${FREERTOS_APP_DIR})
     target_compile_definitions(bsp PUBLIC USE_FREERTOS=1)
     target_link_libraries(bsp PUBLIC freertos)
 
