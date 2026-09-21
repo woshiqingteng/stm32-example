@@ -16,7 +16,7 @@
 static uint8_t usmart_search_nextc(const char *str)
 {
     str++;
-    while ((*str == ' ') && (str != 0))
+    while (*str == ' ')
     {
         str++;
     }

@@ -34,7 +34,7 @@ int main(void)
 
     if (rtc_read_bkr(RTC_APP_BKP_REG) != RTC_APP_BKP_MAGIC)
     {
-        (void)rtc_set_time(RTC_DEFAULT_HOUR, RTC_DEFAULT_MIN, RTC_DEFAULT_SEC, RTC_HOURFORMAT12_AM);
+        (void)rtc_set_time(RTC_DEFAULT_HOUR, RTC_DEFAULT_MIN, RTC_DEFAULT_SEC, RTC_HOURFORMAT_24);
         (void)rtc_set_date(RTC_DEFAULT_YEAR, RTC_DEFAULT_MONTH, RTC_DEFAULT_DATE, RTC_DEFAULT_WEEK);
         rtc_write_bkr(RTC_APP_BKP_REG, RTC_APP_BKP_MAGIC);
         printf("rtc: default time/date set\r\n");

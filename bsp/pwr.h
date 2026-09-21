@@ -6,12 +6,18 @@
 #ifndef BSP_PWR_H
 #define BSP_PWR_H
 
-#include <stdbool.h>
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
 
-/** @brief Callback invoked from the PVD interrupt. @param low true if VDD < level. */
-typedef void (*pwr_pvd_hook_t)(bool low);
+/** @brief  PVD comparator state. */
+typedef enum
+{
+    PWR_PVD_ABOVE = 0, /*!< VDD is above the configured level */
+    PWR_PVD_BELOW      /*!< VDD is below the configured level */
+} pwr_pvd_state_t;
+
+/** @brief Callback invoked from the PVD interrupt. */
+typedef void (*pwr_pvd_hook_t)(pwr_pvd_state_t state);
 
 /** @brief Callback invoked when the WK_UP key (PA0) generates an external interrupt. */
 typedef void (*pwr_wkup_hook_t)(void);

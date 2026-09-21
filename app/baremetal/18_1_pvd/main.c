@@ -8,9 +8,9 @@
 
 #define PVD_LEVEL  PWR_PVDLEVEL_7  /* 2.9 V */
 
-static void pvd_hook(bool low)
+static void pvd_hook(pwr_pvd_state_t state)
 {
-    if (low)
+    if (state == PWR_PVD_BELOW)
     {
         printf("PVD low voltage\r\n");
     }

@@ -7,6 +7,8 @@ set(MODULE_HAL_ENABLE        ON CACHE BOOL "Enable stm32f4xx-hal-driver")
 set(MODULE_FREERTOS_ENABLE OFF CACHE BOOL "Enable freertos")
 if(OS STREQUAL "freertos")
     set(MODULE_FREERTOS_ENABLE ON CACHE BOOL "Enable freertos" FORCE)
+else()
+    set(MODULE_FREERTOS_ENABLE OFF CACHE BOOL "Enable freertos" FORCE)
 endif()
 set(MODULE_FREERTOS_VERSION 11.1.0 CACHE STRING "freertos version")
 

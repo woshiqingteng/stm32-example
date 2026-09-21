@@ -2,19 +2,13 @@
  * @file    pwr.c
  * @brief   Power control driver (PVD, WK_UP key and low-power modes).
  *
- * NVIC and GPIO configuration is inlined into the init functions.
+ * The WK_UP key is handled by the exti driver (single EXTI0 owner); pwr only
+ * forwards it to its registered hook. NVIC/GPIO configuration is inlined.
  */
 
 #include "stm32f4xx_hal.h"
 #include "pwr.h"
-
-#define PWR_WKUP_GPIO_PORT      GPIOA
-#define PWR_WKUP_GPIO_PIN       GPIO_PIN_0
-#define PWR_WKUP_GPIO_CLK_ENABLE()  do { __HAL_RCC_GPIOA_CLK_ENABLE(); } while (0)
-
-#define PWR_WKUP_IRQn           EXTI0_IRQn
-#define PWR_WKUP_IRQ_PREEMPT    2U
-#define PWR_WKUP_IRQ_SUB        2U
+#include "exti.h"
 
 #define PWR_PVD_IRQ_PREEMPT     3U
 #define PWR_PVD_IRQ_SUB         3U
@@ -30,6 +24,22 @@ void pwr_register_pvd_hook(pwr_pvd_hook_t hook)
 void pwr_register_wkup_hook(pwr_wkup_hook_t hook)
 {
     g_wkup_hook = hook;
+}
+
+static void pwr_wkup_handler(key_id_t id)
+{
+    (void)id;
+
+    if (g_wkup_hook != 0)
+    {
+        g_wkup_hook();
+    }
+}
+
+void pwr_wkup_key_init(void)
+{
+    exti_init();
+    exti_register(KEY_WKUP, pwr_wkup_handler);
 }
 
 void pwr_pvd_init(uint32_t level)
@@ -50,26 +60,6 @@ void pwr_pvd_init(uint32_t level)
     /* ---- MSP end ---- */
 
     HAL_PWR_EnablePVD();
-}
-
-void pwr_wkup_key_init(void)
-{
-    GPIO_InitTypeDef gpio = {0};
-
-    /* ---- MSP begin: GPIO clock ---- */
-    PWR_WKUP_GPIO_CLK_ENABLE();
-    /* ---- MSP end ---- */
-
-    gpio.Pin   = PWR_WKUP_GPIO_PIN;
-    gpio.Mode  = GPIO_MODE_IT_RISING;
-    gpio.Pull  = GPIO_PULLDOWN;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(PWR_WKUP_GPIO_PORT, &gpio);
-
-    /* ---- MSP begin: NVIC ---- */
-    HAL_NVIC_SetPriority(PWR_WKUP_IRQn, PWR_WKUP_IRQ_PREEMPT, PWR_WKUP_IRQ_SUB);
-    HAL_NVIC_EnableIRQ(PWR_WKUP_IRQn);
-    /* ---- MSP end ---- */
 }
 
 void pwr_enter_sleep(void)
@@ -107,20 +97,11 @@ void PVD_IRQHandler(void)
 
 void HAL_PWR_PVDCallback(void)
 {
-    bool low = (__HAL_PWR_GET_FLAG(PWR_FLAG_PVDO) != RESET);
+    pwr_pvd_state_t state = (__HAL_PWR_GET_FLAG(PWR_FLAG_PVDO) != RESET) ?
+                            PWR_PVD_BELOW : PWR_PVD_ABOVE;
 
     if (g_pvd_hook != 0)
     {
-        g_pvd_hook(low);
-    }
-}
-
-void EXTI0_IRQHandler(void)
-{
-    __HAL_GPIO_EXTI_CLEAR_IT(PWR_WKUP_GPIO_PIN);
-
-    if (g_wkup_hook != 0)
-    {
-        g_wkup_hook();
+        g_pvd_hook(state);
     }
 }
