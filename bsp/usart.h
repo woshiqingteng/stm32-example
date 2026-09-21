@@ -7,6 +7,7 @@
 #define BSP_USART_H
 
 #include <stdint.h>
+#include "stm32f4xx_hal.h"
 
 #define USART_REC_LEN 200U
 
@@ -20,20 +21,13 @@ typedef enum
 /** @brief Callback invoked for every byte received on USART1. */
 typedef void (*usart_rx_byte_cb_t)(uint8_t byte);
 
+extern UART_HandleTypeDef g_uart1_handle;
+
 /** @brief  Initialise USART1 (PA9 TX / PA10 RX) and start line reception. */
 void usart_init(uint32_t baudrate);
 
 /** @brief  Register (or clear with 0) the per-byte receive hook. */
 void usart_register_rx_byte_hook(usart_rx_byte_cb_t cb);
-
-/** @brief  Initialise USART1 TX DMA (DMA2 Stream7 / channel 4). */
-void usart_dma_tx_init(void);
-
-/** @brief  Start a non-blocking USART1 TX DMA transfer. */
-void usart_dma_tx(const uint8_t *data, uint16_t len);
-
-/** @brief  1 while a DMA transfer is in progress, 0 otherwise. */
-uint8_t usart_dma_tx_busy(void);
 
 /** @brief  Current reception state. */
 usart_rx_state_t usart_rx_state(void);

@@ -22,7 +22,7 @@ set(CMAKE_C_FLAGS "-std=gnu11 -Wall -ffunction-sections -fdata-sections" CACHE S
 set(CMAKE_C_FLAGS_DEBUG   "-Og -g3 -DDEBUG"  CACHE STRING "" FORCE)
 set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG"     CACHE STRING "" FORCE)
 
-set(CMAKE_EXE_LINKER_FLAGS "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections -Wl,--undefined=_write" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections" CACHE STRING "" FORCE)
 
 set(OPENOCD openocd CACHE FILEPATH "openocd executable")
 set(OPENOCD_INTERFACE cmsis-dap.cfg CACHE STRING "openocd interface config")

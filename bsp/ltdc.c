@@ -158,6 +158,8 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
             lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
 
     __HAL_RCC_DMA2D_CLK_ENABLE();
+    DMA2D->IFCR = DMA2D_FLAG_TC | DMA2D_FLAG_TE | DMA2D_FLAG_TW |
+                  DMA2D_FLAG_CAE | DMA2D_FLAG_CTC | DMA2D_FLAG_CE;
     DMA2D->CR &= ~(DMA2D_CR_START);
     DMA2D->CR = DMA2D_R2M;
     DMA2D->OPFCCR = LTDC_PIXFORMAT;
@@ -338,6 +340,8 @@ void ltdc_init(void)
 
     lcddev.width = (uint16_t)lcdltdc.pwidth;
     lcddev.height = (uint16_t)lcdltdc.pheight;
+    lcdltdc.width = (uint16_t)lcdltdc.pwidth;
+    lcdltdc.height = (uint16_t)lcdltdc.pheight;
 
     g_ltdc_framebuf[0] = (uint32_t *)LTDC_FRAME_BUF_ADDR;
     lcdltdc.pixsize = 2U;

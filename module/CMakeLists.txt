@@ -1,4 +1,4 @@
-set(MODULE_CMSIS_CORE_VERSION 6.3.1 CACHE STRING "cmsis_core version")
+set(MODULE_CMSIS_CORE_VERSION 6.1.0 CACHE STRING "cmsis_core version")
 set(MODULE_HAL_VERSION        1.8.5 CACHE STRING "stm32f4xx-hal-driver version")
 
 set(MODULE_CMSIS_CORE_ENABLE ON CACHE BOOL "Enable cmsis_core")

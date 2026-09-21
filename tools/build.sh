@@ -2,32 +2,35 @@
 # Configure/build (and optionally flash) one or more firmwares, each with its
 # own layered build tree: build/<BUILD_TYPE>/<BOARD>/<OS>/<APP_NAME>/
 #
+# Default build type is debug; release is only used when requested explicitly.
+#
 # usage:
-#   tools/build.sh <debug|release> <app|all> [<app> ...] [--flash]
+#   tools/build.sh [debug|release] <app|all> [<app> ...] [--flash]
 #
 # app names are the directory names under app/baremetal (e.g. 01_led).
 set -uo pipefail
 
 usage() {
-    echo "usage: $0 <debug|release> <app|all> [<app> ...] [--flash]" >&2
+    echo "usage: $0 [debug|release] <app|all> [<app> ...] [--flash]" >&2
     exit 1
 }
 
-[ "$#" -ge 2 ] || usage
+[ "$#" -ge 1 ] || usage
 
-config="$1"
-shift
+config="debug"
+[ "$1" = "debug" ] || [ "$1" = "release" ] && { config="$1"; shift; }
 
 flash=0
 apps=()
 for arg in "$@"; do
     case "$arg" in
         --flash) flash=1 ;;
+        --debug) config="debug" ;;
+        --release) config="release" ;;
         *) apps+=("$arg") ;;
     esac
 done
 [ "${#apps[@]}" -ge 1 ] || usage
-case "$config" in debug|release) ;; *) usage ;; esac
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 board="openedv_stm32f4"

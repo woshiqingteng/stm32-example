@@ -19,6 +19,10 @@ void lcd_init(void)
     if (lcddev.id != 0U)
     {
         ltdc_init();
+        /* The vendor code leaves ltdc_display_dir() commented out, which
+         * leaves lcdltdc.width/height at 0 and makes ltdc_clear()/ltdc_fill()
+         * address nothing. Select the default orientation explicitly. */
+        lcd_display_dir(0);
     }
     else
     {
