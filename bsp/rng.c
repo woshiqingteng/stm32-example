@@ -7,11 +7,12 @@
 #include "delay.h"
 #include "rng.h"
 
-#define RNG_READY_RETRY  10000U
-#define RNG_POLL_US      10U
+#define RNG_READY_RETRY        10000U
+#define RNG_POLL_US            10U
+#define RNG_RANGE_SPAN_OFFSET  1U
 
 static RNG_HandleTypeDef g_rng_handle;
-static uint8_t           g_rng_ready;
+static rng_status_t      g_rng_ready = RNG_NOT_READY;
 
 void rng_init(void)
 {
@@ -32,10 +33,10 @@ void rng_init(void)
         delay_us(RNG_POLL_US);
     }
 
-    g_rng_ready = (retry < RNG_READY_RETRY) ? 1U : 0U;
+    g_rng_ready = (retry < RNG_READY_RETRY) ? RNG_READY : RNG_NOT_READY;
 }
 
-uint8_t rng_is_ready(void)
+rng_status_t rng_is_ready(void)
 {
     return g_rng_ready;
 }
@@ -55,5 +56,5 @@ int rng_get_random_range(int min, int max)
 
     (void)HAL_RNG_GenerateRandomNumber(&g_rng_handle, &value);
 
-    return (int)(value % (uint32_t)(max - min + 1)) + min;
+    return (int)(value % (uint32_t)(max - min + RNG_RANGE_SPAN_OFFSET)) + min;
 }

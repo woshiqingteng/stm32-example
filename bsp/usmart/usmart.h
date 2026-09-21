@@ -10,6 +10,7 @@
 #ifndef BSP_USMART_USMART_H
 #define BSP_USMART_USMART_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
 
@@ -17,6 +18,9 @@
 #define USMART_MAX_PARM      10U  /*!< maximum parameters per call */
 #define USMART_PARM_LEN      200U /*!< total parameter storage (bytes) */
 #define USMART_RX_BUF_LEN    200U /*!< command line buffer (bytes) */
+
+/** @brief Highest argument count the caller can dispatch (0..USMART_MAX_ARG_COUNT). */
+#define USMART_MAX_ARG_COUNT 4U
 
 /** @brief Parser result codes. */
 typedef enum
@@ -68,7 +72,7 @@ typedef struct
     usmart_parmtype_t       parmtype[USMART_MAX_PARM];
     uint8_t                 plentbl[USMART_MAX_PARM];
     uint8_t                 parm[USMART_PARM_LEN];
-    uint8_t                 runtimeflag;              /*!< 1: report run time */
+    bool                    runtimeflag;              /*!< report run time if true */
     uint32_t                runtime;                  /*!< last run time in us */
 } usmart_dev_t;
 

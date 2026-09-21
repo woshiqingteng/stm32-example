@@ -25,6 +25,14 @@
 
 #define LTDC_PIXFORMAT LTDC_PIXFORMAT_RGB565
 #define LTDC_BACKLAYERCOLOR 0x00000000U
+#define LTDC_COLOR_WHITE    0xFFFFFFFFU
+
+/* Bytes per pixel implied by the selected LTDC pixel format. */
+#if (LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888) || (LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888)
+#define LTDC_PIXSIZE 4U
+#else
+#define LTDC_PIXSIZE 2U
+#endif
 
 /** @brief  Frame buffer base address inside the on-board SDRAM. */
 #define LTDC_FRAME_BUF_ADDR 0xC0000000U
@@ -52,22 +60,72 @@
 #define LTDC_PANEL_HEIGHT   480U
 #define LTDC_IDX_4384       4U
 
+/* Panel raster timing. */
+#define LTDC_PANEL_HSW      48U
+#define LTDC_PANEL_HBP      88U
+#define LTDC_PANEL_HFP      40U
+#define LTDC_PANEL_VSW      3U
+#define LTDC_PANEL_VBP      32U
+#define LTDC_PANEL_VFP      13U
+
+/* LTDC pixel clock PLL. */
+#define LTDC_PLLSAIN        396U
+#define LTDC_PLLSAIR        3U
+#define LTDC_PLLSAIDIVR     RCC_PLLSAIDIVR_4
+
+/* Panel id strap bit positions. */
+#define LTDC_IDX_SHIFT_0    0U
+#define LTDC_IDX_SHIFT_1    1U
+#define LTDC_IDX_SHIFT_2    2U
+
+/* Layer defaults. */
+#define LTDC_LAYER_ALPHA            255U
+#define LTDC_LAYER_ALPHA0           0U
+#define LTDC_BLENDING_FACTOR1       6U
+#define LTDC_BLENDING_FACTOR2       7U
+#define LTDC_BLENDING_FACTOR1_SHIFT 8U
+
+/* Byte lanes of a packed RGB colour. */
+#define LTDC_COLOR_RED_MASK    0x00FF0000U
+#define LTDC_COLOR_GREEN_MASK  0x0000FF00U
+#define LTDC_COLOR_BLUE_MASK   0x000000FFU
+#define LTDC_COLOR_RED_SHIFT   16U
+#define LTDC_COLOR_GREEN_SHIFT 8U
+
+/* DMA2D helpers. */
+#define DMA2D_TIMEOUT_MAX   0x1FFFFFU
+#define DMA2D_NLR_PL_SHIFT  16U
+
+/** @brief  Panel orientation: 0 swaps the native raster, 1 keeps it. */
+typedef enum
+{
+    LTDC_DIR_PORTRAIT  = 0,
+    LTDC_DIR_LANDSCAPE = 1
+} ltdc_dir_t;
+
+/** @brief  LTDC layer index. */
+typedef enum
+{
+    LTDC_ACTIVE_LAYER_0 = 0,
+    LTDC_ACTIVE_LAYER_1 = 1
+} ltdc_layer_t;
+
 /** @brief  LTDC screen configuration. */
 typedef struct
 {
-    uint32_t pwidth;      /* panel width  (fixed) */
-    uint32_t pheight;     /* panel height (fixed) */
-    uint16_t hsw;         /* horizontal sync width */
-    uint16_t vsw;         /* vertical sync width */
-    uint16_t hbp;         /* horizontal back porch */
-    uint16_t vbp;         /* vertical back porch */
-    uint16_t hfp;         /* horizontal front porch */
-    uint16_t vfp;         /* vertical front porch */
-    uint8_t  activelayer; /* active layer: 0/1 */
-    uint8_t  dir;         /* 0 portrait, 1 landscape */
-    uint16_t width;       /* logical width */
-    uint16_t height;      /* logical height */
-    uint32_t pixsize;     /* bytes per pixel */
+    uint32_t     pwidth;      /* panel width  (fixed) */
+    uint32_t     pheight;     /* panel height (fixed) */
+    uint16_t     hsw;         /* horizontal sync width */
+    uint16_t     vsw;         /* vertical sync width */
+    uint16_t     hbp;         /* horizontal back porch */
+    uint16_t     vbp;         /* vertical back porch */
+    uint16_t     hfp;         /* horizontal front porch */
+    uint16_t     vfp;         /* vertical front porch */
+    ltdc_layer_t activelayer; /* active layer: 0/1 */
+    ltdc_dir_t   dir;         /* 0 portrait, 1 landscape */
+    uint16_t     width;       /* logical width */
+    uint16_t     height;      /* logical height */
+    uint32_t     pixsize;     /* bytes per pixel */
 } _ltdc_dev;
 
 extern _ltdc_dev lcdltdc;
@@ -76,17 +134,17 @@ extern DMA2D_HandleTypeDef g_dma2d_handle;
 extern uint32_t *g_ltdc_framebuf[2];
 
 void ltdc_switch(uint8_t sw);
-void ltdc_layer_switch(uint8_t layerx, uint8_t sw);
-void ltdc_select_layer(uint8_t layerx);
-void ltdc_display_dir(uint8_t dir);
+void ltdc_layer_switch(ltdc_layer_t layerx, uint8_t sw);
+void ltdc_select_layer(ltdc_layer_t layerx);
+void ltdc_display_dir(ltdc_dir_t dir);
 void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color);
 uint32_t ltdc_read_point(uint16_t x, uint16_t y);
 void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);
 void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color);
 void ltdc_clear(uint32_t color);
 uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr);
-void ltdc_layer_window_config(uint8_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
-void ltdc_layer_parameter_config(uint8_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
+void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
+void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
                                  uint8_t alpha0, uint8_t bfac1, uint8_t bfac2, uint32_t bkcolor);
 uint16_t ltdc_panelid_read(void);
 void ltdc_init(void);

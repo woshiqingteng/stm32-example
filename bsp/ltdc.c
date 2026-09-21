@@ -29,7 +29,7 @@ void ltdc_switch(uint8_t sw)
     }
 }
 
-void ltdc_layer_switch(uint8_t layerx, uint8_t sw)
+void ltdc_layer_switch(ltdc_layer_t layerx, uint8_t sw)
 {
     if (sw != 0U)
     {
@@ -43,16 +43,16 @@ void ltdc_layer_switch(uint8_t layerx, uint8_t sw)
     __HAL_LTDC_RELOAD_CONFIG(&g_ltdc_handle);
 }
 
-void ltdc_select_layer(uint8_t layerx)
+void ltdc_select_layer(ltdc_layer_t layerx)
 {
     lcdltdc.activelayer = layerx;
 }
 
-void ltdc_display_dir(uint8_t dir)
+void ltdc_display_dir(ltdc_dir_t dir)
 {
     lcdltdc.dir = dir;
 
-    if (dir == 0U)
+    if (dir == LTDC_DIR_PORTRAIT)
     {
         lcdltdc.width  = lcdltdc.pheight;
         lcdltdc.height = lcdltdc.pwidth;
@@ -67,7 +67,7 @@ void ltdc_display_dir(uint8_t dir)
 void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
 {
 #if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
                       lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) = color;
@@ -78,7 +78,7 @@ void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
                       lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y)) = color;
     }
 #else
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
                       lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) = (uint16_t)color;
@@ -94,7 +94,7 @@ void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
 uint32_t ltdc_read_point(uint16_t x, uint16_t y)
 {
 #if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         return *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
                              lcdltdc.pixsize * (lcdltdc.pwidth * y + x));
@@ -105,7 +105,7 @@ uint32_t ltdc_read_point(uint16_t x, uint16_t y)
                              lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y));
     }
 #else
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         return *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
                              lcdltdc.pixsize * (lcdltdc.pwidth * y + x));
@@ -128,7 +128,7 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
     uint16_t offline;
     uint32_t addr;
 
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         psx = sx;
         psy = sy;
@@ -160,19 +160,19 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
     __HAL_RCC_DMA2D_CLK_ENABLE();
     DMA2D->IFCR = DMA2D_FLAG_TC | DMA2D_FLAG_TE | DMA2D_FLAG_TW |
                   DMA2D_FLAG_CAE | DMA2D_FLAG_CTC | DMA2D_FLAG_CE;
-    DMA2D->CR &= ~(DMA2D_CR_START);
+    DMA2D->CR &= ~DMA2D_CR_START;
     DMA2D->CR = DMA2D_R2M;
     DMA2D->OPFCCR = LTDC_PIXFORMAT;
     DMA2D->OOR = offline;
     DMA2D->OMAR = addr;
-    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << 16);
+    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << DMA2D_NLR_PL_SHIFT);
     DMA2D->OCOLR = color;
     DMA2D->CR |= DMA2D_CR_START;
 
-    while ((DMA2D->ISR & (DMA2D_FLAG_TC)) == 0U)
+    while ((DMA2D->ISR & DMA2D_FLAG_TC) == 0U)
     {
         timeout++;
-        if (timeout > 0x1FFFFFU)
+        if (timeout > DMA2D_TIMEOUT_MAX)
         {
             break;
         }
@@ -191,7 +191,7 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
     uint16_t offline;
     uint32_t addr;
 
-    if (lcdltdc.dir != 0U)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         psx = sx;
         psy = sy;
@@ -210,27 +210,27 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
     addr = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
             lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
 
-    RCC->AHB1ENR |= 1U << 23;
-    DMA2D->CR = 0U << 16;
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+    DMA2D->CR = DMA2D_M2M;
     DMA2D->FGPFCCR = LTDC_PIXFORMAT;
     DMA2D->FGOR = 0U;
     DMA2D->OOR = offline;
-    DMA2D->CR &= ~(1U << 0);
+    DMA2D->CR &= ~DMA2D_CR_START;
     DMA2D->FGMAR = (uint32_t)color;
     DMA2D->OMAR = addr;
-    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << 16);
-    DMA2D->CR |= 1U << 0;
+    DMA2D->NLR = (pey - psy + 1U) | ((pex - psx + 1U) << DMA2D_NLR_PL_SHIFT);
+    DMA2D->CR |= DMA2D_CR_START;
 
-    while ((DMA2D->ISR & (1U << 1)) == 0U)
+    while ((DMA2D->ISR & DMA2D_FLAG_TC) == 0U)
     {
         timeout++;
-        if (timeout > 0x1FFFFFU)
+        if (timeout > DMA2D_TIMEOUT_MAX)
         {
             break;
         }
     }
 
-    DMA2D->IFCR |= 1U << 1;
+    DMA2D->IFCR |= DMA2D_FLAG_TC;
 }
 
 void ltdc_clear(uint32_t color)
@@ -255,13 +255,13 @@ uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr)
     return 1U;
 }
 
-void ltdc_layer_window_config(uint8_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
+void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
 {
     (void)HAL_LTDC_SetWindowPosition(&g_ltdc_handle, sx, sy, layerx);
     (void)HAL_LTDC_SetWindowSize(&g_ltdc_handle, width, height, layerx);
 }
 
-void ltdc_layer_parameter_config(uint8_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
+void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
                                  uint8_t alpha0, uint8_t bfac1, uint8_t bfac2, uint32_t bkcolor)
 {
     LTDC_LayerCfgTypeDef playercfg = {0};
@@ -273,14 +273,14 @@ void ltdc_layer_parameter_config(uint8_t layerx, uint32_t bufaddr, uint8_t pixfo
     playercfg.PixelFormat = pixformat;
     playercfg.Alpha = alpha;
     playercfg.Alpha0 = alpha0;
-    playercfg.BlendingFactor1 = (uint32_t)bfac1 << 8;
+    playercfg.BlendingFactor1 = (uint32_t)bfac1 << LTDC_BLENDING_FACTOR1_SHIFT;
     playercfg.BlendingFactor2 = (uint32_t)bfac2;
     playercfg.FBStartAdress = bufaddr;
     playercfg.ImageWidth = lcdltdc.pwidth;
     playercfg.ImageHeight = lcdltdc.pheight;
-    playercfg.Backcolor.Red = (uint8_t)(bkcolor & 0x00FF0000U) >> 16;
-    playercfg.Backcolor.Green = (uint8_t)(bkcolor & 0x0000FF00U) >> 8;
-    playercfg.Backcolor.Blue = (uint8_t)bkcolor & 0x000000FFU;
+    playercfg.Backcolor.Red = (uint8_t)(bkcolor & LTDC_COLOR_RED_MASK) >> LTDC_COLOR_RED_SHIFT;
+    playercfg.Backcolor.Green = (uint8_t)(bkcolor & LTDC_COLOR_GREEN_MASK) >> LTDC_COLOR_GREEN_SHIFT;
+    playercfg.Backcolor.Blue = (uint8_t)bkcolor & LTDC_COLOR_BLUE_MASK;
 
     (void)HAL_LTDC_ConfigLayer(&g_ltdc_handle, &playercfg, layerx);
 }
@@ -302,9 +302,9 @@ uint16_t ltdc_panelid_read(void)
     gpio_init_struct.Pin = GPIO_PIN_2 | GPIO_PIN_7;
     HAL_GPIO_Init(GPIOI, &gpio_init_struct);
 
-    idx = (uint8_t)HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_6);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2) << 1);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_7) << 2);
+    idx = (uint8_t)(HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_6) << LTDC_IDX_SHIFT_0);
+    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2) << LTDC_IDX_SHIFT_1);
+    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_7) << LTDC_IDX_SHIFT_2);
 
     if (idx == LTDC_IDX_4384)
     {
@@ -325,13 +325,13 @@ void ltdc_init(void)
     {
         lcdltdc.pwidth = LTDC_PANEL_WIDTH;
         lcdltdc.pheight = LTDC_PANEL_HEIGHT;
-        lcdltdc.hbp = 88U;
-        lcdltdc.hfp = 40U;
-        lcdltdc.hsw = 48U;
-        lcdltdc.vbp = 32U;
-        lcdltdc.vfp = 13U;
-        lcdltdc.vsw = 3U;
-        (void)ltdc_clk_set(396U, 3U, RCC_PLLSAIDIVR_4);
+        lcdltdc.hbp = LTDC_PANEL_HBP;
+        lcdltdc.hfp = LTDC_PANEL_HFP;
+        lcdltdc.hsw = LTDC_PANEL_HSW;
+        lcdltdc.vbp = LTDC_PANEL_VBP;
+        lcdltdc.vfp = LTDC_PANEL_VFP;
+        lcdltdc.vsw = LTDC_PANEL_VSW;
+        (void)ltdc_clk_set(LTDC_PLLSAIN, LTDC_PLLSAIR, LTDC_PLLSAIDIVR);
     }
     else
     {
@@ -344,7 +344,7 @@ void ltdc_init(void)
     lcdltdc.height = (uint16_t)lcdltdc.pheight;
 
     g_ltdc_framebuf[0] = (uint32_t *)LTDC_FRAME_BUF_ADDR;
-    lcdltdc.pixsize = 2U;
+    lcdltdc.pixsize = LTDC_PIXSIZE;
 
     /* MSP begin */
     __HAL_RCC_LTDC_CLK_ENABLE();
@@ -408,10 +408,12 @@ void ltdc_init(void)
 
     (void)HAL_LTDC_Init(&g_ltdc_handle);
 
-    ltdc_layer_parameter_config(0U, (uint32_t)g_ltdc_framebuf[0], LTDC_PIXFORMAT, 255U, 0U, 6U, 7U, LTDC_BACKLAYERCOLOR);
-    ltdc_layer_window_config(0U, 0U, 0U, (uint16_t)lcdltdc.pwidth, (uint16_t)lcdltdc.pheight);
+    ltdc_layer_parameter_config(LTDC_ACTIVE_LAYER_0, (uint32_t)g_ltdc_framebuf[0], LTDC_PIXFORMAT,
+                                LTDC_LAYER_ALPHA, LTDC_LAYER_ALPHA0,
+                                LTDC_BLENDING_FACTOR1, LTDC_BLENDING_FACTOR2, LTDC_BACKLAYERCOLOR);
+    ltdc_layer_window_config(LTDC_ACTIVE_LAYER_0, 0U, 0U, (uint16_t)lcdltdc.pwidth, (uint16_t)lcdltdc.pheight);
 
-    ltdc_select_layer(0U);
+    ltdc_select_layer(LTDC_ACTIVE_LAYER_0);
     LTDC_BL(1);
-    ltdc_clear(0xFFFFFFFFU);
+    ltdc_clear(LTDC_COLOR_WHITE);
 }

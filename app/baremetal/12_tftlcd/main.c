@@ -13,6 +13,26 @@
 #include "lcd.h"
 
 #define LCD_COLOR_COUNT 12U
+#define DEMO_TEXT_X     10U
+#define DEMO_TEXT_WIDTH 240U
+#define DEMO_ID_Y       130U
+#define DEMO_ID_SIZE    16U
+
+typedef struct
+{
+    uint16_t    y;
+    uint8_t     size;
+    const char *text;
+} demo_line_t;
+
+static const demo_line_t g_demo_lines[] =
+{
+    {  40U, 32U, "STM32"         },
+    {  80U, 24U, "LTDC TEST"     },
+    { 110U, 16U, "ATOM@ALIENTEK" }
+};
+
+#define DEMO_LINE_COUNT (sizeof(g_demo_lines) / sizeof(g_demo_lines[0]))
 
 int main(void)
 {
@@ -23,6 +43,7 @@ int main(void)
     };
     char lcd_id[16];
     uint8_t x = 0;
+    uint8_t i;
 
     bsp_init();
     sdram_init();
@@ -35,10 +56,15 @@ int main(void)
     for (;;)
     {
         lcd_clear(colors[x]);
-        lcd_show_string(10, 40, 240, 32, 32, "STM32", RED);
-        lcd_show_string(10, 80, 240, 24, 24, "LTDC TEST", RED);
-        lcd_show_string(10, 110, 240, 16, 16, "ATOM@ALIENTEK", RED);
-        lcd_show_string(10, 130, 240, 16, 16, lcd_id, RED);
+
+        for (i = 0U; i < (uint8_t)DEMO_LINE_COUNT; i++)
+        {
+            lcd_show_string(DEMO_TEXT_X, g_demo_lines[i].y, DEMO_TEXT_WIDTH,
+                            g_demo_lines[i].size, g_demo_lines[i].size,
+                            g_demo_lines[i].text, RED);
+        }
+
+        lcd_show_string(DEMO_TEXT_X, DEMO_ID_Y, DEMO_TEXT_WIDTH, DEMO_ID_SIZE, DEMO_ID_SIZE, lcd_id, RED);
 
         printf("color index %u\r\n", (unsigned)x);
 

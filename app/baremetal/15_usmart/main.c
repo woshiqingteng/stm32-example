@@ -7,6 +7,8 @@
 #include "bsp.h"
 #include "usmart/usmart.h"
 
+#define USMART_APP_BLINK_MS 200U
+
 int main(void)
 {
     bsp_init();
@@ -18,6 +20,6 @@ int main(void)
     {
         usmart_scan();
         led_toggle(LED0);
-        delay_ms(200);
+        delay_ms(USMART_APP_BLINK_MS);
     }
 }

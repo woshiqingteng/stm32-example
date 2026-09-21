@@ -1,15 +1,14 @@
 /**
  * @file    oled.c
  * @brief   SSD1306 128x64 OLED driver over the 8080 8-bit parallel bus.
+ *
+ * Only the 8080 parallel interface is wired; the SPI path is not implemented.
  */
 
 #include "stm32f4xx_hal.h"
 #include "oled.h"
 #include "oledfont.h"
 #include "delay.h"
-
-/* Interface selection: only the 8080 parallel path is implemented. */
-#define OLED_IF_SELECT  OLED_IF_8080
 
 /* 8080 parallel bus control pins. */
 #define OLED_RST_PORT   GPIOA
@@ -28,14 +27,22 @@
 #define OLED_RD_PIN     GPIO_PIN_3
 
 /* Data bus: D0-D3 -> PC6-PC9, D4 -> PC11, D5 -> PD3, D6-D7 -> PB8-PB9. */
-#define OLED_DAT_D0_D3_MASK   0x03C0U
-#define OLED_DAT_D0_D3_SHIFT  6U
-#define OLED_DAT_D4_MASK      0x0800U
-#define OLED_DAT_D4_SHIFT     11U
-#define OLED_DAT_D5_MASK      0x0008U
-#define OLED_DAT_D5_SHIFT     3U
-#define OLED_DAT_D6_D7_MASK   0x0300U
-#define OLED_DAT_D6_D7_SHIFT  8U
+#define OLED_DAT_D0_D3_MASK     0x03C0U
+#define OLED_DAT_D0_D3_SHIFT    6U
+#define OLED_DAT_D4_MASK        0x0800U
+#define OLED_DAT_D4_SHIFT       11U
+#define OLED_DAT_D5_MASK        0x0008U
+#define OLED_DAT_D5_SHIFT       3U
+#define OLED_DAT_D6_D7_MASK     0x0300U
+#define OLED_DAT_D6_D7_SHIFT    8U
+
+/* Source-bit fields of the bus byte. */
+#define OLED_DAT_NIBBLE_MASK    0x0FU
+#define OLED_DAT_BIT_MASK       0x01U
+#define OLED_DAT_D4_SRC_SHIFT   4U
+#define OLED_DAT_D5_SRC_SHIFT   5U
+#define OLED_DAT_D6_SRC_SHIFT   6U
+#define OLED_DAT_D6_D7_SRC_MASK 0x03U
 
 /* SSD1306 command bytes. */
 typedef enum
@@ -75,15 +82,22 @@ typedef enum
 #define OLED_VCOMH_VALUE         0x30U
 
 /* Panel geometry. */
-#define OLED_WIDTH  128U
-#define OLED_HEIGHT 64U
-#define OLED_PAGES  (OLED_HEIGHT / 8U)
+#define OLED_WIDTH     128U
+#define OLED_HEIGHT    64U
+#define OLED_PAGE_BITS 8U
+#define OLED_PAGES     (OLED_HEIGHT / OLED_PAGE_BITS)
 
 /* Character metrics. */
-#define OLED_6X8_WIDTH   6U
-#define OLED_8X16_WIDTH  8U
-#define OLED_ASCII_FIRST 0x20U
-#define OLED_ASCII_LAST  0x7EU
+#define OLED_6X8_WIDTH          6U
+#define OLED_8X16_WIDTH         8U
+#define OLED_ASCII_FIRST        0x20U
+#define OLED_ASCII_LAST         0x7EU
+#define OLED_FONT_ROWS          8U
+#define OLED_FONT_MSB           0x80U
+#define OLED_8X16_BYTES_PER_COL 2U
+#define OLED_DECIMAL_BASE       10U
+
+#define OLED_RESET_DELAY_MS     100U
 
 typedef enum
 {
@@ -91,42 +105,45 @@ typedef enum
     OLED_ARG_DATA = 1
 } oled_arg_t;
 
+/* Leading-zero suppression state used by oled_show_num(). */
+typedef enum
+{
+    OLED_LEADING_SUPPRESSED = 0,
+    OLED_LEADING_VISIBLE    = 1
+} oled_leading_t;
+
 static uint8_t g_oled_gram[OLED_WIDTH][OLED_PAGES];
 
-static void oled_wr_byte(uint8_t data, uint8_t arg);
+static void oled_wr_byte(uint8_t data, oled_arg_t arg);
 static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot);
-static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, uint8_t size);
+static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size);
 
 static void oled_data_out(uint8_t data)
 {
     GPIOC->ODR = (GPIOC->ODR & ~OLED_DAT_D0_D3_MASK) |
-                 ((uint32_t)(data & 0x0FU) << OLED_DAT_D0_D3_SHIFT);
+                 ((uint32_t)(data & OLED_DAT_NIBBLE_MASK) << OLED_DAT_D0_D3_SHIFT);
     GPIOC->ODR = (GPIOC->ODR & ~OLED_DAT_D4_MASK) |
-                 ((uint32_t)((data >> 4) & 0x01U) << OLED_DAT_D4_SHIFT);
+                 ((uint32_t)((data >> OLED_DAT_D4_SRC_SHIFT) & OLED_DAT_BIT_MASK) <<
+                  OLED_DAT_D4_SHIFT);
     GPIOD->ODR = (GPIOD->ODR & ~OLED_DAT_D5_MASK) |
-                 ((uint32_t)((data >> 5) & 0x01U) << OLED_DAT_D5_SHIFT);
+                 ((uint32_t)((data >> OLED_DAT_D5_SRC_SHIFT) & OLED_DAT_BIT_MASK) <<
+                  OLED_DAT_D5_SHIFT);
     GPIOB->ODR = (GPIOB->ODR & ~OLED_DAT_D6_D7_MASK) |
-                 ((uint32_t)((data >> 6) & 0x03U) << OLED_DAT_D6_D7_SHIFT);
+                 ((uint32_t)((data >> OLED_DAT_D6_SRC_SHIFT) & OLED_DAT_D6_D7_SRC_MASK) <<
+                  OLED_DAT_D6_D7_SHIFT);
 }
 
-static void oled_wr_byte(uint8_t data, uint8_t arg)
+static void oled_wr_byte(uint8_t data, oled_arg_t arg)
 {
-    if (OLED_IF_SELECT == OLED_IF_8080)
-    {
-        oled_data_out(data);
+    oled_data_out(data);
 
-        HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN,
-                          (arg != (uint8_t)OLED_ARG_CMD) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
-    }
-    else
-    {
-        /* SPI path intentionally left unimplemented. */
-    }
+    HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN,
+                      (arg != OLED_ARG_CMD) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
 }
 
 static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot)
@@ -139,8 +156,8 @@ static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot)
         return;
     }
 
-    page = (uint8_t)(y / 8U);
-    bit  = (uint8_t)(1U << (y % 8U));
+    page = (uint8_t)(y / OLED_PAGE_BITS);
+    bit  = (uint8_t)(1U << (y % OLED_PAGE_BITS));
 
     if (dot != 0U)
     {
@@ -152,17 +169,17 @@ static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot)
     }
 }
 
-static uint8_t oled_char_width(uint8_t size)
+static uint8_t oled_char_width(oled_font_t size)
 {
-    return (size == (uint8_t)OLED_FONT_6X8) ? OLED_6X8_WIDTH : OLED_8X16_WIDTH;
+    return (size == OLED_FONT_6X8) ? OLED_6X8_WIDTH : OLED_8X16_WIDTH;
 }
 
 static uint8_t oled_font_byte_bit(uint8_t byte, uint8_t row)
 {
-    return (uint8_t)((byte & (uint8_t)(0x80U >> row)) ? 1U : 0U);
+    return (uint8_t)((byte & (uint8_t)(OLED_FONT_MSB >> row)) ? 1U : 0U);
 }
 
-static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, uint8_t size)
+static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
 {
     uint8_t idx;
     uint8_t col;
@@ -176,40 +193,36 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, uint8_t size)
 
     idx = (uint8_t)(chr - OLED_ASCII_FIRST);
 
-    if (size == (uint8_t)OLED_FONT_6X8)
+    if (size == OLED_FONT_6X8)
     {
         for (col = 0; col < OLED_6X8_WIDTH; col++)
         {
             font_byte = oled_font_6x8[idx][col];
-            for (row = 0; row < 8U; row++)
+            for (row = 0; row < OLED_FONT_ROWS; row++)
             {
                 oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
                                 oled_font_byte_bit(font_byte, row));
             }
         }
     }
-    else if (size == (uint8_t)OLED_FONT_8X16)
+    else if (size == OLED_FONT_8X16)
     {
         for (col = 0; col < OLED_8X16_WIDTH; col++)
         {
-            font_byte = oled_asc2_1608[idx][2U * col];
-            for (row = 0; row < 8U; row++)
+            font_byte = oled_asc2_1608[idx][OLED_8X16_BYTES_PER_COL * col];
+            for (row = 0; row < OLED_FONT_ROWS; row++)
             {
                 oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
                                 oled_font_byte_bit(font_byte, row));
             }
 
-            font_byte = oled_asc2_1608[idx][(2U * col) + 1U];
-            for (row = 0; row < 8U; row++)
+            font_byte = oled_asc2_1608[idx][(OLED_8X16_BYTES_PER_COL * col) + 1U];
+            for (row = 0; row < OLED_FONT_ROWS; row++)
             {
-                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + 8U + row),
+                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + OLED_FONT_ROWS + row),
                                 oled_font_byte_bit(font_byte, row));
             }
         }
-    }
-    else
-    {
-        /* Unsupported font height. */
     }
 }
 
@@ -261,7 +274,7 @@ void oled_clear(void)
     oled_refresh();
 }
 
-void oled_show_string(uint8_t x, uint8_t y, const char *str, uint8_t size)
+void oled_show_string(uint8_t x, uint8_t y, const char *str, oled_font_t size)
 {
     uint8_t width = oled_char_width(size);
 
@@ -298,18 +311,19 @@ static uint32_t oled_pow(uint8_t m, uint8_t n)
     return result;
 }
 
-void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint8_t size)
+void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, oled_font_t size)
 {
     uint8_t width = oled_char_width(size);
     uint8_t t;
     uint8_t digit;
-    uint8_t enshow = 0U;
+    oled_leading_t enshow = OLED_LEADING_SUPPRESSED;
 
     for (t = 0; t < len; t++)
     {
-        digit = (uint8_t)((num / oled_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
+        digit = (uint8_t)((num / oled_pow(OLED_DECIMAL_BASE, (uint8_t)(len - t - 1U))) %
+                          OLED_DECIMAL_BASE);
 
-        if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
+        if ((enshow == OLED_LEADING_SUPPRESSED) && (t < (uint8_t)(len - 1U)))
         {
             if (digit == 0U)
             {
@@ -317,7 +331,7 @@ void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint8_t size
                 continue;
             }
 
-            enshow = 1U;
+            enshow = OLED_LEADING_VISIBLE;
         }
 
         oled_show_char((uint8_t)(x + (width * t)), y, (uint8_t)('0' + digit), size);
@@ -361,7 +375,7 @@ void oled_init(void)
     /* MSP end */
 
     HAL_GPIO_WritePin(OLED_RST_PORT, OLED_RST_PIN, GPIO_PIN_RESET);
-    delay_ms(100);
+    delay_ms(OLED_RESET_DELAY_MS);
     HAL_GPIO_WritePin(OLED_RST_PORT, OLED_RST_PIN, GPIO_PIN_SET);
 
     oled_wr_byte(OLED_CMD_DISPLAY_OFF, OLED_ARG_CMD);

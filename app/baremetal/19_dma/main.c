@@ -10,12 +10,25 @@
 #include <stdio.h>
 #include "bsp.h"
 
-#define DMA_TX_BUF_SIZE (6U * 1024U)
-#define DMA_TX_CHUNK    1024U
+#define DMA_TX_BUF_SIZE       (6U * 1024U)
+#define DMA_TX_CHUNK          1024U
 
-#define DMA_TX_STREAM   DMA2_Stream7
-#define DMA_TX_CHANNEL  DMA_CHANNEL_4
-#define DMA_TX_IRQn     DMA2_Stream7_IRQn
+#define DMA_TX_STREAM         DMA2_Stream7
+#define DMA_TX_CHANNEL        DMA_CHANNEL_4
+#define DMA_TX_IRQn           DMA2_Stream7_IRQn
+#define DMA_TX_NVIC_PREEMP    3U
+#define DMA_TX_NVIC_SUB       3U
+
+#define DMA_TX_LINE_TERM_LEN  1U
+#define DMA_TX_PROGRESS_SCALE 100U
+#define DMA_TX_POLL_DELAY_MS  1U
+#define DMA_TX_LOOP_DELAY_MS  100U
+
+typedef enum
+{
+    DMA_TX_STATE_IDLE = 0,
+    DMA_TX_STATE_BUSY,
+} dma_tx_state_t;
 
 static const char DMA_TX_LINE[] = "STM32F429 USART1 TX DMA demo - 0123456789\r\n";
 static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE];
@@ -26,7 +39,7 @@ static void dma_tx_init(void)
 {
     /* ---- MSP begin: DMA2 clock + NVIC ---- */
     __HAL_RCC_DMA2_CLK_ENABLE();
-    HAL_NVIC_SetPriority(DMA_TX_IRQn, 3, 3);
+    HAL_NVIC_SetPriority(DMA_TX_IRQn, DMA_TX_NVIC_PREEMP, DMA_TX_NVIC_SUB);
     HAL_NVIC_EnableIRQ(DMA_TX_IRQn);
     /* ---- MSP end ---- */
 
@@ -50,18 +63,19 @@ static void dma_tx_init(void)
     (void)HAL_DMA_Init(&g_dma_tx);
 }
 
+static dma_tx_state_t dma_tx_state(void)
+{
+    return (g_uart1_handle.gState == HAL_UART_STATE_READY) ? DMA_TX_STATE_IDLE
+                                                           : DMA_TX_STATE_BUSY;
+}
+
 static void dma_tx(const uint8_t *data, uint16_t len)
 {
-    if (g_uart1_handle.gState != HAL_UART_STATE_READY)
+    if (dma_tx_state() != DMA_TX_STATE_IDLE)
     {
         return;
     }
     (void)HAL_UART_Transmit_DMA(&g_uart1_handle, data, len);
-}
-
-static uint8_t dma_tx_busy(void)
-{
-    return (g_uart1_handle.gState != HAL_UART_STATE_READY) ? 1U : 0U;
 }
 
 void DMA2_Stream7_IRQHandler(void)
@@ -71,7 +85,7 @@ void DMA2_Stream7_IRQHandler(void)
 
 static uint16_t dma_fill_buffer(void)
 {
-    uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - 1U);
+    uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - DMA_TX_LINE_TERM_LEN);
     uint16_t i = 0U;
 
     while (((uint32_t)i + line_len) <= DMA_TX_BUF_SIZE)
@@ -115,20 +129,21 @@ int main(void)
                 }
 
                 dma_tx(&g_tx_buf[offset], chunk);
-                while (dma_tx_busy())
+                while (dma_tx_state() == DMA_TX_STATE_BUSY)
                 {
                     led_toggle(LED0);
-                    delay_ms(1);
+                    delay_ms(DMA_TX_POLL_DELAY_MS);
                 }
 
                 offset = (uint16_t)(offset + chunk);
-                printf("progress: %u%%\r\n", (unsigned)(((uint32_t)offset * 100U) / len));
+                printf("progress: %u%%\r\n",
+                       (unsigned)(((uint32_t)offset * DMA_TX_PROGRESS_SCALE) / len));
             }
 
             printf("DMA TX finished\r\n");
         }
 
         led_toggle(LED0);
-        delay_ms(100);
+        delay_ms(DMA_TX_LOOP_DELAY_MS);
     }
 }

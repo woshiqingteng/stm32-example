@@ -6,10 +6,14 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define GTIM_CAP_ARR     0xFFFFU
+#define GTIM_CAP_PSC     90U
+#define GTIM_CAP_LOOP_MS 200U
+
 int main(void)
 {
     bsp_init();
-    gtim_timx_cap_chy_init(0xFFFF, 90 - 1);
+    gtim_timx_cap_chy_init(GTIM_CAP_ARR, GTIM_CAP_PSC - 1U);
 
     for (;;)
     {
@@ -20,6 +24,6 @@ int main(void)
         }
 
         led_toggle(LED0);
-        delay_ms(200);
+        delay_ms(GTIM_CAP_LOOP_MS);
     }
 }

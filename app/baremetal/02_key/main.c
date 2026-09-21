@@ -6,10 +6,23 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define KEY_IDLE_POLL_MS 10U
+
+typedef enum
+{
+    LED_STATE_OFF = 0,
+    LED_STATE_ON,
+} led_state_t;
+
+static led_state_t led_state_toggle(led_state_t state)
+{
+    return (state == LED_STATE_ON) ? LED_STATE_OFF : LED_STATE_ON;
+}
+
 int main(void)
 {
-    bool led0_on = true;
-    bool led1_on = false;
+    led_state_t led0_state = LED_STATE_ON;
+    led_state_t led1_state = LED_STATE_OFF;
 
     bsp_init();
     led_on(LED0);
@@ -21,25 +34,25 @@ int main(void)
         switch (key)
         {
             case KEY_WKUP:
-                led1_on = !led1_on;
-                led0_on = led1_on;
+                led1_state = led_state_toggle(led1_state);
+                led0_state = led1_state;
                 break;
             case KEY0:
-                led0_on = !led0_on;
-                led1_on = !led1_on;
+                led0_state = led_state_toggle(led0_state);
+                led1_state = led_state_toggle(led1_state);
                 break;
             case KEY1:
-                led1_on = !led1_on;
+                led1_state = led_state_toggle(led1_state);
                 break;
             case KEY2:
-                led0_on = !led0_on;
+                led0_state = led_state_toggle(led0_state);
                 break;
             default:
-                delay_ms(10);
+                delay_ms(KEY_IDLE_POLL_MS);
                 break;
         }
 
-        if (led0_on) { led_on(LED0); } else { led_off(LED0); }
-        if (led1_on) { led_on(LED1); } else { led_off(LED1); }
+        if (led0_state == LED_STATE_ON) { led_on(LED0); } else { led_off(LED0); }
+        if (led1_state == LED_STATE_ON) { led_on(LED1); } else { led_off(LED1); }
     }
 }

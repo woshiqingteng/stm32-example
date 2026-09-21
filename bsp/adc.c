@@ -35,7 +35,7 @@ typedef enum
     ADC_DMA_MODE_SCAN,
 } adc_dma_mode_t;
 
-static const uint32_t g_adc_scan_channels[ADC_SCAN_CH_NUM] =
+static const adc_channel_t g_adc_scan_channels[ADC_SCAN_CH_NUM] =
 {
     ADC_CH0, ADC_CH1, ADC_CH2, ADC_CH3, ADC_CH4, ADC_CH5,
 };
@@ -77,7 +77,7 @@ static void adc_instance_config(ADC_HandleTypeDef *hadc, FunctionalState scan,
     HAL_ADC_Init(hadc);
 }
 
-static void adc_channel_config(ADC_HandleTypeDef *hadc, uint32_t channel, uint32_t rank)
+static void adc_channel_config(ADC_HandleTypeDef *hadc, adc_channel_t channel, uint32_t rank)
 {
     ADC_ChannelConfTypeDef channel_config = {0};
 
@@ -100,7 +100,7 @@ void adc_init(void)
     adc_instance_config(&g_adc_handle, DISABLE, ADC_SINGLE_CONV_NUM, DISABLE, DISABLE);
 }
 
-uint32_t adc_get_result(uint32_t channel)
+uint32_t adc_get_result(adc_channel_t channel)
 {
     adc_channel_config(&g_adc_handle, channel, ADC_RANK_FIRST);
 
@@ -110,7 +110,7 @@ uint32_t adc_get_result(uint32_t channel)
     return (uint32_t)HAL_ADC_GetValue(&g_adc_handle);
 }
 
-uint32_t adc_get_result_average(uint32_t channel, uint8_t times)
+uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times)
 {
     uint32_t sum = 0U;
     uint8_t  i;
@@ -188,7 +188,7 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
 
         for (i = 0U; i < (uint32_t)ADC_SCAN_CH_NUM; i++)
         {
-            adc_channel_config(hadc, g_adc_scan_channels[i], i + 1U);
+            adc_channel_config(hadc, g_adc_scan_channels[i], (uint32_t)(i + ADC_RANK_FIRST));
         }
     }
     else

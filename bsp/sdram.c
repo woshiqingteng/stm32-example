@@ -12,13 +12,39 @@
 #define SDRAM_MODE_CAS_LATENCY_3 0x0030U
 #define SDRAM_MODE_STANDARD      0x0000U
 #define SDRAM_MODE_WRITEBURST_1  0x0200U
+#define SDRAM_MODE_NONE          0x0000U
 
 #define SDRAM_TARGET_BANK1       FMC_SDRAM_CMD_TARGET_BANK1
 
-#define SDRAM_REFRESH_COUNT      730U  /* 64 ms / 8192 rows @ SDCLK 96 MHz */
+#define SDRAM_REFRESH_COUNT       730U  /* 64 ms / 8192 rows @ SDCLK 96 MHz */
 #define SDRAM_CLK_ENABLE_DELAY_US 500U
-#define SDRAM_AUTOREFRESH_NUM    8U
-#define SDRAM_COMMAND_TIMEOUT    0x1000U
+#define SDRAM_COMMAND_TIMEOUT     0x1000U
+
+/* FMC timing parameters, in SDCLK cycles. */
+#define SDRAM_TIMING_TMRD 2U  /* Load-to-active delay */
+#define SDRAM_TIMING_TXSR 7U  /* Exit self-refresh delay */
+#define SDRAM_TIMING_TRAS 6U  /* Self-refresh time */
+#define SDRAM_TIMING_TRC  6U  /* Row cycle delay */
+#define SDRAM_TIMING_TWR  2U  /* Write recovery time */
+#define SDRAM_TIMING_TRP  2U  /* Row precharge delay */
+#define SDRAM_TIMING_TRCD 2U  /* Row-to-column delay */
+
+/* FMC commands issued during the initialisation sequence. */
+typedef enum
+{
+    SDRAM_CMD_CLK_ENABLE  = FMC_SDRAM_CMD_CLK_ENABLE,
+    SDRAM_CMD_PALL        = FMC_SDRAM_CMD_PALL,
+    SDRAM_CMD_AUTOREFRESH = FMC_SDRAM_CMD_AUTOREFRESH_MODE,
+    SDRAM_CMD_LOAD_MODE   = FMC_SDRAM_CMD_LOAD_MODE
+} sdram_command_t;
+
+/* Auto-refresh cycles: a single one for most commands, a burst of eight for
+ * the auto-refresh command. */
+typedef enum
+{
+    SDRAM_REFRESH_SINGLE    = 1,
+    SDRAM_AUTOREFRESH_BURST = 8
+} sdram_refresh_t;
 
 static SDRAM_HandleTypeDef g_sdram_handle;
 
@@ -60,13 +86,13 @@ static void sdram_gpio_init(void)
     HAL_GPIO_Init(GPIOG, &gpio);
 }
 
-static void sdram_send_command(uint8_t command, uint8_t refresh, uint16_t mode)
+static void sdram_send_command(sdram_command_t command, sdram_refresh_t refresh, uint16_t mode)
 {
     FMC_SDRAM_CommandTypeDef cmd = {0};
 
-    cmd.CommandMode            = command;
+    cmd.CommandMode            = (uint32_t)command;
     cmd.CommandTarget          = SDRAM_TARGET_BANK1;
-    cmd.AutoRefreshNumber      = refresh;
+    cmd.AutoRefreshNumber      = (uint32_t)refresh;
     cmd.ModeRegisterDefinition = mode;
 
     (void)HAL_SDRAM_SendCommand(&g_sdram_handle, &cmd, SDRAM_COMMAND_TIMEOUT);
@@ -78,11 +104,11 @@ static void sdram_initialization_sequence(void)
                     SDRAM_MODE_CAS_LATENCY_3 | SDRAM_MODE_STANDARD |
                     SDRAM_MODE_WRITEBURST_1;
 
-    sdram_send_command(FMC_SDRAM_CMD_CLK_ENABLE, 1U, 0U);
+    sdram_send_command(SDRAM_CMD_CLK_ENABLE, SDRAM_REFRESH_SINGLE, SDRAM_MODE_NONE);
     delay_us(SDRAM_CLK_ENABLE_DELAY_US);
-    sdram_send_command(FMC_SDRAM_CMD_PALL, 1U, 0U);
-    sdram_send_command(FMC_SDRAM_CMD_AUTOREFRESH_MODE, SDRAM_AUTOREFRESH_NUM, 0U);
-    sdram_send_command(FMC_SDRAM_CMD_LOAD_MODE, 1U, mode);
+    sdram_send_command(SDRAM_CMD_PALL, SDRAM_REFRESH_SINGLE, SDRAM_MODE_NONE);
+    sdram_send_command(SDRAM_CMD_AUTOREFRESH, SDRAM_AUTOREFRESH_BURST, SDRAM_MODE_NONE);
+    sdram_send_command(SDRAM_CMD_LOAD_MODE, SDRAM_REFRESH_SINGLE, mode);
 }
 
 void sdram_init(void)
@@ -103,13 +129,13 @@ void sdram_init(void)
     g_sdram_handle.Init.ReadBurst           = FMC_SDRAM_RBURST_ENABLE;
     g_sdram_handle.Init.ReadPipeDelay       = FMC_SDRAM_RPIPE_DELAY_1;
 
-    timing.LoadToActiveDelay    = 2U;
-    timing.ExitSelfRefreshDelay = 7U;
-    timing.SelfRefreshTime      = 6U;
-    timing.RowCycleDelay        = 6U;
-    timing.WriteRecoveryTime    = 2U;
-    timing.RPDelay              = 2U;
-    timing.RCDDelay             = 2U;
+    timing.LoadToActiveDelay    = SDRAM_TIMING_TMRD;
+    timing.ExitSelfRefreshDelay = SDRAM_TIMING_TXSR;
+    timing.SelfRefreshTime      = SDRAM_TIMING_TRAS;
+    timing.RowCycleDelay        = SDRAM_TIMING_TRC;
+    timing.WriteRecoveryTime    = SDRAM_TIMING_TWR;
+    timing.RPDelay              = SDRAM_TIMING_TRP;
+    timing.RCDDelay             = SDRAM_TIMING_TRCD;
 
     (void)HAL_SDRAM_Init(&g_sdram_handle, &timing);
     sdram_initialization_sequence();

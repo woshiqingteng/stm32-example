@@ -8,9 +8,60 @@
 #include "lcd.h"
 #include "lcdfont.h"
 
+/* Packed glyphs are MSB-first and half as wide as they are tall. */
+#define LCD_CHAR_WIDTH_DIV  2U
+#define LCD_FONT_BITS       8U
+#define LCD_FONT_MSB_MASK   0x80U
+
+/* Packed bytes per glyph for each supported raster. */
+#define LCD_FONT_1206_BYTES 12U
+#define LCD_FONT_1608_BYTES 16U
+#define LCD_FONT_2412_BYTES 36U
+#define LCD_FONT_3216_BYTES 128U
+
+typedef enum
+{
+    LCD_FONT_SIZE_12 = 12,
+    LCD_FONT_SIZE_16 = 16,
+    LCD_FONT_SIZE_24 = 24,
+    LCD_FONT_SIZE_32 = 32
+} lcd_font_size_t;
+
+typedef struct
+{
+    lcd_font_size_t size;   /* glyph height in pixels */
+    const uint8_t  *data;   /* glyph table base */
+    uint16_t        bytes;  /* packed bytes per glyph */
+} lcd_font_desc_t;
+
+static const lcd_font_desc_t g_lcd_fonts[] =
+{
+    { LCD_FONT_SIZE_12, (const uint8_t *)asc2_1206, LCD_FONT_1206_BYTES },
+    { LCD_FONT_SIZE_16, (const uint8_t *)asc2_1608, LCD_FONT_1608_BYTES },
+    { LCD_FONT_SIZE_24, (const uint8_t *)asc2_2412, LCD_FONT_2412_BYTES },
+    { LCD_FONT_SIZE_32, (const uint8_t *)asc2_3216, LCD_FONT_3216_BYTES }
+};
+
+#define LCD_FONT_COUNT (sizeof(g_lcd_fonts) / sizeof(g_lcd_fonts[0]))
+
 _lcd_dev lcddev;
 uint32_t g_point_color = 0xFF000000U;
 uint32_t g_back_color  = 0xFFFFFFFFU;
+
+static const lcd_font_desc_t *lcd_font_get(uint8_t size)
+{
+    uint8_t i;
+
+    for (i = 0U; i < (uint8_t)LCD_FONT_COUNT; i++)
+    {
+        if ((uint8_t)g_lcd_fonts[i].size == size)
+        {
+            return &g_lcd_fonts[i];
+        }
+    }
+
+    return 0;
+}
 
 void lcd_init(void)
 {
@@ -30,7 +81,7 @@ void lcd_init(void)
     }
 }
 
-void lcd_display_dir(uint8_t dir)
+void lcd_display_dir(ltdc_dir_t dir)
 {
     lcddev.dir = dir;
 
@@ -74,51 +125,37 @@ void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t
     }
 }
 
-void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, uint8_t mode, uint16_t color)
+void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode_t mode, uint16_t color)
 {
     uint8_t temp;
     uint8_t t1;
     uint8_t t;
     uint16_t y0 = y;
-    uint8_t csize = 0;
-    uint8_t *pfont = 0;
+    uint8_t csize;
+    const uint8_t *pfont;
+    const lcd_font_desc_t *font;
 
-    csize = (uint8_t)((size / 8U + ((size % 8U) ? 1U : 0U)) * (size / 2U));
-    chr = (char)(chr - ' ');
+    font = lcd_font_get(size);
 
-    switch (size)
+    if (font == 0)
     {
-        case 12:
-            pfont = (uint8_t *)asc2_1206[(uint8_t)chr];
-            break;
-
-        case 16:
-            pfont = (uint8_t *)asc2_1608[(uint8_t)chr];
-            break;
-
-        case 24:
-            pfont = (uint8_t *)asc2_2412[(uint8_t)chr];
-            break;
-
-        case 32:
-            pfont = (uint8_t *)asc2_3216[(uint8_t)chr];
-            break;
-
-        default:
-            return;
+        return;
     }
+
+    csize = (uint8_t)font->bytes;
+    pfont = font->data + ((uint8_t)(chr - ' ') * font->bytes);
 
     for (t = 0; t < csize; t++)
     {
         temp = pfont[t];
 
-        for (t1 = 0; t1 < 8U; t1++)
+        for (t1 = 0; t1 < LCD_FONT_BITS; t1++)
         {
-            if ((temp & 0x80U) != 0U)
+            if ((temp & LCD_FONT_MSB_MASK) != 0U)
             {
                 lcd_draw_point(x, y, color);
             }
-            else if (mode == 0U)
+            else if ((mode == LCD_TEXT_BG_OVERWRITE) || (mode == LCD_TEXT_BG_OVERWRITE_PAD_ZERO))
             {
                 lcd_draw_point(x, y, (uint16_t)g_back_color);
             }
@@ -173,7 +210,8 @@ void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t siz
         {
             if (temp == 0U)
             {
-                lcd_show_char((uint16_t)(x + (size / 2U) * t), y, ' ', size, 0, color);
+                lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, ' ', size,
+                              LCD_TEXT_BG_OVERWRITE, color);
                 continue;
             }
             else
@@ -182,15 +220,22 @@ void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t siz
             }
         }
 
-        lcd_show_char((uint16_t)(x + (size / 2U) * t), y, (char)temp + '0', size, 0, color);
+        lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, (char)temp + '0', size,
+                      LCD_TEXT_BG_OVERWRITE, color);
     }
 }
 
-void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint8_t mode, uint16_t color)
+void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, lcd_text_mode_t mode, uint16_t color)
 {
     uint8_t t;
     uint8_t temp;
     uint8_t enshow = 0;
+    char pad = ' ';
+
+    if ((mode == LCD_TEXT_BG_OVERWRITE_PAD_ZERO) || (mode == LCD_TEXT_TRANSPARENT_PAD_ZERO))
+    {
+        pad = '0';
+    }
 
     for (t = 0; t < len; t++)
     {
@@ -200,15 +245,7 @@ void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t si
         {
             if (temp == 0U)
             {
-                if ((mode & 0x80U) != 0U)
-                {
-                    lcd_show_char((uint16_t)(x + (size / 2U) * t), y, '0', size, mode & 0x01U, color);
-                }
-                else
-                {
-                    lcd_show_char((uint16_t)(x + (size / 2U) * t), y, ' ', size, mode & 0x01U, color);
-                }
-
+                lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, pad, size, mode, color);
                 continue;
             }
             else
@@ -217,11 +254,11 @@ void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t si
             }
         }
 
-        lcd_show_char((uint16_t)(x + (size / 2U) * t), y, (char)temp + '0', size, mode & 0x01U, color);
+        lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, (char)temp + '0', size, mode, color);
     }
 }
 
-void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, char *p, uint16_t color)
+void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, const char *p, uint16_t color)
 {
     uint8_t x0 = (uint8_t)x;
 
@@ -241,8 +278,8 @@ void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, ui
             break;
         }
 
-        lcd_show_char(x, y, *p, size, 0, color);
-        x += size / 2U;
+        lcd_show_char(x, y, *p, size, LCD_TEXT_BG_OVERWRITE, color);
+        x += size / LCD_CHAR_WIDTH_DIV;
         p++;
     }
 }

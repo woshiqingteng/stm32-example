@@ -12,6 +12,9 @@
 #include "stm32f4xx_hal.h"
 #include "delay.h"
 
+#define US_PER_MS   1000U
+#define MS_PER_SEC  1000U
+
 static uint32_t g_fac_us = 0;
 
 #if USE_FREERTOS
@@ -41,7 +44,7 @@ void delay_init(uint16_t sysclk)
     g_fac_us = sysclk;
 
 #if USE_FREERTOS
-    g_fac_ms = (uint16_t)(1000U / configTICK_RATE_HZ);
+    g_fac_ms = (uint16_t)(MS_PER_SEC / configTICK_RATE_HZ);
 #endif
 }
 
@@ -112,7 +115,7 @@ void delay_ms(uint16_t nms)
     }
 #endif
 
-    delay_us((uint32_t)nms * 1000U);
+    delay_us((uint32_t)nms * US_PER_MS);
 }
 
 void HAL_Delay(uint32_t Delay)

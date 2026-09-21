@@ -8,7 +8,12 @@
 #include "stm32f4xx_hal.h"
 #include "gtim.h"
 
-#define GTIM_CAP_MAX_OVERFLOW 63U
+#define GTIM_NVIC_PRIORITY     1U
+#define GTIM_NVIC_SUBPRIORITY  3U
+#define GTIM_TIMER_MODULUS     0x10000U
+#define GTIM_TIMER_MAX_COUNT   0xFFFFU
+#define GTIM_PWM_HALF_DUTY_DIV 2U
+#define GTIM_CAP_MAX_OVERFLOW  63U
 #define GTIM_CAP_INVALID_VALUE 0xFFFFU
 
 /* ---- TIM3 update interrupt ---- */
@@ -18,7 +23,7 @@ static gtim_cb_t         g_gtim_int_cb;
 void gtim_timx_int_init(uint16_t arr, uint16_t psc)
 {
     __HAL_RCC_TIM3_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM3_IRQn, 1, 3);
+    HAL_NVIC_SetPriority(TIM3_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
 
     g_gtim_int_handle.Instance         = TIM3;
@@ -71,7 +76,7 @@ void gtim_timx_pwm_chy_init(uint16_t arr, uint16_t psc)
     HAL_TIM_PWM_Init(&g_gtim_pwm_handle);
 
     oc.OCMode     = TIM_OCMODE_PWM1;
-    oc.Pulse      = arr / 2U;
+    oc.Pulse      = arr / GTIM_PWM_HALF_DUTY_DIV;
     oc.OCPolarity = TIM_OCPOLARITY_LOW;
     HAL_TIM_PWM_ConfigChannel(&g_gtim_pwm_handle, &oc, TIM_CHANNEL_4);
     HAL_TIM_PWM_Start(&g_gtim_pwm_handle, TIM_CHANNEL_4);
@@ -95,7 +100,7 @@ void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc)
 
     __HAL_RCC_TIM5_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM5_IRQn, 1, 3);
+    HAL_NVIC_SetPriority(TIM5_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_0;
@@ -132,7 +137,7 @@ gtim_cap_state_t gtim_timx_cap_chy_state(void)
 
 uint32_t gtim_timx_cap_chy_value(void)
 {
-    return (g_gtim_cap_overflows * 65536U) + g_gtim_cap_value;
+    return (g_gtim_cap_overflows * GTIM_TIMER_MODULUS) + g_gtim_cap_value;
 }
 
 void gtim_timx_cap_chy_clear(void)
@@ -196,7 +201,7 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
 
     __HAL_RCC_TIM2_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM2_IRQn, 1, 3);
+    HAL_NVIC_SetPriority(TIM2_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_0;
@@ -209,7 +214,7 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
     g_gtim_cnt_handle.Instance         = TIM2;
     g_gtim_cnt_handle.Init.Prescaler   = psc;
     g_gtim_cnt_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    g_gtim_cnt_handle.Init.Period      = 65535U;
+    g_gtim_cnt_handle.Init.Period      = GTIM_TIMER_MAX_COUNT;
     HAL_TIM_IC_Init(&g_gtim_cnt_handle);
 
     slave.SlaveMode       = TIM_SLAVEMODE_EXTERNAL1;
@@ -226,7 +231,7 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
 
 uint32_t gtim_timx_cnt_chy_get_count(void)
 {
-    return (g_gtim_cnt_overflows * 65536U) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
+    return (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
 }
 
 void gtim_timx_cnt_chy_restart(void)

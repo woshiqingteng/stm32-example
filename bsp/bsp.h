@@ -21,6 +21,10 @@
 #include "rtc.h"
 #include "rng.h"
 #include "pwr.h"
+#include "sdram.h"
+#include "lcd.h"
+#include "oled.h"
+#include "usmart/usmart.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);

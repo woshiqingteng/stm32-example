@@ -16,13 +16,8 @@ typedef enum
 /** @brief  Initialise the LED GPIOs (both off). */
 void led_init(void);
 
-/** @brief  Turn an LED on. @param id LED index. */
 void led_on(led_id_t id);
-
-/** @brief  Turn an LED off. @param id LED index. */
 void led_off(led_id_t id);
-
-/** @brief  Toggle an LED. @param id LED index. */
 void led_toggle(led_id_t id);
 
 #endif /* BSP_LED_H */

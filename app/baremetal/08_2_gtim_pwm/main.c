@@ -5,27 +5,35 @@
 
 #include "bsp.h"
 
+#define GTIM_PWM_ARR        500U
+#define GTIM_PWM_PSC        90U
+#define GTIM_PWM_DUTY_MAX   300
+#define GTIM_PWM_DUTY_STEP  1
+#define GTIM_PWM_DIR_UP     1
+#define GTIM_PWM_DIR_DOWN   (-1)
+#define GTIM_PWM_DELAY_MS   10U
+
 int main(void)
 {
     int16_t duty = 0;
-    int16_t dir = 1;
+    int16_t dir = GTIM_PWM_DIR_UP;
 
     bsp_init();
-    gtim_timx_pwm_chy_init(500 - 1, 90 - 1);
+    gtim_timx_pwm_chy_init(GTIM_PWM_ARR - 1U, GTIM_PWM_PSC - 1U);
 
     for (;;)
     {
-        delay_ms(10);
+        delay_ms(GTIM_PWM_DELAY_MS);
 
-        duty += dir;
-        if (duty > 300)
+        duty += (int16_t)GTIM_PWM_DUTY_STEP * dir;
+        if (duty > GTIM_PWM_DUTY_MAX)
         {
-            duty = 300;
-            dir = -1;
+            duty = GTIM_PWM_DUTY_MAX;
+            dir = GTIM_PWM_DIR_DOWN;
         }
         else if (duty == 0)
         {
-            dir = 1;
+            dir = GTIM_PWM_DIR_UP;
         }
 
         gtim_timx_pwm_chy_set((uint16_t)duty);

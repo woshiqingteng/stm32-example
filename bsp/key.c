@@ -7,12 +7,21 @@
 #include "key.h"
 #include "delay.h"
 
+#define KEY_DEBOUNCE_MS 10U
+
 typedef struct
 {
     GPIO_TypeDef *port;
     uint16_t      pin;
     uint8_t       active_low;
 } key_hw_t;
+
+/* Scan latch: WAIT_PRESS arms reporting, WAIT_RELEASE prevents repeats. */
+typedef enum
+{
+    KEY_SCAN_WAIT_PRESS = 0,
+    KEY_SCAN_WAIT_RELEASE,
+} key_scan_state_t;
 
 static const key_hw_t g_key_hw[KEY_NUM] =
 {
@@ -61,23 +70,23 @@ key_state_t key_read(key_id_t id)
 
 key_id_t key_scan(bool continuous)
 {
-    static bool key_up = true;
+    static key_scan_state_t scan_state = KEY_SCAN_WAIT_PRESS;
     key_id_t id = KEY_NONE;
     bool any;
 
     if (continuous)
     {
-        key_up = true;
+        scan_state = KEY_SCAN_WAIT_PRESS;
     }
 
-    if (key_up)
+    if (scan_state == KEY_SCAN_WAIT_PRESS)
     {
         any = (key_read(KEY0) == KEY_PRESSED) || (key_read(KEY1) == KEY_PRESSED) ||
               (key_read(KEY2) == KEY_PRESSED) || (key_read(KEY_WKUP) == KEY_PRESSED);
         if (any)
         {
-            delay_ms(10);
-            key_up = false;
+            delay_ms(KEY_DEBOUNCE_MS);
+            scan_state = KEY_SCAN_WAIT_RELEASE;
 
             if (key_read(KEY0) == KEY_PRESSED)
             {
@@ -100,7 +109,7 @@ key_id_t key_scan(bool continuous)
     else if ((key_read(KEY0) == KEY_RELEASED) && (key_read(KEY1) == KEY_RELEASED) &&
              (key_read(KEY2) == KEY_RELEASED) && (key_read(KEY_WKUP) == KEY_RELEASED))
     {
-        key_up = true;
+        scan_state = KEY_SCAN_WAIT_PRESS;
     }
 
     return id;

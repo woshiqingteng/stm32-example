@@ -7,6 +7,11 @@
 #include "stm32f4xx_hal.h"
 #include "bsp.h"
 
+#define ATIM_NPWM_ARR     10000U
+#define ATIM_NPWM_PSC     9000U
+#define ATIM_NPWM_PULSES  5U
+#define ATIM_NPWM_LOOP_MS 500U
+
 int main(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
@@ -19,17 +24,17 @@ int main(void)
     gpio_init.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOB, &gpio_init);
 
-    atim_timx_npwm_chy_init(10000 - 1, 9000 - 1);
-    atim_timx_npwm_chy_set(5);
+    atim_timx_npwm_chy_init(ATIM_NPWM_ARR - 1U, ATIM_NPWM_PSC - 1U);
+    atim_timx_npwm_chy_set(ATIM_NPWM_PULSES);
 
     for (;;)
     {
         if (key_scan(false) == KEY0)
         {
-            atim_timx_npwm_chy_set(5);
+            atim_timx_npwm_chy_set(ATIM_NPWM_PULSES);
         }
 
         led_toggle(LED0);
-        delay_ms(500);
+        delay_ms(ATIM_NPWM_LOOP_MS);
     }
 }

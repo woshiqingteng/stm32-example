@@ -17,6 +17,20 @@
 #define RTC_ASYNC_PREDIV    0x7FU
 #define RTC_SYNC_PREDIV     0xFFU
 
+#define RTC_INIT_SUCCESS    0U
+#define RTC_INIT_FAILURE    1U
+
+#define RTC_WKUP_IRQ_PRIORITY    2U
+#define RTC_WKUP_IRQ_SUBPRIORITY 2U
+
+/* Gregorian week calculation constants (valid for 1901..2099). */
+#define RTC_CENTURY_BASE       19U
+#define RTC_YEARS_PER_CENTURY  100U
+#define RTC_LEAP_YEAR_INTERVAL 4U
+#define RTC_DAYS_PER_WEEK      7U
+#define RTC_MARCH_MONTH        3U
+#define RTC_FIRST_MONTH        1U
+
 static RTC_HandleTypeDef g_rtc_handle;
 static rtc_wakeup_cb_t   g_rtc_wakeup_cb;
 
@@ -92,28 +106,28 @@ uint8_t rtc_get_week(uint16_t year, uint8_t month, uint8_t day)
     uint8_t  year_h;
     uint8_t  year_l;
 
-    year_h = (uint8_t)(year / 100U);
-    year_l = (uint8_t)(year % 100U);
+    year_h = (uint8_t)(year / RTC_YEARS_PER_CENTURY);
+    year_l = (uint8_t)(year % RTC_YEARS_PER_CENTURY);
 
-    if (year_h > 19U)
+    if (year_h > RTC_CENTURY_BASE)
     {
-        year_l = (uint8_t)(year_l + 100U);
+        year_l = (uint8_t)(year_l + RTC_YEARS_PER_CENTURY);
     }
 
-    temp  = (uint16_t)(year_l + (year_l / 4U));
-    temp  = (uint16_t)(temp % 7U);
-    temp  = (uint16_t)(temp + day + g_week_table[month - 1U]);
+    temp = (uint16_t)(year_l + (year_l / RTC_LEAP_YEAR_INTERVAL));
+    temp = (uint16_t)(temp % RTC_DAYS_PER_WEEK);
+    temp = (uint16_t)(temp + day + g_week_table[month - RTC_FIRST_MONTH]);
 
-    if (((year_l % 4U) == 0U) && (month < 3U))
+    if (((year_l % RTC_LEAP_YEAR_INTERVAL) == 0U) && (month < RTC_MARCH_MONTH))
     {
         temp--;
     }
 
-    temp %= 7U;
+    temp %= RTC_DAYS_PER_WEEK;
 
     if (temp == 0U)
     {
-        temp = 7U;
+        temp = RTC_DAYS_PER_WEEK;
     }
 
     return (uint8_t)temp;
@@ -125,7 +139,7 @@ static void rtc_clock_config(void)
     RCC_PeriphCLKInitTypeDef pclk = {0};
     uint16_t                 retry = RTC_LSE_RETRY;
 
-    /* Try to start LSE and wait for it to become ready. */
+    /* Start LSE and wait for it to become ready. */
     RCC->BDCR |= RCC_BDCR_LSEON;
 
     while ((retry > 0U) && ((RCC->BDCR & RCC_BDCR_LSERDY) == 0U))
@@ -183,10 +197,10 @@ uint8_t rtc_init(void)
 
     if (HAL_RTC_Init(&g_rtc_handle) != HAL_OK)
     {
-        return 1U;
+        return RTC_INIT_FAILURE;
     }
 
-    return 0U;
+    return RTC_INIT_SUCCESS;
 }
 
 void rtc_set_wakeup(uint8_t wksel, uint16_t cnt)
@@ -196,7 +210,7 @@ void rtc_set_wakeup(uint8_t wksel, uint16_t cnt)
     (void)HAL_RTCEx_SetWakeUpTimer_IT(&g_rtc_handle, cnt, wksel);
 
     /* ---- MSP begin: NVIC ---- */
-    HAL_NVIC_SetPriority(RTC_WKUP_IRQn, 2U, 2U);
+    HAL_NVIC_SetPriority(RTC_WKUP_IRQn, RTC_WKUP_IRQ_PRIORITY, RTC_WKUP_IRQ_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(RTC_WKUP_IRQn);
     /* ---- MSP end ---- */
 }

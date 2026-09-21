@@ -6,6 +6,9 @@
 #include "stm32f4xx_hal.h"
 #include "btim.h"
 
+#define BTIM_NVIC_PRIORITY    1U
+#define BTIM_NVIC_SUBPRIORITY 3U
+
 static TIM_HandleTypeDef g_btim_handle;
 static btim_cb_t         g_btim_cb;
 
@@ -13,7 +16,7 @@ void btim_timx_int_init(uint16_t arr, uint16_t psc)
 {
     /* ---- MSP begin: clock + NVIC ---- */
     __HAL_RCC_TIM6_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 1, 3);
+    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, BTIM_NVIC_PRIORITY, BTIM_NVIC_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
     /* ---- MSP end ---- */
 

@@ -26,16 +26,36 @@ static uint8_t           g_usmart_rx_buf[USMART_RX_BUF_LEN];
 static uint16_t          g_usmart_rx_len;
 static usmart_rx_state_t g_usmart_rx_state;
 
+/** @brief Entry point that executes one system command and returns a result code. */
+typedef usmart_result_t (*usmart_sys_cmd_handler_t)(const char *str);
+
+/** @brief A system command name paired with its handler. */
+typedef struct
+{
+    const char              *name;
+    usmart_sys_cmd_handler_t handler;
+} usmart_sys_cmd_ent_t;
+
+/** @brief Thunk that calls a function table entry with a fixed argument count. */
+typedef uint32_t (*usmart_func_call_t)(void *func, const uint32_t *args);
+
 static void     usmart_rx_byte_hook(uint8_t byte);
 static char    *usmart_get_input_string(void);
 static void     usmart_timx_init(void);
 static void     usmart_timx_reset_time(void);
 static uint32_t usmart_timx_get_time(void);
-static uint8_t  usmart_sys_cmd_exe(const char *str);
-static uint8_t  usmart_cmd_rec(const char *str);
+static usmart_result_t usmart_sys_cmd_exe(const char *str);
+static usmart_result_t usmart_cmd_rec(const char *str);
 static void     usmart_exe(void);
 
-/* Function table: only the functions useful without an LCD are exposed. */
+static usmart_result_t usmart_sys_cmd_help(const char *str);
+static usmart_result_t usmart_sys_cmd_list(const char *str);
+static usmart_result_t usmart_sys_cmd_id(const char *str);
+static usmart_result_t usmart_sys_cmd_hex(const char *str);
+static usmart_result_t usmart_sys_cmd_dec(const char *str);
+static usmart_result_t usmart_sys_cmd_runtime(const char *str);
+
+/* Function table: only the functions useful without a display are exposed. */
 static const usmart_nametab_t g_usmart_nametab[] =
 {
     { (void *)read_addr,  "uint32_t read_addr(uint32_t addr)" },
@@ -56,7 +76,7 @@ usmart_dev_t usmart_dev =
     .parmtype    = {0},
     .plentbl     = {0},
     .parm        = {0},
-    .runtimeflag = 0U,
+    .runtimeflag = false,
     .runtime     = 0U,
 };
 
@@ -158,160 +178,179 @@ void usmart_init(void)
     usmart_dev.sptype = USMART_SP_HEX;
 }
 
-static const char *const g_usmart_sys_cmd[] =
+static usmart_result_t usmart_sys_cmd_help(const char *str)
 {
-    "?",
-    "help",
-    "list",
-    "id",
-    "hex",
-    "dec",
-    "runtime",
-};
-
-static uint8_t usmart_sys_cmd_exe(const char *str)
-{
-    uint8_t i;
-    char    sfname[USMART_MAX_FNAME_LEN];
-
-    if (usmart_get_cmdname(str, sfname, &i, USMART_MAX_FNAME_LEN) != 0U)
-    {
-        return USMART_RES_FUNCERR;
-    }
-    str += i;
-
-    for (i = 0U; i < (uint8_t)(sizeof(g_usmart_sys_cmd) / sizeof(g_usmart_sys_cmd[0])); i++)
-    {
-        if (usmart_strcmp(sfname, g_usmart_sys_cmd[i]) == 0U)
-        {
-            break;
-        }
-    }
-
-    switch (i)
-    {
-        case 0: /* ? */
-        case 1: /* help */
-            printf("\r\nUSMART console. System commands (lower case):\r\n");
-            printf("  ?|help  : this help\r\n");
-            printf("  list    : list usable functions\r\n");
-            printf("  id      : list function entry addresses\r\n");
-            printf("  hex     : hex parameter display, or 'hex 100' to convert\r\n");
-            printf("  dec     : dec parameter display, or 'dec 0X64' to convert\r\n");
-            printf("  runtime : 1=enable / 0=disable run-time report\r\n");
-            printf("Example call: delay_ms(500)\r\n");
-            break;
-
-        case 2: /* list */
-            printf("\r\n--- function list ---\r\n");
-            for (i = 0U; i < usmart_dev.fnum; i++)
-            {
-                printf("%s\r\n", usmart_dev.funs[i].name);
-            }
-            printf("\r\n");
-            break;
-
-        case 3: /* id */
-            printf("\r\n--- function id ---\r\n");
-            for (i = 0U; i < usmart_dev.fnum; i++)
-            {
-                uint8_t pnum;
-                uint8_t rval;
-
-                (void)usmart_get_fname(usmart_dev.funs[i].name, sfname, &pnum, &rval);
-                printf("%s id: 0X%08lX\r\n", sfname,
-                       (unsigned long)(uintptr_t)usmart_dev.funs[i].func);
-            }
-            printf("\r\n");
-            break;
-
-        case 4: /* hex */
-        case 5: /* dec */
-        {
-            usmart_aparmtype_t atype;
-            uint32_t           res;
-            uint8_t            r;
-
-            printf("\r\n");
-            (void)usmart_get_aparm(str, sfname, &atype);
-
-            if (atype != USMART_APARM_NUM)
-            {
-                return USMART_RES_PARMERR;
-            }
-
-            r = usmart_str2num(sfname, &res);
-            if (r == 0U)
-            {
-                if (i == 4U)
-                {
-                    printf("HEX:0X%lX\r\n", (unsigned long)res);
-                }
-                else
-                {
-                    printf("DEC:%lu\r\n", (unsigned long)res);
-                }
-            }
-            else if (r != 4U)
-            {
-                return USMART_RES_PARMERR;
-            }
-            else if (i == 4U)
-            {
-                printf("Hex parameter display\r\n");
-                usmart_dev.sptype = USMART_SP_HEX;
-            }
-            else
-            {
-                printf("Decimal parameter display\r\n");
-                usmart_dev.sptype = USMART_SP_DEC;
-            }
-            printf("\r\n");
-            break;
-        }
-
-        case 6: /* runtime */
-        {
-            usmart_aparmtype_t atype;
-            uint32_t           res;
-            uint8_t            r;
-
-            printf("\r\n");
-            (void)usmart_get_aparm(str, sfname, &atype);
-
-            if (atype != USMART_APARM_NUM)
-            {
-                return USMART_RES_PARMERR;
-            }
-
-            r = usmart_str2num(sfname, &res);
-            if (r != 0U)
-            {
-                return USMART_RES_PARMERR;
-            }
-
-            usmart_dev.runtimeflag = (uint8_t)res;
-            printf("Run time report %s\r\n", (usmart_dev.runtimeflag != 0U) ? "ON" : "OFF");
-            printf("\r\n");
-            break;
-        }
-
-        default:
-            return USMART_RES_FUNCERR;
-    }
-
+    (void)str;
+    printf("\r\nUSMART console. System commands (lower case):\r\n");
+    printf("  ?|help  : this help\r\n");
+    printf("  list    : list usable functions\r\n");
+    printf("  id      : list function entry addresses\r\n");
+    printf("  hex     : hex parameter display, or 'hex 100' to convert\r\n");
+    printf("  dec     : dec parameter display, or 'dec 0X64' to convert\r\n");
+    printf("  runtime : 1=enable / 0=disable run-time report\r\n");
+    printf("Example call: delay_ms(500)\r\n");
     return USMART_RES_OK;
 }
 
-static uint8_t usmart_cmd_rec(const char *str)
+static usmart_result_t usmart_sys_cmd_list(const char *str)
 {
-    uint8_t sta;
     uint8_t i;
-    uint8_t rval;
-    uint8_t rpnum;
-    uint8_t spnum;
-    char    rfname[USMART_MAX_FNAME_LEN];
+
+    (void)str;
+    printf("\r\n--- function list ---\r\n");
+    for (i = 0U; i < usmart_dev.fnum; i++)
+    {
+        printf("%s\r\n", usmart_dev.funs[i].name);
+    }
+    printf("\r\n");
+    return USMART_RES_OK;
+}
+
+static usmart_result_t usmart_sys_cmd_id(const char *str)
+{
+    uint8_t i;
+
+    (void)str;
+    printf("\r\n--- function id ---\r\n");
+    for (i = 0U; i < usmart_dev.fnum; i++)
+    {
+        uint8_t pnum;
+        uint8_t rval;
+        char    sfname[USMART_MAX_FNAME_LEN];
+
+        (void)usmart_get_fname(usmart_dev.funs[i].name, sfname, &pnum, &rval);
+        printf("%s id: 0X%08lX\r\n", sfname,
+               (unsigned long)(uintptr_t)usmart_dev.funs[i].func);
+    }
+    printf("\r\n");
+    return USMART_RES_OK;
+}
+
+static usmart_result_t usmart_sys_cmd_hexdec(const char *str, usmart_sptype_t sptype)
+{
+    usmart_aparmtype_t  atype;
+    usmart_num_status_t nstatus;
+    uint32_t            res;
+    char                sfname[USMART_MAX_FNAME_LEN];
+
+    printf("\r\n");
+    (void)usmart_get_aparm(str, sfname, &atype);
+
+    if (atype != USMART_APARM_NUM)
+    {
+        return USMART_RES_PARMERR;
+    }
+
+    nstatus = usmart_str2num(sfname, &res);
+    if (nstatus == USMART_NUM_OK)
+    {
+        if (sptype == USMART_SP_HEX)
+        {
+            printf("HEX:0X%lX\r\n", (unsigned long)res);
+        }
+        else
+        {
+            printf("DEC:%lu\r\n", (unsigned long)res);
+        }
+    }
+    else if (nstatus != USMART_NUM_NO_DIGITS)
+    {
+        return USMART_RES_PARMERR;
+    }
+    else if (sptype == USMART_SP_HEX)
+    {
+        printf("Hex parameter display\r\n");
+        usmart_dev.sptype = USMART_SP_HEX;
+    }
+    else
+    {
+        printf("Decimal parameter display\r\n");
+        usmart_dev.sptype = USMART_SP_DEC;
+    }
+    printf("\r\n");
+    return USMART_RES_OK;
+}
+
+static usmart_result_t usmart_sys_cmd_hex(const char *str)
+{
+    return usmart_sys_cmd_hexdec(str, USMART_SP_HEX);
+}
+
+static usmart_result_t usmart_sys_cmd_dec(const char *str)
+{
+    return usmart_sys_cmd_hexdec(str, USMART_SP_DEC);
+}
+
+static usmart_result_t usmart_sys_cmd_runtime(const char *str)
+{
+    usmart_aparmtype_t  atype;
+    usmart_num_status_t nstatus;
+    uint32_t            res;
+    char                sfname[USMART_MAX_FNAME_LEN];
+
+    printf("\r\n");
+    (void)usmart_get_aparm(str, sfname, &atype);
+
+    if (atype != USMART_APARM_NUM)
+    {
+        return USMART_RES_PARMERR;
+    }
+
+    nstatus = usmart_str2num(sfname, &res);
+    if (nstatus != USMART_NUM_OK)
+    {
+        return USMART_RES_PARMERR;
+    }
+
+    usmart_dev.runtimeflag = (res != 0U);
+    printf("Run time report %s\r\n", usmart_dev.runtimeflag ? "ON" : "OFF");
+    printf("\r\n");
+    return USMART_RES_OK;
+}
+
+static const usmart_sys_cmd_ent_t g_usmart_sys_cmd[] =
+{
+    { "?",       usmart_sys_cmd_help },
+    { "help",    usmart_sys_cmd_help },
+    { "list",    usmart_sys_cmd_list },
+    { "id",      usmart_sys_cmd_id },
+    { "hex",     usmart_sys_cmd_hex },
+    { "dec",     usmart_sys_cmd_dec },
+    { "runtime", usmart_sys_cmd_runtime },
+};
+
+static usmart_result_t usmart_sys_cmd_exe(const char *str)
+{
+    uint8_t i;
+    uint8_t name_len;
     char    sfname[USMART_MAX_FNAME_LEN];
+
+    if (usmart_get_cmdname(str, sfname, &name_len, USMART_MAX_FNAME_LEN) != USMART_CMDNAME_OK)
+    {
+        return USMART_RES_FUNCERR;
+    }
+    str += name_len;
+
+    for (i = 0U; i < (uint8_t)(sizeof(g_usmart_sys_cmd) / sizeof(g_usmart_sys_cmd[0])); i++)
+    {
+        if (usmart_strcmp(sfname, g_usmart_sys_cmd[i].name) == 0U)
+        {
+            return g_usmart_sys_cmd[i].handler(str);
+        }
+    }
+
+    return USMART_RES_FUNCERR;
+}
+
+static usmart_result_t usmart_cmd_rec(const char *str)
+{
+    usmart_result_t sta;
+    uint8_t         i;
+    uint8_t         rval;
+    uint8_t         rpnum;
+    uint8_t         spnum;
+    char            rfname[USMART_MAX_FNAME_LEN];
+    char            sfname[USMART_MAX_FNAME_LEN];
 
     sta = usmart_get_fname(str, rfname, &rpnum, &rval);
     if (sta != USMART_RES_OK)
@@ -351,6 +390,44 @@ static uint8_t usmart_cmd_rec(const char *str)
     usmart_dev.pnum = i;
     return USMART_RES_OK;
 }
+
+/* One thunk per supported argument count; all share the same signature so the
+ * call site can select one by parameter count without positional magic. */
+static uint32_t usmart_call0(void *func, const uint32_t *args)
+{
+    (void)args;
+    return (*(uint32_t (*)(void))func)();
+}
+
+static uint32_t usmart_call1(void *func, const uint32_t *args)
+{
+    return (*(uint32_t (*)(uint32_t))func)(args[0]);
+}
+
+static uint32_t usmart_call2(void *func, const uint32_t *args)
+{
+    return (*(uint32_t (*)(uint32_t, uint32_t))func)(args[0], args[1]);
+}
+
+static uint32_t usmart_call3(void *func, const uint32_t *args)
+{
+    return (*(uint32_t (*)(uint32_t, uint32_t, uint32_t))func)(args[0], args[1], args[2]);
+}
+
+static uint32_t usmart_call4(void *func, const uint32_t *args)
+{
+    return (*(uint32_t (*)(uint32_t, uint32_t, uint32_t, uint32_t))func)(
+        args[0], args[1], args[2], args[3]);
+}
+
+static const usmart_func_call_t g_usmart_call_tab[] =
+{
+    usmart_call0,
+    usmart_call1,
+    usmart_call2,
+    usmart_call3,
+    usmart_call4,
+};
 
 static void usmart_exe(void)
 {
@@ -400,27 +477,9 @@ static void usmart_exe(void)
 
     usmart_timx_reset_time();
 
-    switch (usmart_dev.pnum)
+    if (usmart_dev.pnum <= USMART_MAX_ARG_COUNT)
     {
-        case 0:
-            res = (*(uint32_t (*)(void))usmart_dev.funs[id].func)();
-            break;
-        case 1:
-            res = (*(uint32_t (*)(uint32_t))usmart_dev.funs[id].func)(temp[0]);
-            break;
-        case 2:
-            res = (*(uint32_t (*)(uint32_t, uint32_t))usmart_dev.funs[id].func)(temp[0], temp[1]);
-            break;
-        case 3:
-            res = (*(uint32_t (*)(uint32_t, uint32_t, uint32_t))usmart_dev.funs[id].func)(
-                temp[0], temp[1], temp[2]);
-            break;
-        case 4:
-            res = (*(uint32_t (*)(uint32_t, uint32_t, uint32_t, uint32_t))usmart_dev.funs[id].func)(
-                temp[0], temp[1], temp[2], temp[3]);
-            break;
-        default:
-            break;
+        res = g_usmart_call_tab[usmart_dev.pnum](usmart_dev.funs[id].func, temp);
     }
 
     (void)usmart_timx_get_time();
@@ -441,7 +500,7 @@ static void usmart_exe(void)
         printf(";\r\n");
     }
 
-    if (usmart_dev.runtimeflag != 0U)
+    if (usmart_dev.runtimeflag)
     {
         printf("Run time: %lu us\r\n", (unsigned long)usmart_dev.runtime);
     }
@@ -449,9 +508,9 @@ static void usmart_exe(void)
 
 void usmart_scan(void)
 {
-    char   *pbuf;
-    uint8_t sta;
-    uint8_t r;
+    char           *pbuf;
+    usmart_result_t sta;
+    usmart_result_t r;
 
     pbuf = usmart_get_input_string();
     if (pbuf == 0)

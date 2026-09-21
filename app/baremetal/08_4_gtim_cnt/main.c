@@ -6,13 +6,17 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define GTIM_CNT_PSC       0U
+#define GTIM_CNT_BLINK_DIV 20U
+#define GTIM_CNT_LOOP_MS   10U
+
 int main(void)
 {
     uint32_t old_count = 0;
     uint32_t blink = 0;
 
     bsp_init();
-    gtim_timx_cnt_chy_init(0);
+    gtim_timx_cnt_chy_init(GTIM_CNT_PSC);
     gtim_timx_cnt_chy_restart();
 
     for (;;)
@@ -31,11 +35,11 @@ int main(void)
             old_count = count;
         }
 
-        if ((++blink % 20U) == 0U)
+        if ((++blink % GTIM_CNT_BLINK_DIV) == 0U)
         {
             led_toggle(LED0);
         }
 
-        delay_ms(10);
+        delay_ms(GTIM_CNT_LOOP_MS);
     }
 }

@@ -29,16 +29,9 @@ void usart_init(uint32_t baudrate);
 /** @brief  Register (or clear with 0) the per-byte receive hook. */
 void usart_register_rx_byte_hook(usart_rx_byte_cb_t cb);
 
-/** @brief  Current reception state. */
 usart_rx_state_t usart_rx_state(void);
-
-/** @brief  Number of bytes in the received line. */
 uint16_t usart_rx_len(void);
-
-/** @brief  Received line buffer. */
 const uint8_t *usart_rx_buf(void);
-
-/** @brief  Reset reception (ready for a new line). */
 void usart_rx_clear(void);
 
 #endif /* BSP_USART_H */

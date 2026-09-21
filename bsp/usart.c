@@ -16,6 +16,11 @@
 #define USART1_RX_PIN     GPIO_PIN_10
 #define USART1_GPIO_AF    GPIO_AF7_USART1
 
+#define USART_DATA_MASK             0xFFU
+#define USART_RX_BUF_RESERVE        1U
+#define USART1_IRQ_PREEMP_PRIORITY  3U
+#define USART1_IRQ_SUB_PRIORITY     3U
+
 UART_HandleTypeDef g_uart1_handle;
 
 static usart_rx_byte_cb_t g_rx_byte_cb;
@@ -47,7 +52,7 @@ static void usart_rx_byte(uint8_t byte)
             {
                 g_rx_state = USART_RX_IDLE;
             }
-            if (g_rx_len < (USART_REC_LEN - 1U))
+            if (g_rx_len < (USART_REC_LEN - USART_RX_BUF_RESERVE))
             {
                 g_rx_buf[g_rx_len++] = byte;
             }
@@ -91,7 +96,7 @@ void usart_init(uint32_t baudrate)
 
     __HAL_UART_ENABLE_IT(&g_uart1_handle, UART_IT_RXNE);
 
-    HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
+    HAL_NVIC_SetPriority(USART1_IRQn, USART1_IRQ_PREEMP_PRIORITY, USART1_IRQ_SUB_PRIORITY);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
@@ -104,7 +109,7 @@ void USART1_IRQHandler(void)
 {
     if (__HAL_UART_GET_FLAG(&g_uart1_handle, UART_FLAG_RXNE) != RESET)
     {
-        usart_rx_byte((uint8_t)(USART1->DR & 0xFFU));
+        usart_rx_byte((uint8_t)(USART1->DR & USART_DATA_MASK));
     }
 
     if (__HAL_UART_GET_FLAG(&g_uart1_handle, UART_FLAG_ORE) != RESET)

@@ -5,11 +5,15 @@
 
 #include "bsp.h"
 
+#define IWDG_RELOAD          500U
+#define IWDG_START_DELAY_MS  100U
+#define KEY_POLL_MS          10U
+
 int main(void)
 {
     bsp_init();
-    delay_ms(100);
-    iwdg_init(IWDG_PRESCALER_64, 500);
+    delay_ms(IWDG_START_DELAY_MS);
+    iwdg_init(IWDG_PRESCALER_64, IWDG_RELOAD);
     led_on(LED0);
 
     for (;;)
@@ -18,6 +22,6 @@ int main(void)
         {
             iwdg_feed();
         }
-        delay_ms(10);
+        delay_ms(KEY_POLL_MS);
     }
 }

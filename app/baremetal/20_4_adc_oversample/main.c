@@ -12,7 +12,10 @@
 #define ADC_OVERSAMPLE_SHIFT 4U
 #define ADC_VREF_MV          3300U
 #define ADC_VREF_UV          (ADC_VREF_MV * 1000U)
+#define ADC_UV_PER_VOLT      1000000U
+#define ADC_UV_PER_MV        1000U
 #define ADC_FULL_SCALE       65536U
+#define ADC_POLL_PERIOD_MS   10U
 #define BLINK_PERIOD         2U
 
 typedef enum
@@ -21,7 +24,7 @@ typedef enum
     ADC_OVS_DONE,
 } adc_ovs_state_t;
 
-static uint16_t           g_adc_buf[ADC_DMA_BUF_LEN];
+static uint16_t                 g_adc_buf[ADC_DMA_BUF_LEN];
 static volatile adc_ovs_state_t g_adc_state = ADC_OVS_IDLE;
 
 static void on_adc_oversample_complete(void)
@@ -59,8 +62,8 @@ int main(void)
 
             printf("ovs raw:%u vol:%lu.%03luV\r\n",
                    (unsigned int)raw,
-                   (unsigned long)(micro / 1000000U),
-                   (unsigned long)((micro % 1000000U) / 1000U));
+                   (unsigned long)(micro / ADC_UV_PER_VOLT),
+                   (unsigned long)((micro % ADC_UV_PER_VOLT) / ADC_UV_PER_MV));
 
             g_adc_state = ADC_OVS_IDLE;
             adc_dma_start(ADC_DMA_BUF_LEN);
@@ -71,6 +74,6 @@ int main(void)
             }
         }
 
-        delay_ms(10);
+        delay_ms(ADC_POLL_PERIOD_MS);
     }
 }

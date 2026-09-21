@@ -34,10 +34,10 @@ typedef void (*adc_dma_cb_t)(void);
 void adc_init(void);
 
 /** @brief  Poll one regular channel and return its 12-bit result. */
-uint32_t adc_get_result(uint32_t channel);
+uint32_t adc_get_result(adc_channel_t channel);
 
 /** @brief  Average `times` polled samples of one channel. */
-uint32_t adc_get_result_average(uint32_t channel, uint8_t times);
+uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times);
 
 /** @brief  Configure ADC1 + DMA2_Stream4 for single-channel acquisition. */
 void adc_dma_init(uint16_t *buf, uint16_t len);

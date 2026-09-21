@@ -19,6 +19,7 @@
 #define RTC_DEFAULT_MONTH  1U
 #define RTC_DEFAULT_DATE   1U
 #define RTC_DEFAULT_WEEK   1U
+#define RTC_PRINT_PERIOD_MS 1000U
 
 int main(void)
 {
@@ -50,6 +51,6 @@ int main(void)
                (unsigned)year, (unsigned)month, (unsigned)date, (unsigned)week);
 
         led_toggle(LED0);
-        delay_ms(1000);
+        delay_ms(RTC_PRINT_PERIOD_MS);
     }
 }

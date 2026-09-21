@@ -16,15 +16,15 @@
 typedef void (*rtc_wakeup_cb_t)(void);
 
 /**
- * @brief  Initialise the RTC (LSE with LSI fallback). Does not set the calendar.
+ * @brief  Initialise the RTC (LSE with LSI fallback); the calendar is not set.
  * @return 0 on success, 1 if HAL_RTC_Init() failed.
  */
 uint8_t rtc_init(void);
 
-/** @brief  Read backup register. @param bkrx Backup register index (0..31). */
+/** @brief  Read backup register @p bkrx (0..31). */
 uint32_t rtc_read_bkr(uint32_t bkrx);
 
-/** @brief  Write backup register. @param bkrx Index (0..31). @param data Value. */
+/** @brief  Write @p data to backup register @p bkrx (0..31). */
 void rtc_write_bkr(uint32_t bkrx, uint32_t data);
 
 /** @brief  Get the time. @param ampm 0 = AM/24H, 1 = PM. */
