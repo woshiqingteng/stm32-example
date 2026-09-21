@@ -1,0 +1,81 @@
+/**
+ * @file    main.c
+ * @brief   19_dma: USART1 TX over DMA2 Stream7 / channel 4.
+ *
+ * KEY0 starts a ~6 KB transfer. The buffer is sent in chunks so that progress
+ * can be reported over the same USART between DMA transfers (printing while the
+ * USART is driven by DMA would corrupt the byte stream).
+ */
+
+#include <stdio.h>
+#include "bsp.h"
+
+#define DMA_TX_BUF_SIZE (6U * 1024U)
+#define DMA_TX_CHUNK    1024U
+
+static const char DMA_TX_LINE[] = "STM32F429 USART1 TX DMA demo - 0123456789\r\n";
+static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE];
+
+static uint16_t dma_fill_buffer(void)
+{
+    uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - 1U);
+    uint16_t i = 0U;
+
+    while (((uint32_t)i + line_len) <= DMA_TX_BUF_SIZE)
+    {
+        uint16_t k;
+
+        for (k = 0U; k < line_len; k++)
+        {
+            g_tx_buf[i + k] = (uint8_t)DMA_TX_LINE[k];
+        }
+        i = (uint16_t)(i + line_len);
+    }
+    return i;
+}
+
+int main(void)
+{
+    uint16_t len;
+
+    bsp_init();
+    usart_dma_tx_init();
+    len = dma_fill_buffer();
+
+    printf("19_dma ready: %u bytes buffered, press KEY0 to send\r\n", (unsigned)len);
+
+    for (;;)
+    {
+        if (key_scan(false) == KEY0)
+        {
+            uint16_t offset = 0U;
+
+            printf("DMA TX start: %u bytes\r\n", (unsigned)len);
+
+            while (offset < len)
+            {
+                uint16_t chunk = (uint16_t)(len - offset);
+
+                if (chunk > DMA_TX_CHUNK)
+                {
+                    chunk = DMA_TX_CHUNK;
+                }
+
+                usart_dma_tx(&g_tx_buf[offset], chunk);
+                while (usart_dma_tx_busy())
+                {
+                    led_toggle(LED0);
+                    delay_ms(1);
+                }
+
+                offset = (uint16_t)(offset + chunk);
+                printf("progress: %u%%\r\n", (unsigned)(((uint32_t)offset * 100U) / len));
+            }
+
+            printf("DMA TX finished\r\n");
+        }
+
+        led_toggle(LED0);
+        delay_ms(100);
+    }
+}

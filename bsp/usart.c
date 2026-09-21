@@ -14,7 +14,14 @@
 #define USART1_RX_PIN     GPIO_PIN_10
 #define USART1_GPIO_AF    GPIO_AF7_USART1
 
+#define USART1_DMA_STREAM   DMA2_Stream7
+#define USART1_DMA_CHANNEL  DMA_CHANNEL_4
+#define USART1_DMA_IRQn     DMA2_Stream7_IRQn
+
 UART_HandleTypeDef g_uart1_handle;
+
+static DMA_HandleTypeDef  g_uart1_tx_dma;
+static usart_rx_byte_cb_t g_rx_byte_cb;
 
 static uint8_t          g_rx_byte;
 static uint8_t          g_rx_buf[USART_REC_LEN];
@@ -56,10 +63,62 @@ void usart_init(uint32_t baudrate)
     HAL_UART_Receive_IT(&g_uart1_handle, &g_rx_byte, 1);
 }
 
+void usart_register_rx_byte_hook(usart_rx_byte_cb_t cb)
+{
+    g_rx_byte_cb = cb;
+}
+
+void usart_dma_tx_init(void)
+{
+    /* ---- MSP begin: DMA2 clock + NVIC ---- */
+    __HAL_RCC_DMA2_CLK_ENABLE();
+    HAL_NVIC_SetPriority(USART1_DMA_IRQn, 3, 3);
+    HAL_NVIC_EnableIRQ(USART1_DMA_IRQn);
+    /* ---- MSP end ---- */
+
+    __HAL_LINKDMA(&g_uart1_handle, hdmatx, g_uart1_tx_dma);
+
+    g_uart1_tx_dma.Instance                 = USART1_DMA_STREAM;
+    g_uart1_tx_dma.Init.Channel             = USART1_DMA_CHANNEL;
+    g_uart1_tx_dma.Init.Direction           = DMA_MEMORY_TO_PERIPH;
+    g_uart1_tx_dma.Init.PeriphInc           = DMA_PINC_DISABLE;
+    g_uart1_tx_dma.Init.MemInc              = DMA_MINC_ENABLE;
+    g_uart1_tx_dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    g_uart1_tx_dma.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    g_uart1_tx_dma.Init.Mode                = DMA_NORMAL;
+    g_uart1_tx_dma.Init.Priority            = DMA_PRIORITY_MEDIUM;
+    g_uart1_tx_dma.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
+    g_uart1_tx_dma.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
+    g_uart1_tx_dma.Init.MemBurst            = DMA_MBURST_SINGLE;
+    g_uart1_tx_dma.Init.PeriphBurst         = DMA_PBURST_SINGLE;
+
+    HAL_DMA_DeInit(&g_uart1_tx_dma);
+    (void)HAL_DMA_Init(&g_uart1_tx_dma);
+}
+
+void usart_dma_tx(const uint8_t *data, uint16_t len)
+{
+    if (g_uart1_handle.gState != HAL_UART_STATE_READY)
+    {
+        return;
+    }
+    (void)HAL_UART_Transmit_DMA(&g_uart1_handle, data, len);
+}
+
+uint8_t usart_dma_tx_busy(void)
+{
+    return (g_uart1_handle.gState != HAL_UART_STATE_READY) ? 1U : 0U;
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
+        if (g_rx_byte_cb != 0)
+        {
+            g_rx_byte_cb(g_rx_byte);
+        }
+
         if ((g_rx_state == USART_RX_CR) && (g_rx_byte == '\n'))
         {
             g_rx_state = USART_RX_READY;
@@ -94,6 +153,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 void USART1_IRQHandler(void)
 {
     HAL_UART_IRQHandler(&g_uart1_handle);
+}
+
+void DMA2_Stream7_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&g_uart1_tx_dma);
 }
 
 usart_rx_state_t usart_rx_state(void)

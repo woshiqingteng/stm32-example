@@ -17,6 +17,10 @@
 #include "gtim.h"
 #include "atim.h"
 #include "tpad.h"
+#include "adc.h"
+#include "rtc.h"
+#include "rng.h"
+#include "pwr.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
