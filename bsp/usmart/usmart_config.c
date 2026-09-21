@@ -36,9 +36,9 @@ static uint32_t usmart_call_void(void *func, const uint32_t *args)
     return 0U;
 }
 
-static uint32_t usmart_call_void_u8(void *func, const uint32_t *args)
+static uint32_t usmart_call_void_ltdcpower(void *func, const uint32_t *args)
 {
-    (*(void (*)(uint8_t))func)((uint8_t)args[0]);
+    (*(void (*)(ltdc_power_t))func)((ltdc_power_t)args[0]);
     return 0U;
 }
 
@@ -78,9 +78,9 @@ static uint32_t usmart_call_void_u32_u32(void *func, const uint32_t *args)
     return 0U;
 }
 
-static uint32_t usmart_call_void_ltdclayer_u8(void *func, const uint32_t *args)
+static uint32_t usmart_call_void_ltdclayer_ltdcpower(void *func, const uint32_t *args)
 {
-    (*(void (*)(ltdc_layer_t, uint8_t))func)((ltdc_layer_t)args[0], (uint8_t)args[1]);
+    (*(void (*)(ltdc_layer_t, ltdc_power_t))func)((ltdc_layer_t)args[0], (ltdc_power_t)args[1]);
     return 0U;
 }
 
@@ -105,27 +105,27 @@ static uint32_t usmart_call_void_ltdclayer_u16x4(void *func, const uint32_t *arg
     return 0U;
 }
 
-static uint32_t usmart_call_void_u16_u16_u32_u8_u8_u16(void *func, const uint32_t *args)
+static uint32_t usmart_call_void_u16_u16_u32_u8_fontsize_u16(void *func, const uint32_t *args)
 {
-    (*(void (*)(uint16_t, uint16_t, uint32_t, uint8_t, uint8_t, uint16_t))func)(
+    (*(void (*)(uint16_t, uint16_t, uint32_t, uint8_t, lcd_font_size_t, uint16_t))func)(
         (uint16_t)args[0], (uint16_t)args[1], args[2],
-        (uint8_t)args[3], (uint8_t)args[4], (uint16_t)args[5]);
+        (uint8_t)args[3], (lcd_font_size_t)args[4], (uint16_t)args[5]);
     return 0U;
 }
 
-static uint32_t usmart_call_void_u16_u16_u32_u8_u8_textmode_u16(void *func, const uint32_t *args)
+static uint32_t usmart_call_void_u16_u16_u32_u8_fontsize_textmode_u16(void *func, const uint32_t *args)
 {
-    (*(void (*)(uint16_t, uint16_t, uint32_t, uint8_t, uint8_t, lcd_text_mode_t, uint16_t))func)(
+    (*(void (*)(uint16_t, uint16_t, uint32_t, uint8_t, lcd_font_size_t, lcd_text_mode_t, uint16_t))func)(
         (uint16_t)args[0], (uint16_t)args[1], args[2],
-        (uint8_t)args[3], (uint8_t)args[4], (lcd_text_mode_t)args[5], (uint16_t)args[6]);
+        (uint8_t)args[3], (lcd_font_size_t)args[4], (lcd_text_mode_t)args[5], (uint16_t)args[6]);
     return 0U;
 }
 
-static uint32_t usmart_call_void_u16_u16_u16_u16_u8_str_u16(void *func, const uint32_t *args)
+static uint32_t usmart_call_void_u16_u16_u16_u16_fontsize_str_u16(void *func, const uint32_t *args)
 {
-    (*(void (*)(uint16_t, uint16_t, uint16_t, uint16_t, uint8_t, const char *, uint16_t))func)(
+    (*(void (*)(uint16_t, uint16_t, uint16_t, uint16_t, lcd_font_size_t, const char *, uint16_t))func)(
         (uint16_t)args[0], (uint16_t)args[1], (uint16_t)args[2], (uint16_t)args[3],
-        (uint8_t)args[4], (const char *)(uintptr_t)args[5], (uint16_t)args[6]);
+        (lcd_font_size_t)args[4], (const char *)(uintptr_t)args[5], (uint16_t)args[6]);
     return 0U;
 }
 
@@ -149,16 +149,16 @@ struct _m_usmart_nametab usmart_nametab[] =
       usmart_call_void_u16_u16_u32 },
     { (void *)lcd_fill,       "void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)",
       usmart_call_void_u16x4_u32 },
-    { (void *)lcd_show_num,   "void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color)",
-      usmart_call_void_u16_u16_u32_u8_u8_u16 },
-    { (void *)lcd_show_xnum,  "void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint8_t mode, uint16_t color)",
-      usmart_call_void_u16_u16_u32_u8_u8_textmode_u16 },
-    { (void *)lcd_show_string, "void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, char *p, uint16_t color)",
-      usmart_call_void_u16_u16_u16_u16_u8_str_u16 },
+    { (void *)lcd_show_num,   "void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint16_t color)",
+      usmart_call_void_u16_u16_u32_u8_fontsize_u16 },
+    { (void *)lcd_show_xnum,  "void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)",
+      usmart_call_void_u16_u16_u32_u8_fontsize_textmode_u16 },
+    { (void *)lcd_show_string, "void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, char *p, uint16_t color)",
+      usmart_call_void_u16_u16_u16_u16_fontsize_str_u16 },
 
-    { (void *)ltdc_switch,    "void ltdc_switch(uint8_t sw)",               usmart_call_void_u8 },
-    { (void *)ltdc_layer_switch, "void ltdc_layer_switch(uint8_t layerx, uint8_t sw)",
-      usmart_call_void_ltdclayer_u8 },
+    { (void *)ltdc_switch,    "void ltdc_switch(ltdc_power_t sw)",           usmart_call_void_ltdcpower },
+    { (void *)ltdc_layer_switch, "void ltdc_layer_switch(ltdc_layer_t layerx, ltdc_power_t sw)",
+      usmart_call_void_ltdclayer_ltdcpower },
     { (void *)ltdc_select_layer, "void ltdc_select_layer(uint8_t layerx)",  usmart_call_void_ltdclayer },
     { (void *)ltdc_display_dir,  "void ltdc_display_dir(uint8_t dir)",      usmart_call_void_ltdcdir },
     { (void *)ltdc_draw_point,   "void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)",
@@ -191,6 +191,6 @@ struct _m_usmart_dev usmart_dev =
     .parmtype    = 0U,
     .plentbl     = {0U},
     .parm        = {0U},
-    .runtimeflag = false,
+    .runtimeflag = USMART_RUNTIME_OFF,
     .runtime     = 0U,
 };

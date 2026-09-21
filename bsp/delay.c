@@ -15,6 +15,11 @@
 #define US_PER_MS   1000U
 #define MS_PER_SEC  1000U
 
+/* Max consecutive SysTick->VAL reads without a change before delay_us() gives
+ * up, so a stopped SysTick cannot hang the caller. In normal operation the
+ * counter advances within a few reads, so timing is unaffected. */
+#define DELAY_US_STALL_LIMIT 1000000U
+
 static uint32_t g_fac_us = 0;
 
 #if USE_FREERTOS
@@ -55,6 +60,7 @@ void delay_us(uint32_t nus)
     uint32_t tnow;
     uint64_t tcnt = 0;
     uint32_t reload = SysTick->LOAD;
+    uint32_t stalled = 0U;
 #if USE_FREERTOS
     BaseType_t scheduler_running = pdFALSE;
 #endif
@@ -85,10 +91,16 @@ void delay_us(uint32_t nus)
                 tcnt += reload - tnow + told;
             }
             told = tnow;
+            stalled = 0U;
+
             if (tcnt >= ticks)
             {
                 break;
             }
+        }
+        else if (++stalled >= DELAY_US_STALL_LIMIT)
+        {
+            break;
         }
     }
 

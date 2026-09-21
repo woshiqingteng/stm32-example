@@ -7,6 +7,7 @@
 
 #include "lcd.h"
 #include "lcdfont.h"
+#include "sys.h"
 
 /* Packed glyphs are MSB-first and half as wide as they are tall. */
 #define LCD_CHAR_WIDTH_DIV  2U
@@ -17,14 +18,6 @@
 #define LCD_FONT_1608_BYTES 16U
 #define LCD_FONT_2412_BYTES 36U
 #define LCD_FONT_3216_BYTES 128U
-
-typedef enum
-{
-    LCD_FONT_SIZE_12 = 12,
-    LCD_FONT_SIZE_16 = 16,
-    LCD_FONT_SIZE_24 = 24,
-    LCD_FONT_SIZE_32 = 32
-} lcd_font_size_t;
 
 typedef struct
 {
@@ -47,13 +40,13 @@ _lcd_dev lcddev;
 uint32_t g_point_color = 0xFF000000U;
 uint32_t g_back_color  = 0xFFFFFFFFU;
 
-static const lcd_font_desc_t *lcd_font_get(uint8_t size)
+static const lcd_font_desc_t *lcd_font_get(lcd_font_size_t size)
 {
     uint8_t i;
 
     for (i = 0U; i < (uint8_t)LCD_FONT_COUNT; i++)
     {
-        if ((uint8_t)g_lcd_fonts[i].size == size)
+        if (g_lcd_fonts[i].size == size)
         {
             return &g_lcd_fonts[i];
         }
@@ -78,7 +71,7 @@ void lcd_init(void)
         /* The vendor code leaves ltdc_display_dir() commented out, which
          * leaves lcdltdc.width/height at 0 and makes ltdc_clear()/ltdc_fill()
          * address nothing. Select the default orientation explicitly. */
-        lcd_display_dir(0);
+        lcd_display_dir(LTDC_DIR_PORTRAIT);
     }
     else
     {
@@ -130,7 +123,7 @@ void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t
     }
 }
 
-void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode_t mode, uint16_t color)
+void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)
 {
     uint8_t t1;
     uint8_t t;
@@ -185,19 +178,7 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode
     }
 }
 
-static uint32_t lcd_pow(uint8_t m, uint8_t n)
-{
-    uint32_t result = 1;
-
-    while (n-- != 0U)
-    {
-        result *= m;
-    }
-
-    return result;
-}
-
-void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color)
+void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint16_t color)
 {
     uint8_t t;
     uint8_t temp;
@@ -205,7 +186,7 @@ void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t siz
 
     for (t = 0; t < len; t++)
     {
-        temp = (uint8_t)((num / lcd_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
+        temp = (uint8_t)((num / bsp_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
 
         if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
         {
@@ -226,7 +207,7 @@ void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t siz
     }
 }
 
-void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, lcd_text_mode_t mode, uint16_t color)
+void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)
 {
     uint8_t t;
     uint8_t temp;
@@ -240,7 +221,7 @@ void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t si
 
     for (t = 0; t < len; t++)
     {
-        temp = (uint8_t)((num / lcd_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
+        temp = (uint8_t)((num / bsp_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
 
         if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
         {
@@ -259,7 +240,7 @@ void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t si
     }
 }
 
-void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, const char *p, uint16_t color)
+void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint16_t color)
 {
     uint16_t x0 = x;
 

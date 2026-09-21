@@ -13,9 +13,10 @@
 
 typedef enum
 {
-    USART_RX_IDLE = 0, /*!< waiting for start */
-    USART_RX_CR,       /*!< '\r' seen, waiting for '\n' */
-    USART_RX_READY,    /*!< complete line in the buffer */
+    USART_RX_IDLE = 0,  /*!< waiting for the start of a line */
+    USART_RX_RECEIVING, /*!< line in progress */
+    USART_RX_READY,     /*!< complete line in the buffer */
+    USART_RX_OVERFLOW   /*!< line too long, discarded until the next terminator */
 } usart_rx_state_t;
 
 /** @brief Callback invoked for every byte received on USART1. */

@@ -43,6 +43,15 @@ typedef enum
     LCD_TEXT_TRANSPARENT_PAD_ZERO     /* keep background, pad with '0'   */
 } lcd_text_mode_t;
 
+/** @brief  Selectable ASCII font heights (pixels). */
+typedef enum
+{
+    LCD_FONT_SIZE_12 = 12,
+    LCD_FONT_SIZE_16 = 16,
+    LCD_FONT_SIZE_24 = 24,
+    LCD_FONT_SIZE_32 = 32
+} lcd_font_size_t;
+
 /** @brief  LCD main parameters. */
 typedef struct
 {
@@ -56,19 +65,15 @@ extern _lcd_dev lcddev;
 extern uint32_t g_point_color; /* default point colour */
 extern uint32_t g_back_color;  /* default background colour */
 
-/* Scan direction (RGB: only L2R_U2D is meaningful). */
-#define L2R_U2D   0
-#define DFT_SCAN_DIR L2R_U2D
-
 void lcd_init(void);
 void lcd_display_dir(ltdc_dir_t dir);
 void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color);
 void lcd_clear(uint16_t color);
 void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);
 void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color);
-void lcd_show_char(uint16_t x, uint16_t y, char chr, uint8_t size, lcd_text_mode_t mode, uint16_t color);
-void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, uint16_t color);
-void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t size, lcd_text_mode_t mode, uint16_t color);
-void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, const char *p, uint16_t color);
+void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color);
+void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint16_t color);
+void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color);
+void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint16_t color);
 
 #endif /* BSP_LCD_H */

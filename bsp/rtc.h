@@ -15,11 +15,24 @@
 /** @brief Callback invoked from the RTC periodic wake-up interrupt. */
 typedef void (*rtc_wakeup_cb_t)(void);
 
+/** @brief RTC initialisation status. */
+typedef enum
+{
+    RTC_OK = 0,
+    RTC_ERROR
+} rtc_status_t;
+
+/** @brief RTC hour format flag (also the HAL 12/24-hour TimeFormat value). */
+typedef enum
+{
+    RTC_AM_24H = 0, /*!< 24-hour format / AM */
+    RTC_PM          /*!< PM (12-hour format) */
+} rtc_ampm_t;
+
 /**
  * @brief  Initialise the RTC (LSE with LSI fallback); the calendar is not set.
- * @return 0 on success, 1 if HAL_RTC_Init() failed.
  */
-uint8_t rtc_init(void);
+rtc_status_t rtc_init(void);
 
 /** @brief  Read backup register @p bkrx (0..31). */
 uint32_t rtc_read_bkr(uint32_t bkrx);
@@ -27,11 +40,11 @@ uint32_t rtc_read_bkr(uint32_t bkrx);
 /** @brief  Write @p data to backup register @p bkrx (0..31). */
 void rtc_write_bkr(uint32_t bkrx, uint32_t data);
 
-/** @brief  Get the time. @param ampm 0 = AM/24H, 1 = PM. */
-void rtc_get_time(uint8_t *hour, uint8_t *min, uint8_t *sec, uint8_t *ampm);
+/** @brief  Get the time. */
+void rtc_get_time(uint8_t *hour, uint8_t *min, uint8_t *sec, rtc_ampm_t *ampm);
 
-/** @brief  Set the time. @param ampm 0 = AM/24H, 1 = PM. */
-HAL_StatusTypeDef rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec, uint8_t ampm);
+/** @brief  Set the time. */
+HAL_StatusTypeDef rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec, rtc_ampm_t ampm);
 
 /** @brief  Get the date. @param week Weekday (1..7). */
 void rtc_get_date(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *week);

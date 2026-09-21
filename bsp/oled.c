@@ -5,10 +5,12 @@
  * Only the 8080 parallel interface is wired; the SPI path is not implemented.
  */
 
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 #include "oled.h"
 #include "oledfont.h"
 #include "delay.h"
+#include "sys.h"
 
 /* 8080 parallel bus control pins. */
 #define OLED_RST_PORT   GPIOA
@@ -120,7 +122,7 @@ typedef enum
 static uint8_t g_oled_gram[OLED_WIDTH][OLED_PAGES];
 
 static void oled_wr_byte(uint8_t data, oled_arg_t arg);
-static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot);
+static void oled_draw_point(uint8_t x, uint8_t y, bool dot);
 static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size);
 
 static void oled_data_out(uint8_t data)
@@ -148,7 +150,7 @@ static void oled_wr_byte(uint8_t data, oled_arg_t arg)
     HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
 }
 
-static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot)
+static void oled_draw_point(uint8_t x, uint8_t y, bool dot)
 {
     uint8_t page;
     uint8_t bit;
@@ -161,7 +163,7 @@ static void oled_draw_point(uint8_t x, uint8_t y, uint8_t dot)
     page = (uint8_t)(y / OLED_PAGE_BITS);
     bit  = (uint8_t)(1U << (y % OLED_PAGE_BITS));
 
-    if (dot != 0U)
+    if (dot)
     {
         g_oled_gram[x][page] |= bit;
     }
@@ -302,18 +304,6 @@ void oled_show_string(uint8_t x, uint8_t y, const char *str, oled_font_t size)
     }
 }
 
-static uint32_t oled_pow(uint8_t m, uint8_t n)
-{
-    uint32_t result = 1U;
-
-    while (n-- != 0U)
-    {
-        result *= m;
-    }
-
-    return result;
-}
-
 void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, oled_font_t size)
 {
     uint8_t width = oled_char_width(size);
@@ -323,7 +313,7 @@ void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, oled_font_t 
 
     for (t = 0; t < len; t++)
     {
-        digit = (uint8_t)((num / oled_pow(OLED_DECIMAL_BASE, (uint8_t)(len - t - 1U))) %
+        digit = (uint8_t)((num / bsp_pow(OLED_DECIMAL_BASE, (uint8_t)(len - t - 1U))) %
                           OLED_DECIMAL_BASE);
 
         if ((enshow == OLED_LEADING_SUPPRESSED) && (t < (uint8_t)(len - 1U)))

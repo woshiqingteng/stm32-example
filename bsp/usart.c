@@ -38,31 +38,38 @@ static void usart_rx_byte(uint8_t byte)
         g_rx_byte_cb(byte);
     }
 
-    if ((g_rx_state == USART_RX_CR) && (byte == '\n'))
+    /* CR and LF are both end-of-line markers, so the terminator handling is
+     * symmetric; a repeated terminator (for example LF after CR) is ignored
+     * while the completed line waits to be consumed. */
+    if ((byte == '\r') || (byte == '\n'))
     {
-        g_rx_state = USART_RX_READY;
+        if (g_rx_state == USART_RX_OVERFLOW)
+        {
+            g_rx_len   = 0U;
+            g_rx_state = USART_RX_IDLE;
+        }
+        else if (g_rx_state != USART_RX_READY)
+        {
+            g_rx_state = USART_RX_READY;
+        }
+
+        return;
     }
-    else if (g_rx_state != USART_RX_READY)
+
+    if ((g_rx_state == USART_RX_READY) || (g_rx_state == USART_RX_OVERFLOW))
     {
-        if (byte == '\r')
-        {
-            g_rx_state = USART_RX_CR;
-        }
-        else
-        {
-            if (g_rx_state == USART_RX_CR)
-            {
-                g_rx_state = USART_RX_IDLE;
-            }
-            if (g_rx_len < (USART_REC_LEN - USART_RX_BUF_RESERVE))
-            {
-                g_rx_buf[g_rx_len++] = byte;
-            }
-            else
-            {
-                g_rx_len = 0;
-            }
-        }
+        return;
+    }
+
+    if (g_rx_len < (USART_REC_LEN - USART_RX_BUF_RESERVE))
+    {
+        g_rx_buf[g_rx_len++] = byte;
+        g_rx_state = USART_RX_RECEIVING;
+    }
+    else
+    {
+        g_rx_len   = 0U;
+        g_rx_state = USART_RX_OVERFLOW;
     }
 }
 

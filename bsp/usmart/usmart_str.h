@@ -35,12 +35,19 @@ typedef enum
 } usmart_cmdname_status_t;
 
 uint8_t  usmart_get_parmpos(uint8_t num);
-uint8_t  usmart_strcmp(const char *str1, const char *str2);
-uint32_t usmart_pow(uint8_t m, uint8_t n);
+bool     usmart_strcmp(const char *str1, const char *str2);
 usmart_num_status_t usmart_str2num(const char *str, uint32_t *res);
 usmart_cmdname_status_t usmart_get_cmdname(const char *str, char *cmdname, uint8_t *nlen, uint8_t maxlen);
-usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, uint8_t *rval);
-uint8_t  usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype);
+usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, bool *rval);
+
+/**
+ * @brief  Parse one argument at the start of @p str.
+ * @param  fparm      destination buffer (NUL terminated on return)
+ * @param  fparm_size capacity of @p fparm including the NUL terminator
+ * @param  ptype      receives the argument kind (USMART_APARM_ERR on failure)
+ * @return number of input characters consumed
+ */
+uint8_t  usmart_get_aparm(const char *str, char *fparm, uint8_t fparm_size, usmart_aparmtype_t *ptype);
 usmart_status_t usmart_get_fparam(const char *str, uint8_t *parn);
 
 #endif /* BSP_USMART_USMART_STR_H */

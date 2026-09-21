@@ -13,6 +13,7 @@
 #define DEMO_TEXT_WIDTH  240U
 #define DEMO_ID_Y        130U
 #define DEMO_ID_SIZE     16U
+#define DEMO_REFRESH_MS  1000U
 
 typedef struct
 {
@@ -71,6 +72,6 @@ int main(void)
         }
 
         led_toggle(LED0);
-        delay_ms(1000);
+        delay_ms(DEMO_REFRESH_MS);
     }
 }

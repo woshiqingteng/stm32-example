@@ -23,19 +23,20 @@
 
 int main(void)
 {
-    uint8_t hour, min, sec, ampm;
-    uint8_t year, month, date, week;
+    uint8_t    hour, min, sec;
+    uint8_t    year, month, date, week;
+    rtc_ampm_t ampm;
 
     bsp_init();
 
-    if (rtc_init() != 0U)
+    if (rtc_init() != RTC_OK)
     {
         printf("rtc init failed\r\n");
     }
 
     if (rtc_read_bkr(RTC_APP_BKP_REG) != RTC_APP_BKP_MAGIC)
     {
-        (void)rtc_set_time(RTC_DEFAULT_HOUR, RTC_DEFAULT_MIN, RTC_DEFAULT_SEC, RTC_HOURFORMAT_24);
+        (void)rtc_set_time(RTC_DEFAULT_HOUR, RTC_DEFAULT_MIN, RTC_DEFAULT_SEC, RTC_AM_24H);
         (void)rtc_set_date(RTC_DEFAULT_YEAR, RTC_DEFAULT_MONTH, RTC_DEFAULT_DATE, RTC_DEFAULT_WEEK);
         rtc_write_bkr(RTC_APP_BKP_REG, RTC_APP_BKP_MAGIC);
         printf("rtc: default time/date set\r\n");

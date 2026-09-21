@@ -9,10 +9,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** @brief  Calibrate the touch key. @param psc Prescaler. @return 0 ok, 1 fail. */
-uint8_t tpad_init(uint16_t psc);
+/** @brief  Touch-key driver status. */
+typedef enum
+{
+    TPAD_OK = 0,
+    TPAD_ERROR
+} tpad_status_t;
 
-/** @brief  Scan the touch key. @param continuous true to allow repeat. @return 1 if touched. */
-uint8_t tpad_scan(bool continuous);
+/** @brief  Calibrate the touch key. @param psc Prescaler. */
+tpad_status_t tpad_init(uint16_t psc);
+
+/** @brief  Scan the touch key. @param continuous true to allow repeat. @return true if touched. */
+bool tpad_scan(bool continuous);
 
 #endif /* BSP_TPAD_H */

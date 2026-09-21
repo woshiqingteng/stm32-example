@@ -6,15 +6,9 @@
 #ifndef BSP_OLED_H
 #define BSP_OLED_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
-
-/** @brief  Host interface selection (only OLED_IF_8080 is implemented). */
-typedef enum
-{
-    OLED_IF_8080 = 0,
-    OLED_IF_SPI  = 1
-} oled_if_t;
 
 /** @brief  Selectable ASCII font heights. */
 typedef enum

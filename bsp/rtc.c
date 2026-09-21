@@ -17,9 +17,6 @@
 #define RTC_ASYNC_PREDIV    0x7FU
 #define RTC_SYNC_PREDIV     0xFFU
 
-#define RTC_INIT_SUCCESS    0U
-#define RTC_INIT_FAILURE    1U
-
 #define RTC_WKUP_IRQ_PRIORITY    2U
 #define RTC_WKUP_IRQ_SUBPRIORITY 2U
 
@@ -51,7 +48,7 @@ void rtc_write_bkr(uint32_t bkrx, uint32_t data)
     HAL_RTCEx_BKUPWrite(&g_rtc_handle, bkrx, data);
 }
 
-void rtc_get_time(uint8_t *hour, uint8_t *min, uint8_t *sec, uint8_t *ampm)
+void rtc_get_time(uint8_t *hour, uint8_t *min, uint8_t *sec, rtc_ampm_t *ampm)
 {
     RTC_TimeTypeDef time = {0};
 
@@ -60,17 +57,17 @@ void rtc_get_time(uint8_t *hour, uint8_t *min, uint8_t *sec, uint8_t *ampm)
     *hour = time.Hours;
     *min  = time.Minutes;
     *sec  = time.Seconds;
-    *ampm = (uint8_t)time.TimeFormat;
+    *ampm = (rtc_ampm_t)time.TimeFormat;
 }
 
-HAL_StatusTypeDef rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec, uint8_t ampm)
+HAL_StatusTypeDef rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec, rtc_ampm_t ampm)
 {
     RTC_TimeTypeDef time = {0};
 
     time.Hours          = hour;
     time.Minutes        = min;
     time.Seconds        = sec;
-    time.TimeFormat     = ampm;
+    time.TimeFormat     = (uint32_t)ampm;
     time.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
     time.StoreOperation = RTC_STOREOPERATION_RESET;
 
@@ -112,6 +109,14 @@ uint8_t rtc_get_week(uint16_t year, uint8_t month, uint8_t day)
         return 0U;
     }
 
+    /*
+     * Algorithm (valid 1901..2099):
+     *   week = (yy + yy/4 + day + month_table[m] - leap_adjust) mod 7, 1..7
+     * where yy is the year within the century (shifted by 100 for years 2000+),
+     * yy/4 counts leap days, and month_table[] holds the weekday offset of the
+     * first day of each month. For a leap year, January and February predate
+     * 29 Feb, so one day is subtracted before the final modulo.
+     */
     year_h = (uint8_t)(year / RTC_YEARS_PER_CENTURY);
     year_l = (uint8_t)(year % RTC_YEARS_PER_CENTURY);
 
@@ -181,7 +186,7 @@ static void rtc_clock_config(void)
     }
 }
 
-uint8_t rtc_init(void)
+rtc_status_t rtc_init(void)
 {
     g_rtc_handle.Instance          = RTC;
     g_rtc_handle.Init.HourFormat   = RTC_HOURFORMAT_24;
@@ -200,10 +205,10 @@ uint8_t rtc_init(void)
 
     if (HAL_RTC_Init(&g_rtc_handle) != HAL_OK)
     {
-        return RTC_INIT_FAILURE;
+        return RTC_ERROR;
     }
 
-    return RTC_INIT_SUCCESS;
+    return RTC_OK;
 }
 
 void rtc_set_wakeup(uint8_t wksel, uint16_t cnt)

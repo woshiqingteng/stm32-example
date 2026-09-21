@@ -6,6 +6,9 @@
 #include "stm32f4xx_hal.h"
 #include "wdg.h"
 
+#define WWDG_IRQ_PRIORITY    2U
+#define WWDG_IRQ_SUBPRIORITY 3U
+
 IWDG_HandleTypeDef g_iwdg_handle;
 WWDG_HandleTypeDef g_wwdg_handle;
 
@@ -28,7 +31,7 @@ void wwdg_init(uint8_t tr, uint8_t wr, uint32_t fprer)
 {
     /* ---- MSP begin: clock + NVIC ---- */
     __HAL_RCC_WWDG_CLK_ENABLE();
-    HAL_NVIC_SetPriority(WWDG_IRQn, 2, 3);
+    HAL_NVIC_SetPriority(WWDG_IRQn, WWDG_IRQ_PRIORITY, WWDG_IRQ_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(WWDG_IRQn);
     /* ---- MSP end ---- */
 

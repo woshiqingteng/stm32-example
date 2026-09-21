@@ -35,6 +35,16 @@ typedef enum
     ADC_DMA_MODE_SCAN,
 } adc_dma_mode_t;
 
+/** @brief Per-mode DMA acquisition description selected at init time. */
+typedef struct
+{
+    ADC_HandleTypeDef *handle;          /*!< ADC instance for this mode */
+    FunctionalState    scan;            /*!< scan conversion enable */
+    uint32_t           conversions;     /*!< regular conversions per sequence */
+    uint32_t           gpio_pins;       /*!< analog input pins to configure */
+    void             (*apply_channels)(ADC_HandleTypeDef *hadc); /*!< rank setup */
+} adc_dma_ops_t;
+
 static const adc_channel_t g_adc_scan_channels[ADC_SCAN_CH_NUM] =
 {
     ADC_CH0, ADC_CH1, ADC_CH2, ADC_CH3, ADC_CH4, ADC_CH5,
@@ -44,9 +54,9 @@ static ADC_HandleTypeDef g_adc_handle;
 static ADC_HandleTypeDef g_adc_dma_handle;
 static ADC_HandleTypeDef g_adc_scan_handle;
 static DMA_HandleTypeDef g_adc_dma_stream;
-static adc_dma_mode_t    g_adc_dma_mode = ADC_DMA_MODE_NONE;
 static adc_dma_cb_t      g_adc_dma_hook;
 static uint16_t         *g_adc_dma_buf;
+static const adc_dma_ops_t *g_adc_dma_active;
 
 static void adc_gpio_config(uint32_t pins)
 {
@@ -88,6 +98,30 @@ static void adc_channel_config(ADC_HandleTypeDef *hadc, adc_channel_t channel, u
     channel_config.Offset       = 0U;
     HAL_ADC_ConfigChannel(hadc, &channel_config);
 }
+
+static void adc_dma_channels_single(ADC_HandleTypeDef *hadc)
+{
+    adc_channel_config(hadc, ADC_CH5, ADC_RANK_FIRST);
+}
+
+static void adc_dma_channels_scan(ADC_HandleTypeDef *hadc)
+{
+    uint32_t i;
+
+    for (i = 0U; i < (uint32_t)ADC_SCAN_CH_NUM; i++)
+    {
+        adc_channel_config(hadc, g_adc_scan_channels[i], (uint32_t)(i + ADC_RANK_FIRST));
+    }
+}
+
+/* Indexed by adc_dma_mode_t; the single/scan entries carry everything that
+ * differs between the two acquisition modes. */
+static const adc_dma_ops_t g_adc_dma_ops[3] =
+{
+    { 0,                  DISABLE, 0U,                    0U,                0 },
+    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_NUM,   ADC_SINGLE_GPIO_PIN, adc_dma_channels_single },
+    { &g_adc_scan_handle, ENABLE,  (uint32_t)ADC_SCAN_CH_NUM, ADC_SCAN_GPIO_PINS, adc_dma_channels_scan },
+};
 
 void adc_init(void)
 {
@@ -134,12 +168,12 @@ static void adc_dma_arm(uint16_t len)
 {
     ADC_HandleTypeDef *hadc;
 
-    if (g_adc_dma_mode == ADC_DMA_MODE_NONE)
+    if ((g_adc_dma_active == 0) || (g_adc_dma_active->handle == 0))
     {
         return;
     }
 
-    hadc = (g_adc_dma_mode == ADC_DMA_MODE_SCAN) ? &g_adc_scan_handle : &g_adc_dma_handle;
+    hadc = g_adc_dma_active->handle;
 
     /* Stop the ADC so HAL_ADC_Start_DMA re-enables it and restarts the scan
      * sequence from rank 1 (matches the previous arm behaviour). */
@@ -149,8 +183,16 @@ static void adc_dma_arm(uint16_t len)
 
 static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
 {
-    ADC_HandleTypeDef *hadc = (mode == ADC_DMA_MODE_SCAN) ? &g_adc_scan_handle : &g_adc_dma_handle;
-    uint32_t i;
+    const adc_dma_ops_t *ops;
+    ADC_HandleTypeDef   *hadc;
+
+    if ((mode != ADC_DMA_MODE_SINGLE) && (mode != ADC_DMA_MODE_SCAN))
+    {
+        return;
+    }
+
+    ops  = &g_adc_dma_ops[mode];
+    hadc = ops->handle;
 
     (void)len; /* the transfer length is supplied by adc_dma_arm()/HAL_ADC_Start_DMA(). */
 
@@ -158,7 +200,7 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
     __HAL_RCC_ADC1_CLK_ENABLE();
     __HAL_RCC_DMA2_CLK_ENABLE();
 
-    adc_gpio_config((mode == ADC_DMA_MODE_SCAN) ? ADC_SCAN_GPIO_PINS : ADC_SINGLE_GPIO_PIN);
+    adc_gpio_config(ops->gpio_pins);
 
     HAL_NVIC_SetPriority(ADC_DMA_IRQN, ADC_DMA_IRQ_PRIORITY, ADC_DMA_IRQ_SUBPRIORITY);
     HAL_NVIC_EnableIRQ(ADC_DMA_IRQN);
@@ -178,23 +220,11 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
     g_adc_dma_stream.Parent = hadc;
     hadc->DMA_Handle        = &g_adc_dma_stream;
 
-    if (mode == ADC_DMA_MODE_SCAN)
-    {
-        adc_instance_config(hadc, ENABLE, (uint32_t)ADC_SCAN_CH_NUM, ENABLE, ENABLE);
+    adc_instance_config(hadc, ops->scan, ops->conversions, ENABLE, ENABLE);
+    ops->apply_channels(hadc);
 
-        for (i = 0U; i < (uint32_t)ADC_SCAN_CH_NUM; i++)
-        {
-            adc_channel_config(hadc, g_adc_scan_channels[i], (uint32_t)(i + ADC_RANK_FIRST));
-        }
-    }
-    else
-    {
-        adc_instance_config(hadc, DISABLE, ADC_SINGLE_CONV_NUM, ENABLE, ENABLE);
-        adc_channel_config(hadc, ADC_CH5, ADC_RANK_FIRST);
-    }
-
-    g_adc_dma_buf  = buf;
-    g_adc_dma_mode = mode;
+    g_adc_dma_buf    = buf;
+    g_adc_dma_active = ops;
 }
 
 void adc_dma_init(uint16_t *buf, uint16_t len)

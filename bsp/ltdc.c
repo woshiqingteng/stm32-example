@@ -17,9 +17,9 @@ LTDC_HandleTypeDef g_ltdc_handle;
 DMA2D_HandleTypeDef g_dma2d_handle;
 uint32_t *g_ltdc_framebuf[2];
 
-void ltdc_switch(uint8_t sw)
+void ltdc_switch(ltdc_power_t sw)
 {
-    if (sw != 0U)
+    if (sw != LTDC_OFF)
     {
         __HAL_LTDC_ENABLE(&g_ltdc_handle);
     }
@@ -29,9 +29,9 @@ void ltdc_switch(uint8_t sw)
     }
 }
 
-void ltdc_layer_switch(ltdc_layer_t layerx, uint8_t sw)
+void ltdc_layer_switch(ltdc_layer_t layerx, ltdc_power_t sw)
 {
-    if (sw != 0U)
+    if (sw != LTDC_OFF)
     {
         __HAL_LTDC_LAYER_ENABLE(&g_ltdc_handle, layerx);
     }
@@ -66,7 +66,7 @@ void ltdc_display_dir(ltdc_dir_t dir)
 
 void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
 {
-#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
+#if (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_ARGB8888_ID) || (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_RGB888_ID)
     if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
@@ -93,7 +93,7 @@ void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color)
 
 uint32_t ltdc_read_point(uint16_t x, uint16_t y)
 {
-#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_ARGB8888 || LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB888
+#if (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_ARGB8888_ID) || (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_RGB888_ID)
     if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         return *(uint32_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
@@ -123,7 +123,7 @@ uint32_t ltdc_read_point(uint16_t x, uint16_t y)
  * keep the same output bytes as the previous direct OCOLR write. */
 static uint32_t ltdc_expand_color(uint32_t color)
 {
-#if LTDC_PIXFORMAT == LTDC_PIXFORMAT_RGB565
+#if LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_RGB565_ID
     uint32_t r = (color >> 11) & 0x1FU;
     uint32_t g = (color >> 5) & 0x3FU;
     uint32_t b = color & 0x1FU;
@@ -261,7 +261,7 @@ void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uin
     (void)HAL_LTDC_SetWindowSize(&g_ltdc_handle, width, height, layerx);
 }
 
-void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t pixformat, uint8_t alpha,
+void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, ltdc_pixformat_t pixformat, uint8_t alpha,
                                  uint8_t alpha0, uint32_t bfac1, uint32_t bfac2, uint32_t bkcolor)
 {
     LTDC_LayerCfgTypeDef playercfg = {0};
@@ -270,7 +270,7 @@ void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, uint8_t 
     playercfg.WindowY0 = 0U;
     playercfg.WindowX1 = lcdltdc.pwidth;
     playercfg.WindowY1 = lcdltdc.pheight;
-    playercfg.PixelFormat = pixformat;
+    playercfg.PixelFormat = (uint32_t)pixformat;
     playercfg.Alpha = alpha;
     playercfg.Alpha0 = alpha0;
     playercfg.BlendingFactor1 = bfac1;

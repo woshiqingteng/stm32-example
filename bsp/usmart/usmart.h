@@ -32,6 +32,13 @@ typedef enum
     SP_TYPE_HEX = 1     /*!< hexadecimal display */
 } usmart_sptype_t;
 
+/** @brief Run-time reporting state. */
+typedef enum
+{
+    USMART_RUNTIME_OFF = 0, /*!< do not report run-time */
+    USMART_RUNTIME_ON  = 1  /*!< report run-time */
+} usmart_runtime_t;
+
 /** @brief Exact-typed trampoline: invoke func with the parsed arguments. */
 typedef uint32_t (*usmart_call_t)(void *func, const uint32_t *args);
 
@@ -59,7 +66,7 @@ struct _m_usmart_dev
     uint16_t        parmtype;                       /*!< per-argument type bits (1 = string) */
     uint8_t         plentbl[MAX_PARM];              /*!< per-argument length scratch */
     uint8_t         parm[PARM_LEN];                 /*!< packed argument storage */
-    bool            runtimeflag;                    /*!< report run-time if true */
+    usmart_runtime_t runtimeflag;                   /*!< report run-time state */
     uint32_t        runtime;                        /*!< last run-time in microseconds */
 };
 

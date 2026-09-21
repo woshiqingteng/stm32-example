@@ -12,14 +12,14 @@ int main(void)
 
     bsp_init();
 
-    if (tpad_init(2) != 0U)
+    if (tpad_init(2) != TPAD_OK)
     {
         printf("tpad init failed\r\n");
     }
 
     for (;;)
     {
-        if (tpad_scan(false) != 0U)
+        if (tpad_scan(false))
         {
             led_toggle(LED1);
         }

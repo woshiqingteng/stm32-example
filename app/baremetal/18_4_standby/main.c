@@ -30,7 +30,7 @@ int main(void)
 
     bsp_init();
 
-    if (rtc_init() != 0U)
+    if (rtc_init() != RTC_OK)
     {
         printf("rtc init failed\r\n");
     }

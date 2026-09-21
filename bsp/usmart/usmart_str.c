@@ -11,6 +11,7 @@
 #include <string.h>
 #include "usmart/usmart.h"
 #include "usmart/usmart_str.h"
+#include "sys.h"
 
 #define USMART_BASE_DEC        10U  /*!< decimal radix */
 #define USMART_BASE_HEX        16U  /*!< hexadecimal radix */
@@ -70,13 +71,13 @@ static uint8_t usmart_strlen(const char *str)
     return len;
 }
 
-uint8_t usmart_strcmp(const char *str1, const char *str2)
+bool usmart_strcmp(const char *str1, const char *str2)
 {
     while (1)
     {
         if (*str1 != *str2)
         {
-            return 1U;
+            return false;
         }
 
         if (*str1 == '\0')
@@ -88,19 +89,7 @@ uint8_t usmart_strcmp(const char *str1, const char *str2)
         str2++;
     }
 
-    return 0U;
-}
-
-uint32_t usmart_pow(uint8_t m, uint8_t n)
-{
-    uint32_t result = 1U;
-
-    while (n-- != 0U)
-    {
-        result *= m;
-    }
-
-    return result;
+    return true;
 }
 
 usmart_num_status_t usmart_str2num(const char *str, uint32_t *res)
@@ -195,7 +184,7 @@ usmart_num_status_t usmart_str2num(const char *str, uint32_t *res)
             t = (uint32_t)(*p - 'A' + USMART_BASE_DEC);
         }
 
-        *res += t * usmart_pow(hexdec, bnum);
+        *res += t * bsp_pow(hexdec, bnum);
         p++;
 
         if (*p == '\0')
@@ -232,19 +221,20 @@ usmart_cmdname_status_t usmart_get_cmdname(const char *str, char *cmdname, uint8
     return USMART_CMDNAME_OK;
 }
 
-usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, uint8_t *rval)
+usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, bool *rval)
 {
     usmart_status_t res = USMART_OK;
-    uint8_t         fover = 0U;      /* parenthesis depth */
+    uint8_t         paren_depth = 0U; /* parenthesis depth */
     const char     *strtemp;
     uint8_t         offset = 0U;
     uint8_t         parmnum = 0U;
-    uint8_t         temp = 1U;
+    uint8_t         parm_chars = 1U;  /* characters seen for the current parameter */
     char            fpname[USMART_TYPE_BUF_LEN];
-    uint8_t         fplcnt = 0U;     /* first parameter length counter */
-    uint8_t         pcnt = 0U;       /* return type character counter with marker bit */
+    uint8_t         fplcnt = 0U;      /* first parameter length counter */
+    uint8_t         pcnt = 0U;        /* return type character counter with marker bit */
     uint8_t         pos = 0U;
-    uint8_t         nchar = 0U;
+    uint8_t         next_char = 0U;
+    bool            in_string = false; /* true while inside a quoted literal */
 
     /* A return value exists unless the first token is exactly "void". */
     strtemp = str;
@@ -277,7 +267,7 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
     if (pcnt != 0U)
     {
         fpname[pcnt & USMART_FNAME_MASK] = '\0';
-        *rval = (usmart_strcmp(fpname, "void") == 0U) ? 0U : 1U;
+        *rval = !usmart_strcmp(fpname, "void");
         pcnt = 0U;
     }
 
@@ -291,9 +281,9 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
 
         if ((*strtemp == ' ') || (*strtemp == '*'))
         {
-            nchar = usmart_search_nextc(strtemp);
+            next_char = usmart_search_nextc(strtemp);
 
-            if ((nchar != '(') && (nchar != '*'))
+            if ((next_char != '(') && (next_char != '*'))
             {
                 offset = pos;
             }
@@ -307,7 +297,7 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
         strtemp += offset + 1U;
     }
 
-    nchar = 0U; /* 0: outside a string literal, 1: inside one */
+    in_string = false;
 
     while (1)
     {
@@ -316,32 +306,32 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
             res = USMART_FUNCERR;
             break;
         }
-        else if ((*strtemp == '(') && (nchar == 0U))
+        else if ((*strtemp == '(') && !in_string)
         {
-            fover++;
+            paren_depth++;
         }
-        else if ((*strtemp == ')') && (nchar == 0U))
+        else if ((*strtemp == ')') && !in_string)
         {
-            if (fover != 0U)
+            if (paren_depth != 0U)
             {
-                fover--;
+                paren_depth--;
             }
             else
             {
                 res = USMART_FUNCERR;
             }
 
-            if (fover == 0U)
+            if (paren_depth == 0U)
             {
                 break;
             }
         }
         else if (*strtemp == '"')
         {
-            nchar = (uint8_t)(!nchar);
+            in_string = !in_string;
         }
 
-        if (fover == 0U)
+        if (paren_depth == 0U)
         {
             if (*strtemp != ' ')
             {
@@ -352,7 +342,7 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
         {
             if (*strtemp == ',')
             {
-                temp = 1U;
+                parm_chars = 1U;
                 pcnt++;
             }
             else if ((*strtemp != ' ') && (*strtemp != '('))
@@ -363,12 +353,12 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
                     fplcnt++;
                 }
 
-                temp++;
+                parm_chars++;
             }
 
-            if ((fover == 1U) && (temp == 2U))
+            if ((paren_depth == 1U) && (parm_chars == 2U))
             {
-                temp++;
+                parm_chars++;
                 parmnum++;
             }
         }
@@ -380,7 +370,7 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
     {
         fpname[fplcnt] = '\0';
 
-        if (usmart_strcmp(fpname, "void") == 0U)
+        if (usmart_strcmp(fpname, "void"))
         {
             parmnum = 0U;
         }
@@ -391,21 +381,35 @@ usmart_status_t usmart_get_fname(const char *str, char *fname, uint8_t *pnum, ui
     return res;
 }
 
-uint8_t usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype)
+/*
+ * Bounded copy policy: fparm_size is the capacity of fparm including its NUL
+ * terminator, so at most fparm_size-1 characters are emitted. The string branch
+ * (whose data eventually lands in usmart_dev.parm[], sized PARM_LEN at offset
+ * usmart_get_parmpos(n)) is bounded here; if a literal does not fit the
+ * argument is reported as USMART_APARM_ERR instead of overflowing.
+ */
+uint8_t usmart_get_aparm(const char *str, char *fparm, uint8_t fparm_size, usmart_aparmtype_t *ptype)
 {
     uint8_t            i = 0U;
-    uint8_t            enout = 0U;
+    uint8_t            out = 0U;
+    bool               end_of_arg = false;
+    bool               in_string = false;
     usmart_aparmtype_t type = USMART_APARM_NUM;
-    uint8_t            string = 0U;
+
+    if (fparm_size == 0U)
+    {
+        *ptype = USMART_APARM_ERR;
+        return 0U;
+    }
 
     while (1)
     {
-        if ((*str == ',') && (string == 0U))
+        if ((*str == ',') && !in_string)
         {
-            enout = 1U;
+            end_of_arg = true;
         }
 
-        if (((*str == ')') || (*str == '\0')) && (string == 0U))
+        if (((*str == ')') || (*str == '\0')) && !in_string)
         {
             break;
         }
@@ -416,8 +420,14 @@ uint8_t usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype
                 ((*str >= 'a') && (*str <= 'f')) || ((*str >= 'A') && (*str <= 'F')) ||
                 (*str == 'X') || (*str == 'x'))
             {
-                if (enout != 0U)
+                if (end_of_arg)
                 {
+                    break;
+                }
+
+                if (out >= (uint8_t)(fparm_size - 1U))
+                {
+                    type = USMART_APARM_ERR;
                     break;
                 }
 
@@ -431,16 +441,17 @@ uint8_t usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype
                 }
 
                 fparm++;
+                out++;
             }
             else if (*str == '"')
             {
-                if (enout != 0U)
+                if (end_of_arg)
                 {
                     break;
                 }
 
-                type   = USMART_APARM_STR;
-                string = 1U;
+                type      = USMART_APARM_STR;
+                in_string = true;
             }
             else if ((*str != ' ') && (*str != ','))
             {
@@ -452,15 +463,15 @@ uint8_t usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype
         {
             if (*str == '"')
             {
-                string = 0U;
+                in_string = false;
             }
 
-            if (enout != 0U)
+            if (end_of_arg)
             {
                 break;
             }
 
-            if (string != 0U)
+            if (in_string)
             {
                 if (*str == '\\')
                 {
@@ -468,8 +479,15 @@ uint8_t usmart_get_aparm(const char *str, char *fparm, usmart_aparmtype_t *ptype
                     i++;
                 }
 
+                if (out >= (uint8_t)(fparm_size - 1U))
+                {
+                    type = USMART_APARM_ERR;
+                    break;
+                }
+
                 *fparm = *str;
                 fparm++;
+                out++;
             }
         }
 
@@ -524,7 +542,7 @@ usmart_status_t usmart_get_fparam(const char *str, uint8_t *parn)
 
     while (1)
     {
-        i = usmart_get_aparm(str, tstr, &type);
+        i = usmart_get_aparm(str, tstr, (uint8_t)sizeof(tstr), &type);
         str += i;
 
         switch (type)
@@ -552,17 +570,31 @@ usmart_status_t usmart_get_fparam(const char *str, uint8_t *parn)
                 break;
 
             case USMART_APARM_STR:
+            {
+                uint8_t pos;
+
                 if (n >= MAX_PARM)
                 {
                     return USMART_PARMOVER;
                 }
 
                 len = (uint8_t)(usmart_strlen(tstr) + 1U);
-                usmart_strcopy(tstr, (char *)&usmart_dev.parm[usmart_get_parmpos(n)]);
+                pos = usmart_get_parmpos(n);
+
+                /* usmart_dev.parm[] holds PARM_LEN bytes in total and this
+                 * argument starts at usmart_get_parmpos(n): reject a string
+                 * that would not fit rather than overflowing the packed area. */
+                if (((uint32_t)pos + (uint32_t)len) > PARM_LEN)
+                {
+                    return USMART_PARMERR;
+                }
+
+                usmart_strcopy(tstr, (char *)&usmart_dev.parm[pos]);
                 usmart_dev.parmtype |= (uint16_t)(1U << n);
                 usmart_dev.plentbl[n]  = len;
                 n++;
                 break;
+            }
 
             case USMART_APARM_ERR:
             default:

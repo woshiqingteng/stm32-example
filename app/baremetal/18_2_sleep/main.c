@@ -6,11 +6,18 @@
 #include <stdio.h>
 #include "bsp.h"
 
-static volatile bool g_wkup_seen;
+/** @brief Cause recorded when the MCU wakes from sleep. */
+typedef enum
+{
+    SLEEP_WAKE_NONE = 0,
+    SLEEP_WAKE_WKUP
+} sleep_wake_cause_t;
+
+static volatile sleep_wake_cause_t g_wake_cause = SLEEP_WAKE_NONE;
 
 static void wkup_hook(void)
 {
-    g_wkup_seen = true;
+    g_wake_cause = SLEEP_WAKE_WKUP;
 }
 
 int main(void)
@@ -34,9 +41,9 @@ int main(void)
             HAL_ResumeTick();
 
             led_off(LED1);
-            if (g_wkup_seen)
+            if (g_wake_cause == SLEEP_WAKE_WKUP)
             {
-                g_wkup_seen = false;
+                g_wake_cause = SLEEP_WAKE_NONE;
                 printf("Woke from sleep mode (WK_UP)\r\n");
             }
             else

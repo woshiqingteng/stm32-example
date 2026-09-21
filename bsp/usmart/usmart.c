@@ -57,7 +57,7 @@ static usmart_status_t usmart_sys_cmd_exe(char *str)
 
     for (i = 0U; i < (uint8_t)(sizeof(g_usmart_sys_cmd_tab) / sizeof(g_usmart_sys_cmd_tab[0])); i++)
     {
-        if (usmart_strcmp(sfname, g_usmart_sys_cmd_tab[i]) == 0U)
+        if (usmart_strcmp(sfname, g_usmart_sys_cmd_tab[i]))
         {
             break;
         }
@@ -104,7 +104,7 @@ static usmart_status_t usmart_sys_cmd_exe(char *str)
             for (i = 0U; i < usmart_dev.fnum; i++)
             {
                 uint8_t pnum;
-                uint8_t rval;
+                bool    rval;
                 char    idname[MAX_FNAME_LEN];
 
                 (void)usmart_get_fname(usmart_dev.funs[i].name, idname, &pnum, &rval);
@@ -121,7 +121,7 @@ static usmart_status_t usmart_sys_cmd_exe(char *str)
             usmart_sptype_t sptype = (i == USMART_CMD_HEX) ? SP_TYPE_HEX : SP_TYPE_DEC;
 
             USMART_PRINTF("\r\n");
-            (void)usmart_get_aparm(str, sfname, &atype);
+            (void)usmart_get_aparm(str, sfname, MAX_FNAME_LEN, &atype);
 
             if (atype != USMART_APARM_NUM)
             {
@@ -162,7 +162,7 @@ static usmart_status_t usmart_sys_cmd_exe(char *str)
 
         case USMART_CMD_RUNTIME:
             USMART_PRINTF("\r\n");
-            (void)usmart_get_aparm(str, sfname, &atype);
+            (void)usmart_get_aparm(str, sfname, MAX_FNAME_LEN, &atype);
 
             if (atype != USMART_APARM_NUM)
             {
@@ -179,9 +179,9 @@ static usmart_status_t usmart_sys_cmd_exe(char *str)
 #if USMART_ENTIMX_SCAN == 0
             USMART_PRINTF("Run-time needs USMART_ENTIMX_SCAN=1\r\n");
 #else
-            usmart_dev.runtimeflag = (value != 0U);
+            usmart_dev.runtimeflag = (value != 0U) ? USMART_RUNTIME_ON : USMART_RUNTIME_OFF;
 
-            if (usmart_dev.runtimeflag)
+            if (usmart_dev.runtimeflag == USMART_RUNTIME_ON)
             {
                 USMART_PRINTF("Run Time Calculation ON\r\n");
             }
@@ -211,7 +211,7 @@ usmart_status_t usmart_cmd_rec(char *str)
 {
     usmart_status_t sta;
     uint8_t         i;
-    uint8_t         rval;
+    bool            rval;
     uint8_t         rpnum;
     uint8_t         spnum;
     char            rfname[MAX_FNAME_LEN];
@@ -233,7 +233,7 @@ usmart_status_t usmart_cmd_rec(char *str)
             return sta;
         }
 
-        if (usmart_strcmp(sfname, rfname) == 0U)
+        if (usmart_strcmp(sfname, rfname))
         {
             if (spnum > rpnum)
             {
@@ -266,7 +266,7 @@ void usmart_exe(void)
     uint8_t  id;
     uint8_t  i;
     uint8_t  pnum;
-    uint8_t  rval;
+    bool     rval;
     uint32_t res = 0U;
     uint32_t temp[MAX_PARM];
     char     sfname[MAX_FNAME_LEN];
@@ -322,7 +322,7 @@ void usmart_exe(void)
     (void)usmart_timx_get_time();
 #endif
 
-    if (rval == 1U)
+    if (rval)
     {
         if (usmart_dev.sptype == SP_TYPE_DEC)
         {
@@ -338,7 +338,7 @@ void usmart_exe(void)
         USMART_PRINTF(";\r\n");
     }
 
-    if (usmart_dev.runtimeflag)
+    if (usmart_dev.runtimeflag == USMART_RUNTIME_ON)
     {
         USMART_PRINTF("Function Run Time:%lu us\r\n", (unsigned long)usmart_dev.runtime);
     }

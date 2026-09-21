@@ -9,6 +9,19 @@
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
 
+/** @brief  Integer power helper: returns @p m raised to @p n (small exponent). */
+static inline uint32_t bsp_pow(uint8_t m, uint8_t n)
+{
+    uint32_t result = 1U;
+
+    while (n-- != 0U)
+    {
+        result *= m;
+    }
+
+    return result;
+}
+
 /**
  * @brief  Configure HSE + PLL and the AHB/APB prescalers.
  * @param  plln PLL VCO multiplication factor
