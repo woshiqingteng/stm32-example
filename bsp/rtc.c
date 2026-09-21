@@ -30,6 +30,7 @@
 #define RTC_DAYS_PER_WEEK      7U
 #define RTC_MARCH_MONTH        3U
 #define RTC_FIRST_MONTH        1U
+#define RTC_LAST_MONTH         12U
 
 static RTC_HandleTypeDef g_rtc_handle;
 static rtc_wakeup_cb_t   g_rtc_wakeup_cb;
@@ -105,6 +106,11 @@ uint8_t rtc_get_week(uint16_t year, uint8_t month, uint8_t day)
     uint16_t temp;
     uint8_t  year_h;
     uint8_t  year_l;
+
+    if ((month < RTC_FIRST_MONTH) || (month > RTC_LAST_MONTH))
+    {
+        return 0U;
+    }
 
     year_h = (uint8_t)(year / RTC_YEARS_PER_CENTURY);
     year_l = (uint8_t)(year % RTC_YEARS_PER_CENTURY);

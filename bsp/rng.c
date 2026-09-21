@@ -53,8 +53,21 @@ uint32_t rng_get_random_num(void)
 int rng_get_random_range(int min, int max)
 {
     uint32_t value = 0U;
+    uint32_t span;
 
     (void)HAL_RNG_GenerateRandomNumber(&g_rng_handle, &value);
 
-    return (int)(value % (uint32_t)(max - min + RNG_RANGE_SPAN_OFFSET)) + min;
+    if (max < min)
+    {
+        return min;
+    }
+
+    span = (uint32_t)(max - min) + 1U;
+
+    if (span == 0U)
+    {
+        return min;
+    }
+
+    return (int)(value % span) + min;
 }

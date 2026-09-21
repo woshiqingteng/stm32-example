@@ -260,7 +260,7 @@ void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, uint8_t si
 
 void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t size, const char *p, uint16_t color)
 {
-    uint8_t x0 = (uint8_t)x;
+    uint16_t x0 = x;
 
     width += x;
     height += y;

@@ -50,16 +50,16 @@ void delay_init(uint16_t sysclk)
 
 void delay_us(uint32_t nus)
 {
-    uint32_t ticks;
+    uint64_t ticks;
     uint32_t told;
     uint32_t tnow;
-    uint32_t tcnt = 0;
+    uint64_t tcnt = 0;
     uint32_t reload = SysTick->LOAD;
 #if USE_FREERTOS
     BaseType_t scheduler_running = pdFALSE;
 #endif
 
-    ticks = nus * g_fac_us;
+    ticks = (uint64_t)nus * g_fac_us;
 
 #if USE_FREERTOS
     if ((xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) &&
@@ -120,5 +120,11 @@ void delay_ms(uint16_t nms)
 
 void HAL_Delay(uint32_t Delay)
 {
+    while (Delay > 0xFFFFU)
+    {
+        delay_ms(0xFFFFU);
+        Delay -= 0xFFFFU;
+    }
+
     delay_ms((uint16_t)Delay);
 }

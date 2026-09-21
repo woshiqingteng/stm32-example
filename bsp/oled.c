@@ -26,23 +26,29 @@
 #define OLED_RD_PORT    GPIOB
 #define OLED_RD_PIN     GPIO_PIN_3
 
-/* Data bus: D0-D3 -> PC6-PC9, D4 -> PC11, D5 -> PD3, D6-D7 -> PB8-PB9. */
-#define OLED_DAT_D0_D3_MASK     0x03C0U
-#define OLED_DAT_D0_D3_SHIFT    6U
-#define OLED_DAT_D4_MASK        0x0800U
-#define OLED_DAT_D4_SHIFT       11U
-#define OLED_DAT_D5_MASK        0x0008U
-#define OLED_DAT_D5_SHIFT       3U
-#define OLED_DAT_D6_D7_MASK     0x0300U
-#define OLED_DAT_D6_D7_SHIFT    8U
+/* Data bus: D0-D7 -> PC6, PC7, PC8, PC9, PC11, PD3, PB8, PB9. */
+#define OLED_D0_PORT    GPIOC
+#define OLED_D0_PIN     GPIO_PIN_6
+#define OLED_D1_PORT    GPIOC
+#define OLED_D1_PIN     GPIO_PIN_7
+#define OLED_D2_PORT    GPIOC
+#define OLED_D2_PIN     GPIO_PIN_8
+#define OLED_D3_PORT    GPIOC
+#define OLED_D3_PIN     GPIO_PIN_9
+#define OLED_D4_PORT    GPIOC
+#define OLED_D4_PIN     GPIO_PIN_11
+#define OLED_D5_PORT    GPIOD
+#define OLED_D5_PIN     GPIO_PIN_3
+#define OLED_D6_PORT    GPIOB
+#define OLED_D6_PIN     GPIO_PIN_8
+#define OLED_D7_PORT    GPIOB
+#define OLED_D7_PIN     GPIO_PIN_9
 
-/* Source-bit fields of the bus byte. */
-#define OLED_DAT_NIBBLE_MASK    0x0FU
-#define OLED_DAT_BIT_MASK       0x01U
-#define OLED_DAT_D4_SRC_SHIFT   4U
-#define OLED_DAT_D5_SRC_SHIFT   5U
-#define OLED_DAT_D6_SRC_SHIFT   6U
-#define OLED_DAT_D6_D7_SRC_MASK 0x03U
+#define OLED_DATA_BIT(data, bit, port, pin) \
+    HAL_GPIO_WritePin((port), (pin), ((((data) >> (bit)) & 0x01U) != 0U) ? \
+                      GPIO_PIN_SET : GPIO_PIN_RESET)
+
+/* Data bus: D0-D3 -> PC6-PC9, D4 -> PC11, D5 -> PD3, D6-D7 -> PB8-PB9. */
 
 /* SSD1306 command bytes. */
 typedef enum
@@ -120,17 +126,14 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size);
 
 static void oled_data_out(uint8_t data)
 {
-    GPIOC->ODR = (GPIOC->ODR & ~OLED_DAT_D0_D3_MASK) |
-                 ((uint32_t)(data & OLED_DAT_NIBBLE_MASK) << OLED_DAT_D0_D3_SHIFT);
-    GPIOC->ODR = (GPIOC->ODR & ~OLED_DAT_D4_MASK) |
-                 ((uint32_t)((data >> OLED_DAT_D4_SRC_SHIFT) & OLED_DAT_BIT_MASK) <<
-                  OLED_DAT_D4_SHIFT);
-    GPIOD->ODR = (GPIOD->ODR & ~OLED_DAT_D5_MASK) |
-                 ((uint32_t)((data >> OLED_DAT_D5_SRC_SHIFT) & OLED_DAT_BIT_MASK) <<
-                  OLED_DAT_D5_SHIFT);
-    GPIOB->ODR = (GPIOB->ODR & ~OLED_DAT_D6_D7_MASK) |
-                 ((uint32_t)((data >> OLED_DAT_D6_SRC_SHIFT) & OLED_DAT_D6_D7_SRC_MASK) <<
-                  OLED_DAT_D6_D7_SHIFT);
+    OLED_DATA_BIT(data, 0U, OLED_D0_PORT, OLED_D0_PIN);
+    OLED_DATA_BIT(data, 1U, OLED_D1_PORT, OLED_D1_PIN);
+    OLED_DATA_BIT(data, 2U, OLED_D2_PORT, OLED_D2_PIN);
+    OLED_DATA_BIT(data, 3U, OLED_D3_PORT, OLED_D3_PIN);
+    OLED_DATA_BIT(data, 4U, OLED_D4_PORT, OLED_D4_PIN);
+    OLED_DATA_BIT(data, 5U, OLED_D5_PORT, OLED_D5_PIN);
+    OLED_DATA_BIT(data, 6U, OLED_D6_PORT, OLED_D6_PIN);
+    OLED_DATA_BIT(data, 7U, OLED_D7_PORT, OLED_D7_PIN);
 }
 
 static void oled_wr_byte(uint8_t data, oled_arg_t arg)

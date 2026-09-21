@@ -1,1 +1,1 @@
-add_baremetal_app(15_usmart SOURCES main.c HAL ${HAL_SRC_TIM} BSP ${BSP_SRC_USMART})
+add_baremetal_app(15_usmart SOURCES main.c HAL ${HAL_SRC_TIM} ${HAL_SRC_FMC} ${HAL_SRC_SDRAM} ${HAL_SRC_LTDC} BSP ${BSP_SRC_USMART} ${BSP_SRC_SDRAM} ${BSP_SRC_LCD})

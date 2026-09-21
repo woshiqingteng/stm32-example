@@ -21,7 +21,9 @@ set(BSP_SRC_RTC    ${CMAKE_CURRENT_SOURCE_DIR}/rtc.c CACHE INTERNAL "")
 set(BSP_SRC_RNG    ${CMAKE_CURRENT_SOURCE_DIR}/rng.c CACHE INTERNAL "")
 set(BSP_SRC_PWR    ${CMAKE_CURRENT_SOURCE_DIR}/pwr.c CACHE INTERNAL "")
 set(BSP_SRC_USMART ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart.c
-                   ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_str.c CACHE INTERNAL "")
+                   ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_str.c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_port.c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_config.c CACHE INTERNAL "")
 
 add_library(bsp STATIC)
 

@@ -1,10 +1,11 @@
 /**
  * @file    usmart.h
- * @brief   USMART serial debug console: command parser and function table.
+ * @brief   USMART serial debug console: function table and public API.
  *
- * Received lines are collected by a byte hook registered with the USART driver,
- * and usmart_scan() parses/executes them. TIM4 provides a 1 us time base used
- * for the optional function run-time measurement.
+ * USMART lets a serial terminal call any function listed in usmart_nametab[]
+ * with numeric (decimal/hex, signed), string or pointer arguments and prints the
+ * return value. Each table entry also carries an exact-typed trampoline so the
+ * dispatcher never calls through an incompatible function-pointer type.
  */
 
 #ifndef BSP_USMART_USMART_H
@@ -12,76 +13,69 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "stm32f4xx_hal.h"
+#include "usmart/usmart_port.h"
 
-#define USMART_MAX_FNAME_LEN 30U  /*!< longest function signature text */
-#define USMART_MAX_PARM      10U  /*!< maximum parameters per call */
-#define USMART_PARM_LEN      200U /*!< total parameter storage (bytes) */
-#define USMART_RX_BUF_LEN    200U /*!< command line buffer (bytes) */
-
-/** @brief Highest argument count the caller can dispatch (0..USMART_MAX_ARG_COUNT). */
-#define USMART_MAX_ARG_COUNT 4U
-
-/** @brief Parser result codes. */
+/** @brief Parser / dispatcher status codes. */
 typedef enum
 {
-    USMART_RES_OK = 0,
-    USMART_RES_FUNCERR,
-    USMART_RES_PARMERR,
-    USMART_RES_PARMOVER,
-    USMART_RES_NOFUNCFIND
-} usmart_result_t;
+    USMART_OK = 0,      /*!< success */
+    USMART_FUNCERR,     /*!< malformed function or unknown command */
+    USMART_PARMERR,     /*!< malformed parameter */
+    USMART_PARMOVER,    /*!< too many parameters */
+    USMART_NOFUNCFIND   /*!< no matching function in the table */
+} usmart_status_t;
 
-/** @brief Parameter display base. */
+/** @brief Non-string parameter display base. */
 typedef enum
 {
-    USMART_SP_DEC = 0,
-    USMART_SP_HEX
+    SP_TYPE_DEC = 0,    /*!< decimal display */
+    SP_TYPE_HEX = 1     /*!< hexadecimal display */
 } usmart_sptype_t;
 
-/** @brief Stored parameter kind. */
-typedef enum
-{
-    USMART_PARM_NUM = 0,
-    USMART_PARM_STR
-} usmart_parmtype_t;
+/** @brief Exact-typed trampoline: invoke func with the parsed arguments. */
+typedef uint32_t (*usmart_call_t)(void *func, const uint32_t *args);
 
-/** @brief Command-line reception state. */
-typedef enum
+/** @brief One callable function: entry point, signature text and trampoline. */
+struct _m_usmart_nametab
 {
-    USMART_RX_IDLE = 0,
-    USMART_RX_RECEIVING,
-    USMART_RX_READY
-} usmart_rx_state_t;
-
-/** @brief One callable function: entry point plus its declared signature. */
-typedef struct
-{
-    void       *func;
-    const char *name;
-} usmart_nametab_t;
+    void          *func;
+    const char    *name;
+    usmart_call_t  call;
+};
 
 /** @brief USMART control block. */
-typedef struct
+struct _m_usmart_dev
 {
-    const usmart_nametab_t *funs;                     /*!< function table */
-    uint8_t                 fnum;                     /*!< number of functions */
-    uint8_t                 pnum;                     /*!< parameters of current call */
-    uint8_t                 id;                       /*!< current function index */
-    usmart_sptype_t         sptype;                   /*!< parameter display base */
-    usmart_parmtype_t       parmtype[USMART_MAX_PARM];
-    uint8_t                 plentbl[USMART_MAX_PARM];
-    uint8_t                 parm[USMART_PARM_LEN];
-    bool                    runtimeflag;              /*!< report run time if true */
-    uint32_t                runtime;                  /*!< last run time in us */
-} usmart_dev_t;
+    struct _m_usmart_nametab *funs;                 /*!< function table */
+    void (*init)(uint16_t tclk);                    /*!< initialise */
+    usmart_status_t (*cmd_rec)(char *str);          /*!< match function and args */
+    void (*exe)(void);                              /*!< execute */
+    void (*scan)(void);                             /*!< poll the input stream */
 
-extern usmart_dev_t usmart_dev;
+    uint8_t         fnum;                           /*!< number of functions */
+    uint8_t         pnum;                           /*!< parameters of current call */
+    uint8_t         id;                             /*!< current function index */
+    usmart_sptype_t sptype;                         /*!< parameter display base */
+    uint16_t        parmtype;                       /*!< per-argument type bits (1 = string) */
+    uint8_t         plentbl[MAX_PARM];              /*!< per-argument length scratch */
+    uint8_t         parm[PARM_LEN];                 /*!< packed argument storage */
+    bool            runtimeflag;                    /*!< report run-time if true */
+    uint32_t        runtime;                        /*!< last run-time in microseconds */
+};
 
-/** @brief  Initialise TIM4 and register the USART receive hook. */
-void usmart_init(void);
+extern struct _m_usmart_nametab usmart_nametab[];
+extern struct _m_usmart_dev usmart_dev;
 
-/** @brief  Poll for a complete command and execute it. */
+/** @brief  Initialise the port and set the default parameter display base. */
+void usmart_init(uint16_t tclk);
+
+/** @brief  Match a received line against the function table and store its args. */
+usmart_status_t usmart_cmd_rec(char *str);
+
+/** @brief  Execute the function selected by the last usmart_cmd_rec(). */
+void usmart_exe(void);
+
+/** @brief  Poll for a complete command and run it (call from the main loop). */
 void usmart_scan(void);
 
 /** @brief  Read a 32-bit word from an absolute address. */

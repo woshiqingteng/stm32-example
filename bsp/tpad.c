@@ -45,7 +45,7 @@ static void tpad_reset(void)
     HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
 }
 
-static uint16_t tpad_get_val(void)
+static uint32_t tpad_get_val(void)
 {
     tpad_reset();
 
@@ -53,20 +53,20 @@ static uint16_t tpad_get_val(void)
     {
         if (__HAL_TIM_GET_COUNTER(&g_tpad_handle) > (TPAD_ARR_MAX_VAL - 500U))
         {
-            return (uint16_t)__HAL_TIM_GET_COUNTER(&g_tpad_handle);
+            return __HAL_TIM_GET_COUNTER(&g_tpad_handle);
         }
     }
 
-    return (uint16_t)__HAL_TIM_GET_COMPARE(&g_tpad_handle, TIM_CHANNEL_1);
+    return __HAL_TIM_GET_COMPARE(&g_tpad_handle, TIM_CHANNEL_1);
 }
 
-static uint16_t tpad_get_maxval(uint8_t n)
+static uint32_t tpad_get_maxval(uint8_t n)
 {
-    uint16_t maxval = 0;
+    uint32_t maxval = 0;
 
     while (n-- != 0U)
     {
-        uint16_t v = tpad_get_val();
+        uint32_t v = tpad_get_val();
         if (v > maxval)
         {
             maxval = v;
@@ -155,7 +155,7 @@ uint8_t tpad_scan(bool continuous)
     static uint8_t keyen = 0;
     uint8_t res = 0;
     uint8_t sample = TPAD_SCAN_SAMPLE;
-    uint16_t rval;
+    uint32_t rval;
 
     if (continuous)
     {

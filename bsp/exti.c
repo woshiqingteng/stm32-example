@@ -5,66 +5,84 @@
 
 #include "stm32f4xx_hal.h"
 #include "exti.h"
+#include "key.h"
 
-typedef struct
-{
-    key_id_t      id;
-    GPIO_TypeDef *port;
-    uint16_t      pin;
-    IRQn_Type     irqn;
-    uint32_t      mode;
-    uint32_t      pull;
-} exti_hw_t;
+#define EXTI_IRQ_PREEMPT  3U
+#define EXTI_IRQ_SUB      2U
 
-static const exti_hw_t g_exti_hw[KEY_NUM] =
-{
-    { KEY0,     GPIOH, GPIO_PIN_3,  EXTI3_IRQn,     GPIO_MODE_IT_FALLING, GPIO_PULLUP   },
-    { KEY1,     GPIOH, GPIO_PIN_2,  EXTI2_IRQn,     GPIO_MODE_IT_FALLING, GPIO_PULLUP   },
-    { KEY2,     GPIOC, GPIO_PIN_13, EXTI15_10_IRQn, GPIO_MODE_IT_FALLING, GPIO_PULLUP   },
-    { KEY_WKUP, GPIOA, GPIO_PIN_0,  EXTI0_IRQn,     GPIO_MODE_IT_RISING,  GPIO_PULLDOWN },
-};
+#define EXTI_KEY0_IRQn    EXTI3_IRQn
+#define EXTI_KEY0_MODE    GPIO_MODE_IT_FALLING
+#define EXTI_KEY0_PULL    GPIO_PULLUP
+
+#define EXTI_KEY1_IRQn    EXTI2_IRQn
+#define EXTI_KEY1_MODE    GPIO_MODE_IT_FALLING
+#define EXTI_KEY1_PULL    GPIO_PULLUP
+
+#define EXTI_KEY2_IRQn    EXTI15_10_IRQn
+#define EXTI_KEY2_MODE    GPIO_MODE_IT_FALLING
+#define EXTI_KEY2_PULL    GPIO_PULLUP
+
+#define EXTI_KEY_WKUP_IRQn EXTI0_IRQn
+#define EXTI_KEY_WKUP_MODE GPIO_MODE_IT_RISING
+#define EXTI_KEY_WKUP_PULL GPIO_PULLDOWN
 
 static exti_cb_t g_exti_cb[KEY_NUM];
 
 static void exti_dispatch(uint16_t pin)
 {
-    uint32_t i;
-
-    for (i = 0; i < KEY_NUM; i++)
+    switch (pin)
     {
-        if (g_exti_hw[i].pin == pin)
-        {
-            if (g_exti_cb[i] != 0)
+        case KEY0_GPIO_PIN:
+            if (g_exti_cb[KEY0] != 0)
             {
-                g_exti_cb[i](g_exti_hw[i].id);
+                g_exti_cb[KEY0](KEY0);
             }
             break;
-        }
+        case KEY1_GPIO_PIN:
+            if (g_exti_cb[KEY1] != 0)
+            {
+                g_exti_cb[KEY1](KEY1);
+            }
+            break;
+        case KEY2_GPIO_PIN:
+            if (g_exti_cb[KEY2] != 0)
+            {
+                g_exti_cb[KEY2](KEY2);
+            }
+            break;
+        case KEY_WKUP_GPIO_PIN:
+            if (g_exti_cb[KEY_WKUP] != 0)
+            {
+                g_exti_cb[KEY_WKUP](KEY_WKUP);
+            }
+            break;
+        default:
+            break;
     }
 }
 
 void EXTI0_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
-    exti_dispatch(GPIO_PIN_0);
+    __HAL_GPIO_EXTI_CLEAR_IT(KEY_WKUP_GPIO_PIN);
+    exti_dispatch(KEY_WKUP_GPIO_PIN);
 }
 
 void EXTI2_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
-    exti_dispatch(GPIO_PIN_2);
+    __HAL_GPIO_EXTI_CLEAR_IT(KEY1_GPIO_PIN);
+    exti_dispatch(KEY1_GPIO_PIN);
 }
 
 void EXTI3_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_3);
-    exti_dispatch(GPIO_PIN_3);
+    __HAL_GPIO_EXTI_CLEAR_IT(KEY0_GPIO_PIN);
+    exti_dispatch(KEY0_GPIO_PIN);
 }
 
 void EXTI15_10_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_13);
-    exti_dispatch(GPIO_PIN_13);
+    __HAL_GPIO_EXTI_CLEAR_IT(KEY2_GPIO_PIN);
+    exti_dispatch(KEY2_GPIO_PIN);
 }
 
 void exti_register(key_id_t id, exti_cb_t cb)
@@ -75,21 +93,26 @@ void exti_register(key_id_t id, exti_cb_t cb)
     }
 }
 
-void exti_init(void)
+static void exti_config(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t pull, IRQn_Type irqn)
 {
     GPIO_InitTypeDef gpio_init = {0};
-    uint32_t i;
 
+    gpio_init.Pin  = pin;
+    gpio_init.Mode = mode;
+    gpio_init.Pull = pull;
+    HAL_GPIO_Init(port, &gpio_init);
+
+    HAL_NVIC_SetPriority(irqn, EXTI_IRQ_PREEMPT, EXTI_IRQ_SUB);
+    HAL_NVIC_EnableIRQ(irqn);
+}
+
+void exti_init(void)
+{
     key_init();
 
-    for (i = 0; i < KEY_NUM; i++)
-    {
-        gpio_init.Pin  = g_exti_hw[i].pin;
-        gpio_init.Mode = g_exti_hw[i].mode;
-        gpio_init.Pull = g_exti_hw[i].pull;
-        HAL_GPIO_Init(g_exti_hw[i].port, &gpio_init);
-
-        HAL_NVIC_SetPriority(g_exti_hw[i].irqn, (uint32_t)i, 2);
-        HAL_NVIC_EnableIRQ(g_exti_hw[i].irqn);
-    }
+    exti_config(KEY0_GPIO_PORT, KEY0_GPIO_PIN, EXTI_KEY0_MODE, EXTI_KEY0_PULL, EXTI_KEY0_IRQn);
+    exti_config(KEY1_GPIO_PORT, KEY1_GPIO_PIN, EXTI_KEY1_MODE, EXTI_KEY1_PULL, EXTI_KEY1_IRQn);
+    exti_config(KEY2_GPIO_PORT, KEY2_GPIO_PIN, EXTI_KEY2_MODE, EXTI_KEY2_PULL, EXTI_KEY2_IRQn);
+    exti_config(KEY_WKUP_GPIO_PORT, KEY_WKUP_GPIO_PIN, EXTI_KEY_WKUP_MODE, EXTI_KEY_WKUP_PULL,
+                EXTI_KEY_WKUP_IRQn);
 }
