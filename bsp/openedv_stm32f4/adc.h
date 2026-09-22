@@ -19,6 +19,7 @@ typedef enum
     ADC_CH4 = ADC_CHANNEL_4, /*!< PA4 */
     ADC_CH5 = ADC_CHANNEL_5, /*!< PA5 (single-channel input) */
     ADC_SCAN_CH_NUM = 6,     /*!< channels sampled by the scan DMA mode */
+    ADC_TEMP_CH = ADC_CHANNEL_18, /*!< internal temperature sensor (ADC1 only) */
 } adc_channel_t;
 
 /** @brief Regular-group sampling time used by this driver. */
@@ -53,5 +54,11 @@ void adc_scan_dma_start(uint16_t len);
 
 /** @brief  Register the DMA transfer-complete hook (0 clears it). */
 void adc_register_dma_hook(adc_dma_cb_t cb);
+
+/** @brief  Enable the internal temperature sensor path on ADC1. */
+void adc_temp_init(void);
+
+/** @brief  Read the internal temperature sensor and return temperature * 100. */
+int16_t adc_get_temperature(void);
 
 #endif /* BSP_ADC_H */

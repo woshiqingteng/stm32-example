@@ -28,6 +28,14 @@
 #define ADC_DMA_IRQ_PRIORITY    3U
 #define ADC_DMA_IRQ_SUBPRIORITY 3U
 
+#define ADC_TEMP_AVG_TIMES      10U
+#define ADC_VREF_VOLT           3.3f
+#define ADC_FULL_SCALE_F        4096.0f
+#define ADC_TEMP_V25            0.76f
+#define ADC_TEMP_SLOPE          0.0025f
+#define ADC_TEMP_OFFSET         25.0f
+#define ADC_TEMP_SCALE          100.0f
+
 typedef enum
 {
     ADC_DMA_MODE_NONE = 0,
@@ -162,6 +170,21 @@ uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times)
     }
 
     return sum / times;
+}
+
+void adc_temp_init(void)
+{
+    adc_init();
+    ADC->CCR |= ADC_CCR_TSVREFE;
+}
+
+int16_t adc_get_temperature(void)
+{
+    uint32_t raw     = adc_get_result_average(ADC_TEMP_CH, ADC_TEMP_AVG_TIMES);
+    float    voltage = (float)raw * ADC_VREF_VOLT / ADC_FULL_SCALE_F;
+    float    temp    = ((voltage - ADC_TEMP_V25) / ADC_TEMP_SLOPE + ADC_TEMP_OFFSET) * ADC_TEMP_SCALE;
+
+    return (int16_t)temp;
 }
 
 static void adc_dma_arm(uint16_t len)

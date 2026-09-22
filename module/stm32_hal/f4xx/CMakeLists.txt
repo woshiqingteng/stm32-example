@@ -27,6 +27,26 @@ set(HAL_SRC_SRAM    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sram.c CACHE I
 set(HAL_SRC_SDRAM   ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sdram.c CACHE INTERNAL "")
 set(HAL_SRC_FMC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_fmc.c CACHE INTERNAL "")
 
+set(HAL_SRC_DAC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dac.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dac_ex.c CACHE INTERNAL "")
+set(HAL_SRC_CAN     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_can.c CACHE INTERNAL "")
+set(HAL_SRC_I2C     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2c.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2c_ex.c CACHE INTERNAL "")
+set(HAL_SRC_SPI     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_spi.c CACHE INTERNAL "")
+set(HAL_SRC_I2S     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2s.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2s_ex.c CACHE INTERNAL "")
+set(HAL_SRC_SAI     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sai.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sai_ex.c CACHE INTERNAL "")
+set(HAL_SRC_SD      ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sd.c CACHE INTERNAL "")
+set(HAL_SRC_MMC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_mmc.c CACHE INTERNAL "")
+set(HAL_SRC_NAND    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_nand.c CACHE INTERNAL "")
+set(HAL_SRC_NOR     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_nor.c CACHE INTERNAL "")
+set(HAL_SRC_DCMI    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dcmi.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dcmi_ex.c CACHE INTERNAL "")
+set(HAL_SRC_PCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_pcd.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_pcd_ex.c CACHE INTERNAL "")
+set(HAL_SRC_HCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_hcd.c CACHE INTERNAL "")
+
 add_library(stm32f4xx_hal STATIC)
 
 target_include_directories(stm32f4xx_hal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
