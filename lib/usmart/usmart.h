@@ -13,7 +13,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "usmart/usmart_port.h"
+#include "usmart_port.h"
 
 /** @brief Parser / dispatcher status codes. */
 typedef enum

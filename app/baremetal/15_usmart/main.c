@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#include "usmart/usmart.h"
+#include "usmart.h"
 
 #define USMART_APP_BLINK_MS   200U
 #define USMART_APP_HZ_PER_MHZ 1000000U

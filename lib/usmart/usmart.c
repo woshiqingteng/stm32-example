@@ -10,9 +10,9 @@
  */
 
 #include <string.h>
-#include "usmart/usmart.h"
-#include "usmart/usmart_str.h"
-#include "usmart/usmart_port.h"
+#include "usmart.h"
+#include "usmart_str.h"
+#include "usmart_port.h"
 
 /** @brief Indices of the built-in system commands. */
 enum

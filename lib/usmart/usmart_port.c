@@ -8,8 +8,8 @@
  * usmart_timx_get_time() can report a function's run-time in microseconds.
  */
 
-#include "usmart/usmart.h"
-#include "usmart/usmart_port.h"
+#include "usmart.h"
+#include "usmart_port.h"
 #include "usart.h"
 
 #define USMART_RX_BUF_LEN PARM_LEN /*!< command line buffer, must cover PARM_LEN */

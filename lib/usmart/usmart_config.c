@@ -10,7 +10,7 @@
  * target. usmart_exe() invokes entry.call(entry.func, args).
  */
 
-#include "usmart/usmart.h"
+#include "usmart.h"
 #include "delay.h"
 #include "led.h"
 #include "lcd.h"

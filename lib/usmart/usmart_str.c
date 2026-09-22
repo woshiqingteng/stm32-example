@@ -9,8 +9,8 @@
  */
 
 #include <string.h>
-#include "usmart/usmart.h"
-#include "usmart/usmart_str.h"
+#include "usmart.h"
+#include "usmart_str.h"
 #include "sys.h"
 
 #define USMART_BASE_DEC        10U  /*!< decimal radix */

@@ -7,7 +7,7 @@
 #define BSP_USMART_USMART_STR_H
 
 #include <stdint.h>
-#include "usmart/usmart.h"
+#include "usmart.h"
 
 /** @brief Kind of a parsed argument. */
 typedef enum
