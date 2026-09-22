@@ -90,7 +90,7 @@ static int8_t STORAGE_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_
         g_usb_storage_state |= USB_STORAGE_READ_ERR;
     }
 
-    return 0;
+    return (res != 0U) ? -1 : 0;
 }
 
 static int8_t STORAGE_Write(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)

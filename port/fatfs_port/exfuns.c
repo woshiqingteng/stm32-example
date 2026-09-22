@@ -83,7 +83,11 @@ uint8_t exfuns_file_type(char *fname)
         return 0xFFU;
     }
 
-    strcpy((char *)tbuf, (const char *)attr);
+    memset(tbuf, 0, sizeof(tbuf));
+    for (i = 0U; (i < (sizeof(tbuf) - 1U)) && (attr[i] != '\0'); i++)
+    {
+        tbuf[i] = attr[i];
+    }
 
     for (i = 0; i < 4U; i++)
     {

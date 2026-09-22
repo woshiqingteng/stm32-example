@@ -154,7 +154,7 @@ void usb_printf(char *fmt, ...)
     uint16_t len;
 
     va_start(ap, fmt);
-    (void)vsprintf((char *)g_usb_printf_buffer, fmt, ap);
+    (void)vsnprintf((char *)g_usb_printf_buffer, sizeof(g_usb_printf_buffer), fmt, ap);
     va_end(ap);
 
     len = (uint16_t)strlen((const char *)g_usb_printf_buffer);

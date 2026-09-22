@@ -38,6 +38,7 @@ typedef struct
 } mem_src_t;
 
 static mem_src_t s_src;
+static uint8_t    s_eoi[2];
 
 static void my_error_exit(j_common_ptr cinfo)
 {
@@ -57,9 +58,9 @@ static boolean mem_src_fill(j_decompress_ptr cinfo)
 
     if (src->size == 0U)                /* input exhausted: inject EOI */
     {
-        src->buf[0] = 0xFF;
-        src->buf[1] = (uint8_t)JPEG_EOI;
-        src->pub.next_input_byte = src->buf;
+        s_eoi[0] = 0xFF;
+        s_eoi[1] = (uint8_t)JPEG_EOI;
+        src->pub.next_input_byte = s_eoi;
         src->pub.bytes_in_buffer = 2;
     }
     else

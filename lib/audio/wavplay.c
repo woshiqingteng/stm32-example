@@ -108,7 +108,6 @@ uint32_t wav_buffill(uint8_t *buf, uint16_t size, uint8_t bits)
 
     if (bits == 24)                 /* 24-bit: repack 3 bytes into 4-byte slots */
     {
-        uint32_t *p;
         uint32_t *pbuf;
 
         readlen = (uint16_t)((size / 4) * 3);
@@ -117,8 +116,9 @@ uint32_t wav_buffill(uint8_t *buf, uint16_t size, uint8_t bits)
 
         for (i = 0; i < (size / 4); i++)
         {
-            p = (uint32_t *)(g_audiodev.tbuf + i * 3);
-            pbuf[i] = p[0];
+            const uint8_t *b = g_audiodev.tbuf + (i * 3);
+
+            pbuf[i] = (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16);
         }
 
         bread = (bread * 4) / 3;

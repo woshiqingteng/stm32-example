@@ -152,7 +152,7 @@ void sai1_saib_dma_enable(void)
 uint8_t sai1_samplerate_set(uint32_t samplerate)
 {
     uint8_t i = 0;
-    RCC_PeriphCLKInitTypeDef rcc_sai1_sture;
+    RCC_PeriphCLKInitTypeDef rcc_sai1_sture = {0};
 
     for (i = 0; i < (sizeof(SAI_PSC_TBL) / 10); i++)        /* is the rate supported? */
     {

@@ -116,6 +116,11 @@ tpad_status_t tpad_init(uint16_t psc)
     uint32_t i;
     uint32_t j;
 
+    if (psc == 0U)
+    {
+        return TPAD_ERROR;
+    }
+
     tpad_timx_cap_init(TPAD_ARR_MAX_VAL, (uint16_t)(psc - 1U));
 
     for (i = 0; i < TPAD_CAL_SAMPLES; i++)
