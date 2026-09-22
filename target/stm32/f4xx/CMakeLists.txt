@@ -12,7 +12,11 @@ target_include_directories(${TARGET_LIB}
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_compile_definitions(${TARGET_LIB} PUBLIC ${STM32_DEVICE_MACRO})
+target_compile_definitions(${TARGET_LIB} PUBLIC
+    ${STM32_DEVICE_MACRO}
+    HSE_VALUE=${STM32_HSE_VALUE}
+    HSI_VALUE=${STM32_HSI_VALUE}
+)
 target_link_libraries(${TARGET_LIB} PUBLIC cmsis_core)
 
 set(MCU_LD flash CACHE STRING "Linker script variant (flash|ram)")
