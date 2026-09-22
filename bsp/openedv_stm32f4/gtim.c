@@ -7,6 +7,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "gtim.h"
+#include "sys.h"
 
 #define GTIM_NVIC_PRIORITY     1U
 #define GTIM_NVIC_SUBPRIORITY  3U
@@ -138,14 +139,10 @@ gtim_cap_state_t gtim_timx_cap_chy_state(void)
 uint32_t gtim_timx_cap_chy_value(void)
 {
     uint32_t value;
-    uint32_t primask = __get_PRIMASK();
 
-    __disable_irq();
+    sys_intx_disable();
     value = (g_gtim_cap_overflows * GTIM_TIMER_MODULUS) + g_gtim_cap_value;
-    if (primask == 0U)
-    {
-        __enable_irq();
-    }
+    sys_intx_enable();
 
     return value;
 }
@@ -242,14 +239,10 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
 uint32_t gtim_timx_cnt_chy_get_count(void)
 {
     uint32_t count;
-    uint32_t primask = __get_PRIMASK();
 
-    __disable_irq();
+    sys_intx_disable();
     count = (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
-    if (primask == 0U)
-    {
-        __enable_irq();
-    }
+    sys_intx_enable();
 
     return count;
 }

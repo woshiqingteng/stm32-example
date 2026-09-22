@@ -46,4 +46,10 @@ HAL_StatusTypeDef sys_clk_reconfig(uint32_t plln, uint32_t pllm, uint32_t pllp, 
 /** @brief  Get the current HCLK frequency in Hz. */
 uint32_t sys_clk_get_hz(void);
 
+/** @brief  Disable all interrupts (PRIMASK). Non-nesting; keep the window short. */
+void sys_intx_disable(void);
+
+/** @brief  Enable interrupts (PRIMASK). */
+void sys_intx_enable(void);
+
 #endif /* BSP_SYS_H */

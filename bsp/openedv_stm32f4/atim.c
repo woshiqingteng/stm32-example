@@ -7,6 +7,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "atim.h"
+#include "sys.h"
 
 /* This HAL release only provides the setter form of the prescaler macro. */
 #ifndef __HAL_TIM_GET_PRESCALER
@@ -337,9 +338,7 @@ void atim_timx_pwmin_chy_init(void)
 
 void atim_timx_pwmin_chy_restart(void)
 {
-    uint32_t primask = __get_PRIMASK();
-
-    __disable_irq();
+    sys_intx_disable();
     if (g_atim_pwmin_sm == ATIM_PWMIN_SM_DONE)
     {
         g_atim_pwmin_sm = ATIM_PWMIN_SM_IDLE;
@@ -353,10 +352,7 @@ void atim_timx_pwmin_chy_restart(void)
     __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
     __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
     __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-    if (primask == 0U)
-    {
-        __enable_irq();
-    }
+    sys_intx_enable();
 }
 
 atim_pwmin_state_t atim_timx_pwmin_chy_state(void)

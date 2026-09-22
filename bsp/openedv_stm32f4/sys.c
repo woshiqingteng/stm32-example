@@ -23,6 +23,16 @@ uint32_t sys_clk_get_hz(void)
     return HAL_RCC_GetHCLKFreq();
 }
 
+void sys_intx_disable(void)
+{
+    __disable_irq();
+}
+
+void sys_intx_enable(void)
+{
+    __enable_irq();
+}
+
 HAL_StatusTypeDef sys_clk_init(uint32_t plln, uint32_t pllm, uint32_t pllp, uint32_t pllq)
 {
     RCC_OscInitTypeDef rcc_osc_init = {0};
