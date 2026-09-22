@@ -2,6 +2,7 @@
 # manifest (see cmake/board/<BOARD>.cmake); nothing here is board hard-coded.
 
 set(MODULE_CMSIS_CORE_ENABLE ON  CACHE BOOL "Enable cmsis_core")
+set(MODULE_CMSIS_DSP_ENABLE  ON  CACHE BOOL "Enable the CMSIS-DSP module")
 set(MODULE_HAL_ENABLE        ON  CACHE BOOL "Enable the HAL module")
 set(MODULE_FATFS_ENABLE      ON  CACHE BOOL "Enable the FatFs core module")
 set(MODULE_LIBJPEG_ENABLE    ON  CACHE BOOL "Enable the LibJPEG module")
@@ -12,6 +13,10 @@ if(MODULE_CMSIS_CORE_ENABLE)
         message(FATAL_ERROR "No cmsis_core module: module/cmsis_core/${CMSIS_CORE_VERSION}")
     endif()
     add_subdirectory(cmsis_core/${CMSIS_CORE_VERSION})
+endif()
+
+if(MODULE_CMSIS_DSP_ENABLE)
+    add_subdirectory(cmsis_dsp)
 endif()
 
 if(MODULE_HAL_ENABLE)
