@@ -8,7 +8,7 @@ message(STATUS "Board     : ${BOARD}")
 # module, target and bsp layers can stay free of hard-coded board knowledge.
 foreach(_v
         BOARD CPU STM32_SERIES STM32_PART STM32_DEVICE_MACRO
-        HAL_MODULE_DIR HAL_MODULE_VERSION BSP_BOARD_DIR TARGET_LIB)
+        HAL_MODULE_DIR STM32_TARGET_DIR BSP_BOARD_DIR TARGET_LIB)
     if(NOT ${_v})
         message(FATAL_ERROR "BOARD '${BOARD}': manifest variable '${_v}' not set")
     endif()
@@ -22,8 +22,8 @@ else()
 endif()
 message(STATUS "App       : ${APP_TARGET}  OS: ${OS}  name: ${APP_NAME}")
 
-message(STATUS "HAL       : module/${HAL_MODULE_DIR}/${HAL_MODULE_VERSION}")
+message(STATUS "HAL       : module/${HAL_MODULE_DIR} (${HAL_MODULE_VERSION})")
 message(STATUS "BSP       : bsp/${BSP_BOARD_DIR}")
-message(STATUS "Target    : target/${STM32_SERIES}")
+message(STATUS "Target    : target/${STM32_TARGET_DIR}")
 
 include(${CMAKE_CURRENT_LIST_DIR}/func/flow.cmake)

@@ -2,7 +2,7 @@
 # manifest (see cmake/board/<BOARD>.cmake); nothing here is board hard-coded.
 
 set(MODULE_CMSIS_CORE_ENABLE ON  CACHE BOOL "Enable cmsis_core")
-set(MODULE_HAL_ENABLE        ON  CACHE BOOL "Enable stm32f4xx-hal-driver")
+set(MODULE_HAL_ENABLE        ON  CACHE BOOL "Enable the HAL module")
 
 if(MODULE_CMSIS_CORE_ENABLE)
     if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmsis_core/${CMSIS_CORE_VERSION})
@@ -12,12 +12,11 @@ if(MODULE_CMSIS_CORE_ENABLE)
 endif()
 
 if(MODULE_HAL_ENABLE)
-    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${HAL_MODULE_DIR}/${HAL_MODULE_VERSION})
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${HAL_MODULE_DIR})
         message(FATAL_ERROR
-            "No HAL module for series '${STM32_SERIES}': "
-            "module/${HAL_MODULE_DIR}/${HAL_MODULE_VERSION}")
+            "No HAL module for series '${STM32_SERIES}': module/${HAL_MODULE_DIR}")
     endif()
-    add_subdirectory(${HAL_MODULE_DIR}/${HAL_MODULE_VERSION})
+    add_subdirectory(${HAL_MODULE_DIR})
 endif()
 
 if(OS STREQUAL "freertos")

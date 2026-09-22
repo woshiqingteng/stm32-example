@@ -13,12 +13,13 @@ set(STM32_HSI_VALUE    16000000         CACHE INTERNAL "" FORCE)
 set(MCU_FLASH_BASE     0x08000000       CACHE INTERNAL "" FORCE)
 
 # --- HAL / CMSIS modules ---
-set(HAL_MODULE_DIR     stm32f4xx-hal-driver CACHE INTERNAL "" FORCE)
+set(HAL_MODULE_DIR     stm32-hal/f4xx        CACHE INTERNAL "" FORCE)
 set(HAL_MODULE_VERSION 1.8.5                CACHE INTERNAL "" FORCE)
 set(CMSIS_CORE_VERSION 6.1.0                CACHE INTERNAL "" FORCE)
 set(MODULE_FREERTOS_VERSION 11.1.0          CACHE INTERNAL "" FORCE)
 
-# --- chip support package (target/<series>) ---
+# --- chip support package (target/<vendor>/<family>) ---
+set(STM32_TARGET_DIR  stm32/f4xx            CACHE INTERNAL "" FORCE)
 set(TARGET_LIB        target_${STM32_SERIES} CACHE INTERNAL "" FORCE)
 set(STM32_STARTUP_SRC startup_stm32f429ig.c  CACHE INTERNAL "" FORCE)
 set(STM32_VECTOR_SRC  vector_stm32f429ig.c   CACHE INTERNAL "" FORCE)
