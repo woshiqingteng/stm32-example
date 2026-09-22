@@ -7,10 +7,107 @@
  */
 
 #include "exfuns.h"
+#include <string.h>
 
 FATFS *fs[FF_VOLUMES];
 
 static FATFS g_fatfs_pool[FF_VOLUMES];
+
+/* Extension table; the row/column index forms the T_* value. */
+#define FILE_MAX_TYPE_NUM 7
+#define FILE_MAX_SUBT_NUM 7
+
+static const char *const g_file_type_tbl[FILE_MAX_TYPE_NUM][FILE_MAX_SUBT_NUM] =
+{
+    { "BIN" },
+    { "LRC" },
+    { "NES", "SMS" },
+    { "TXT", "C", "H" },
+    { "WAV", "MP3", "OGG", "FLAC", "AAC", "WMA", "MID" },
+    { "BMP", "JPG", "JPEG", "GIF" },
+    { "AVI" },
+};
+
+static uint8_t exfuns_char_upper(uint8_t c)
+{
+    if (c < 'A')
+    {
+        return c;
+    }
+
+    if (c >= 'a')
+    {
+        return (uint8_t)(c - 0x20U);
+    }
+
+    return c;
+}
+
+uint8_t exfuns_file_type(char *fname)
+{
+    uint8_t tbuf[5];
+    char *attr = 0;
+    uint8_t i = 0, j;
+
+    while (i < 250U)
+    {
+        i++;
+
+        if (*fname == '\0')
+        {
+            break;
+        }
+
+        fname++;
+    }
+
+    if (i == 250U)
+    {
+        return 0xFFU;
+    }
+
+    for (i = 0; i < 5U; i++)
+    {
+        fname--;
+
+        if (*fname == '.')
+        {
+            fname++;
+            attr = fname;
+            break;
+        }
+    }
+
+    if (attr == 0)
+    {
+        return 0xFFU;
+    }
+
+    strcpy((char *)tbuf, (const char *)attr);
+
+    for (i = 0; i < 4U; i++)
+    {
+        tbuf[i] = exfuns_char_upper(tbuf[i]);
+    }
+
+    for (i = 0; i < FILE_MAX_TYPE_NUM; i++)
+    {
+        for (j = 0; j < FILE_MAX_SUBT_NUM; j++)
+        {
+            if (g_file_type_tbl[i][j] == 0)
+            {
+                break;
+            }
+
+            if (strcmp((const char *)g_file_type_tbl[i][j], (const char *)tbuf) == 0)
+            {
+                return (uint8_t)((i << 4) | j);
+            }
+        }
+    }
+
+    return 0xFFU;
+}
 
 uint8_t exfuns_init(void)
 {

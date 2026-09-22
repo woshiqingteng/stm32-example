@@ -99,6 +99,16 @@ void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color)
     }
 }
 
+uint16_t lcd_get_width(void)
+{
+    return lcddev.width;
+}
+
+uint16_t lcd_get_height(void)
+{
+    return lcddev.height;
+}
+
 void lcd_clear(uint16_t color)
 {
     if (lcdltdc.pwidth != 0U)
