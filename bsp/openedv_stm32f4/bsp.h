@@ -34,6 +34,14 @@
 #include "touch.h"
 #include "spa06.h"
 #include "qmi8658a.h"
+#include "spi.h"
+#include "norflash.h"
+#include "rs485.h"
+#include "can.h"
+#include "remote.h"
+#include "ds18b20.h"
+#include "dht11.h"
+#include "nrf24l01.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
