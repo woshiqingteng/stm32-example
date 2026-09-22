@@ -2,8 +2,11 @@
  * @file    diskio.c
  * @brief   FatFs physical drive glue for the ALIENTEK F429 board.
  *          Drive 0 maps to the SD card (SDIO), drive 1 maps to the on-board SPI
- *          NOR flash (W25Qxx). The NAND drive is not wired here because the raw
- *          NAND needs the vendor FTL for the erase-before-write mapping.
+ *          NOR flash (W25Qxx) and, when FATFS_USB_MSC is defined by the
+ *          application, drive 2 maps to a USB mass storage device enumerated by
+ *          the USB host stack (usb_port/usbh_diskio.c). The NAND drive is not
+ *          wired here because the raw NAND needs the vendor FTL for the
+ *          erase-before-write mapping.
  */
 
 #include "ff.h"
@@ -13,6 +16,11 @@
 
 #define SD_CARD     0   /* SD card (logical drive "0:") */
 #define EX_FLASH    1   /* SPI NOR flash (logical drive "1:") */
+
+#ifdef FATFS_USB_MSC
+#include "usbh_diskio.h"
+#define USB_MSC     2   /* USB mass storage (logical drive "2:") */
+#endif
 
 /* NOR flash region handed to FatFs: the first 25 MB of the 32 MB part. */
 #define NOR_SECTOR_SIZE   512U
@@ -26,6 +34,13 @@ DSTATUS disk_status(BYTE pdrv)
     {
         return 0;
     }
+
+#ifdef FATFS_USB_MSC
+    if (pdrv == USB_MSC)
+    {
+        return USBH_status();
+    }
+#endif
 
     return STA_NOINIT;
 }
@@ -43,6 +58,12 @@ DSTATUS disk_initialize(BYTE pdrv)
         case EX_FLASH:
             norflash_init();
             break;
+
+#ifdef FATFS_USB_MSC
+        case USB_MSC:
+            res = (uint8_t)USBH_initialize();
+            break;
+#endif
 
         default:
             res = 1U;
@@ -77,6 +98,11 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
             }
             break;
 
+#ifdef FATFS_USB_MSC
+        case USB_MSC:
+            return USBH_read(buff, (DWORD)sector, count);
+#endif
+
         default:
             return RES_PARERR;
     }
@@ -109,6 +135,11 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
                 buff += NOR_SECTOR_SIZE;
             }
             break;
+
+#ifdef FATFS_USB_MSC
+        case USB_MSC:
+            return USBH_write(buff, (DWORD)sector, count);
+#endif
 
         default:
             return RES_PARERR;
@@ -177,6 +208,12 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
                 break;
         }
     }
+#ifdef FATFS_USB_MSC
+    else if (pdrv == USB_MSC)
+    {
+        res = USBH_ioctl(cmd, buff);
+    }
+#endif
     else
     {
         res = RES_PARERR;

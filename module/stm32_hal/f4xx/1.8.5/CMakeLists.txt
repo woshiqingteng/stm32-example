@@ -45,8 +45,10 @@ set(HAL_SRC_NOR     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_nor.c CACHE IN
 set(HAL_SRC_DCMI    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dcmi.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_dcmi_ex.c CACHE INTERNAL "")
 set(HAL_SRC_PCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_pcd.c
-                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_pcd_ex.c CACHE INTERNAL "")
-set(HAL_SRC_HCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_hcd.c CACHE INTERNAL "")
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_pcd_ex.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_usb.c CACHE INTERNAL "")
+set(HAL_SRC_HCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_hcd.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_usb.c CACHE INTERNAL "")
 
 add_library(stm32f4xx_hal STATIC)
 
