@@ -27,6 +27,13 @@
 #include "sdram.h"
 #include "lcd.h"
 #include "oled.h"
+#include "iic.h"
+#include "24cxx.h"
+#include "pcf8574.h"
+#include "ap3216c.h"
+#include "touch.h"
+#include "spa06.h"
+#include "qmi8658a.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
