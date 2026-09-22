@@ -1,7 +1,10 @@
 # Library layer: reusable application middleware. Each library is an
 # independent target (lib_<name>) selected by apps via LIB components.
 
+set(LIB_COMPONENTS "" CACHE INTERNAL "" FORCE)
+
 add_subdirectory(usmart)
+add_subdirectory(malloc)
 
 # lib_resolve(<libs-out> <hal-out> <bsp-out> <lib sources...>): map the given
 # LIB source lists to their library targets plus the HAL/BSP sources the

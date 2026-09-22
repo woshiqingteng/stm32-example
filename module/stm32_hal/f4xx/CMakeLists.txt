@@ -37,7 +37,8 @@ set(HAL_SRC_I2S     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2s.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_i2s_ex.c CACHE INTERNAL "")
 set(HAL_SRC_SAI     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sai.c
                     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sai_ex.c CACHE INTERNAL "")
-set(HAL_SRC_SD      ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sd.c CACHE INTERNAL "")
+set(HAL_SRC_SD      ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_sd.c
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_sdmmc.c CACHE INTERNAL "")
 set(HAL_SRC_MMC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_mmc.c CACHE INTERNAL "")
 set(HAL_SRC_NAND    ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_nand.c CACHE INTERNAL "")
 set(HAL_SRC_NOR     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_nor.c CACHE INTERNAL "")

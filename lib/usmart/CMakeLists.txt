@@ -12,4 +12,4 @@ set_target_properties(lib_usmart PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_include_directories(lib_usmart PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lib_usmart PUBLIC bsp ${TARGET_LIB})
 
-set(LIB_COMPONENTS USMART CACHE INTERNAL "")
+set(LIB_COMPONENTS ${LIB_COMPONENTS} USMART CACHE INTERNAL "" FORCE)

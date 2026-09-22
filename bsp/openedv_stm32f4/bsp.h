@@ -42,6 +42,9 @@
 #include "ds18b20.h"
 #include "dht11.h"
 #include "nrf24l01.h"
+#include "sdio.h"
+#include "sram.h"
+#include "nand.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
