@@ -122,8 +122,8 @@ static void audio_local_loopback_start(void)
 {
     sai1_tx_dma_init(g_audio_mic_buf[0], g_audio_mic_buf[1],
                      AUDIO_MIC_BUF_SIZE / 2U, 1U);
-    SAI1_TX_DMASx->CR &= ~(1U << 8);    /* single transfer mode  */
-    SAI1_TX_DMASx->CR &= ~(1U << 18);   /* single buffer mode    */
+    CLEAR_BIT(g_sai1_tx_dma_handle.Instance->CR, DMA_SxCR_CIRC); /* single transfer */
+    CLEAR_BIT(g_sai1_tx_dma_handle.Instance->CR, DMA_SxCR_DBM);  /* single buffer   */
     sai1_play_start();
 }
 
@@ -174,8 +174,8 @@ uint8_t BSP_AUDIO_OUT_Init(uint16_t output_device, uint8_t volume, uint32_t audi
 uint8_t BSP_AUDIO_OUT_Play(uint16_t *buffer, uint32_t size)
 {
     sai1_tx_dma_init((uint8_t *)buffer, 0, (uint16_t)(size / 2U), 1U);
-    SAI1_TX_DMASx->CR &= ~(1U << 8);    /* single transfer mode  */
-    SAI1_TX_DMASx->CR &= ~(1U << 18);   /* single buffer mode    */
+    CLEAR_BIT(g_sai1_tx_dma_handle.Instance->CR, DMA_SxCR_CIRC); /* single transfer */
+    CLEAR_BIT(g_sai1_tx_dma_handle.Instance->CR, DMA_SxCR_DBM);  /* single buffer   */
     sai1_play_start();
 
     return 0U;
@@ -185,14 +185,14 @@ void BSP_AUDIO_OUT_ChangeBuffer(uint16_t *data, uint16_t size)
 {
     (void)data;
 
-    SAI1_TX_DMASx->CR &= ~(1U << 0);    /* stop the DMA stream */
-    while ((SAI1_TX_DMASx->CR & 0x1U) != 0U)
+    __HAL_DMA_DISABLE(&g_sai1_tx_dma_handle);   /* stop the DMA stream */
+    while ((g_sai1_tx_dma_handle.Instance->CR & DMA_SxCR_EN) != 0U)
     {
         /* wait until it can be reprogrammed */
     }
 
-    SAI1_TX_DMASx->NDTR = size;
-    SAI1_TX_DMASx->CR |= 1U << 0;       /* restart             */
+    __HAL_DMA_SET_COUNTER(&g_sai1_tx_dma_handle, size);
+    __HAL_DMA_ENABLE(&g_sai1_tx_dma_handle);    /* restart             */
 }
 
 uint8_t BSP_AUDIO_OUT_Stop(uint32_t option)

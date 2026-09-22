@@ -12,7 +12,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "stm32f4xx_hal.h"
 
 /* ---- User configuration ---- */
 
@@ -28,9 +27,6 @@
 
 /* ---- TIM4 time base ---- */
 
-#define USMART_TIMX              TIM4
-#define USMART_TIMX_IRQn         TIM4_IRQn
-#define USMART_TIMX_CLK_ENABLE() do { __HAL_RCC_TIM4_CLK_ENABLE(); } while (0)
 #define USMART_TIMX_TICK_HZ      1000000U
 #define USMART_TIMX_PERIOD       0xFFFFU
 

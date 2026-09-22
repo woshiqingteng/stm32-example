@@ -279,7 +279,7 @@ static uint8_t gt9xxx_check_id(void)
 
 static void touch_map_raw(uint8_t idx, uint16_t raw_x, uint16_t raw_y)
 {
-    if (lcddev.dir == LTDC_DIR_LANDSCAPE)
+    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
         g_touch.x[idx] = raw_x;
         g_touch.y[idx] = raw_y;

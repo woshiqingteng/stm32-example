@@ -25,7 +25,6 @@ int main(void)
             pwr_enter_stop();
 
             sys_clk_init(360U, 25U, 2U, 8U);
-            HAL_ResumeTick();
             led_off(LED1);
             printf("Woke from stop mode\r\n");
         }

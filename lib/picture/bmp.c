@@ -7,6 +7,9 @@
 #include <string.h>
 #include "bmp.h"
 #include "piclib.h"
+#include "ff.h"
+#include "malloc.h"
+#include "lcd.h"
 
 #if BMP_USE_MALLOC == 0
 FIL f_bfile;

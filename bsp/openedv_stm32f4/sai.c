@@ -11,9 +11,44 @@ SAI_HandleTypeDef g_sai1_b_handle;        /* SAI1 block B */
 DMA_HandleTypeDef g_sai1_tx_dma_handle;   /* playback DMA */
 DMA_HandleTypeDef g_sai1_rx_dma_handle;   /* capture DMA  */
 
+/* Clock and GPIO setup normally placed in HAL_SAI_MspInit(). */
+static void sai1_gpio_msp_init(void)
+{
+    GPIO_InitTypeDef gpio_init_struct;
+
+    /* ---- MSP begin: SAI1 clock + PE2/PE3/PE4/PE5/PE6 ---- */
+    SAI1_SAI_CLK_ENABLE();
+    SAI1_CLK_GPIO_CLK_ENABLE();
+    SAI1_SCK_GPIO_CLK_ENABLE();
+    SAI1_FSA_GPIO_CLK_ENABLE();
+    SAI1_SDA_GPIO_CLK_ENABLE();
+    SAI1_SDB_GPIO_CLK_ENABLE();
+
+    gpio_init_struct.Pin = SAI1_CLK_GPIO_PIN;
+    gpio_init_struct.Mode = GPIO_MODE_AF_PP;
+    gpio_init_struct.Pull = GPIO_PULLUP;
+    gpio_init_struct.Speed = GPIO_SPEED_HIGH;
+    gpio_init_struct.Alternate = GPIO_AF6_SAI1;
+    HAL_GPIO_Init(SAI1_CLK_GPIO_PORT, &gpio_init_struct);
+
+    gpio_init_struct.Pin = SAI1_SCK_GPIO_PIN;
+    HAL_GPIO_Init(SAI1_SCK_GPIO_PORT, &gpio_init_struct);
+
+    gpio_init_struct.Pin = SAI1_FSA_GPIO_PIN;
+    HAL_GPIO_Init(SAI1_FSA_GPIO_PORT, &gpio_init_struct);
+
+    gpio_init_struct.Pin = SAI1_SDA_GPIO_PIN;
+    HAL_GPIO_Init(SAI1_SDA_GPIO_PORT, &gpio_init_struct);
+
+    gpio_init_struct.Pin = SAI1_SDB_GPIO_PIN;
+    HAL_GPIO_Init(SAI1_SDB_GPIO_PORT, &gpio_init_struct);
+    /* ---- MSP end ---- */
+}
+
 void sai1_saia_init(uint8_t mode, uint8_t cpol, uint8_t datalen)
 {
     HAL_SAI_DeInit(&g_sai1_a_handle);                            /* clear previous config */
+    sai1_gpio_msp_init();
 
     g_sai1_a_handle.Instance = SAI1_Block_A;
     g_sai1_a_handle.Init.AudioMode = mode;
@@ -48,6 +83,7 @@ void sai1_saia_init(uint8_t mode, uint8_t cpol, uint8_t datalen)
 void sai1_saib_init(uint8_t mode, uint8_t cpol, uint8_t datalen)
 {
     HAL_SAI_DeInit(&g_sai1_b_handle);                           /* clear previous config */
+    sai1_gpio_msp_init();
     g_sai1_b_handle.Instance = SAI1_Block_B;
     g_sai1_b_handle.Init.AudioMode = mode;
     g_sai1_b_handle.Init.Synchro = SAI_SYNCHRONOUS;
@@ -79,39 +115,6 @@ void sai1_saib_init(uint8_t mode, uint8_t cpol, uint8_t datalen)
     __HAL_SAI_ENABLE(&g_sai1_b_handle);
 }
 
-void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
-{
-    GPIO_InitTypeDef gpio_init_struct;
-
-    (void)hsai;
-
-    SAI1_SAI_CLK_ENABLE();
-    SAI1_CLK_GPIO_CLK_ENABLE();
-    SAI1_SCK_GPIO_CLK_ENABLE();
-    SAI1_FSA_GPIO_CLK_ENABLE();
-    SAI1_SDA_GPIO_CLK_ENABLE();
-    SAI1_SDB_GPIO_CLK_ENABLE();
-
-    gpio_init_struct.Pin = SAI1_CLK_GPIO_PIN;
-    gpio_init_struct.Mode = GPIO_MODE_AF_PP;
-    gpio_init_struct.Pull = GPIO_PULLUP;
-    gpio_init_struct.Speed = GPIO_SPEED_HIGH;
-    gpio_init_struct.Alternate = GPIO_AF6_SAI1;
-    HAL_GPIO_Init(SAI1_CLK_GPIO_PORT, &gpio_init_struct);
-
-    gpio_init_struct.Pin = SAI1_SCK_GPIO_PIN;
-    HAL_GPIO_Init(SAI1_SCK_GPIO_PORT, &gpio_init_struct);
-
-    gpio_init_struct.Pin = SAI1_FSA_GPIO_PIN;
-    HAL_GPIO_Init(SAI1_FSA_GPIO_PORT, &gpio_init_struct);
-
-    gpio_init_struct.Pin = SAI1_SDA_GPIO_PIN;
-    HAL_GPIO_Init(SAI1_SDA_GPIO_PORT, &gpio_init_struct);
-
-    gpio_init_struct.Pin = SAI1_SDB_GPIO_PIN;
-    HAL_GPIO_Init(SAI1_SDB_GPIO_PORT, &gpio_init_struct);
-}
-
 /*
  * SAI audio clock dividers (@ HSE = 25 MHz, PLLM = 25 -> VCO input 1 MHz):
  * MCKDIV != 0: Fs = SAI_CK_x / [512 * MCKDIV]
@@ -135,18 +138,44 @@ const uint16_t SAI_PSC_TBL[][5] =
 
 void sai1_saia_dma_enable(void)
 {
-    uint32_t tempreg = 0;
-    tempreg = SAI1_Block_A->CR1;
-    tempreg |= 1 << 17;                     /* enable DMA */
-    SAI1_Block_A->CR1 = tempreg;
+    /* Route SAI1 block A to its DMA stream. */
+    SET_BIT(SAI1_Block_A->CR1, SAI_xCR1_DMAEN);
 }
 
 void sai1_saib_dma_enable(void)
 {
-    uint32_t tempreg = 0;
-    tempreg = SAI1_Block_B->CR1;
-    tempreg |= 1 << 17;                     /* enable DMA */
-    SAI1_Block_B->CR1 = tempreg;
+    /* Route SAI1 block B to its DMA stream. */
+    SET_BIT(SAI1_Block_B->CR1, SAI_xCR1_DMAEN);
+}
+
+uint8_t sai1_tx_dma_target(void)
+{
+    return (uint8_t)((g_sai1_tx_dma_handle.Instance->CR & DMA_SxCR_CT) != 0U);
+}
+
+uint8_t sai1_rx_dma_target(void)
+{
+    return (uint8_t)((g_sai1_rx_dma_handle.Instance->CR & DMA_SxCR_CT) != 0U);
+}
+
+void sai1_tx_dma_set_inactive_buffer(uint8_t *buf)
+{
+    /* In double-buffer mode CT selects the active area, so CT set means M0AR
+     * has just been consumed and can be refilled. */
+    if ((g_sai1_tx_dma_handle.Instance->CR & DMA_SxCR_CT) != 0U)
+    {
+        g_sai1_tx_dma_handle.Instance->M0AR = (uint32_t)buf;
+    }
+    else
+    {
+        g_sai1_tx_dma_handle.Instance->M1AR = (uint32_t)buf;
+    }
+}
+
+void sai1_tx_dma_irq_disable(void)
+{
+    g_sai1_tx_dma_handle.Instance = SAI1_TX_DMASx;
+    __HAL_DMA_DISABLE_IT(&g_sai1_tx_dma_handle, DMA_IT_TC);
 }
 
 uint8_t sai1_samplerate_set(uint32_t samplerate)

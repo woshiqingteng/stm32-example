@@ -44,12 +44,27 @@
 extern SD_HandleTypeDef       g_sdcard_handle;
 extern HAL_SD_CardInfoTypeDef g_sd_card_info_handle;
 
+/** @brief  Card information exposed to applications (no vendor types). */
+typedef struct
+{
+    uint32_t card_type;      /* card type: 0 = SDSC, 1 = SDHC/SDXC */
+    uint32_t block_count;    /* logical block count */
+    uint32_t block_size;     /* logical block size, in bytes */
+    uint32_t total_size_mb;  /* card capacity, in MB */
+} sd_card_info_t;
+
 /** @brief  Initialise the SDIO peripheral and the card (4-bit bus).
  *  @return 0 on success, non-zero on failure. */
 uint8_t sdio_init(void);
 
 /** @brief  Read the cached card information. */
 uint8_t get_sd_card_info(HAL_SD_CardInfoTypeDef *cardinfo);
+
+/** @brief  Copy the cached card information into @p info. */
+void sdio_get_card_info(sd_card_info_t *info);
+
+/** @brief  Card capacity in MB, or 0 when no card is initialised. */
+uint32_t sd_total_size_mb(void);
 
 /** @brief  Return SD_TRANSFER_OK when the card is idle, SD_TRANSFER_BUSY when
  *          a transfer is still running. */

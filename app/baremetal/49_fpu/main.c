@@ -1,7 +1,7 @@
 /**
  * @file    main.c
  * @brief   49_fpu: Julia fractal benchmark, rendered on the RGB panel. The
- *          per-frame time is measured with HAL_GetTick() and reported over
+ *          per-frame time is measured with sys_get_tick() and reported over
  *          USART1 and the LCD.
  */
 
@@ -97,15 +97,15 @@ int main(void)
 
     for (;;)
     {
-        start = HAL_GetTick();
-        julia_generate((uint16_t)lcddev.width, (uint16_t)lcddev.height,
-                       (uint16_t)(lcddev.width / 2U), (uint16_t)(lcddev.height / 2U),
+        start = sys_get_tick();
+        julia_generate(lcd_get_width(), lcd_get_height(),
+                       (uint16_t)(lcd_get_width() / 2U), (uint16_t)(lcd_get_height() / 2U),
                        FPU_ZOOM);
-        elapsed = HAL_GetTick() - start;
+        elapsed = sys_get_tick() - start;
 
         sprintf(buf, "%s Julia zoom:%u runtime:%lums", FPU_MODE_TEXT, (unsigned)FPU_ZOOM,
                 (unsigned long)elapsed);
-        lcd_show_string(5U, (uint16_t)(lcddev.height - FPU_STATUS_H), 400U,
+        lcd_show_string(5U, (uint16_t)(lcd_get_height() - FPU_STATUS_H), 400U,
                         FPU_TEXT_SIZE, FPU_TEXT_SIZE, buf, RED);
         printf("%s\r\n", buf);
 

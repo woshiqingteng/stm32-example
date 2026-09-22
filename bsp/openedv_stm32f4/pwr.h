@@ -34,10 +34,11 @@ void pwr_pvd_init(uint32_t level);
 /** @brief  Configure PA0 (WK_UP) as a rising-edge EXTI line. */
 void pwr_wkup_key_init(void);
 
-/** @brief  Enter sleep mode (WFI). Caller must call HAL_ResumeTick() on wake. */
+/** @brief  Enter sleep mode (WFI). The HAL tick is resumed before returning. */
 void pwr_enter_sleep(void);
 
-/** @brief  Enter stop mode (WFI). Caller must re-init clocks and call HAL_ResumeTick(). */
+/** @brief  Enter stop mode (WFI). The HAL tick is resumed before returning;
+ *          the caller must re-initialise the clocks. */
 void pwr_enter_stop(void);
 
 /** @brief  Enable the WK_UP pin and enter standby mode (wake = system reset). */

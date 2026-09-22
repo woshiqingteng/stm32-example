@@ -24,7 +24,7 @@ static uint8_t g_rbuf[SD_BLOCK_LEN];
 
 int main(void)
 {
-    HAL_SD_CardInfoTypeDef info;
+    sd_card_info_t info;
     uint32_t errors = 0U;
     uint32_t i;
     uint32_t sram_errors;
@@ -53,13 +53,13 @@ int main(void)
     }
     else
     {
-        get_sd_card_info(&info);
+        sdio_get_card_info(&info);
 
         lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SD Card OK", BLUE);
         sprintf(line, "Type:%lu Cap:%lu MB Blk:%lu",
-                (unsigned long)info.CardType,
-                (unsigned long)SD_TOTAL_SIZE_MB(&g_sdcard_handle),
-                (unsigned long)info.LogBlockSize);
+                (unsigned long)info.card_type,
+                (unsigned long)info.total_size_mb,
+                (unsigned long)info.block_size);
         lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);
 

@@ -23,6 +23,11 @@ uint32_t sys_clk_get_hz(void)
     return HAL_RCC_GetHCLKFreq();
 }
 
+uint32_t sys_get_tick(void)
+{
+    return HAL_GetTick();
+}
+
 void sys_intx_disable(void)
 {
     __disable_irq();

@@ -69,6 +69,26 @@ uint8_t get_sd_card_info(HAL_SD_CardInfoTypeDef *cardinfo)
     return HAL_SD_GetCardInfo(&g_sdcard_handle, cardinfo);
 }
 
+void sdio_get_card_info(sd_card_info_t *info)
+{
+    if (info == 0)
+    {
+        return;
+    }
+
+    info->card_type    = g_sd_card_info_handle.CardType;
+    info->block_count  = g_sd_card_info_handle.LogBlockNbr;
+    info->block_size   = g_sd_card_info_handle.LogBlockSize;
+    info->total_size_mb = (uint32_t)(((uint64_t)g_sd_card_info_handle.LogBlockNbr *
+                                      (uint64_t)g_sd_card_info_handle.LogBlockSize) >> 20);
+}
+
+uint32_t sd_total_size_mb(void)
+{
+    return (uint32_t)(((uint64_t)g_sd_card_info_handle.LogBlockNbr *
+                       (uint64_t)g_sd_card_info_handle.LogBlockSize) >> 20);
+}
+
 uint8_t get_sd_card_state(void)
 {
     return (HAL_SD_GetCardState(&g_sdcard_handle) == HAL_SD_CARD_TRANSFER) ?

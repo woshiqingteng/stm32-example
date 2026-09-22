@@ -54,7 +54,7 @@ static void vtimer_init(uint16_t arr, uint16_t psc)
 
 static void vtimer_stop(void)
 {
-    TIM7->CR1 &= ~(1U << 0);
+    __HAL_TIM_DISABLE(&g_vtim_handle);
 }
 
 void TIM7_IRQHandler(void)
@@ -76,14 +76,7 @@ void audio_sai_dma_callback(void)
         g_avi_sai_playbuf = 0;
     }
 
-    if (SAI1_TX_DMASx->CR & (1 << 19))
-    {
-        SAI1_TX_DMASx->M0AR = (uint32_t)p_avi_sai_buf[g_avi_sai_playbuf];
-    }
-    else
-    {
-        SAI1_TX_DMASx->M1AR = (uint32_t)p_avi_sai_buf[g_avi_sai_playbuf];
-    }
+    sai1_tx_dma_set_inactive_buffer(p_avi_sai_buf[g_avi_sai_playbuf]);
 }
 
 uint16_t video_get_tnum(char *path)
@@ -147,8 +140,9 @@ static void video_scan(void)
     printf("found %u video(s)\r\n", (unsigned int)g_video_count);
 }
 
-void video_time_show(FIL *favi, AVI_INFO *aviinfo)
+void video_time_show(void *favi, AVI_INFO *aviinfo)
 {
+    FIL            *file = (FIL *)favi;
     static uint32_t oldsec;
     char            buf[48];
     uint32_t        totsec;
@@ -156,7 +150,7 @@ void video_time_show(FIL *favi, AVI_INFO *aviinfo)
 
     totsec = (aviinfo->SecPerFrame / 1000U) * aviinfo->TotalFrame;
     totsec /= 1000U;
-    cursec = (uint32_t)(((double)favi->fptr / (double)favi->obj.objsize) * (double)totsec);
+    cursec = (uint32_t)(((double)file->fptr / (double)file->obj.objsize) * (double)totsec);
 
     if (oldsec != cursec)
     {
@@ -403,9 +397,10 @@ uint8_t video_play_mjpeg(char *pname)
     return res;
 }
 
-uint8_t video_seek(FIL *favi, AVI_INFO *aviinfo, uint8_t *mbuf)
+uint8_t video_seek(void *favi, AVI_INFO *aviinfo, uint8_t *mbuf)
 {
-    uint32_t fpos = (uint32_t)favi->fptr;
+    FIL      *file = (FIL *)favi;
+    uint32_t fpos = (uint32_t)file->fptr;
     uint8_t *pbuf;
     uint16_t offset;
     uint32_t br;
@@ -415,7 +410,7 @@ uint8_t video_seek(FIL *favi, AVI_INFO *aviinfo, uint8_t *mbuf)
 
     totsec = (aviinfo->SecPerFrame / 1000U) * aviinfo->TotalFrame;
     totsec /= 1000U;
-    delta = (uint32_t)((favi->obj.objsize / totsec) * 5U);     /* ~5 s of data */
+    delta = (uint32_t)((file->obj.objsize / totsec) * 5U);     /* ~5 s of data */
 
     for (;;)
     {
@@ -423,14 +418,14 @@ uint8_t video_seek(FIL *favi, AVI_INFO *aviinfo, uint8_t *mbuf)
 
         if (key == KEY_WKUP)                    /* fast forward */
         {
-            if (fpos < (uint32_t)favi->obj.objsize)
+            if (fpos < (uint32_t)file->obj.objsize)
             {
                 fpos += delta;
             }
 
-            if (fpos > ((uint32_t)favi->obj.objsize - AVI_VIDEO_BUF_SIZE))
+            if (fpos > ((uint32_t)file->obj.objsize - AVI_VIDEO_BUF_SIZE))
             {
-                fpos = (uint32_t)favi->obj.objsize - AVI_VIDEO_BUF_SIZE;
+                fpos = (uint32_t)file->obj.objsize - AVI_VIDEO_BUF_SIZE;
             }
         }
         else if (key == KEY1)                   /* rewind */

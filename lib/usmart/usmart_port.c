@@ -8,12 +8,17 @@
  * usmart_timx_get_time() can report a function's run-time in microseconds.
  */
 
+#include "stm32f4xx_hal.h"
 #include "usmart.h"
 #include "usmart_port.h"
 #include "usart.h"
 
 #define USMART_RX_BUF_LEN PARM_LEN /*!< command line buffer, must cover PARM_LEN */
 #define USMART_HZ_PER_MHZ 1000000U
+
+/* TIM4 time base (board specific, deliberately kept out of the public header). */
+#define USMART_TIMX              TIM4
+#define USMART_TIMX_CLK_ENABLE() do { __HAL_RCC_TIM4_CLK_ENABLE(); } while (0)
 
 /** @brief Command line reception state. */
 typedef enum

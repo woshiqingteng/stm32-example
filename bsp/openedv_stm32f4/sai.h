@@ -54,9 +54,25 @@
 
 extern SAI_HandleTypeDef g_sai1_a_handle;     /* SAI1 block A (playback) */
 extern SAI_HandleTypeDef g_sai1_b_handle;     /* SAI1 block B (capture)  */
+extern DMA_HandleTypeDef g_sai1_tx_dma_handle; /* playback DMA */
+extern DMA_HandleTypeDef g_sai1_rx_dma_handle; /* capture DMA  */
 
 extern void (*sai_tx_callback)(void);         /* playback DMA transfer callback */
 extern void (*sai_rx_callback)(void);         /* capture DMA transfer callback  */
+
+/** @brief  SAI1 TX DMA double-buffer target: non-zero when M1AR is active,
+ *          zero when M0AR is active (DMA_SxCR_CT). */
+uint8_t sai1_tx_dma_target(void);
+
+/** @brief  SAI1 RX DMA double-buffer target (DMA_SxCR_CT). */
+uint8_t sai1_rx_dma_target(void);
+
+/** @brief  Programme the inactive SAI1 TX double-buffer area with @p buf. */
+void    sai1_tx_dma_set_inactive_buffer(uint8_t *buf);
+
+/** @brief  Disable the SAI1 TX DMA transfer-complete interrupt. Safe to call
+ *          before sai1_tx_dma_init() (targets DMA2_Stream3 directly). */
+void    sai1_tx_dma_irq_disable(void);
 
 void    sai1_saia_init(uint8_t mode, uint8_t cpol, uint8_t datalen);
 void    sai1_saib_init(uint8_t mode, uint8_t cpol, uint8_t datalen);

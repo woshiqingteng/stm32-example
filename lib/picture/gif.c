@@ -6,6 +6,8 @@
 
 #include "gif.h"
 #include "piclib.h"
+#include "ff.h"
+#include "malloc.h"
 #include "delay.h"
 
 const uint16_t _aMaskTbl[16] =
@@ -75,11 +77,12 @@ static uint8_t gif_readcolortbl(FIL *filename, gif89a *gif, uint16_t numcolors)
     return 0;
 }
 
-uint8_t gif_getinfo(FIL *file, gif89a *gif)
+uint8_t gif_getinfo(void *file, gif89a *gif)
 {
+    FIL     *fil = (FIL *)file;
     uint32_t readed;
-    uint8_t res;
-    res = f_read(file, (uint8_t *)&gif->gifLSD, 7, (UINT *)&readed);
+    uint8_t  res;
+    res = f_read(fil, (uint8_t *)&gif->gifLSD, 7, (UINT *)&readed);
 
     if (res)return 1;
 
@@ -87,7 +90,7 @@ uint8_t gif_getinfo(FIL *file, gif89a *gif)
     {
         gif->numcolors = 2 << (gif->gifLSD.flag & 0x07);
 
-        if (gif_readcolortbl(file, gif, gif->numcolors))
+        if (gif_readcolortbl(fil, gif, gif->numcolors))
         {
             return 1;
         }

@@ -52,7 +52,7 @@ void audio_sai_tx_callback(void)
 {
     uint16_t i;
 
-    if (SAI1_TX_DMASx->CR & (1 << 19))
+    if (sai1_tx_dma_target() != 0U)
     {
         audio_witch_buf = 0;
 

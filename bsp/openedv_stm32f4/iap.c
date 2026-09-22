@@ -26,7 +26,6 @@ iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
     FLASH_EraseInitTypeDef erase = {0};
     uint32_t               sector_error = 0U;
     uint32_t               end = addr + len;
-    uint32_t               sector;
     uint32_t               i;
 
     if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE)))
@@ -62,7 +61,6 @@ iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
     }
 
     HAL_FLASH_Lock();
-    (void)sector;
     return IAP_OK;
 }
 
@@ -76,17 +74,17 @@ void iap_jump(uint32_t addr)
         return;
     }
 
-    __disable_irq();
+    sys_intx_disable();
     SysTick->CTRL = 0U;
     SysTick->LOAD = 0U;
     SysTick->VAL  = 0U;
 
-    SCB->VTOR = addr;
+    sys_set_vector_table(addr);
     __set_MSP(*(volatile uint32_t *)addr);
 
     jump_addr = *(volatile uint32_t *)(addr + 4U);
     app_reset = (void (*)(void))jump_addr;
-    __enable_irq();
+    sys_intx_enable();
     app_reset();
 }
 

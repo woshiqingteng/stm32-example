@@ -140,17 +140,17 @@ int main(void)
     printf("50_dsp ready\r\n");
 
     /* BasicMath benchmark: plain libm, then the CMSIS-DSP kernels. */
-    t0      = HAL_GetTick();
+    t0      = sys_get_tick();
     res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
-    elapsed = HAL_GetTick() - t0;
+    elapsed = sys_get_tick() - t0;
     sprintf(line, "Math noDSP:%lu ms", (unsigned long)elapsed);
     printf("sin/cos noDSP : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");
     lcd_show_string(TEXT_X, 100U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line,
                     (res == 0U) ? BLUE : RED);
 
-    t0      = HAL_GetTick();
+    t0      = sys_get_tick();
     res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
-    elapsed = HAL_GetTick() - t0;
+    elapsed = sys_get_tick() - t0;
     sprintf(line, "Math DSP  :%lu ms", (unsigned long)elapsed);
     printf("sin/cos DSP   : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");
     lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line,
@@ -164,7 +164,7 @@ int main(void)
     }
     else
     {
-        t0 = HAL_GetTick();
+        t0 = sys_get_tick();
 
         for (i = 0U; i < FFT_RUNS; i++)
         {
@@ -172,7 +172,7 @@ int main(void)
             arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
         }
 
-        elapsed = HAL_GetTick() - t0;
+        elapsed = sys_get_tick() - t0;
 
         sprintf(line, "FFT %u pts:%lu ms", (unsigned)FFT_LENGTH, (unsigned long)elapsed);
         printf("%u point FFT x%u: %lu ms total\r\n", (unsigned)FFT_LENGTH,
@@ -221,14 +221,14 @@ int main(void)
         arm_fir_init_f32(&fir, (uint16_t)FIR_NUM_TAPS, g_fir_coeffs, g_fir_state,
                          (uint32_t)FIR_BLOCK);
 
-        t0 = HAL_GetTick();
+        t0 = sys_get_tick();
 
         for (i = 0U; i < FIR_RUNS; i++)
         {
             arm_fir_f32(&fir, g_fir_in, g_fir_out, (uint32_t)FIR_BLOCK);
         }
 
-        elapsed = HAL_GetTick() - t0;
+        elapsed = sys_get_tick() - t0;
 
         sprintf(line, "FIR %u taps:%lu ms", (unsigned)FIR_NUM_TAPS, (unsigned long)elapsed);
         printf("%u tap FIR x%u: %lu ms total\r\n", (unsigned)FIR_NUM_TAPS,

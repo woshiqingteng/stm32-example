@@ -95,7 +95,7 @@ int main(void)
         {
             touch_read_xy(&x, &y);
 
-            if ((x < lcddev.width) && (y < lcddev.height))
+            if ((x < lcd_get_width()) && (y < lcd_get_height()))
             {
                 if (have_last != 0U)
                 {

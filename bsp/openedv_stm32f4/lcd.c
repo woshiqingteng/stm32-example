@@ -36,7 +36,7 @@ static const lcd_font_desc_t g_lcd_fonts[] =
 
 #define LCD_FONT_COUNT (sizeof(g_lcd_fonts) / sizeof(g_lcd_fonts[0]))
 
-_lcd_dev lcddev;
+static _lcd_dev lcddev;
 uint32_t g_point_color = 0xFF000000U;
 uint32_t g_back_color  = 0xFFFFFFFFU;
 
@@ -107,6 +107,11 @@ uint16_t lcd_get_width(void)
 uint16_t lcd_get_height(void)
 {
     return lcddev.height;
+}
+
+uint16_t lcd_get_id(void)
+{
+    return lcddev.id;
 }
 
 void lcd_clear(uint16_t color)

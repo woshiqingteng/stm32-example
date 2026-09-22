@@ -61,7 +61,6 @@ typedef struct
     ltdc_dir_t dir;     /* 0 portrait, 1 landscape */
 } _lcd_dev;
 
-extern _lcd_dev lcddev;
 extern uint32_t g_point_color; /* default point colour */
 extern uint32_t g_back_color;  /* default background colour */
 
@@ -69,6 +68,7 @@ void lcd_init(void);
 void lcd_display_dir(ltdc_dir_t dir);
 uint16_t lcd_get_width(void);
 uint16_t lcd_get_height(void);
+uint16_t lcd_get_id(void);
 void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color);
 void lcd_clear(uint16_t color);
 void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);

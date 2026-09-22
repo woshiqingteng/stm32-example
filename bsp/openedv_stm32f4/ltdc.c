@@ -338,8 +338,6 @@ void ltdc_init(void)
         /* other panels intentionally not implemented. */
     }
 
-    lcddev.width = (uint16_t)lcdltdc.pwidth;
-    lcddev.height = (uint16_t)lcdltdc.pheight;
     lcdltdc.width = (uint16_t)lcdltdc.pwidth;
     lcdltdc.height = (uint16_t)lcdltdc.pheight;
 

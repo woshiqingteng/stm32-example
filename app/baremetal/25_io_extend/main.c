@@ -58,7 +58,7 @@ int main(void)
                         (ack != 0U) ? BLUE : RED);
         printf("%s\r\n", line);
 
-        status = (uint8_t)((PCF8574_INT == GPIO_PIN_RESET) ? 1U : 0U);
+        status = (pcf8574_int_asserted()) ? 1U : 0U;
         sprintf(line, "INT:%u EX_IO:%u", status, (unsigned)pcf8574_read_bit(PCF8574_EX_IO));
         lcd_show_string(TEXT_X, 140U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);

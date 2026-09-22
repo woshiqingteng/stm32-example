@@ -22,7 +22,7 @@ USBD_HandleTypeDef USBD_Device;
 
 int main(void)
 {
-    HAL_SD_CardInfoTypeDef info;
+    sd_card_info_t info;
     uint8_t  usb_status = 0xFFU;
     uint8_t  storage_status = 0xFFU;
     char     line[48];
@@ -51,9 +51,8 @@ int main(void)
     }
     else
     {
-        (void)get_sd_card_info(&info);
-        (void)sprintf(line, "SD Card Size: %lu MB",
-                      (unsigned long)SD_TOTAL_SIZE_MB(&g_sdcard_handle));
+        sdio_get_card_info(&info);
+        (void)sprintf(line, "SD Card Size: %lu MB", (unsigned long)info.total_size_mb);
         lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);
     }

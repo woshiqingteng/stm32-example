@@ -9,7 +9,9 @@
 #define LIB_AUDIO_AUDIO_H
 
 #include <stdint.h>
-#include "ff.h"
+
+/* The FatFs file handle stays opaque here so this public header does not pull
+ * in ff.h. The middleware .c files include ff.h themselves. */
 
 /** @brief  Playback DMA buffer size (bytes). 8192 avoids drop-outs at
  *  192 kbps / 24-bit. */
@@ -27,7 +29,7 @@ typedef struct
     uint8_t *saibuf1;       /* SAI TX half-buffer 1 */
     uint8_t *saibuf2;       /* SAI TX half-buffer 2 */
     uint8_t *tbuf;          /* scratch buffer (24-bit WAV repacking) */
-    FIL     *file;          /* file being played */
+    void    *file;          /* file being played (FatFs FIL *) */
 
     uint8_t  status;        /* bit0: 0 paused, 1 playing; bit1: 0 stopped, 1 running */
 } audiodev_t;

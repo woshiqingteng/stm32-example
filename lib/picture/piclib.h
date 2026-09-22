@@ -9,9 +9,6 @@
 #define LIB_PICTURE_PICLIB_H
 
 #include <stdint.h>
-#include "lcd.h"
-#include "malloc.h"
-#include "exfuns.h"
 #include "bmp.h"
 #include "gif.h"
 #include "jpeg_dec.h"

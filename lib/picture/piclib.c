@@ -8,6 +8,8 @@
 #include "piclib.h"
 #include "ltdc.h"
 #include "lcd.h"
+#include "malloc.h"
+#include "exfuns.h"
 
 _pic_info picinfo;
 _pic_phy  pic_phy;

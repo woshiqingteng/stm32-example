@@ -7,7 +7,9 @@
 #define LIB_PICTURE_GIF_H
 
 #include <stdint.h>
-#include "ff.h"
+
+/* The FatFs file handle stays opaque here so this public header does not pull
+ * in ff.h; gif.c includes ff.h itself. */
 
 #define GIF_USE_MALLOC          1
 
@@ -81,7 +83,7 @@ typedef struct
 extern uint8_t g_gif_decoding;
 
 void    gif_quit(void);
-uint8_t gif_getinfo(FIL *file, gif89a *gif);
+uint8_t gif_getinfo(void *file, gif89a *gif);
 uint8_t gif_decode(const char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height);
 
 #endif /* LIB_PICTURE_GIF_H */

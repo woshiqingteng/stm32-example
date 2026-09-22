@@ -38,45 +38,6 @@ void usbh_static_free(void *p)
     (void)p;
 }
 
-/**
- * @brief  Initialise the HCD MSP: clock, GPIO, USB power switch and NVIC.
- */
-void HAL_HCD_MspInit(HCD_HandleTypeDef *hcd)
-{
-    GPIO_InitTypeDef gpio_init = {0};
-
-    if (hcd->Instance == USB_OTG_FS)
-    {
-        __HAL_RCC_GPIOA_CLK_ENABLE();
-        __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
-
-        gpio_init.Pin       = GPIO_PIN_11 | GPIO_PIN_12;
-        gpio_init.Mode      = GPIO_MODE_AF_PP;
-        gpio_init.Pull      = GPIO_NOPULL;
-        gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-        gpio_init.Alternate = GPIO_AF10_OTG_FS;
-        HAL_GPIO_Init(GPIOA, &gpio_init);
-
-        /* Cycle the host VBUS switch so a freshly attached device is reset. */
-        pcf8574_write_bit(PCF8574_USB_PWR_IO, 0U);
-        delay_ms(500U);
-        pcf8574_write_bit(PCF8574_USB_PWR_IO, 1U);
-
-        HAL_NVIC_SetPriority(OTG_FS_IRQn, 1U, 0U);
-        HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
-    }
-}
-
-void HAL_HCD_MspDeInit(HCD_HandleTypeDef *hcd)
-{
-    if (hcd->Instance == USB_OTG_FS)
-    {
-        __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
-        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11 | GPIO_PIN_12);
-        HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
-    }
-}
-
 void OTG_FS_IRQHandler(void)
 {
     HAL_HCD_IRQHandler(&g_hhcd_USB_OTG_FS);
@@ -136,6 +97,30 @@ USBH_StatusTypeDef USBH_LL_Init(USBH_HandleTypeDef *phost)
         g_hhcd_USB_OTG_FS.pData  = phost;
         phost->pData             = &g_hhcd_USB_OTG_FS;
 
+        /* ---- MSP begin: OTG FS clock + PA11/PA12 + VBUS switch + NVIC ---- */
+        {
+            GPIO_InitTypeDef gpio_init = {0};
+
+            __HAL_RCC_GPIOA_CLK_ENABLE();
+            __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+
+            gpio_init.Pin       = GPIO_PIN_11 | GPIO_PIN_12;
+            gpio_init.Mode      = GPIO_MODE_AF_PP;
+            gpio_init.Pull      = GPIO_NOPULL;
+            gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+            gpio_init.Alternate = GPIO_AF10_OTG_FS;
+            HAL_GPIO_Init(GPIOA, &gpio_init);
+
+            /* Cycle the host VBUS switch so a freshly attached device is reset. */
+            pcf8574_write_bit(PCF8574_USB_PWR_IO, 0U);
+            delay_ms(500U);
+            pcf8574_write_bit(PCF8574_USB_PWR_IO, 1U);
+
+            HAL_NVIC_SetPriority(OTG_FS_IRQn, 1U, 0U);
+            HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
+        }
+        /* ---- MSP end ---- */
+
         (void)HAL_HCD_Init(&g_hhcd_USB_OTG_FS);
         USBH_LL_SetTimer(phost, HAL_HCD_GetCurrentFrame(&g_hhcd_USB_OTG_FS));
     }
@@ -145,6 +130,12 @@ USBH_StatusTypeDef USBH_LL_Init(USBH_HandleTypeDef *phost)
 
 USBH_StatusTypeDef USBH_LL_DeInit(USBH_HandleTypeDef *phost)
 {
+    /* ---- MSP begin: release OTG FS clock + GPIO + NVIC ---- */
+    __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11 | GPIO_PIN_12);
+    HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
+    /* ---- MSP end ---- */
+
     return USBH_Get_USB_Status(HAL_HCD_DeInit(phost->pData));
 }
 

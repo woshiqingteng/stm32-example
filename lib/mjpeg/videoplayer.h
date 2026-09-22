@@ -7,8 +7,10 @@
 #define LIB_MJPEG_VIDEOPLAYER_H
 
 #include <stdint.h>
-#include "ff.h"
 #include "avi.h"
+
+/* The FatFs file handle stays opaque here so this public header does not pull
+ * in ff.h; videoplayer.c includes ff.h itself. */
 
 #define AVI_AUDIO_BUF_SIZE  (1024 * 5)      /* audio half-buffer size (bytes) */
 #define AVI_AUDIO_BUF_NUM   4               /* audio ring depth */
@@ -18,7 +20,7 @@
 uint16_t video_get_tnum(char *path);
 
 /** @brief  Render the elapsed / total playback time. */
-void video_time_show(FIL *favi, AVI_INFO *aviinfo);
+void video_time_show(void *favi, AVI_INFO *aviinfo);
 
 /** @brief  Render the video stream information. */
 void video_info_show(AVI_INFO *aviinfo);
@@ -33,6 +35,6 @@ void video_play(void);
 uint8_t video_play_mjpeg(char *pname);
 
 /** @brief  Seek within the current AVI file. */
-uint8_t video_seek(FIL *favi, AVI_INFO *aviinfo, uint8_t *mbuf);
+uint8_t video_seek(void *favi, AVI_INFO *aviinfo, uint8_t *mbuf);
 
 #endif /* LIB_MJPEG_VIDEOPLAYER_H */

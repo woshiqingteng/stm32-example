@@ -81,7 +81,7 @@ void recoder_sai_dma_rx_callback(void)
 {
     if (g_rec_sta == 0x80)                          /* record mode */
     {
-        if (SAI1_RX_DMASx->CR & (1 << 19))
+        if (sai1_rx_dma_target() != 0U)
         {
             (void)recoder_sai_fifo_write(p_sai_recbuf1);
         }
@@ -94,7 +94,7 @@ void recoder_sai_dma_rx_callback(void)
 
 void recoder_enter_rec_mode(void)
 {
-    SAI1_TX_DMASx->CR &= ~(1 << 4);     /* no TX interrupt while injecting zeros */
+    sai1_tx_dma_irq_disable();          /* no TX IRQ while injecting zeros */
 
     es8388_adda_cfg(0, 1);              /* enable ADC */
     es8388_input_cfg(0);                /* channel 1, MIC input */
@@ -109,7 +109,7 @@ void recoder_enter_rec_mode(void)
     (void)sai1_samplerate_set(REC_SAMPLERATE);
 
     sai1_tx_dma_init((uint8_t *)&SAI_PLAY_BUF[0], (uint8_t *)&SAI_PLAY_BUF[1], 1, 1);
-    SAI1_TX_DMASx->CR &= ~(1 << 4);
+    sai1_tx_dma_irq_disable();
     sai1_rx_dma_init(p_sai_recbuf1, p_sai_recbuf2, REC_SAI_RX_DMA_BUF_SIZE / 2, 1);
 
     sai_rx_callback = recoder_sai_dma_rx_callback;

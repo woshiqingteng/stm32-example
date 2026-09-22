@@ -56,6 +56,39 @@ void dcmi_init(uint16_t *buf, uint16_t width, uint16_t height)
     g_rect_h = height;
     g_line_index = 0U;
 
+    /* ---- MSP begin: DCMI clock + PA6/PB7-9/PC6-9,11/PD3/PH8 ---- */
+    {
+        GPIO_InitTypeDef gpio_init = {0};
+
+        __HAL_RCC_DCMI_CLK_ENABLE();
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+        __HAL_RCC_GPIOH_CLK_ENABLE();
+
+        gpio_init.Mode      = GPIO_MODE_AF_PP;
+        gpio_init.Pull      = GPIO_PULLUP;
+        gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+        gpio_init.Alternate = GPIO_AF13_DCMI;
+
+        gpio_init.Pin = GPIO_PIN_6;
+        HAL_GPIO_Init(GPIOA, &gpio_init);                       /* PCLK        */
+
+        gpio_init.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
+        HAL_GPIO_Init(GPIOB, &gpio_init);                       /* VSYNC, D6, D7 */
+
+        gpio_init.Pin = GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_11;
+        HAL_GPIO_Init(GPIOC, &gpio_init);                       /* D0..D4      */
+
+        gpio_init.Pin = GPIO_PIN_3;
+        HAL_GPIO_Init(GPIOD, &gpio_init);                       /* D5          */
+
+        gpio_init.Pin = GPIO_PIN_8;
+        HAL_GPIO_Init(GPIOH, &gpio_init);                       /* HREF        */
+    }
+    /* ---- MSP end ---- */
+
     g_dcmi_handle.Instance = DCMI;
     g_dcmi_handle.Init.SynchroMode      = DCMI_SYNCHRO_HARDWARE;
     g_dcmi_handle.Init.PCKPolarity      = DCMI_PCKPOLARITY_RISING;
@@ -147,6 +180,21 @@ static void dcmi_dma_start(void)
     HAL_NVIC_EnableIRQ(DCMI_DMA_IRQN);
 }
 
+/* Capture engine control; the line DMA is armed separately by dcmi_dma_start(). */
+static void dcmi_capture_enable(void)
+{
+    SET_BIT(DCMI->CR, DCMI_CR_CAPTURE);
+}
+
+static void dcmi_capture_disable(void)
+{
+    CLEAR_BIT(DCMI->CR, DCMI_CR_CAPTURE);
+
+    while (READ_BIT(DCMI->CR, DCMI_CR_CAPTURE) != 0U)
+    {
+    }
+}
+
 void dcmi_start(void)
 {
     g_line_index = 0U;
@@ -154,16 +202,12 @@ void dcmi_start(void)
     dcmi_dma_start();
 
     __HAL_DCMI_ENABLE(&g_dcmi_handle);
-    DCMI->CR |= DCMI_CR_CAPTURE;
+    dcmi_capture_enable();
 }
 
 void dcmi_stop(void)
 {
-    DCMI->CR &= ~DCMI_CR_CAPTURE;
-
-    while ((DCMI->CR & DCMI_CR_CAPTURE) != 0U)
-    {
-    }
+    dcmi_capture_disable();
 
     __HAL_DMA_DISABLE(&g_dcmi_dma_handle);
 }
@@ -251,39 +295,3 @@ void DMA2_Stream1_IRQHandler(void)
     }
 }
 
-void HAL_DCMI_MspInit(DCMI_HandleTypeDef *hdcmi)
-{
-    GPIO_InitTypeDef gpio_init = {0};
-
-    if (hdcmi->Instance != DCMI)
-    {
-        return;
-    }
-
-    __HAL_RCC_DCMI_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-    __HAL_RCC_GPIOH_CLK_ENABLE();
-
-    gpio_init.Mode      = GPIO_MODE_AF_PP;
-    gpio_init.Pull      = GPIO_PULLUP;
-    gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio_init.Alternate = GPIO_AF13_DCMI;
-
-    gpio_init.Pin = GPIO_PIN_6;
-    HAL_GPIO_Init(GPIOA, &gpio_init);                       /* PCLK        */
-
-    gpio_init.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
-    HAL_GPIO_Init(GPIOB, &gpio_init);                       /* VSYNC, D6, D7 */
-
-    gpio_init.Pin = GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOC, &gpio_init);                       /* D0..D4      */
-
-    gpio_init.Pin = GPIO_PIN_3;
-    HAL_GPIO_Init(GPIOD, &gpio_init);                       /* D5          */
-
-    gpio_init.Pin = GPIO_PIN_8;
-    HAL_GPIO_Init(GPIOH, &gpio_init);                       /* HREF        */
-}

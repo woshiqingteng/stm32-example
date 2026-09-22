@@ -38,7 +38,6 @@ int main(void)
             led_on(LED1);
 
             pwr_enter_sleep();
-            HAL_ResumeTick();
 
             led_off(LED1);
             if (g_wake_cause == SLEEP_WAKE_WKUP)

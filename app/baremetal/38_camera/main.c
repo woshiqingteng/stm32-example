@@ -83,7 +83,7 @@ int main(void)
     (void)ov5640_focus_init();
     (void)ov5640_focus_constant();
 
-    dcmi_init((uint16_t *)LTDC_FRAME_BUF_ADDR, lcddev.width, lcddev.height);
+    dcmi_init((uint16_t *)LTDC_FRAME_BUF_ADDR, lcd_get_width(), lcd_get_height());
     dcmi_config(0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
     dcmi_register_frame_callback(cam_frame_cb);
 

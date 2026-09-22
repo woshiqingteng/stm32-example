@@ -47,11 +47,11 @@ int main(void)
     }
     else
     {
-        uint32_t size_mb = ((uint32_t)nand_dev.block_totalnum / 1024U) *
-                           ((uint32_t)nand_dev.page_mainsize / 1024U) *
-                           (uint32_t)nand_dev.block_pagenum;
+        nand_info_t info;
 
-        sprintf(line, "ID:%08lX Size:%luMB", (unsigned long)nand_dev.id, (unsigned long)size_mb);
+        nand_get_info(&info);
+
+        sprintf(line, "ID:%08lX Size:%luMB", (unsigned long)info.id, (unsigned long)info.size_mb);
         lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);
 

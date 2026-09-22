@@ -50,6 +50,11 @@ uint8_t pcf8574_read_byte(void)
     return temp;
 }
 
+bool pcf8574_int_asserted(void)
+{
+    return (PCF8574_INT == GPIO_PIN_RESET) ? true : false;
+}
+
 void pcf8574_write_byte(uint8_t data)
 {
     iic_start();

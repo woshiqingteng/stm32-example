@@ -172,10 +172,16 @@ uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times)
     return sum / times;
 }
 
+/* Enable the internal temperature sensor and the VREFINT channel. */
+static void adc_enable_temp_sensor(void)
+{
+    SET_BIT(ADC->CCR, ADC_CCR_TSVREFE);
+}
+
 void adc_temp_init(void)
 {
     adc_init();
-    ADC->CCR |= ADC_CCR_TSVREFE;
+    adc_enable_temp_sensor();
 }
 
 int16_t adc_get_temperature(void)
@@ -240,8 +246,7 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
     g_adc_dma_stream.Init.Priority            = DMA_PRIORITY_MEDIUM;
     HAL_DMA_Init(&g_adc_dma_stream);
 
-    g_adc_dma_stream.Parent = hadc;
-    hadc->DMA_Handle        = &g_adc_dma_stream;
+    __HAL_LINKDMA(hadc, DMA_Handle, g_adc_dma_stream);
 
     adc_instance_config(hadc, ops->scan, ops->conversions, ENABLE, ENABLE);
     ops->apply_channels(hadc);

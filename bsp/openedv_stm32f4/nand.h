@@ -78,6 +78,19 @@ typedef struct
 extern NAND_HandleTypeDef g_nand_handle;
 extern nand_attriute      nand_dev;
 
+/** @brief  NAND geometry exposed to applications (no vendor types). */
+typedef struct
+{
+    uint32_t id;              /* device ID */
+    uint32_t size_mb;         /* total capacity, in MB */
+    uint16_t page_mainsize;   /* main area bytes per page */
+    uint16_t block_pagenum;   /* pages per block */
+    uint16_t block_totalnum;  /* total blocks */
+} nand_info_t;
+
+/** @brief  Copy the geometry of the initialised device into @p info. */
+void     nand_get_info(nand_info_t *info);
+
 uint8_t  nand_init(void);
 uint8_t  nand_modeset(uint8_t mode);
 uint32_t nand_readid(void);

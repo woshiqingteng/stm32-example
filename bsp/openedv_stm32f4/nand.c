@@ -207,6 +207,22 @@ uint8_t nand_init(void)
     return 0U;
 }
 
+void nand_get_info(nand_info_t *info)
+{
+    if (info == 0)
+    {
+        return;
+    }
+
+    info->id              = nand_dev.id;
+    info->page_mainsize   = nand_dev.page_mainsize;
+    info->block_pagenum   = nand_dev.block_pagenum;
+    info->block_totalnum  = nand_dev.block_totalnum;
+    info->size_mb         = ((uint32_t)nand_dev.block_totalnum / 1024U) *
+                            ((uint32_t)nand_dev.page_mainsize / 1024U) *
+                            (uint32_t)nand_dev.block_pagenum;
+}
+
 uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_read)
 {
     volatile uint16_t i;

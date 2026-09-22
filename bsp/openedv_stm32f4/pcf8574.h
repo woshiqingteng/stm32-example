@@ -10,6 +10,7 @@
 #define BSP_PCF8574_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 
 #define PCF8574_GPIO_PORT   GPIOB
@@ -36,6 +37,9 @@ uint8_t pcf8574_init(void);
 
 uint8_t pcf8574_read_byte(void);
 void    pcf8574_write_byte(uint8_t data);
+
+/** @brief  True when the active-low INT output is asserted. */
+bool    pcf8574_int_asserted(void);
 
 void    pcf8574_write_bit(uint8_t bit, uint8_t sta);
 uint8_t pcf8574_read_bit(uint8_t bit);

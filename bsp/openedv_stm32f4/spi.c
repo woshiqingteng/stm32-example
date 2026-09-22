@@ -21,7 +21,6 @@
 
 #define SPI_DUMMY_BYTE      0xFFU
 #define SPI_TIMEOUT_MS      1000U
-#define SPI_CR1_BR_MASK     0xFFC7U
 
 static SPI_HandleTypeDef g_spi5_handle;
 static SPI_HandleTypeDef g_spi2_handle;
@@ -89,13 +88,18 @@ void spi_init(spi_bus_t bus)
     (void)spi_read_write_byte(bus, SPI_DUMMY_BYTE); /* flush the shift register */
 }
 
+/* Baud-rate prescaler lives in CR1[5:3]; keep every other CR1 bit. */
+static void spi_baudrate_set(SPI_HandleTypeDef *hspi, uint8_t prescaler)
+{
+    MODIFY_REG(hspi->Instance->CR1, SPI_CR1_BR, prescaler);
+}
+
 void spi_set_speed(spi_bus_t bus, uint8_t prescaler)
 {
     SPI_HandleTypeDef *hspi = spi_handle(bus);
 
     __HAL_SPI_DISABLE(hspi);
-    hspi->Instance->CR1 &= SPI_CR1_BR_MASK;
-    hspi->Instance->CR1 |= prescaler;
+    spi_baudrate_set(hspi, prescaler);
     __HAL_SPI_ENABLE(hspi);
 }
 
