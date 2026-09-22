@@ -20,4 +20,7 @@ void led_on(led_id_t id);
 void led_off(led_id_t id);
 void led_toggle(led_id_t id);
 
+/** @brief  Release an LED pin into a floating input (e.g. to observe a jumper). */
+void led_set_input(led_id_t id);
+
 #endif /* BSP_LED_H */

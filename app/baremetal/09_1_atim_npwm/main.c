@@ -4,7 +4,6 @@
  *          PB0 is set to input so PC6 can be jumpered to LED1 (PB0).
  */
 
-#include "stm32f4xx_hal.h"
 #include "bsp.h"
 
 #define ATIM_NPWM_ARR     10000U
@@ -14,15 +13,10 @@
 
 int main(void)
 {
-    GPIO_InitTypeDef gpio_init = {0};
-
     bsp_init();
 
     /* Free PB0 (LED1) and use it as the pulse observation input. */
-    gpio_init.Pin  = GPIO_PIN_0;
-    gpio_init.Mode = GPIO_MODE_INPUT;
-    gpio_init.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &gpio_init);
+    led_set_input(LED1);
 
     atim_timx_npwm_chy_init(ATIM_NPWM_ARR - 1U, ATIM_NPWM_PSC - 1U);
     atim_timx_npwm_chy_set(ATIM_NPWM_PULSES);

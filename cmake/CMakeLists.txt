@@ -1,3 +1,5 @@
+# Configuration hub: board selection, app parsing and shared helpers.
+
 if(NOT BOARD)
     message(FATAL_ERROR "BOARD not set")
 endif()

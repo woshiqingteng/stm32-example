@@ -188,9 +188,26 @@ void atim_timx_comp_pwm_init(uint16_t arr, uint16_t psc)
     HAL_TIM_OC_Start(&g_atim_comp_handle, TIM_CHANNEL_4);
 }
 
-void atim_timx_comp_pwm_set(uint32_t channel, uint16_t ccr)
+static uint32_t atim_channel_hal(atim_channel_t channel)
 {
-    __HAL_TIM_SET_COMPARE(&g_atim_comp_handle, channel, ccr);
+    switch (channel)
+    {
+        case ATIM_CH1:
+            return TIM_CHANNEL_1;
+        case ATIM_CH2:
+            return TIM_CHANNEL_2;
+        case ATIM_CH3:
+            return TIM_CHANNEL_3;
+        case ATIM_CH4:
+            return TIM_CHANNEL_4;
+        default:
+            return TIM_CHANNEL_1;
+    }
+}
+
+void atim_timx_comp_pwm_set(atim_channel_t channel, uint16_t ccr)
+{
+    __HAL_TIM_SET_COMPARE(&g_atim_comp_handle, atim_channel_hal(channel), ccr);
 }
 
 /* ============ TIM1 complementary PWM + dead time (PE9/PE8/PE15) ============ */

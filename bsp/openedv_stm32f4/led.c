@@ -75,3 +75,25 @@ void led_toggle(led_id_t id)
             break;
     }
 }
+
+void led_set_input(led_id_t id)
+{
+    GPIO_InitTypeDef gpio_init = {0};
+
+    gpio_init.Mode = GPIO_MODE_INPUT;
+    gpio_init.Pull = GPIO_NOPULL;
+
+    switch (id)
+    {
+        case LED0:
+            gpio_init.Pin = LED0_GPIO_PIN;
+            HAL_GPIO_Init(LED0_GPIO_PORT, &gpio_init);
+            break;
+        case LED1:
+            gpio_init.Pin = LED1_GPIO_PIN;
+            HAL_GPIO_Init(LED1_GPIO_PORT, &gpio_init);
+            break;
+        default:
+            break;
+    }
+}
