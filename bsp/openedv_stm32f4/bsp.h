@@ -48,6 +48,8 @@
 #include "dcmi.h"
 #include "ov5640.h"
 #include "timer.h"
+#include "es8388.h"
+#include "sai.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);

@@ -7,6 +7,8 @@ add_subdirectory(usmart)
 add_subdirectory(malloc)
 add_subdirectory(text)
 add_subdirectory(picture)
+add_subdirectory(audio)
+add_subdirectory(mjpeg)
 
 # lib_resolve(<libs-out> <hal-out> <bsp-out> <lib sources...>): map the given
 # LIB source lists to their library targets plus the HAL/BSP sources the
