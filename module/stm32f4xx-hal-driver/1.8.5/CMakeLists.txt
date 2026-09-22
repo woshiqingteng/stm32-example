@@ -30,4 +30,4 @@ set(HAL_SRC_FMC     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_ll_fmc.c CACHE INT
 add_library(stm32f4xx_hal STATIC)
 
 target_include_directories(stm32f4xx_hal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
-target_link_libraries(stm32f4xx_hal PRIVATE target_stm32f4 cmsis_core)
+target_link_libraries(stm32f4xx_hal PRIVATE ${TARGET_LIB} cmsis_core)

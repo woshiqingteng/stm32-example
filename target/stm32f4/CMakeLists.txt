@@ -1,24 +1,24 @@
-add_library(target_stm32f4 STATIC
-    startup_stm32f429ig.c
-    vector_stm32f429ig.c
-    stm32f4xx_it.c
-    system_stm32f4xx.c
+add_library(${TARGET_LIB} STATIC
+    ${STM32_STARTUP_SRC}
+    ${STM32_VECTOR_SRC}
+    ${STM32_IT_SRC}
+    ${STM32_SYSTEM_SRC}
 )
 
-target_compile_options(target_stm32f4 PUBLIC ${MCU_ARCH})
-target_link_options(target_stm32f4 PUBLIC ${MCU_ARCH})
+target_compile_options(${TARGET_LIB} PUBLIC ${MCU_ARCH})
+target_link_options(${TARGET_LIB} PUBLIC ${MCU_ARCH})
 
-target_include_directories(target_stm32f4
+target_include_directories(${TARGET_LIB}
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_compile_definitions(target_stm32f4 PUBLIC ${STM32_DEVICE_MACRO})
-target_link_libraries(target_stm32f4 PUBLIC cmsis_core)
+target_compile_definitions(${TARGET_LIB} PUBLIC ${STM32_DEVICE_MACRO})
+target_link_libraries(${TARGET_LIB} PUBLIC cmsis_core)
 
 set(MCU_LD flash CACHE STRING "Linker script variant (flash|ram)")
 set_property(CACHE MCU_LD PROPERTY STRINGS flash ram)
 if(MCU_LD STREQUAL "ram")
-    target_link_options(target_stm32f4 INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/stm32f429ig_ram.ld")
+    target_link_options(${TARGET_LIB} INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/${STM32_LD_RAM}")
 else()
-    target_link_options(target_stm32f4 INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/stm32f429ig_flash.ld")
+    target_link_options(${TARGET_LIB} INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/${STM32_LD_FLASH}")
 endif()
