@@ -1,1 +1,1 @@
-add_baremetal_app(14_ltdc SOURCES main.c HAL ${HAL_SRC_FMC} ${HAL_SRC_SDRAM} ${HAL_SRC_LTDC} ${HAL_SRC_DMA2D} BSP ${BSP_SRC_SDRAM} ${BSP_SRC_LCD})
+add_baremetal_app(14_ltdc SOURCES main.c BSP ${BSP_SRC_SDRAM} ${BSP_SRC_LCD})

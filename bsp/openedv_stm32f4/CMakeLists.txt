@@ -1,13 +1,20 @@
+# Board support package component registry.
+#
+# Each component declares its sources (BSP_SRC_<name>) and the HAL sources it
+# needs (BSP_SRC_<name>_HAL). Applications only list the BSP/LIB components they
+# use; the corresponding HAL sources are resolved automatically (see
+# bsp_resolve_hal), so app CMakeLists no longer mention HAL at all.
+
 set(BSP_SRC_BSP    ${CMAKE_CURRENT_SOURCE_DIR}/bsp.c CACHE INTERNAL "")
 set(BSP_SRC_SYS    ${CMAKE_CURRENT_SOURCE_DIR}/sys.c CACHE INTERNAL "")
 set(BSP_SRC_DELAY  ${CMAKE_CURRENT_SOURCE_DIR}/delay.c CACHE INTERNAL "")
-set(BSP_SRC_USART  ${CMAKE_CURRENT_SOURCE_DIR}/usart.c CACHE INTERNAL "")
+set(BSP_SRC_USART  ${CMAKE_CURRENT_SOURCE_DIR}/usart.c
+                   ${CMAKE_CURRENT_SOURCE_DIR}/usart_dma.c CACHE INTERNAL "")
 set(BSP_SRC_LED    ${CMAKE_CURRENT_SOURCE_DIR}/led.c CACHE INTERNAL "")
 set(BSP_SRC_KEY    ${CMAKE_CURRENT_SOURCE_DIR}/key.c CACHE INTERNAL "")
+
 set(BSP_SRC_EXTI   ${CMAKE_CURRENT_SOURCE_DIR}/exti.c CACHE INTERNAL "")
-
 set(BSP_SRC_ADC    ${CMAKE_CURRENT_SOURCE_DIR}/adc.c CACHE INTERNAL "")
-
 set(BSP_SRC_WDG    ${CMAKE_CURRENT_SOURCE_DIR}/wdg.c CACHE INTERNAL "")
 set(BSP_SRC_TIM    ${CMAKE_CURRENT_SOURCE_DIR}/btim.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/gtim.c
@@ -20,10 +27,44 @@ set(BSP_SRC_OLED   ${CMAKE_CURRENT_SOURCE_DIR}/oled.c CACHE INTERNAL "")
 set(BSP_SRC_RTC    ${CMAKE_CURRENT_SOURCE_DIR}/rtc.c CACHE INTERNAL "")
 set(BSP_SRC_RNG    ${CMAKE_CURRENT_SOURCE_DIR}/rng.c CACHE INTERNAL "")
 set(BSP_SRC_PWR    ${CMAKE_CURRENT_SOURCE_DIR}/pwr.c CACHE INTERNAL "")
+
 set(BSP_SRC_USMART ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_str.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_port.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/usmart/usmart_config.c CACHE INTERNAL "")
+
+# Component -> HAL mapping.
+set(BSP_SRC_ADC_HAL    ${HAL_SRC_ADC}  CACHE INTERNAL "")
+set(BSP_SRC_WDG_HAL    ${HAL_SRC_WDG}  CACHE INTERNAL "")
+set(BSP_SRC_TIM_HAL    ${HAL_SRC_TIM}  CACHE INTERNAL "")
+set(BSP_SRC_TPAD_HAL   ${HAL_SRC_TIM}  CACHE INTERNAL "")
+set(BSP_SRC_SDRAM_HAL  ${HAL_SRC_FMC} ${HAL_SRC_SDRAM} CACHE INTERNAL "")
+set(BSP_SRC_LCD_HAL    ${HAL_SRC_LTDC} ${HAL_SRC_DMA2D} CACHE INTERNAL "")
+set(BSP_SRC_RTC_HAL    ${HAL_SRC_RTC}  CACHE INTERNAL "")
+set(BSP_SRC_RNG_HAL    ${HAL_SRC_RNG}  CACHE INTERNAL "")
+set(BSP_SRC_USMART_HAL ${HAL_SRC_TIM}  CACHE INTERNAL "")
+
+set(BSP_COMPONENTS EXTI ADC WDG TIM TPAD SDRAM LCD OLED RTC RNG PWR USMART
+    CACHE INTERNAL "")
+
+# bsp_resolve_hal(<out-var> <bsp sources...>): union the HAL sources required by
+# every component whose full source set appears in the given list.
+function(bsp_resolve_hal out)
+    set(_acc "")
+    foreach(_comp ${BSP_COMPONENTS})
+        set(_match TRUE)
+        foreach(_f ${BSP_SRC_${_comp}})
+            if(NOT (_f IN_LIST ARGN))
+                set(_match FALSE)
+            endif()
+        endforeach()
+        if(_match)
+            list(APPEND _acc ${BSP_SRC_${_comp}_HAL})
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES _acc)
+    set(${out} ${_acc} PARENT_SCOPE)
+endfunction()
 
 add_library(bsp STATIC)
 

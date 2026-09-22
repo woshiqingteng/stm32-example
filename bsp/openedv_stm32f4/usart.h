@@ -7,6 +7,7 @@
 #define BSP_USART_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 
 #define USART_REC_LEN 200U
@@ -34,5 +35,14 @@ usart_rx_state_t usart_rx_state(void);
 uint16_t usart_rx_len(void);
 const uint8_t *usart_rx_buf(void);
 void usart_rx_clear(void);
+
+/** @brief  Initialise USART1 TX over DMA2 Stream7 / channel 4. */
+void usart_tx_dma_init(void);
+
+/** @brief  True while a DMA transfer is in progress. */
+bool usart_tx_dma_busy(void);
+
+/** @brief  Start a DMA transmit; returns false if the USART is still busy. */
+bool usart_tx_dma(const uint8_t *data, uint16_t len);
 
 #endif /* BSP_USART_H */

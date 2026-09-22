@@ -1,6 +1,6 @@
 /**
  * @file    main.c
- * @brief   19_dma: USART1 TX over DMA2 Stream7 / channel 4.
+ * @brief   19_dma: USART1 TX over DMA (facade: bsp/usart_dma).
  *
  * KEY0 starts a ~6 KB transfer. The buffer is sent in chunks so that progress
  * can be reported over the same USART between DMA transfers (printing while the
@@ -13,75 +13,13 @@
 #define DMA_TX_BUF_SIZE       (6U * 1024U)
 #define DMA_TX_CHUNK          1024U
 
-#define DMA_TX_STREAM         DMA2_Stream7
-#define DMA_TX_CHANNEL        DMA_CHANNEL_4
-#define DMA_TX_IRQn           DMA2_Stream7_IRQn
-#define DMA_TX_NVIC_PREEMP    3U
-#define DMA_TX_NVIC_SUB       3U
-
 #define DMA_TX_LINE_TERM_LEN  1U
 #define DMA_TX_PROGRESS_SCALE 100U
 #define DMA_TX_POLL_DELAY_MS  1U
 #define DMA_TX_LOOP_DELAY_MS  100U
 
-typedef enum
-{
-    DMA_TX_STATE_IDLE = 0,
-    DMA_TX_STATE_BUSY,
-} dma_tx_state_t;
-
 static const char DMA_TX_LINE[] = "STM32F429 USART1 TX DMA demo - 0123456789\r\n";
 static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE];
-
-static DMA_HandleTypeDef g_dma_tx;
-
-static void dma_tx_init(void)
-{
-    /* ---- MSP begin: DMA2 clock + NVIC ---- */
-    __HAL_RCC_DMA2_CLK_ENABLE();
-    HAL_NVIC_SetPriority(DMA_TX_IRQn, DMA_TX_NVIC_PREEMP, DMA_TX_NVIC_SUB);
-    HAL_NVIC_EnableIRQ(DMA_TX_IRQn);
-    /* ---- MSP end ---- */
-
-    __HAL_LINKDMA(&g_uart1_handle, hdmatx, g_dma_tx);
-
-    g_dma_tx.Instance                 = DMA_TX_STREAM;
-    g_dma_tx.Init.Channel             = DMA_TX_CHANNEL;
-    g_dma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-    g_dma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
-    g_dma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-    g_dma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    g_dma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-    g_dma_tx.Init.Mode                = DMA_NORMAL;
-    g_dma_tx.Init.Priority            = DMA_PRIORITY_MEDIUM;
-    g_dma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
-    g_dma_tx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
-    g_dma_tx.Init.MemBurst            = DMA_MBURST_SINGLE;
-    g_dma_tx.Init.PeriphBurst         = DMA_PBURST_SINGLE;
-
-    HAL_DMA_DeInit(&g_dma_tx);
-    (void)HAL_DMA_Init(&g_dma_tx);
-}
-
-static dma_tx_state_t dma_tx_state(void)
-{
-    return (g_uart1_handle.gState == HAL_UART_STATE_READY) ? DMA_TX_STATE_IDLE
-                                                           : DMA_TX_STATE_BUSY;
-}
-
-static void dma_tx(const uint8_t *data, uint16_t len)
-{
-    if (dma_tx_state() != DMA_TX_STATE_IDLE)
-    {
-        return;
-    }
-    (void)HAL_UART_Transmit_DMA(&g_uart1_handle, data, len);
-}
-
-void DMA2_Stream7_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(&g_dma_tx);
-}
 
 static uint16_t dma_fill_buffer(void)
 {
@@ -106,7 +44,7 @@ int main(void)
     uint16_t len;
 
     bsp_init();
-    dma_tx_init();
+    usart_tx_dma_init();
     len = dma_fill_buffer();
 
     printf("19_dma ready: %u bytes buffered, press KEY0 to send\r\n", (unsigned)len);
@@ -128,8 +66,8 @@ int main(void)
                     chunk = DMA_TX_CHUNK;
                 }
 
-                dma_tx(&g_tx_buf[offset], chunk);
-                while (dma_tx_state() == DMA_TX_STATE_BUSY)
+                (void)usart_tx_dma(&g_tx_buf[offset], chunk);
+                while (usart_tx_dma_busy())
                 {
                     led_toggle(LED0);
                     delay_ms(DMA_TX_POLL_DELAY_MS);
