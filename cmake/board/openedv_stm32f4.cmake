@@ -31,4 +31,18 @@ set(STM32_LD_RAM      stm32f429ig_ram.ld     CACHE INTERNAL "" FORCE)
 # --- board support package ---
 set(BSP_BOARD_DIR openedv_stm32f4 CACHE INTERNAL "" FORCE)
 
+# The board manifest is the single source of truth: it must define the full
+# chip/HAL/BSP/target selection so the lower layers stay board-agnostic.
+foreach(_v
+        BOARD CPU STM32_SERIES STM32_PART STM32_DEVICE_MACRO
+        HAL_MODULE_DIR STM32_TARGET_DIR BSP_BOARD_DIR TARGET_LIB)
+    if(NOT ${_v})
+        message(FATAL_ERROR "BOARD '${BOARD}': manifest variable '${_v}' not set")
+    endif()
+endforeach()
+
+message(STATUS "Board     : ${BOARD}")
 message(STATUS "Chip      : ${STM32_PART} (${STM32_DEVICE_MACRO})")
+message(STATUS "HAL       : module/${HAL_MODULE_DIR}/${HAL_MODULE_VERSION}")
+message(STATUS "BSP       : bsp/${BSP_BOARD_DIR}")
+message(STATUS "Target    : target/${STM32_TARGET_DIR}")

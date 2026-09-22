@@ -14,7 +14,7 @@ set(MODULE_USB_HOST_ENABLE   ON  CACHE BOOL "Enable the ST USB host stack")
 
 set(MODULE_CMSIS_CORE_VERSION 6.1.0  CACHE STRING "cmsis_core version")
 set(MODULE_CMSIS_DSP_VERSION  1.17.1 CACHE STRING "cmsis_dsp version")
-set(MODULE_FATFS_VERSION      R0.16  CACHE STRING "fatfs_core version")
+set(MODULE_FATFS_VERSION      r0.16  CACHE STRING "fatfs_core version")
 set(MODULE_LIBJPEG_VERSION    8d     CACHE STRING "libjpeg version")
 set(MODULE_HELIX_MP3_VERSION  1.0    CACHE STRING "helix_mp3 version")
 set(MODULE_USB_DEVICE_VERSION 2.11.4 CACHE STRING "usb_device version")
