@@ -45,6 +45,9 @@
 #include "sdio.h"
 #include "sram.h"
 #include "nand.h"
+#include "dcmi.h"
+#include "ov5640.h"
+#include "timer.h"
 
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
