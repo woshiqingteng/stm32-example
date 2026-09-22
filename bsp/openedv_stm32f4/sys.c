@@ -13,7 +13,7 @@
 
 /* This HAL release has no public NVIC vector-table setter, so the CMSIS SCB
  * access is wrapped here. */
-static void sys_set_vector_table(uint32_t vector_table)
+void sys_set_vector_table(uint32_t vector_table)
 {
     SCB->VTOR = vector_table;
 }

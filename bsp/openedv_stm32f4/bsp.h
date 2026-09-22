@@ -24,6 +24,7 @@
 #include "rtc.h"
 #include "rng.h"
 #include "pwr.h"
+#include "iap.h"
 #include "sdram.h"
 #include "lcd.h"
 #include "oled.h"

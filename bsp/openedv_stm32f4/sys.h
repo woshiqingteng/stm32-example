@@ -46,6 +46,9 @@ HAL_StatusTypeDef sys_clk_reconfig(uint32_t plln, uint32_t pllm, uint32_t pllp, 
 /** @brief  Get the current HCLK frequency in Hz. */
 uint32_t sys_clk_get_hz(void);
 
+/** @brief  Set the vector table base (SCB->VTOR), e.g. for an IAP application. */
+void sys_set_vector_table(uint32_t vector_table);
+
 /** @brief  Disable all interrupts (PRIMASK). Non-nesting; keep the window short. */
 void sys_intx_disable(void);
 

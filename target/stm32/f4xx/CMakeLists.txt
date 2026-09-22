@@ -19,10 +19,3 @@ target_compile_definitions(${TARGET_LIB} PUBLIC
 )
 target_link_libraries(${TARGET_LIB} PUBLIC cmsis_core)
 
-set(MCU_LD flash CACHE STRING "Linker script variant (flash|ram)")
-set_property(CACHE MCU_LD PROPERTY STRINGS flash ram)
-if(MCU_LD STREQUAL "ram")
-    target_link_options(${TARGET_LIB} INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/${STM32_LD_RAM}")
-else()
-    target_link_options(${TARGET_LIB} INTERFACE "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/${STM32_LD_FLASH}")
-endif()
