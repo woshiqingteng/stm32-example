@@ -12,7 +12,7 @@
 #include "exfuns.h"
 #include "text.h"
 #include "malloc.h"
-#include "audio.h"
+#include "wavplay.h"
 #include "recorder.h"
 
 #define DRIVE       "0:"

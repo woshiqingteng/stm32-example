@@ -12,7 +12,7 @@
 #include "exfuns.h"
 #include "text.h"
 #include "malloc.h"
-#include "audio.h"
+#include "audioplay.h"
 
 #define DRIVE       "0:"
 #define TEXT_X      30U
@@ -82,7 +82,7 @@ int main(void)
         {
             printf("SD mounted\r\n");
             app_font_prepare();
-            audio_play();
+            audioplay_play();
         }
     }
 

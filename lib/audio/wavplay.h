@@ -7,7 +7,22 @@
 #define LIB_AUDIO_WAVPLAY_H
 
 #include <stdint.h>
-#include "audio.h"
+
+/** @brief  Playback DMA half-buffer size (bytes). 8192 avoids drop-outs at
+ *  192 kbps / 24-bit. */
+#define AUDIO_SAI_TX_BUF_SIZE 8192U
+
+/** @brief  Player navigation result codes (kept out of the FRESULT range). */
+typedef enum
+{
+    AUDIO_STOP  = 0,      /*!< stop / finished       */
+    AUDIO_NEXT  = 1,      /*!< KEY0: next track      */
+    AUDIO_PREV  = 2,      /*!< KEY2: previous track  */
+    AUDIO_ERROR = 0xFF,   /*!< playback error        */
+} audio_nav_t;
+
+/** @brief  Configure the codec for DAC playback and set a default volume. */
+void audio_hw_init(void);
 
 /** @brief  WAV header decode result codes. */
 typedef enum

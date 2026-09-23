@@ -1,6 +1,6 @@
 /**
  * @file    jpeg_dec.h
- * @brief   JPEG decode / encode helpers built on the LibJPEG module.
+ * @brief   JPEG decode (TJpgDec) / encode (LibJPEG) helpers.
  */
 
 #ifndef LIB_PICTURE_JPEG_DEC_H

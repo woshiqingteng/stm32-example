@@ -8,13 +8,103 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "bsp.h"
 #include "ff.h"
 #include "malloc.h"
-#include "audio.h"
+#include "text.h"
 #include "wavplay.h"
 
+/* Self-contained playback device: ES8388 + SAI double-buffered TX path. */
+typedef struct
+{
+    uint8_t *saibuf1;       /* SAI TX half-buffer 1 */
+    uint8_t *saibuf2;       /* SAI TX half-buffer 2 */
+    uint8_t *tbuf;          /* scratch buffer (24-bit WAV repacking) */
+    void    *file;          /* file being played (FatFs FIL *) */
+    uint8_t  status;        /* bit0: 0 paused, 1 playing; bit1: 0 stopped, 1 running */
+} audio_dev_t;
+
+static audio_dev_t   s_dev;
+static volatile bool s_transfer_end;    /* true when a half-buffer finished */
+static volatile bool s_witch_buf;       /* false: buf1 served, true: buf2 served */
+
 __wavctrl wavctrl;      /* parsed WAV control block */
+
+void audio_hw_init(void)
+{
+    es8388_init();
+    es8388_adda_cfg(1, 0);      /* enable DAC, disable ADC */
+    es8388_output_cfg(1, 1);    /* enable output channels 1 and 2 */
+    es8388_hpvol_set(25);
+    es8388_spkvol_set(25);
+}
+
+static void audio_start(void)
+{
+    s_dev.status = 3 << 0;      /* running + playing */
+    sai1_play_start();
+}
+
+static void audio_stop(void)
+{
+    s_dev.status = 0;
+    sai1_play_stop();
+}
+
+static void audio_sai_tx_callback(void)
+{
+    uint16_t i;
+
+    if (sai1_tx_dma_target() != 0U)
+    {
+        s_witch_buf = false;
+
+        if ((s_dev.status & 0x01) == 0)     /* paused: silence buf1 */
+        {
+            for (i = 0; i < AUDIO_SAI_TX_BUF_SIZE; i++)
+            {
+                s_dev.saibuf1[i] = 0;
+            }
+        }
+    }
+    else
+    {
+        s_witch_buf = true;
+
+        if ((s_dev.status & 0x01) == 0)     /* paused: silence buf2 */
+        {
+            for (i = 0; i < AUDIO_SAI_TX_BUF_SIZE; i++)
+            {
+                s_dev.saibuf2[i] = 0;
+            }
+        }
+    }
+
+    s_transfer_end = true;
+}
+
+static void audio_msg_show(uint32_t totsec, uint32_t cursec, uint32_t bitrate)
+{
+    static uint16_t playtime = 0xFFFF;
+
+    if (playtime != cursec)
+    {
+        playtime = (uint16_t)cursec;
+
+        lcd_show_num(30, 210, playtime / 60, 2, LCD_FONT_SIZE_16, RED);
+        lcd_show_char(30 + 16, 210, ':', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
+        lcd_show_num(30 + 24, 210, playtime % 60, 2, LCD_FONT_SIZE_16, RED);
+        lcd_show_char(30 + 40, 210, '/', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
+
+        lcd_show_num(30 + 48, 210, totsec / 60, 2, LCD_FONT_SIZE_16, RED);
+        lcd_show_char(30 + 64, 210, ':', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
+        lcd_show_num(30 + 72, 210, totsec % 60, 2, LCD_FONT_SIZE_16, RED);
+
+        lcd_show_num(30 + 110, 210, bitrate / 1000, 4, LCD_FONT_SIZE_16, RED);
+        lcd_show_string(30 + 110 + 32, 210, 200, 16, LCD_FONT_SIZE_16, "Kbps", RED);
+    }
+}
 
 wav_status_t wav_decode_init(char *fname, __wavctrl *wavx)
 {
@@ -111,12 +201,12 @@ uint32_t wav_buffill(uint8_t *buf, uint16_t size, uint8_t bits)
         uint32_t *pbuf;
 
         readlen = (uint16_t)((size / 4) * 3);
-        (void)f_read(g_audiodev.file, g_audiodev.tbuf, readlen, (UINT *)&bread);
+        (void)f_read(s_dev.file, s_dev.tbuf, readlen, (UINT *)&bread);
         pbuf = (uint32_t *)buf;
 
         for (i = 0; i < (size / 4); i++)
         {
-            const uint8_t *b = g_audiodev.tbuf + (i * 3);
+            const uint8_t *b = s_dev.tbuf + (i * 3);
 
             pbuf[i] = (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16);
         }
@@ -125,7 +215,7 @@ uint32_t wav_buffill(uint8_t *buf, uint16_t size, uint8_t bits)
     }
     else
     {
-        (void)f_read(g_audiodev.file, buf, size, (UINT *)&bread);
+        (void)f_read(s_dev.file, buf, size, (UINT *)&bread);
 
         if (bread < size)           /* pad the tail with silence */
         {
@@ -157,13 +247,13 @@ audio_nav_t wav_play_song(char *fname)
     uint8_t  quit;
     uint32_t fillnum;
 
-    g_audiodev.file = (FIL *)mymalloc(SRAMIN, sizeof(FIL));
-    g_audiodev.saibuf1 = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
-    g_audiodev.saibuf2 = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
-    g_audiodev.tbuf = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
+    s_dev.file = (FIL *)mymalloc(SRAMIN, sizeof(FIL));
+    s_dev.saibuf1 = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
+    s_dev.saibuf2 = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
+    s_dev.tbuf = mymalloc(SRAMIN, AUDIO_SAI_TX_BUF_SIZE);
 
-    if ((g_audiodev.file == NULL) || (g_audiodev.saibuf1 == NULL) ||
-        (g_audiodev.saibuf2 == NULL) || (g_audiodev.tbuf == NULL))
+    if ((s_dev.file == NULL) || (s_dev.saibuf1 == NULL) ||
+        (s_dev.saibuf2 == NULL) || (s_dev.tbuf == NULL))
     {
         res = AUDIO_ERROR;
     }
@@ -175,13 +265,13 @@ audio_nav_t wav_play_song(char *fname)
     {
         es8388_sai_cfg(0, 3);           /* standard I2S, 16-bit */
         sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
-        sai1_tx_dma_init(g_audiodev.saibuf1, g_audiodev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 2, 1);
+        sai1_tx_dma_init(s_dev.saibuf1, s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 2, 1);
     }
     else if (wavctrl.bps == 24)
     {
         es8388_sai_cfg(0, 0);           /* standard I2S, 24-bit */
         sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_24);
-        sai1_tx_dma_init(g_audiodev.saibuf1, g_audiodev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 4, 2);
+        sai1_tx_dma_init(s_dev.saibuf1, s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 4, 2);
     }
     else
     {
@@ -194,7 +284,7 @@ audio_nav_t wav_play_song(char *fname)
         sai_tx_callback = audio_sai_tx_callback;
         audio_stop();
 
-        fres = f_open(g_audiodev.file, (TCHAR *)fname, FA_READ);
+        fres = f_open(s_dev.file, (TCHAR *)fname, FA_READ);
 
         if (fres != FR_OK)
         {
@@ -202,18 +292,18 @@ audio_nav_t wav_play_song(char *fname)
         }
         else
         {
-            (void)f_lseek(g_audiodev.file, wavctrl.datastart);
-            fillnum = wav_buffill(g_audiodev.saibuf1, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
-            fillnum = wav_buffill(g_audiodev.saibuf2, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
+            (void)f_lseek(s_dev.file, wavctrl.datastart);
+            fillnum = wav_buffill(s_dev.saibuf1, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
+            fillnum = wav_buffill(s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
             audio_start();
 
             for (;;)
             {
-                while (!audio_transfer_end)
+                while (!s_transfer_end)
                 {
                     /* wait for a half-buffer to finish */
                 }
-                audio_transfer_end = false;
+                s_transfer_end = false;
 
                 if (fillnum != AUDIO_SAI_TX_BUF_SIZE)   /* end of stream */
                 {
@@ -221,13 +311,13 @@ audio_nav_t wav_play_song(char *fname)
                     break;
                 }
 
-                if (audio_witch_buf)
+                if (s_witch_buf)
                 {
-                    fillnum = wav_buffill(g_audiodev.saibuf2, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
+                    fillnum = wav_buffill(s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
                 }
                 else
                 {
-                    fillnum = wav_buffill(g_audiodev.saibuf1, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
+                    fillnum = wav_buffill(s_dev.saibuf1, AUDIO_SAI_TX_BUF_SIZE, (uint8_t)wavctrl.bps);
                 }
 
                 quit = 0;
@@ -238,13 +328,13 @@ audio_nav_t wav_play_song(char *fname)
 
                     if (key == KEY_WKUP)            /* pause / resume */
                     {
-                        if (g_audiodev.status & 0x01)
+                        if (s_dev.status & 0x01)
                         {
-                            g_audiodev.status &= (uint8_t)~(1 << 0);
+                            s_dev.status &= (uint8_t)~(1 << 0);
                         }
                         else
                         {
-                            g_audiodev.status |= 0x01;
+                            s_dev.status |= 0x01;
                         }
                     }
 
@@ -262,7 +352,7 @@ audio_nav_t wav_play_song(char *fname)
                         break;
                     }
 
-                    wav_get_curtime(g_audiodev.file, &wavctrl);
+                    wav_get_curtime(s_dev.file, &wavctrl);
                     audio_msg_show(wavctrl.totsec, wavctrl.cursec, wavctrl.bitrate);
 
                     t++;
@@ -272,7 +362,7 @@ audio_nav_t wav_play_song(char *fname)
                         led_toggle(LED0);
                     }
 
-                    if ((g_audiodev.status & 0x01) == 0)
+                    if ((s_dev.status & 0x01) == 0)
                     {
                         delay_ms(10);
                     }
@@ -292,10 +382,10 @@ audio_nav_t wav_play_song(char *fname)
         }
     }
 
-    myfree(SRAMIN, g_audiodev.tbuf);
-    myfree(SRAMIN, g_audiodev.saibuf1);
-    myfree(SRAMIN, g_audiodev.saibuf2);
-    myfree(SRAMIN, g_audiodev.file);
+    myfree(SRAMIN, s_dev.tbuf);
+    myfree(SRAMIN, s_dev.saibuf1);
+    myfree(SRAMIN, s_dev.saibuf2);
+    myfree(SRAMIN, s_dev.file);
 
     return res;
 }

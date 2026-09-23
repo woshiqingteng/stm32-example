@@ -14,7 +14,6 @@
 #include "ff.h"
 #include "malloc.h"
 #include "text.h"
-#include "audio.h"
 #include "wavplay.h"
 #include "recorder.h"
 
@@ -333,7 +332,7 @@ void wav_recorder(void)
                             text_show_string(30, 190, lcd_get_width(), 16, "play:", 16, 0, RED);
                             text_show_string(30 + 40, 190, lcd_get_width(), 16, pname + 11, 16, 0, RED);
                             recoder_enter_play_mode();
-                            (void)audio_play_song(pname);
+                            (void)wav_play_song(pname);
                             lcd_fill(30, 190, lcd_get_width(), lcd_get_height(), WHITE);
                             recoder_enter_rec_mode();
                         }

@@ -3,6 +3,6 @@
 add_baremetal_app(55_usb_audio
     SOURCES main.c
     BSP     ${BSP_SRC_ES8388} ${BSP_SRC_SAI} ${BSP_SRC_IIC}                 ${BSP_SRC_LCD} ${BSP_SRC_SDRAM} ${BSP_SRC_KEY}
-    DEPS    usb_device usb_port
+    LIB     ${LIB_SRC_USB_DEVICE}
 )
 

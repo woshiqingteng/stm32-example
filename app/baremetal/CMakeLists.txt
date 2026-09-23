@@ -12,14 +12,14 @@ set(BAREMETAL_BSP_COMMON
 # Apps list only BSP and LIB components; the matching HAL sources are derived.
 # Linker script selection is owned by the target layer (MCU_LD_SCRIPT property).
 function(add_baremetal_app name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;BSP;LIB;DEPS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;BSP;LIB" ${ARGN})
     set(_target app_baremetal_${name})
     add_executable(${_target} ${ARG_SOURCES})
 
     bsp_resolve_hal(_hal ${ARG_BSP})
     lib_resolve(_libs _lib_hal _lib_bsp ${ARG_LIB})
 
-    target_link_libraries(${_target} PRIVATE bsp ${_libs} ${ARG_DEPS})
+    target_link_libraries(${_target} PRIVATE bsp ${_libs})
     target_sources(bsp           PRIVATE ${BAREMETAL_BSP_COMMON} ${ARG_BSP} ${_lib_bsp})
     target_sources(stm32f4xx_hal PRIVATE ${BAREMETAL_HAL_COMMON} ${_hal} ${_lib_hal})
 

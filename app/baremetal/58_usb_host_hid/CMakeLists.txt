@@ -3,6 +3,6 @@
 add_baremetal_app(58_usb_host_hid
     SOURCES main.c
     BSP     ${BSP_SRC_IIC} ${BSP_SRC_PCF8574} ${BSP_SRC_LCD} ${BSP_SRC_SDRAM}
-    DEPS    usb_host usb_port
+    LIB     ${LIB_SRC_USB_HOST}
 )
 

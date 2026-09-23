@@ -16,6 +16,15 @@
 #define AVI_AUDIO_BUF_NUM   4               /* audio ring depth */
 #define AVI_VIDEO_BUF_SIZE  (1024 * 60)     /* video chunk read buffer (bytes) */
 
+/** @brief  Playback navigation result codes (kept out of the FRESULT range). */
+typedef enum
+{
+    AVI_STOP  = 0,      /*!< stop / finished      */
+    AVI_NEXT  = 1,      /*!< KEY0: next video     */
+    AVI_PREV  = 2,      /*!< KEY2: previous video */
+    AVI_ERROR = 0xFF,   /*!< playback error       */
+} avi_nav_t;
+
 /** @brief  Count the playable AVI files in a directory. */
 uint16_t video_get_tnum(char *path);
 
@@ -31,7 +40,7 @@ void video_bmsg_show(char *name, uint16_t index, uint16_t total);
 /** @brief  Scan 0:/VIDEO and play every AVI file with KEY navigation. */
 void video_play(void);
 
-/** @brief  Play one AVI file. @return AUDIO_* navigation code. */
+/** @brief  Play one AVI file. @return AVI_* navigation code. */
 uint8_t video_play_mjpeg(char *pname);
 
 /** @brief  Seek within the current AVI file. */

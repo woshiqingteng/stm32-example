@@ -2,13 +2,15 @@
 # manifest (see cmake/board/<BOARD>.cmake); nothing here is board hard-coded.
 #
 # Layout: module/<name>/<version>/  (CMSIS core, HAL, FreeRTOS, FatFs, ...).
+# Dependency rule: modules depend only on the target base and other modules;
+# never on bsp/port/lib/app.
 
 set(MODULE_CMSIS_CORE_ENABLE ON  CACHE BOOL "Enable cmsis_core")
 set(MODULE_CMSIS_DSP_ENABLE  ON  CACHE BOOL "Enable the CMSIS-DSP module")
 set(MODULE_HAL_ENABLE        ON  CACHE BOOL "Enable the HAL module")
 set(MODULE_FATFS_ENABLE      ON  CACHE BOOL "Enable the FatFs core module")
 set(MODULE_LIBJPEG_ENABLE    ON  CACHE BOOL "Enable the LibJPEG module")
-set(MODULE_HELIX_MP3_ENABLE  ON  CACHE BOOL "Enable the Helix MP3 decoder module")
+set(MODULE_TJPGD_ENABLE      ON  CACHE BOOL "Enable the TJpgDec module")
 set(MODULE_USB_DEVICE_ENABLE ON  CACHE BOOL "Enable the ST USB device stack")
 set(MODULE_USB_HOST_ENABLE   ON  CACHE BOOL "Enable the ST USB host stack")
 
@@ -16,7 +18,7 @@ set(MODULE_CMSIS_CORE_VERSION 6.1.0  CACHE STRING "cmsis_core version")
 set(MODULE_CMSIS_DSP_VERSION  1.17.1 CACHE STRING "cmsis_dsp version")
 set(MODULE_FATFS_VERSION      r0.16  CACHE STRING "fatfs_core version")
 set(MODULE_LIBJPEG_VERSION    8d     CACHE STRING "libjpeg version")
-set(MODULE_HELIX_MP3_VERSION  1.0    CACHE STRING "helix_mp3 version")
+set(MODULE_TJPGD_VERSION      r0.03  CACHE STRING "tjpgd version")
 set(MODULE_USB_DEVICE_VERSION 2.11.4 CACHE STRING "usb_device version")
 set(MODULE_USB_HOST_VERSION   3.5.3  CACHE STRING "usb_host version")
 set(MODULE_FREERTOS_VERSION   11.1.0 CACHE STRING "freertos version")
@@ -61,8 +63,8 @@ if(MODULE_LIBJPEG_ENABLE)
     add_subdirectory(${_m})
 endif()
 
-if(MODULE_HELIX_MP3_ENABLE)
-    set(_m helix_mp3/${MODULE_HELIX_MP3_VERSION})
+if(MODULE_TJPGD_ENABLE)
+    set(_m tjpgd/${MODULE_TJPGD_VERSION})
     module_req(${_m})
     add_subdirectory(${_m})
 endif()

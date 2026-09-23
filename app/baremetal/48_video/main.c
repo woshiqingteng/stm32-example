@@ -11,7 +11,6 @@
 #include "exfuns.h"
 #include "text.h"
 #include "malloc.h"
-#include "audio.h"
 #include "videoplayer.h"
 
 #define DRIVE       "0:"
@@ -63,8 +62,6 @@ int main(void)
     lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "STM32 VIDEO", RED);
     lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "KEY0:NEXT KEY2:PREV", RED);
     lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "KEY1:REW WK_UP:FF", RED);
-
-    audio_hw_init();
 
     if (sdio_init() != 0U)
     {

@@ -1,103 +1,90 @@
 /**
  * @file    jpeg_dec.c
- * @brief   JPEG decode / encode helpers built on the LibJPEG module. The file
- *          I/O goes through FatFs; drawing goes through the piclib primitives.
+ * @brief   JPEG decode / encode helpers. Decoding uses the TJpgDec module,
+ *          encoding uses LibJPEG. File I/O goes through FatFs; drawing goes
+ *          through the piclib primitives.
  */
 
 #include <string.h>
 #include <stdint.h>
 #include "jpeglib.h"
 #include "jerror.h"
+#include "tjpgd.h"
 #include "jpeg_dec.h"
 #include "piclib.h"
 #include "ff.h"
 
 #define JPEG_IO_BUF_SIZE 4096U
 
+/* Working pool for a TJpgDec session: input buffer (512) + quantizer/huffman
+ * tables + IDCT/MCU buffers comfortably fit in 8 KB. */
+#define JPEG_TJPGD_POOL_SIZE 8192U
+
 /* ------------------------------------------------------------------------- */
-/* FatFs-backed decompression source manager                                  */
+/* TJpgDec session: FatFs input and piclib output                             */
 /* ------------------------------------------------------------------------- */
 
 typedef struct
 {
-    struct jpeg_source_mgr pub;
-    FIL     *file;
-    uint8_t  buffer[JPEG_IO_BUF_SIZE];
-    boolean  start_of_file;
-} jpeg_fs_src_t;
+    uint16_t src_w;
+    uint16_t src_h;
+    uint16_t dest_w;
+    uint16_t dest_h;
+    uint16_t xoff;
+    uint16_t yoff;
+} jpeg_out_ctx_t;
 
-static void jpeg_src_init(j_decompress_ptr cinfo)
+static jpeg_out_ctx_t s_out;
+
+static size_t jpeg_in_func(JDEC *jd, uint8_t *buff, size_t nbyte)
 {
-    jpeg_fs_src_t *src = (jpeg_fs_src_t *)cinfo->src;
+    FIL *file = (FIL *)jd->device;
 
-    src->start_of_file = TRUE;
-}
-
-static boolean jpeg_src_fill(j_decompress_ptr cinfo)
-{
-    jpeg_fs_src_t *src = (jpeg_fs_src_t *)cinfo->src;
-    UINT n = 0U;
-
-    if (f_read(src->file, src->buffer, JPEG_IO_BUF_SIZE, &n) != FR_OK)
+    if (buff != NULL)
     {
-        ERREXIT(cinfo, JERR_INPUT_EOF);
-    }
+        UINT br = 0U;
 
-    if (n == 0U)
-    {
-        src->buffer[0] = 0xFFU;
-        src->buffer[1] = (uint8_t)JPEG_EOI;
-        n = 2U;
-    }
-
-    src->pub.next_input_byte = src->buffer;
-    src->pub.bytes_in_buffer = n;
-    src->start_of_file = FALSE;
-
-    return TRUE;
-}
-
-static void jpeg_src_skip(j_decompress_ptr cinfo, long num_bytes)
-{
-    jpeg_fs_src_t *src = (jpeg_fs_src_t *)cinfo->src;
-
-    while (num_bytes > 0)
-    {
-        if ((size_t)num_bytes <= src->pub.bytes_in_buffer)
+        if (f_read(file, buff, (UINT)nbyte, &br) != FR_OK)
         {
-            src->pub.bytes_in_buffer -= (size_t)num_bytes;
-            src->pub.next_input_byte += num_bytes;
-            num_bytes = 0;
+            return 0U;
         }
-        else
+        return (size_t)br;
+    }
+
+    if (f_lseek(file, f_tell(file) + (FSIZE_t)nbyte) != FR_OK)
+    {
+        return 0U;
+    }
+    return nbyte;
+}
+
+static int jpeg_out_func(JDEC *jd, void *bitmap, JRECT *rect)
+{
+    uint16_t *src = (uint16_t *)bitmap;
+    uint16_t y;
+
+    (void)jd;
+
+    for (y = rect->top; y <= rect->bottom; y++)
+    {
+        uint32_t dy = ((uint32_t)y * s_out.dest_h) / s_out.src_h;
+        uint16_t x;
+
+        for (x = rect->left; x <= rect->right; x++)
         {
-            num_bytes -= (long)src->pub.bytes_in_buffer;
-            src->pub.bytes_in_buffer = 0U;
-            (void)jpeg_src_fill(cinfo);
+            uint32_t dx = ((uint32_t)x * s_out.dest_w) / s_out.src_w;
+            uint16_t color = *src++;
+
+            pic_phy.draw_point((uint16_t)(s_out.xoff + dx),
+                               (uint16_t)(s_out.yoff + dy), color);
         }
     }
-}
 
-static void jpeg_src_term(j_decompress_ptr cinfo)
-{
-    (void)cinfo;
-}
-
-static void jpeg_src_attach(j_decompress_ptr cinfo, jpeg_fs_src_t *src, FIL *file)
-{
-    src->file = file;
-    src->pub.init_source       = jpeg_src_init;
-    src->pub.fill_input_buffer = jpeg_src_fill;
-    src->pub.skip_input_data   = jpeg_src_skip;
-    src->pub.resync_to_restart = jpeg_resync_to_restart;
-    src->pub.term_source       = jpeg_src_term;
-    src->pub.bytes_in_buffer   = 0U;
-    src->pub.next_input_byte   = NULL;
-    cinfo->src = (struct jpeg_source_mgr *)src;
+    return 1;
 }
 
 /* ------------------------------------------------------------------------- */
-/* FatFs-backed compression destination manager                               */
+/* FatFs-backed compression destination manager (LibJPEG encode)              */
 /* ------------------------------------------------------------------------- */
 
 typedef struct
@@ -158,16 +145,13 @@ static void jpeg_dst_attach(j_compress_ptr cinfo, jpeg_fs_dst_t *dst, FIL *file)
 
 uint8_t jpg_decode(const char *filename, uint8_t fast)
 {
-    struct jpeg_decompress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-    jpeg_fs_src_t src;
     FIL file;
-    uint8_t *rowbuf;
+    JDEC jd;
+    void *pool;
     uint32_t src_w, src_h, dest_w, dest_h;
     uint32_t xoff, yoff;
-    uint32_t sy, dy, dx;
     float scale;
-    uint8_t res = 0U;
+    JRESULT jr;
 
     (void)fast;
 
@@ -176,26 +160,27 @@ uint8_t jpg_decode(const char *filename, uint8_t fast)
         return PIC_FORMAT_ERR;
     }
 
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_decompress(&cinfo);
-    jpeg_src_attach(&cinfo, &src, &file);
-
-    if (jpeg_read_header(&cinfo, TRUE) != JPEG_HEADER_OK)
+    pool = piclib_mem_malloc(JPEG_TJPGD_POOL_SIZE);
+    if (pool == NULL)
     {
-        jpeg_destroy_decompress(&cinfo);
+        (void)f_close(&file);
+        return PIC_MEM_ERR;
+    }
+
+    jr = jd_prepare(&jd, jpeg_in_func, pool, JPEG_TJPGD_POOL_SIZE, &file);
+    if (jr != JDR_OK)
+    {
+        piclib_mem_free(pool);
         (void)f_close(&file);
         return PIC_FORMAT_ERR;
     }
 
-    cinfo.out_color_space = JCS_RGB;
-    (void)jpeg_start_decompress(&cinfo);
-
-    src_w = cinfo.output_width;
-    src_h = cinfo.output_height;
+    src_w = jd.width;
+    src_h = jd.height;
 
     if ((src_w == 0U) || (src_h == 0U) || (picinfo.S_Width == 0U) || (picinfo.S_Height == 0U))
     {
-        jpeg_destroy_decompress(&cinfo);
+        piclib_mem_free(pool);
         (void)f_close(&file);
         return PIC_SIZE_ERR;
     }
@@ -229,54 +214,19 @@ uint8_t jpg_decode(const char *filename, uint8_t fast)
     picinfo.ImgHeight = src_h;
     picinfo.Div_Fac   = (uint32_t)(scale * 8192.0f);
 
-    rowbuf = (uint8_t *)piclib_mem_malloc(src_w * 3U);
+    s_out.src_w  = (uint16_t)src_w;
+    s_out.src_h  = (uint16_t)src_h;
+    s_out.dest_w = (uint16_t)dest_w;
+    s_out.dest_h = (uint16_t)dest_h;
+    s_out.xoff   = (uint16_t)xoff;
+    s_out.yoff   = (uint16_t)yoff;
 
-    if (rowbuf == NULL)
-    {
-        jpeg_destroy_decompress(&cinfo);
-        (void)f_close(&file);
-        return PIC_MEM_ERR;
-    }
+    jr = jd_decomp(&jd, jpeg_out_func, 0U);
 
-    for (sy = 0U; sy < src_h; sy++)
-    {
-        JSAMPROW rowptr[1];
-        uint32_t r0;
-        uint32_t r1;
-
-        rowptr[0] = (JSAMPROW)rowbuf;
-        (void)jpeg_read_scanlines(&cinfo, rowptr, 1U);
-
-        r0 = (uint32_t)((float)sy * (float)dest_h / (float)src_h);
-        r1 = (uint32_t)((float)(sy + 1U) * (float)dest_h / (float)src_h);
-
-        if (r1 <= r0)
-        {
-            r1 = r0 + 1U;
-        }
-
-        for (dy = r0; (dy < r1) && (dy < dest_h); dy++)
-        {
-            for (dx = 0U; dx < dest_w; dx++)
-            {
-                uint32_t sx = (uint32_t)((float)dx * (float)src_w / (float)dest_w);
-                uint8_t *p = &rowbuf[sx * 3U];
-                uint16_t color = (uint16_t)(((uint16_t)(p[0] >> 3) << 11) |
-                                            ((uint16_t)(p[1] >> 2) << 5) |
-                                            (uint16_t)(p[2] >> 3));
-
-                pic_phy.draw_point((uint16_t)(xoff + dx), (uint16_t)(yoff + dy), color);
-            }
-        }
-    }
-
-    piclib_mem_free(rowbuf);
-
-    (void)jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
+    piclib_mem_free(pool);
     (void)f_close(&file);
 
-    return res;
+    return (jr == JDR_OK) ? 0U : PIC_FORMAT_ERR;
 }
 
 uint8_t jpg_encode(const char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height)

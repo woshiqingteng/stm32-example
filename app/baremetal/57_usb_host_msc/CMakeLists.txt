@@ -5,7 +5,7 @@ add_baremetal_app(57_usb_host_msc
     SOURCES main.c
     BSP     ${BSP_SRC_IIC} ${BSP_SRC_PCF8574} ${BSP_SRC_LCD} ${BSP_SRC_SDRAM}
             ${BSP_SRC_SDIO} ${BSP_SRC_SPI} ${BSP_SRC_NORFLASH}
-    DEPS    fatfs_core fatfs_port usb_host usb_port
+    LIB     ${LIB_SRC_FATFS} ${LIB_SRC_USB_HOST}
 )
 
 # Route FatFs drive 2 to the USB MSC glue in port/usb_port/usbh_diskio.c.

@@ -3,6 +3,6 @@
 add_baremetal_app(54_usb_msc
     SOURCES main.c
     BSP     ${BSP_SRC_SDIO} ${BSP_SRC_LCD} ${BSP_SRC_SDRAM}
-    DEPS    usb_device usb_port
+    LIB     ${LIB_SRC_USB_DEVICE}
 )
 

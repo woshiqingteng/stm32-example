@@ -16,7 +16,6 @@
 #include "exfuns.h"
 #include "text.h"
 #include "malloc.h"
-#include "audio.h"
 #include "mjpeg.h"
 #include "avi.h"
 #include "videoplayer.h"
@@ -215,11 +214,11 @@ void video_play(void)
 
         key = video_play_mjpeg(path);
 
-        if (key == AUDIO_PREV)
+        if (key == AVI_PREV)
         {
             index = (index == 0U) ? (uint16_t)(g_video_count - 1U) : (uint16_t)(index - 1U);
         }
-        else if (key == AUDIO_NEXT)
+        else if (key == AVI_NEXT)
         {
             index = (uint16_t)((index + 1U) % g_video_count);
         }
@@ -236,7 +235,7 @@ uint8_t video_play_mjpeg(char *pname)
     uint8_t   *pbuf;
     FIL       *favi;
     FRESULT    fres;
-    uint8_t    res = AUDIO_STOP;
+    uint8_t    res = AVI_STOP;
     uint8_t    i;
     uint16_t   offset;
     uint32_t   nr;
@@ -261,7 +260,7 @@ uint8_t video_play_mjpeg(char *pname)
     if ((framebuf == NULL) || (favi == NULL))
     {
         printf("memory error!\r\n");
-        res = AUDIO_ERROR;
+        res = AVI_ERROR;
     }
     else
     {
@@ -269,7 +268,7 @@ uint8_t video_play_mjpeg(char *pname)
 
         if (fres != FR_OK)
         {
-            res = AUDIO_ERROR;
+            res = AVI_ERROR;
         }
         else
         {
@@ -279,12 +278,12 @@ uint8_t video_play_mjpeg(char *pname)
             if (fres != FR_OK)
             {
                 printf("fread error:%d\r\n", (int)fres);
-                res = AUDIO_ERROR;
+                res = AVI_ERROR;
             }
             else if (avi_init(pbuf, AVI_VIDEO_BUF_SIZE) != AVI_OK)
             {
                 printf("avi format error\r\n");
-                res = AUDIO_ERROR;
+                res = AVI_ERROR;
             }
             else
             {
@@ -299,6 +298,11 @@ uint8_t video_play_mjpeg(char *pname)
 
                 if (g_avix.SampleRate != 0U)            /* initialise audio playback */
                 {
+                    es8388_init();
+                    es8388_adda_cfg(1, 0);          /* enable DAC, disable ADC */
+                    es8388_output_cfg(1, 1);        /* enable both output channels */
+                    es8388_hpvol_set(25);
+                    es8388_spkvol_set(25);
                     es8388_sai_cfg(0, 3);               /* standard I2S, 16-bit */
                     sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
                     (void)sai1_samplerate_set(g_avix.SampleRate);
@@ -356,7 +360,7 @@ uint8_t video_play_mjpeg(char *pname)
 
                     if ((key == KEY0) || (key == KEY2))         /* next / previous file */
                     {
-                        res = (key == KEY0) ? AUDIO_NEXT : AUDIO_PREV;
+                        res = (key == KEY0) ? AVI_NEXT : AVI_PREV;
                         break;
                     }
                     else if ((key == KEY1) || (key == KEY_WKUP))/* seek */
@@ -374,7 +378,7 @@ uint8_t video_play_mjpeg(char *pname)
                     if (avi_get_streaminfo(pbuf + g_avix.StreamSize) != AVI_OK)
                     {
                         printf("frame error\r\n");
-                        res = AUDIO_NEXT;
+                        res = AVI_NEXT;
                         break;
                     }
                 }
