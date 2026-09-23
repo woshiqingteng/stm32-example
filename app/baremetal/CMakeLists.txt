@@ -12,7 +12,7 @@ set_property(CACHE MCU_LD PROPERTY STRINGS flash ram)
 # Apps list only BSP and LIB components; the matching HAL sources are derived.
 # LD overrides the default linker script (e.g. an IAP application at 0x08010000).
 function(add_baremetal_app name)
-    cmake_parse_arguments(ARG "" "LD" "SOURCES;BSP;LIB" ${ARGN})
+    cmake_parse_arguments(ARG "" "LD" "SOURCES;BSP;LIB;DEPS" ${ARGN})
     set(_target app_baremetal_${name})
     add_executable(${_target} ${ARG_SOURCES})
 
@@ -29,7 +29,7 @@ function(add_baremetal_app name)
     target_link_options(${_target} PRIVATE
         "-Wl,-T${CMAKE_SOURCE_DIR}/target/${STM32_TARGET_DIR}/${_ld}")
 
-    target_link_libraries(${_target} PRIVATE bsp ${_libs})
+    target_link_libraries(${_target} PRIVATE bsp ${_libs} ${ARG_DEPS})
     target_sources(bsp           PRIVATE ${BAREMETAL_BSP_COMMON} ${ARG_BSP} ${_lib_bsp})
     target_sources(stm32f4xx_hal PRIVATE ${BAREMETAL_HAL_COMMON} ${_hal} ${_lib_hal})
 

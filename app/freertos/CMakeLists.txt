@@ -14,11 +14,14 @@ set(FREERTOS_BSP_COMMON
 set(MCU_LD flash CACHE STRING "Linker script variant (flash|ram)")
 set_property(CACHE MCU_LD PROPERTY STRINGS flash ram)
 
+# Apps list only BSP/LIB components; the matching HAL sources are derived.
 function(add_freertos_app name)
-    cmake_parse_arguments(ARG "" "LD" "SOURCES;HAL;BSP" ${ARGN})
+    cmake_parse_arguments(ARG "" "LD" "SOURCES;BSP;LIB;DEPS" ${ARGN})
     set(_target app_freertos_${name})
     add_executable(${_target} ${ARG_SOURCES})
-    target_link_libraries(${_target} PRIVATE bsp freertos)
+
+    bsp_resolve_hal(_hal ${ARG_BSP})
+    lib_resolve(_libs _lib_hal _lib_bsp ${ARG_LIB})
 
     set(_ld ${STM32_LD_FLASH})
     if(MCU_LD STREQUAL "ram")
@@ -33,10 +36,11 @@ function(add_freertos_app name)
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${FREERTOS_APP_DIR})
     target_compile_definitions(bsp PUBLIC USE_FREERTOS=1)
     target_link_libraries(bsp PUBLIC freertos)
+    target_link_libraries(${_target} PRIVATE bsp freertos ${_libs} ${ARG_DEPS})
 
     target_sources(freertos       PRIVATE ${FREERTOS_SRC})
-    target_sources(bsp            PRIVATE ${FREERTOS_BSP_COMMON} ${ARG_BSP})
-    target_sources(stm32f4xx_hal  PRIVATE ${FREERTOS_HAL_COMMON} ${ARG_HAL})
+    target_sources(bsp            PRIVATE ${FREERTOS_BSP_COMMON} ${ARG_BSP} ${_lib_bsp})
+    target_sources(stm32f4xx_hal  PRIVATE ${FREERTOS_HAL_COMMON} ${_hal} ${_lib_hal})
 
     mcu_generate(${_target} ${name})
     mcu_flash(${_target} ${name})

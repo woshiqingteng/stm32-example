@@ -24,7 +24,10 @@ usage() {
 [ "$#" -ge 1 ] || usage
 
 config="debug"
-[ "$1" = "debug" ] || [ "$1" = "release" ] && { config="$1"; shift; }
+if [ "$1" = "debug" ] || [ "$1" = "release" ]; then
+    config="$1"
+    shift
+fi
 
 flash=0
 apps=()

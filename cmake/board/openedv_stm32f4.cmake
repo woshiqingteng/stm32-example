@@ -15,7 +15,6 @@ set(MCU_FLASH_BASE     0x08000000       CACHE INTERNAL "" FORCE)
 # --- HAL / CMSIS modules ---
 set(HAL_MODULE_DIR     stm32_hal/f4xx        CACHE INTERNAL "" FORCE)
 set(HAL_MODULE_VERSION 1.8.5                CACHE INTERNAL "" FORCE)
-set(CMSIS_CORE_VERSION 6.1.0                CACHE INTERNAL "" FORCE)
 set(MODULE_FREERTOS_VERSION 11.1.0          CACHE INTERNAL "" FORCE)
 
 # --- chip support package (target/<vendor>/<family>) ---

@@ -1,1 +1,3 @@
-add_baremetal_app(19_dma SOURCES main.c )
+add_baremetal_app(19_dma
+    SOURCES main.c
+)

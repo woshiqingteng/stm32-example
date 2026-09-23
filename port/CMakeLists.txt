@@ -1,6 +1,4 @@
 # Port layer: OS / filesystem / USB adaptation.
-add_library(port INTERFACE)
-target_link_libraries(port INTERFACE bsp)
 
 if(MODULE_FATFS_ENABLE)
     add_subdirectory(fatfs_port)

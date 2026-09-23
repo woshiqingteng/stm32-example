@@ -19,6 +19,7 @@ set(MODULE_LIBJPEG_VERSION    8d     CACHE STRING "libjpeg version")
 set(MODULE_HELIX_MP3_VERSION  1.0    CACHE STRING "helix_mp3 version")
 set(MODULE_USB_DEVICE_VERSION 2.11.4 CACHE STRING "usb_device version")
 set(MODULE_USB_HOST_VERSION   3.5.3  CACHE STRING "usb_host version")
+set(MODULE_FREERTOS_VERSION   11.1.0 CACHE STRING "freertos version")
 
 # module_req(<name>): require module/<name> to exist, else fail with a clear message.
 function(module_req name)
@@ -67,21 +68,20 @@ if(MODULE_HELIX_MP3_ENABLE)
 endif()
 
 if(MODULE_USB_DEVICE_ENABLE)
-    set(_m usb/device/${MODULE_USB_DEVICE_VERSION})
+    set(_m usb_device/${MODULE_USB_DEVICE_VERSION})
     module_req(${_m})
     add_subdirectory(${_m})
 endif()
 
 if(MODULE_USB_HOST_ENABLE)
-    set(_m usb/host/${MODULE_USB_HOST_VERSION})
+    set(_m usb_host/${MODULE_USB_HOST_VERSION})
     module_req(${_m})
     add_subdirectory(${_m})
 endif()
 
+set(MODULE_FREERTOS_ENABLE OFF)
 if(OS STREQUAL "freertos")
-    set(MODULE_FREERTOS_ENABLE ON  CACHE BOOL "Enable freertos" FORCE)
-else()
-    set(MODULE_FREERTOS_ENABLE OFF CACHE BOOL "Enable freertos" FORCE)
+    set(MODULE_FREERTOS_ENABLE ON)
 endif()
 
 if(MODULE_FREERTOS_ENABLE)

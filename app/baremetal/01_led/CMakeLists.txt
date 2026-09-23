@@ -1,1 +1,3 @@
-add_baremetal_app(01_led SOURCES main.c)
+add_baremetal_app(01_led
+    SOURCES main.c
+)
