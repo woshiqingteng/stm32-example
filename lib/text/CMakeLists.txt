@@ -4,7 +4,6 @@
 # FatFs core/port are pulled in automatically.
 set(LIB_SRC_TEXT     ${CMAKE_CURRENT_SOURCE_DIR}/text.c
                      ${CMAKE_CURRENT_SOURCE_DIR}/fonts.c CACHE INTERNAL "")
-set(LIB_SRC_TEXT_HAL "" CACHE INTERNAL "")
 set(LIB_SRC_TEXT_BSP ${BSP_SRC_LCD} ${BSP_SRC_NORFLASH} ${BSP_SRC_SDIO} CACHE INTERNAL "")
 
 add_library(lib_text STATIC ${LIB_SRC_TEXT})

@@ -2,7 +2,6 @@
 # ${LIB_SRC_MALLOC} and the matching lib_malloc target plus the SDRAM BSP
 # sources are pulled in automatically.
 set(LIB_SRC_MALLOC     ${CMAKE_CURRENT_SOURCE_DIR}/malloc.c CACHE INTERNAL "")
-set(LIB_SRC_MALLOC_HAL "" CACHE INTERNAL "")
 set(LIB_SRC_MALLOC_BSP ${BSP_SRC_SDRAM} CACHE INTERNAL "")
 
 add_library(lib_malloc STATIC ${LIB_SRC_MALLOC})

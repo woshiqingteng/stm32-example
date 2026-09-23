@@ -35,10 +35,6 @@ endif()
 
 target_link_libraries(usb_port PUBLIC bsp ${USB_PORT_LINK})
 
-# Compile the PCD/HCD HAL sources into the shared HAL target. They are only
-# linked into an image when a USB driver references them.
-target_sources(stm32f4xx_hal PRIVATE ${HAL_SRC_PCD} ${HAL_SRC_HCD})
-
 # The vendor core headers include usbd_conf.h / usbh_conf.h, which are
 # provided here, so expose this directory to those targets.
 if(TARGET usb_device)

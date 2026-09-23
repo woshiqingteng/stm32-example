@@ -1,9 +1,9 @@
 # Board support package component registry.
 #
-# Each component declares its sources (BSP_SRC_<name>) and the HAL sources it
-# needs (BSP_SRC_<name>_HAL). Applications only list the BSP/LIB components they
-# use; the corresponding HAL sources are resolved automatically (see
-# bsp_resolve_hal), so app CMakeLists no longer mention HAL at all.
+# Each component declares its sources (BSP_SRC_<name>); the shared core sources
+# live in BSP_SRC_COMMON. The DRV (HAL) is linked wholesale and the linker pulls
+# only the objects an image references, so apps list just the BSP/LIB components
+# they use and never mention HAL.
 
 set(BSP_SRC_BSP    ${CMAKE_CURRENT_SOURCE_DIR}/bsp.c CACHE INTERNAL "")
 set(BSP_SRC_SYS    ${CMAKE_CURRENT_SOURCE_DIR}/sys.c CACHE INTERNAL "")
@@ -54,32 +54,10 @@ set(BSP_SRC_TIMER  ${CMAKE_CURRENT_SOURCE_DIR}/timer.c CACHE INTERNAL "")
 set(BSP_SRC_ES8388 ${CMAKE_CURRENT_SOURCE_DIR}/es8388.c CACHE INTERNAL "")
 set(BSP_SRC_SAI    ${CMAKE_CURRENT_SOURCE_DIR}/sai.c CACHE INTERNAL "")
 
-# Component -> HAL mapping.
-set(BSP_SRC_ADC_HAL    ${HAL_SRC_ADC}  CACHE INTERNAL "")
-set(BSP_SRC_DAC_HAL    ${HAL_SRC_DAC} ${HAL_SRC_DMA} ${HAL_SRC_TIM} CACHE INTERNAL "")
-set(BSP_SRC_PWMDAC_HAL ${HAL_SRC_TIM}  CACHE INTERNAL "")
-set(BSP_SRC_STMFLASH_HAL ${HAL_SRC_FLASH} CACHE INTERNAL "")
-set(BSP_SRC_WDG_HAL    ${HAL_SRC_WDG}  CACHE INTERNAL "")
-set(BSP_SRC_TIM_HAL    ${HAL_SRC_TIM}  CACHE INTERNAL "")
-set(BSP_SRC_TPAD_HAL   ${HAL_SRC_TIM}  CACHE INTERNAL "")
-set(BSP_SRC_SDRAM_HAL  ${HAL_SRC_FMC} ${HAL_SRC_SDRAM} CACHE INTERNAL "")
-set(BSP_SRC_LCD_HAL    ${HAL_SRC_LTDC} ${HAL_SRC_DMA2D} CACHE INTERNAL "")
-set(BSP_SRC_RTC_HAL    ${HAL_SRC_RTC}  CACHE INTERNAL "")
-set(BSP_SRC_RNG_HAL    ${HAL_SRC_RNG}  CACHE INTERNAL "")
-set(BSP_SRC_IAP_HAL    ${HAL_SRC_FLASH} CACHE INTERNAL "")
-set(BSP_SRC_SPI_HAL    ${HAL_SRC_SPI}  CACHE INTERNAL "")
-set(BSP_SRC_NORFLASH_HAL ${HAL_SRC_SPI} CACHE INTERNAL "")
-set(BSP_SRC_RS485_HAL  ${HAL_SRC_UART} CACHE INTERNAL "")
-set(BSP_SRC_CAN_HAL    ${HAL_SRC_CAN}  CACHE INTERNAL "")
-set(BSP_SRC_REMOTE_HAL ${HAL_SRC_TIM}  CACHE INTERNAL "")
-set(BSP_SRC_NRF24L01_HAL ${HAL_SRC_SPI} CACHE INTERNAL "")
-set(BSP_SRC_SDIO_HAL   ${HAL_SRC_SD} ${HAL_SRC_DMA} CACHE INTERNAL "")
-set(BSP_SRC_SRAM_HAL   ${HAL_SRC_SRAM} ${HAL_SRC_FMC} CACHE INTERNAL "")
-set(BSP_SRC_NAND_HAL   ${HAL_SRC_NAND} ${HAL_SRC_FMC} CACHE INTERNAL "")
-set(BSP_SRC_DCMI_HAL   ${HAL_SRC_DCMI} ${HAL_SRC_DMA} CACHE INTERNAL "")
-set(BSP_SRC_TIMER_HAL  ${HAL_SRC_TIM} CACHE INTERNAL "")
-set(BSP_SRC_ES8388_HAL ${HAL_SRC_I2C} CACHE INTERNAL "")
-set(BSP_SRC_SAI_HAL    ${HAL_SRC_SAI} ${HAL_SRC_DMA} CACHE INTERNAL "")
+# Shared core BSP sources, always compiled into the bsp target.
+set(BSP_SRC_COMMON
+    ${BSP_SRC_BSP} ${BSP_SRC_SYS} ${BSP_SRC_DELAY}
+    ${BSP_SRC_USART} ${BSP_SRC_LED} ${BSP_SRC_KEY} CACHE INTERNAL "")
 
 set(BSP_COMPONENTS EXTI ADC WDG TIM TPAD SDRAM LCD OLED RTC RNG PWR IAP
     DAC PWMDAC STMFLASH
@@ -133,26 +111,11 @@ function(bsp_expand out)
     set(${out} ${_acc} PARENT_SCOPE)
 endfunction()
 
-# bsp_resolve_hal(<out-var> <bsp sources...>): union the HAL sources required by
-# every component whose full source set appears in the given list.
-function(bsp_resolve_hal out)
-    set(_acc "")
-    foreach(_comp ${BSP_COMPONENTS})
-        set(_match TRUE)
-        foreach(_f ${BSP_SRC_${_comp}})
-            if(NOT (_f IN_LIST ARGN))
-                set(_match FALSE)
-            endif()
-        endforeach()
-        if(_match)
-            list(APPEND _acc ${BSP_SRC_${_comp}_HAL})
-        endif()
-    endforeach()
-    list(REMOVE_DUPLICATES _acc)
-    set(${out} ${_acc} PARENT_SCOPE)
-endfunction()
+# bsp_resolve_hal removed: the DRV (HAL) is linked wholesale and the linker
+# keeps only the objects referenced by the image.
 
 add_library(bsp STATIC)
+target_sources(bsp PRIVATE ${BSP_SRC_COMMON})
 
 target_include_directories(bsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(bsp PUBLIC stm32f4xx_hal ${TARGET_LIB})
