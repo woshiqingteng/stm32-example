@@ -3,7 +3,6 @@
 # ES8388/SAI audio) and the text renderer.
 add_baremetal_app(48_video
     SOURCES main.c
-    BSP     ${BSP_SRC_SDRAM} ${BSP_SRC_LCD} ${BSP_SRC_SDIO}
     LIB     ${LIB_SRC_MALLOC} ${LIB_SRC_TEXT} ${LIB_SRC_MJPEG}
 )
 

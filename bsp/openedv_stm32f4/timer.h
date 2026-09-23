@@ -1,6 +1,6 @@
 /**
  * @file    timer.h
- * @brief   Camera frame-rate timer (TIM6, 1 Hz update interrupt).
+ * @brief   Camera frame-rate timer (TIM14, 1 Hz update interrupt).
  *
  * The DCMI frame hook calls timer_frame_inc(); every second the update ISR
  * latches the frame count into the frame-rate register and clears the running
@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 
-/** @brief  Start TIM6 with a 1 Hz update interrupt. */
+/** @brief  Start TIM14 with a 1 Hz update interrupt. */
 void timer_init(void);
 
 /** @brief  Count one captured frame (called from the DCMI frame hook). */

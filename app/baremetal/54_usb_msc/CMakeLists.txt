@@ -2,7 +2,6 @@
 # device stack and the board USB port (PCD + conf + MSC storage interface).
 add_baremetal_app(54_usb_msc
     SOURCES main.c
-    BSP     ${BSP_SRC_SDIO}
     LIB     ${LIB_SRC_USB_DEVICE}
 )
 

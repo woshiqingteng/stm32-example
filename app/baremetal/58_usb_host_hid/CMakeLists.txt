@@ -2,7 +2,6 @@
 # stack and the board USB port (HCD + conf; USB VBUS through the PCF8574).
 add_baremetal_app(58_usb_host_hid
     SOURCES main.c
-    BSP     ${BSP_SRC_PCF8574}
     LIB     ${LIB_SRC_USB_HOST}
 )
 

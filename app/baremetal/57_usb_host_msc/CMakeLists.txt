@@ -3,7 +3,6 @@
 # the board USB port (HCD + conf) and the FatFs core/port.
 add_baremetal_app(57_usb_host_msc
     SOURCES main.c
-    BSP     ${BSP_SRC_SDIO} ${BSP_SRC_PCF8574}
     LIB     ${LIB_SRC_FATFS} ${LIB_SRC_USB_HOST}
 )
 

@@ -1,8 +1,8 @@
 /**
  * @file    timer.c
- * @brief   Camera frame-rate timer: TIM6 update interrupt at 1 Hz.
+ * @brief   Camera frame-rate timer: TIM14 update interrupt at 1 Hz.
  *
- * TIM6 hangs off APB1; with a 45 MHz APB1 clock the timer kernel runs at
+ * TIM14 hangs off APB1; with a 45 MHz APB1 clock the timer kernel runs at
  * 90 MHz, so (prescaler + 1) * (period + 1) = 90e6 gives a 1 s interval. The
  * update ISR latches the frame count into the frame-rate variable and prints
  * it on USART1, mirroring the vendor frame counter.
@@ -12,8 +12,8 @@
 #include "stm32f4xx_hal.h"
 #include "timer.h"
 
-#define TIMER_TIMX                     TIM6
-#define TIMER_TIMX_IRQN                TIM6_DAC_IRQn
+#define TIMER_TIMX                     TIM14
+#define TIMER_TIMX_IRQN                TIM8_TRG_COM_TIM14_IRQn
 #define TIMER_TIMX_IRQ_PREEMPT_PRIO    1U
 #define TIMER_TIMX_IRQ_SUB_PRIO        3U
 
@@ -30,7 +30,7 @@ static volatile uint32_t g_uptime;
 
 void timer_init(void)
 {
-    __HAL_RCC_TIM6_CLK_ENABLE();
+    __HAL_RCC_TIM14_CLK_ENABLE();
 
     HAL_NVIC_SetPriority(TIMER_TIMX_IRQN, TIMER_TIMX_IRQ_PREEMPT_PRIO, TIMER_TIMX_IRQ_SUB_PRIO);
     HAL_NVIC_EnableIRQ(TIMER_TIMX_IRQN);
@@ -65,7 +65,7 @@ uint32_t timer_uptime(void)
     return g_uptime;
 }
 
-void TIM6_DAC_IRQHandler(void)
+void TIM8_TRG_COM_TIM14_IRQHandler(void)
 {
     if (__HAL_TIM_GET_FLAG(&g_timer_handle, TIM_FLAG_UPDATE) != RESET)
     {
