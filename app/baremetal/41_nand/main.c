@@ -2,7 +2,7 @@
  * @file    main.c
  * @brief   41_nand: NAND FLASH test. The device ID is read, one block is
  *          erased and a page is written, read back and verified. Results are
- *          shown on the RGB panel and USART1.
+ *          reported on USART1.
  */
 
 #include <stdio.h>
@@ -10,8 +10,6 @@
 #include "bsp.h"
 #include "nand.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define TEST_BLOCK      0U
 #define TEST_PAGE       0U
 #define TEST_LEN        NAND_ECC_SECTOR_SIZE
@@ -28,13 +26,6 @@ int main(void)
     char     line[64];
 
     bsp_init();
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "NAND TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
 
     printf("41_nand ready\r\n");
 
@@ -42,7 +33,6 @@ int main(void)
 
     if (res != 0U)
     {
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "NAND Error!", RED);
         printf("NAND init failed\r\n");
     }
     else
@@ -52,7 +42,6 @@ int main(void)
         nand_get_info(&info);
 
         sprintf(line, "ID:%08lX Size:%luMB", (unsigned long)info.id, (unsigned long)info.size_mb);
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);
 
         (void)nand_eraseblock(TEST_BLOCK);
@@ -82,8 +71,6 @@ int main(void)
 
         sprintf(line, "Page %u: %s (%lu err)", (unsigned)TEST_PAGE,
                 (errors == 0U) ? "OK" : "FAIL", (unsigned long)errors);
-        lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line,
-                        (errors == 0U) ? BLUE : RED);
         printf("%s\r\n", line);
     }
 

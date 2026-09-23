@@ -1,8 +1,7 @@
 /**
  * @file    main.c
- * @brief   49_fpu: Julia fractal benchmark, rendered on the RGB panel. The
- *          per-frame time is measured with sys_get_tick() and reported over
- *          USART1 and the LCD.
+ * @brief   49_fpu: Julia fractal benchmark. The per-frame time is measured with
+ *          sys_get_tick() and reported over USART1.
  */
 
 #include <stdio.h>
@@ -13,8 +12,8 @@
 #define FPU_IMG_CONST   0.01f
 #define FPU_ROW_MAX     800U
 #define FPU_ZOOM        120U
-#define FPU_TEXT_SIZE   LCD_FONT_SIZE_12
-#define FPU_STATUS_H    20U
+#define FPU_SIZE_X      480U
+#define FPU_SIZE_Y      800U
 
 #if defined(__FPU_USED) && (__FPU_USED == 1)
 #define FPU_MODE_TEXT "FPU On"
@@ -75,8 +74,6 @@ static void julia_generate(uint16_t size_x, uint16_t size_y, uint16_t offset_x,
 
             g_row[x] = g_color_map[i];
         }
-
-        lcd_color_fill(0U, y, (uint16_t)(size_x - 1U), y, g_row);
     }
 }
 
@@ -87,10 +84,6 @@ int main(void)
     char     buf[48];
 
     bsp_init();
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(BLACK);
     julia_clut_init();
 
     printf("49_fpu ready (%s)\r\n", FPU_MODE_TEXT);
@@ -98,15 +91,13 @@ int main(void)
     for (;;)
     {
         start = sys_get_tick();
-        julia_generate(lcd_get_width(), lcd_get_height(),
-                       (uint16_t)(lcd_get_width() / 2U), (uint16_t)(lcd_get_height() / 2U),
+        julia_generate(FPU_SIZE_X, FPU_SIZE_Y,
+                       (uint16_t)(FPU_SIZE_X / 2U), (uint16_t)(FPU_SIZE_Y / 2U),
                        FPU_ZOOM);
         elapsed = sys_get_tick() - start;
 
         sprintf(buf, "%s Julia zoom:%u runtime:%lums", FPU_MODE_TEXT, (unsigned)FPU_ZOOM,
                 (unsigned long)elapsed);
-        lcd_show_string(5U, (uint16_t)(lcd_get_height() - FPU_STATUS_H), 400U,
-                        FPU_TEXT_SIZE, FPU_TEXT_SIZE, buf, RED);
         printf("%s\r\n", buf);
 
         led_toggle(LED0);

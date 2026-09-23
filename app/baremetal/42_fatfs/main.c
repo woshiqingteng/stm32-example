@@ -3,7 +3,7 @@
  * @brief   42_fatfs: FatFs over the SD card. The volume is mounted (formatted
  *          on the fly if it carries no filesystem), the root directory is
  *          listed, a text file is created, written, read back and reported on
- *          the RGB panel and USART1.
+ *          USART1.
  */
 
 #include <stdio.h>
@@ -12,8 +12,6 @@
 #include "ff.h"
 #include "exfuns.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define DRIVE           "0:"
 #define TEST_FILE       "0:/ALIENTEK.TXT"
 #define BLINK_PERIOD_MS 500U
@@ -63,19 +61,11 @@ int main(void)
     char     line[64];
 
     bsp_init();
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "FATFS TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
 
     printf("42_fatfs ready\r\n");
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
     else
@@ -86,7 +76,6 @@ int main(void)
 
         if (res == FR_NO_FILESYSTEM)
         {
-            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "Formatting...", RED);
             printf("no filesystem, formatting %s\r\n", DRIVE);
             res = f_mkfs(DRIVE, 0, g_work, sizeof(g_work));
 
@@ -99,12 +88,11 @@ int main(void)
         if (res != FR_OK)
         {
             sprintf(line, "mount failed (%d)", (int)res);
-            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, RED);
             printf("%s\r\n", line);
         }
         else
         {
-            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "FATFS OK", BLUE);
+            printf("FATFS OK\r\n");
             fatfs_list_root();
 
             res = f_open(&g_file, TEST_FILE, FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
@@ -122,12 +110,10 @@ int main(void)
                 (void)f_close(&g_file);
 
                 printf("file wrote %u, read %u: %s", (unsigned)bw, (unsigned)br, g_readbuf);
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, g_readbuf, BLUE);
             }
             else
             {
                 sprintf(line, "open failed (%d)", (int)res);
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, RED);
                 printf("%s\r\n", line);
             }
 
@@ -135,7 +121,6 @@ int main(void)
             {
                 sprintf(line, "SD %lu MB free %lu MB",
                         (unsigned long)(total >> 10), (unsigned long)(free_kb >> 10));
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
                 printf("%s\r\n", line);
             }
         }

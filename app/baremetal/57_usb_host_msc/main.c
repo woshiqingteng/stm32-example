@@ -13,8 +13,6 @@
 #include "usbh_core.h"
 #include "usbh_msc.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define USB_DRIVE       "2:"
 #define BLINK_PERIOD_MS 500U
 
@@ -25,7 +23,6 @@ static void usbh_list_root(void)
     DIR     dir;
     FILINFO fno;
     FRESULT res;
-    uint16_t y = 200U;
 
     res = f_opendir(&dir, USB_DRIVE "/");
 
@@ -47,12 +44,6 @@ static void usbh_list_root(void)
         }
 
         printf("  %s\r\n", fno.fname);
-
-        if (y < 300U)
-        {
-            lcd_show_string(TEXT_X, y, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, fno.fname, BLUE);
-            y += 16U;
-        }
     }
 
     (void)f_closedir(&dir);
@@ -70,32 +61,25 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
     {
         case HOST_USER_DISCONNECTION:
             (void)f_mount(0, USB_DRIVE, 1);
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "USB DisConnected", RED);
-            lcd_fill(TEXT_X, 150U, TEXT_X + TEXT_WIDTH, 300U, WHITE);
+            printf("USB DisConnected\r\n");
             printf("USB disk removed\r\n");
             break;
 
         case HOST_USER_CLASS_ACTIVE:
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "USB Connected   ", BLUE);
+            printf("USB Connected\r\n");
 
             if (f_mount(fs[2], USB_DRIVE, 1) != FR_OK)
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "FATFS mount failed", RED);
                 printf("USB disk mount failed\r\n");
             }
             else
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "FATFS OK", BLUE);
+                printf("FATFS OK\r\n");
 
                 if (exfuns_get_free((uint8_t *)USB_DRIVE, &total, &free_kb) == 0U)
                 {
                     (void)sprintf(line, "USB %lu MB free %lu MB",
                                   (unsigned long)(total >> 10), (unsigned long)(free_kb >> 10));
-                    lcd_show_string(TEXT_X, 170U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
                     printf("%s\r\n", line);
                 }
 
@@ -104,8 +88,7 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
             break;
 
         case HOST_USER_CONNECTION:
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "Device Attached ", BLUE);
+            printf("Device Attached\r\n");
             break;
 
         default:
@@ -121,15 +104,6 @@ int main(void)
     (void)sys_clk_reconfig(336U, 25U, 2U, 7U);
     delay_init(168U);
     usart_init(115200U);
-
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB U Disk TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-    lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Connecting...", RED);
 
     printf("57_usb_host_msc ready\r\n");
 

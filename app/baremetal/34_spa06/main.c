@@ -1,15 +1,13 @@
 /**
  * @file    main.c
  * @brief   34_spa06: SPA06 barometric pressure / temperature test. The
- *          compensated pressure and temperature are shown on the RGB panel and
- *          USART1 (fixed-point formatting, one packet per sample).
+ *          compensated pressure and temperature are printed over USART1
+ *          (fixed-point formatting, one packet per sample).
  */
 
 #include <stdio.h>
 #include "bsp.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define SAMPLE_PERIOD   200U
 
 static void format_fixed(char *buf, const char *label, const char *unit, int32_t value_x100)
@@ -27,22 +25,13 @@ int main(void)
     uint8_t t = 0U;
 
     bsp_init();
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SPA06 TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
 
     if (spa06_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 100U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SPA06 Check Failed!", RED);
         printf("SPA06 check failed\r\n");
     }
     else
     {
-        lcd_show_string(TEXT_X, 100U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SPA06 Ready!", BLUE);
         printf("SPA06 ready\r\n");
     }
 
@@ -59,12 +48,10 @@ int main(void)
             spa06_get_data(&sample);
 
             format_fixed(line, "P: ", " hPa", (int32_t)(sample.pcomp * 100.0f));
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
             printf("%s", line);
             printf("  raw=%ld\r\n", (long)sample.praw);
 
             format_fixed(line, "T: ", " C", (int32_t)(sample.tcomp * 100.0f));
-            lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
             printf("%s\r\n", line);
 
             led_toggle(LED0);

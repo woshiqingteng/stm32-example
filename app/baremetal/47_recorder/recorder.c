@@ -13,7 +13,6 @@
 #include "bsp.h"
 #include "ff.h"
 #include "malloc.h"
-#include "text.h"
 #include "wavplay.h"
 #include "recorder.h"
 
@@ -149,29 +148,20 @@ void recoder_wav_init(__WaveHeader *wavhead)
 
 void recoder_msg_show(uint32_t tsec, uint32_t kbps)
 {
-    lcd_show_string(30, 210, 200, 16, LCD_FONT_SIZE_16, "TIME:", RED);
-    lcd_show_num(30 + 40, 210, tsec / 60, 2, LCD_FONT_SIZE_16, RED);
-    lcd_show_char(30 + 56, 210, ':', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
-    lcd_show_num(30 + 64, 210, tsec % 60, 2, LCD_FONT_SIZE_16, RED);
-
-    lcd_show_string(140, 210, 200, 16, LCD_FONT_SIZE_16, "KPBS:", RED);
-    lcd_show_num(140 + 40, 210, kbps / 1000, 4, LCD_FONT_SIZE_16, RED);
+    printf("TIME %02lu:%02lu KPBS %lu\r\n",
+           (unsigned long)(tsec / 60U), (unsigned long)(tsec % 60U),
+           (unsigned long)(kbps / 1000U));
 }
 
 void recoder_remindmsg_show(uint8_t mode)
 {
-    lcd_fill(30, 120, lcd_get_width(), 180, WHITE);
-
     if (mode == 0)      /* record mode */
     {
-        lcd_show_string(30, 120, 200, 16, LCD_FONT_SIZE_16, "KEY0:REC/PAUSE", BLUE);
-        lcd_show_string(30, 140, 200, 16, LCD_FONT_SIZE_16, "KEY2:STOP&SAVE", BLUE);
-        lcd_show_string(30, 160, 200, 16, LCD_FONT_SIZE_16, "WK_UP:PLAY", BLUE);
+        printf("KEY0:REC/PAUSE  KEY2:STOP&SAVE  WK_UP:PLAY\r\n");
     }
     else                /* playback mode */
     {
-        lcd_show_string(30, 120, 200, 16, LCD_FONT_SIZE_16, "KEY0:STOP Play", BLUE);
-        lcd_show_string(30, 140, 200, 16, LCD_FONT_SIZE_16, "WK_UP:PLAY/PAUSE", BLUE);
+        printf("KEY0:STOP Play  WK_UP:PLAY/PAUSE\r\n");
     }
 }
 
@@ -279,7 +269,6 @@ void wav_recorder(void)
                     g_rec_sta = 0;
                     recsec = 0;
                     led_off(LED1);
-                    lcd_fill(30, 190, lcd_get_width(), lcd_get_height(), WHITE);
                     break;
 
                 case KEY0:      /* record / pause */
@@ -295,8 +284,7 @@ void wav_recorder(void)
                     {
                         recsec = 0;
                         recoder_new_pathname(pname);
-                        text_show_string(30, 190, lcd_get_width(), 16, "rec:", 16, 0, RED);
-                        text_show_string(30 + 40, 190, lcd_get_width(), 16, pname + 11, 16, 0, RED);
+                        printf("rec: %s\r\n", pname + 11);
                         recoder_wav_init(wavhead);
 
                         res = (uint8_t)f_open(f_rec, (const TCHAR *)pname, FA_CREATE_ALWAYS | FA_WRITE);
@@ -329,11 +317,9 @@ void wav_recorder(void)
                     {
                         if (pname[0] != '\0')
                         {
-                            text_show_string(30, 190, lcd_get_width(), 16, "play:", 16, 0, RED);
-                            text_show_string(30 + 40, 190, lcd_get_width(), 16, pname + 11, 16, 0, RED);
+                            printf("play: %s\r\n", pname + 11);
                             recoder_enter_play_mode();
                             (void)wav_play_song(pname);
-                            lcd_fill(30, 190, lcd_get_width(), lcd_get_height(), WHITE);
                             recoder_enter_rec_mode();
                         }
                     }

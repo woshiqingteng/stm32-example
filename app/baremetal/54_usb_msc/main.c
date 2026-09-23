@@ -1,8 +1,8 @@
 /**
  * @file    main.c
  * @brief   54_usb_msc: USB device Mass Storage backed by the SD card. The card
- *          capacity is shown on the RGB panel and read/write activity is
- *          reported while the host accesses the disk.
+ *          capacity and read/write activity are reported on USART1 while the
+ *          host accesses the disk.
  */
 
 #include <stdio.h>
@@ -14,8 +14,6 @@
 #include "usbd_msc.h"
 #include "usbd_storage_if.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define BLINK_PERIOD_MS 500U
 
 USBD_HandleTypeDef USBD_Device;
@@ -34,26 +32,16 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Card Reader TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-
     printf("54_usb_msc ready\r\n");
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
     else
     {
         sdio_get_card_info(&info);
         (void)sprintf(line, "SD Card Size: %lu MB", (unsigned long)info.total_size_mb);
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
         printf("%s\r\n", line);
     }
 
@@ -70,13 +58,11 @@ int main(void)
 
             if (usb_status == 1U)
             {
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Connected   ", BLUE);
+                printf("USB Connected\r\n");
             }
             else
             {
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB DisConnected", RED);
+                printf("USB DisConnected\r\n");
             }
         }
 
@@ -86,29 +72,25 @@ int main(void)
 
             if ((storage_status & USB_STORAGE_WRITING) != 0U)
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Writing...", RED);
+                printf("USB Writing...\r\n");
             }
             else if ((storage_status & USB_STORAGE_READING) != 0U)
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Reading...", RED);
+                printf("USB Reading...\r\n");
             }
             else
             {
-                lcd_fill(TEXT_X, 150U, TEXT_X + TEXT_WIDTH, 166U, WHITE);
+                /* idle */
             }
 
             if ((storage_status & USB_STORAGE_WRITE_ERR) != 0U)
             {
-                lcd_show_string(TEXT_X, 170U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Write Err", RED);
+                printf("USB Write Err\r\n");
             }
 
             if ((storage_status & USB_STORAGE_READ_ERR) != 0U)
             {
-                lcd_show_string(TEXT_X, 190U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Read  Err", RED);
+                printf("USB Read Err\r\n");
             }
 
             g_usb_storage_state = 0U;

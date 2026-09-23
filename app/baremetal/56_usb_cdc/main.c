@@ -1,7 +1,7 @@
 /**
  * @file    main.c
  * @brief   56_usb_cdc: USB device CDC virtual COM port. Bytes received on the
- *          virtual COM port are echoed to USART1 and shown on the RGB panel.
+ *          virtual COM port are echoed to USART1.
  */
 
 #include <stdio.h>
@@ -13,8 +13,6 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define BLINK_PERIOD_MS 500U
 #define LOOP_DELAY_MS   10U
 #define CDC_RX_READY_FLAG 0x8000U
@@ -34,15 +32,6 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Virtual COM TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-    lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Connecting...", RED);
-
     printf("56_usb_cdc ready\r\n");
 
     (void)USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_FS);
@@ -58,14 +47,12 @@ int main(void)
 
             if (usb_status == 1U)
             {
-                lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Connected   ", BLUE);
+                printf("USB Connected\r\n");
                 led_on(LED1);
             }
             else
             {
-                lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB DisConnected", RED);
+                printf("USB DisConnected\r\n");
                 led_off(LED1);
             }
         }
@@ -75,12 +62,10 @@ int main(void)
             uint16_t len = g_usb_usart_rx_sta & CDC_RX_LEN_MASK;
             char     line[48];
 
-            /* Echo the line to USART1 / LCD, then back to the host. */
-            printf("usb rx %u bytes\r\n", (unsigned)len);
+            /* Echo the line to USART1, then back to the host. */
             (void)memcpy(line, g_usb_usart_rx_buffer, len);
             line[len] = '\0';
-            lcd_fill(TEXT_X, 130U, TEXT_X + TEXT_WIDTH, 146U, WHITE);
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
+            printf("usb rx %u bytes: %s\r\n", (unsigned)len, line);
 
             cdc_vcp_data_tx(g_usb_usart_rx_buffer, len);
             g_usb_usart_rx_sta = 0U;

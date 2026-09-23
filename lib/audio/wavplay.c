@@ -12,7 +12,6 @@
 #include "bsp.h"
 #include "ff.h"
 #include "malloc.h"
-#include "text.h"
 #include "wavplay.h"
 
 /* Self-contained playback device: ES8388 + SAI double-buffered TX path. */
@@ -92,17 +91,10 @@ static void audio_msg_show(uint32_t totsec, uint32_t cursec, uint32_t bitrate)
     {
         playtime = (uint16_t)cursec;
 
-        lcd_show_num(30, 210, playtime / 60, 2, LCD_FONT_SIZE_16, RED);
-        lcd_show_char(30 + 16, 210, ':', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
-        lcd_show_num(30 + 24, 210, playtime % 60, 2, LCD_FONT_SIZE_16, RED);
-        lcd_show_char(30 + 40, 210, '/', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
-
-        lcd_show_num(30 + 48, 210, totsec / 60, 2, LCD_FONT_SIZE_16, RED);
-        lcd_show_char(30 + 64, 210, ':', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
-        lcd_show_num(30 + 72, 210, totsec % 60, 2, LCD_FONT_SIZE_16, RED);
-
-        lcd_show_num(30 + 110, 210, bitrate / 1000, 4, LCD_FONT_SIZE_16, RED);
-        lcd_show_string(30 + 110 + 32, 210, 200, 16, LCD_FONT_SIZE_16, "Kbps", RED);
+        printf("time %02lu:%02lu/%02lu:%02lu %lu Kbps\r\n",
+               (unsigned long)(cursec / 60U), (unsigned long)(cursec % 60U),
+               (unsigned long)(totsec / 60U), (unsigned long)(totsec % 60U),
+               (unsigned long)(bitrate / 1000U));
     }
 }
 

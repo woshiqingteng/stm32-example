@@ -14,8 +14,6 @@
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_mouse.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define BLINK_PERIOD_MS 500U
 
 USBH_HandleTypeDef g_hUSBHost;
@@ -30,37 +28,30 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
     {
         case HOST_USER_DISCONNECTION:
             g_hid_ready = false;
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "USB DisConnected", RED);
-            lcd_fill(TEXT_X, 150U, TEXT_X + TEXT_WIDTH, 260U, WHITE);
+            printf("USB DisConnected\r\n");
             printf("HID device removed\r\n");
             break;
 
         case HOST_USER_CLASS_ACTIVE:
             g_hid_ready = true;
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "USB Connected   ", BLUE);
+            printf("USB Connected\r\n");
 
             if (USBH_HID_GetDeviceType(phost) == HID_KEYBOARD)
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Keyboard", BLUE);
+                printf("USB Keyboard\r\n");
             }
             else if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "USB Mouse", BLUE);
+                printf("USB Mouse\r\n");
             }
             else
             {
-                lcd_show_string(TEXT_X, 150U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                                "Unknown HID", RED);
+                printf("Unknown HID\r\n");
             }
             break;
 
         case HOST_USER_CONNECTION:
-            lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            "Device Attached ", BLUE);
+            printf("Device Attached\r\n");
             break;
 
         default:
@@ -86,8 +77,6 @@ static void usbh_hid_demo(void)
 
                 (void)sprintf(line, "KEY '%c' (0x%02X)", (char)c, (unsigned)c);
                 printf("%s\r\n", line);
-                lcd_fill(TEXT_X, 170U, TEXT_X + TEXT_WIDTH, 186U, WHITE);
-                lcd_show_string(TEXT_X, 170U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
             }
         }
     }
@@ -104,8 +93,7 @@ static void usbh_hid_demo(void)
                           (unsigned)mouse->buttons[0],
                           (unsigned)mouse->buttons[1],
                           (unsigned)mouse->buttons[2]);
-            lcd_fill(TEXT_X, 170U, TEXT_X + TEXT_WIDTH, 186U, WHITE);
-            lcd_show_string(TEXT_X, 170U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
+            printf("%s\r\n", line);
         }
     }
     else
@@ -124,14 +112,6 @@ int main(void)
     usart_init(115200U);
 
     (void)pcf8574_init();
-    sdram_init();
-    lcd_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Mouse/Keyboard TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-    lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "USB Connecting...", RED);
 
     printf("58_usb_host_hid ready\r\n");
 

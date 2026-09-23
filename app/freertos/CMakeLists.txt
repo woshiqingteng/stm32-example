@@ -21,14 +21,17 @@ function(add_freertos_app name)
     bsp_resolve_hal(_hal ${ARG_BSP})
     lib_resolve(_libs _lib_hal _lib_bsp ${ARG_LIB})
 
+    bsp_expand(_bsp_full ${ARG_BSP} ${_lib_bsp})
+    bsp_resolve_hal(_hal_full ${_bsp_full})
+
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${FREERTOS_APP_DIR})
     target_compile_definitions(bsp PUBLIC USE_FREERTOS=1)
     target_link_libraries(bsp PUBLIC freertos)
     target_link_libraries(${_target} PRIVATE bsp freertos ${_libs})
 
     target_sources(freertos       PRIVATE ${FREERTOS_SRC})
-    target_sources(bsp            PRIVATE ${FREERTOS_BSP_COMMON} ${ARG_BSP} ${_lib_bsp})
-    target_sources(stm32f4xx_hal  PRIVATE ${FREERTOS_HAL_COMMON} ${_hal} ${_lib_hal})
+    target_sources(bsp            PRIVATE ${FREERTOS_BSP_COMMON} ${_bsp_full})
+    target_sources(stm32f4xx_hal  PRIVATE ${FREERTOS_HAL_COMMON} ${_hal_full} ${_lib_hal})
 
     mcu_generate(${_target} ${name})
     mcu_flash(${_target} ${name})

@@ -1,14 +1,12 @@
 /**
  * @file    main.c
  * @brief   31_remote: NEC infrared remote test. The decoded key code and repeat
- *          count are printed and shown on the RGB panel.
+ *          count are printed over USART1.
  */
 
 #include <stdio.h>
 #include "bsp.h"
 
-#define TEXT_X          30U
-#define TEXT_WIDTH      300U
 #define KEY_SETTLE_DELAY_MS 100U
 #define POLL_DELAY_MS   10U
 
@@ -47,17 +45,7 @@ int main(void)
     char    line[48];
 
     bsp_init();
-    sdram_init();
-    lcd_init();
     remote_init();
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "REMOTE TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-    lcd_show_string(TEXT_X, 90U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "KEYVAL:", BLUE);
-    lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "KEYCNT:", BLUE);
-    lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "SYMBOL:", BLUE);
 
     printf("31_remote ready\r\n");
 
@@ -67,13 +55,6 @@ int main(void)
 
         if (key != 0U)
         {
-            lcd_show_xnum(TEXT_X + 60U, 90U, key, 3U, LCD_FONT_SIZE_16,
-                          LCD_TEXT_BG_OVERWRITE, BLUE);
-            lcd_show_xnum(TEXT_X + 60U, 110U, remote_repeat_count(), 3U, LCD_FONT_SIZE_16,
-                          LCD_TEXT_BG_OVERWRITE, BLUE);
-            lcd_show_string(TEXT_X + 60U, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
-                            remote_symbol(key), BLUE);
-
             sprintf(line, "KEY: %u CNT: %u SYM: %s", key, remote_repeat_count(), remote_symbol(key));
             printf("%s\r\n", line);
 

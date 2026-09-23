@@ -2,7 +2,7 @@
  * @file    main.c
  * @brief   28_rs485: RS485 half-duplex test on USART2. A counter-tagged string
  *          is transmitted periodically and any bytes received (for example via
- *          an external loopback) are printed and shown on the RGB panel.
+ *          an external loopback) are printed over USART1.
  */
 
 #include <stdio.h>
@@ -12,8 +12,6 @@
 #define RS485_BAUDRATE      9600U
 #define RS485_PERIOD_MS     500U
 
-#define TEXT_X              30U
-#define TEXT_WIDTH          300U
 #define RX_MAX              32U
 
 int main(void)
@@ -25,14 +23,7 @@ int main(void)
     uint8_t  i;
 
     bsp_init();
-    sdram_init();
-    lcd_init();
     rs485_init(RS485_BAUDRATE);
-
-    lcd_clear(WHITE);
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "RS485 TEST", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
 
     printf("28_rs485 ready\r\n");
 
@@ -57,12 +48,11 @@ int main(void)
                 }
             }
             sprintf(line, "RX(%u): %s", (unsigned)rxlen, (char *)rxbuf);
-            lcd_show_string(TEXT_X, 100U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, BLUE);
             printf("%s\r\n", line);
         }
         else
         {
-            lcd_show_string(TEXT_X, 100U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "RX: none", GRAY);
+            printf("RX: none\r\n");
         }
 
         count++;

@@ -9,7 +9,6 @@
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
-#include "text.h"
 #include "malloc.h"
 #include "wavplay.h"
 #include "audioplay.h"
@@ -84,9 +83,7 @@ static void audioplay_scan(void)
 
 void audioplay_index_show(uint16_t index, uint16_t total)
 {
-    lcd_show_num(30, 230, index, 3, LCD_FONT_SIZE_16, RED);
-    lcd_show_char(30 + 24, 230, '/', LCD_FONT_SIZE_16, LCD_TEXT_BG_OVERWRITE, RED);
-    lcd_show_num(30 + 32, 230, total, 3, LCD_FONT_SIZE_16, RED);
+    printf("track %u/%u\r\n", (unsigned)index, (unsigned)total);
 }
 
 static audio_nav_t audioplay_play_song(char *fname)
@@ -114,7 +111,7 @@ void audioplay_play(void)
 
         if (g_audio_count == 0U)
         {
-            text_show_string(30, 190, 240, 16, "No music files!", 16, 0, BLUE);
+            printf("No music files!\r\n");
             delay_ms(500);
             continue;
         }
@@ -126,8 +123,7 @@ void audioplay_play(void)
     {
         (void)sprintf(path, "%s/%s", AUDIO_MUSIC_DIR, g_audio_names[index]);
 
-        lcd_fill(30, 190, lcd_get_width() - 1, 190 + 16, WHITE);
-        text_show_string(30, 190, lcd_get_width() - 60, 16, g_audio_names[index], 16, 0, BLUE);
+        printf("now playing: %s\r\n", g_audio_names[index]);
         audioplay_index_show((uint16_t)(index + 1U), g_audio_count);
 
         key = audioplay_play_song(path);

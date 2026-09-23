@@ -90,6 +90,49 @@ set(BSP_COMPONENTS EXTI ADC WDG TIM TPAD SDRAM LCD OLED RTC RNG PWR IAP
     ES8388 SAI
     CACHE INTERNAL "")
 
+# Component -> component dependencies: components that sit on top of another
+# BSP component (e.g. sensors on the IIC bus). Expanded transitively by
+# bsp_expand so apps only list the top-level component they use.
+set(BSP_SRC_24CXX_DEPS    ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_PCF8574_DEPS  ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_AP3216C_DEPS  ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_TOUCH_DEPS    ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_SPA06_DEPS    ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_QMI8658A_DEPS ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_ES8388_DEPS   ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_OV5640_DEPS   ${BSP_SRC_IIC} CACHE INTERNAL "")
+set(BSP_SRC_NORFLASH_DEPS ${BSP_SRC_SPI} CACHE INTERNAL "")
+set(BSP_SRC_NRF24L01_DEPS ${BSP_SRC_SPI} CACHE INTERNAL "")
+set(BSP_SRC_RS485_DEPS    ${BSP_SRC_PCF8574} CACHE INTERNAL "")
+
+# bsp_expand(<out-var> <bsp sources...>): transitively add the sources of every
+# component whose sources are (fully) present in the input list.
+function(bsp_expand out)
+    set(_acc ${ARGN})
+    set(_changed TRUE)
+    while(_changed)
+        set(_changed FALSE)
+        foreach(_comp ${BSP_COMPONENTS})
+            set(_match TRUE)
+            foreach(_f ${BSP_SRC_${_comp}})
+                if(NOT (_f IN_LIST _acc))
+                    set(_match FALSE)
+                endif()
+            endforeach()
+            if(_match)
+                foreach(_d ${BSP_SRC_${_comp}_DEPS})
+                    if(NOT (_d IN_LIST _acc))
+                        list(APPEND _acc ${_d})
+                        set(_changed TRUE)
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+    endwhile()
+    list(REMOVE_DUPLICATES _acc)
+    set(${out} ${_acc} PARENT_SCOPE)
+endfunction()
+
 # bsp_resolve_hal(<out-var> <bsp sources...>): union the HAL sources required by
 # every component whose full source set appears in the given list.
 function(bsp_resolve_hal out)
