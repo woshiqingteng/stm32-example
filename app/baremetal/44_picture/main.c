@@ -6,6 +6,7 @@
  *          directory, WK_UP = pause / resume the slideshow.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include "bsp.h"
@@ -67,7 +68,7 @@ static void pic_scan(void)
 
 static void pic_show(uint16_t index)
 {
-    uint8_t res;
+    pic_status_t res;
 
     if (g_count == 0U)
     {
@@ -79,7 +80,7 @@ static void pic_show(uint16_t index)
     (void)sprintf(g_path, PIC_DIR "/%s", g_names[index]);
 
     lcd_clear(BLACK);
-    res = piclib_ai_load_picfile(g_path, 0U, 0U, lcd_get_width(), lcd_get_height(), 1U);
+    res = piclib_ai_load_picfile(g_path, 0U, 0U, lcd_get_width(), lcd_get_height(), true);
 
     if (res != 0U)
     {
@@ -95,8 +96,8 @@ int main(void)
 {
     FRESULT  res;
     uint16_t index = 0U;
-    uint8_t  paused = 0U;
-    uint8_t  reload = 1U;
+    bool     paused = false;
+    bool     reload = true;
 
     bsp_init();
     sdram_init();
@@ -131,11 +132,11 @@ int main(void)
     for (;;)
     {
         key_id_t key = key_scan(false);
-        uint8_t  keyed = 1U;
+        bool     keyed = true;
 
-        if (reload != 0U)
+        if (reload)
         {
-            reload = 0U;
+            reload = false;
             pic_scan();
             index = 0U;
             pic_show(index);
@@ -159,24 +160,24 @@ int main(void)
         }
         else if (key == KEY2)
         {
-            reload = 1U;
+            reload = true;
         }
         else if (key == KEY_WKUP)
         {
-            paused = (paused == 0U) ? 1U : 0U;
-            printf("slideshow %s\r\n", (paused != 0U) ? "paused" : "running");
+            paused = !paused;
+            printf("slideshow %s\r\n", paused ? "paused" : "running");
         }
         else
         {
-            keyed = 0U;
+            keyed = false;
         }
 
-        if (keyed != 0U)
+        if (keyed)
         {
             led_toggle(LED0);
             delay_ms(100U);
         }
-        else if (paused == 0U)
+        else if (!paused)
         {
             delay_ms(SLIDESHOW_MS);
 

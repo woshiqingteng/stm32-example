@@ -11,6 +11,8 @@
 
 #define STANDBY_BKP_REG    1U
 #define STANDBY_BKP_MAGIC  0x5354414EU  /* "STAN" */
+#define STANDBY_ENTRY_DELAY_MS 50U
+#define LOOP_DELAY_MS      10U
 
 static void print_boot_cause(void)
 {
@@ -47,7 +49,7 @@ int main(void)
         {
             printf("Entering standby mode...\r\n");
             led_on(LED1);
-            delay_ms(50);
+            delay_ms(STANDBY_ENTRY_DELAY_MS);
             pwr_enter_standby();
         }
 
@@ -55,6 +57,6 @@ int main(void)
         {
             led_toggle(LED0);
         }
-        delay_ms(10);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

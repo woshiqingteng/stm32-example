@@ -5,6 +5,7 @@
  *          the RGB panel and USART1.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "bsp.h"
 
@@ -22,7 +23,7 @@ int main(void)
     uint8_t  readback[NORFLASH_TEST_LEN];
     uint16_t id;
     uint8_t  i;
-    uint8_t  ok = 1U;
+    bool     ok = true;
 
     bsp_init();
     sdram_init();
@@ -61,12 +62,12 @@ int main(void)
         {
             if (readback[i] != pattern[i])
             {
-                ok = 0U;
+                ok = false;
             }
         }
 
-        sprintf(line, "Write/Read: %s", (ok != 0U) ? "OK" : "FAIL");
-        lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, (ok != 0U) ? BLUE : RED);
+        sprintf(line, "Write/Read: %s", ok ? "OK" : "FAIL");
+        lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, ok ? BLUE : RED);
         printf("%s\r\n", line);
 
         for (i = 0U; i < 8U; i++)

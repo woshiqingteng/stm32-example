@@ -4,6 +4,7 @@
  *          from an attached device and prints/display them.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -19,7 +20,7 @@
 
 USBH_HandleTypeDef g_hUSBHost;
 
-static uint8_t g_hid_ready = 0U;
+static bool g_hid_ready = false;
 
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 {
@@ -28,7 +29,7 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
     switch (id)
     {
         case HOST_USER_DISCONNECTION:
-            g_hid_ready = 0U;
+            g_hid_ready = false;
             lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
                             "USB DisConnected", RED);
             lcd_fill(TEXT_X, 150U, TEXT_X + TEXT_WIDTH, 260U, WHITE);
@@ -36,7 +37,7 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
             break;
 
         case HOST_USER_CLASS_ACTIVE:
-            g_hid_ready = 1U;
+            g_hid_ready = true;
             lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
                             "USB Connected   ", BLUE);
 
@@ -142,7 +143,7 @@ int main(void)
     {
         (void)USBH_Process(&g_hUSBHost);
 
-        if (g_hid_ready != 0U)
+        if (g_hid_ready)
         {
             usbh_hid_demo();
         }

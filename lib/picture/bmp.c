@@ -5,6 +5,7 @@
  */
 
 #include <string.h>
+#include <stdbool.h>
 #include "bmp.h"
 #include "piclib.h"
 #include "ff.h"
@@ -28,7 +29,7 @@ uint8_t stdbmp_decode(const char *filename)
 
     uint16_t  realx = 0;
     uint16_t realy = 0;
-    uint8_t  yok = 1;
+    bool     yok = true;
     uint8_t res;
 
     uint8_t *databuf;
@@ -172,7 +173,7 @@ uint8_t stdbmp_decode(const char *filename)
                     {
                         realx = (x * picinfo.Div_Fac) >> 13;
 
-                        if (piclib_is_element_ok(realx, realy, 1) && yok)
+                        if (piclib_is_element_ok(realx, realy, true) && yok)
                         {
                             pic_phy.draw_point(realx + picinfo.S_XOFF, realy + picinfo.S_YOFF - 1, color);
                         }
@@ -193,8 +194,7 @@ uint8_t stdbmp_decode(const char *filename)
 
                     realy = (y * picinfo.Div_Fac) >> 13;
 
-                    if (piclib_is_element_ok(realx, realy, 0))yok = 1;
-                    else yok = 0;
+                    yok = piclib_is_element_ok(realx, realy, false);
 
                     if ((realy + picinfo.S_YOFF) == 0)break;
 

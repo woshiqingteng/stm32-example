@@ -32,7 +32,7 @@ struct _m_mallco_dev mallco_dev =
     {mem1base, (uint8_t *)MEM2_BASE_ADDR, (uint8_t *)MEM3_BASE_ADDR},
     {mem1mapbase, (uint32_t *)MEM2_MAP_ADDR,
      (uint32_t *)(MEM3_BASE_ADDR + MEM3_MAX_SIZE)},
-    {0, 0, 0},
+    {false, false, false},
 };
 
 void my_mem_copy(void *des, void *src, uint32_t n)
@@ -59,7 +59,7 @@ void my_mem_set(void *s, uint8_t c, uint32_t count)
 void my_mem_init(uint8_t memx)
 {
     my_mem_set(mallco_dev.memmap[memx], 0, memtblsize[memx] * 4U);
-    mallco_dev.memrdy[memx] = 1U;
+    mallco_dev.memrdy[memx] = true;
 }
 
 uint16_t my_mem_perused(uint8_t memx)
@@ -85,14 +85,14 @@ uint32_t my_mem_malloc(uint8_t memx, uint32_t size)
     uint32_t cmemb = 0U;
     uint32_t i;
 
-    if (mallco_dev.memrdy[memx] == 0U)
+    if (!mallco_dev.memrdy[memx])
     {
         mallco_dev.init(memx);
     }
 
     if (size == 0U)
     {
-        return 0xFFFFFFFFU;
+        return MEM_ALLOC_INVALID;
     }
 
     nmemb = size / memblksize[memx];
@@ -124,17 +124,17 @@ uint32_t my_mem_malloc(uint8_t memx, uint32_t size)
         }
     }
 
-    return 0xFFFFFFFFU;
+    return MEM_ALLOC_INVALID;
 }
 
-uint8_t my_mem_free(uint8_t memx, uint32_t offset)
+mem_status_t my_mem_free(uint8_t memx, uint32_t offset)
 {
     int i;
 
-    if (mallco_dev.memrdy[memx] == 0U)
+    if (!mallco_dev.memrdy[memx])
     {
         mallco_dev.init(memx);
-        return 1U;
+        return MEM_NOT_READY;
     }
 
     if (offset < memsize[memx])
@@ -147,10 +147,10 @@ uint8_t my_mem_free(uint8_t memx, uint32_t offset)
             mallco_dev.memmap[memx][index + i] = 0U;
         }
 
-        return 0U;
+        return MEM_OK;
     }
 
-    return 2U;
+    return MEM_INVALID;
 }
 
 void myfree(uint8_t memx, void *ptr)
@@ -172,7 +172,7 @@ void *mymalloc(uint8_t memx, uint32_t size)
 
     offset = my_mem_malloc(memx, size);
 
-    if (offset == 0xFFFFFFFFU)
+    if (offset == MEM_ALLOC_INVALID)
     {
         return NULL;
     }
@@ -186,7 +186,7 @@ void *myrealloc(uint8_t memx, void *ptr, uint32_t size)
 
     offset = my_mem_malloc(memx, size);
 
-    if (offset == 0xFFFFFFFFU)
+    if (offset == MEM_ALLOC_INVALID)
     {
         return NULL;
     }

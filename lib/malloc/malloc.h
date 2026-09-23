@@ -8,6 +8,7 @@
 #ifndef LIB_MALLOC_H
 #define LIB_MALLOC_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef NULL
@@ -18,6 +19,9 @@
 #define SRAMIN   0  /* internal SRAM */
 #define SRAMCCM  1  /* core coupled memory (CPU only, not reachable by DMA) */
 #define SRAMEX   2  /* external SDRAM */
+
+/* Invalid allocation offset / no free block. */
+#define MEM_ALLOC_INVALID       0xFFFFFFFFU
 
 /* Block index is uint32_t so the SDRAM bank can be covered. */
 #define MT_TYPE  uint32_t
@@ -45,6 +49,14 @@
 #define MEM3_BASE_ADDR          0xC01F4000UL
 #define MEM3_MAP_ADDR           (MEM3_BASE_ADDR + MEM3_MAX_SIZE)
 
+/** @brief  Result of my_mem_free(). */
+typedef enum
+{
+    MEM_OK = 0,        /*!< block released */
+    MEM_NOT_READY,     /*!< pool was not initialised (it is now) */
+    MEM_INVALID,       /*!< offset outside the pool */
+} mem_status_t;
+
 /** @brief  Memory manager descriptor. */
 struct _m_mallco_dev
 {
@@ -52,17 +64,17 @@ struct _m_mallco_dev
     uint16_t (*perused)(uint8_t);       /* usage in 0.1 % units */
     uint8_t  *membase[SRAMBANK];        /* pool base addresses */
     uint32_t *memmap[SRAMBANK];         /* blocks in use table */
-    uint8_t   memrdy[SRAMBANK];         /* pool initialised flag */
+    bool      memrdy[SRAMBANK];         /* pool initialised flag */
 };
 
 extern struct _m_mallco_dev mallco_dev;
 
-void     my_mem_set(void *s, uint8_t c, uint32_t count);
-void     my_mem_copy(void *des, void *src, uint32_t n);
-void     my_mem_init(uint8_t memx);
-uint32_t my_mem_malloc(uint8_t memx, uint32_t size);
-uint8_t  my_mem_free(uint8_t memx, uint32_t offset);
-uint16_t my_mem_perused(uint8_t memx);
+void        my_mem_set(void *s, uint8_t c, uint32_t count);
+void        my_mem_copy(void *des, void *src, uint32_t n);
+void        my_mem_init(uint8_t memx);
+uint32_t    my_mem_malloc(uint8_t memx, uint32_t size);
+mem_status_t my_mem_free(uint8_t memx, uint32_t offset);
+uint16_t    my_mem_perused(uint8_t memx);
 
 void    *mymalloc(uint8_t memx, uint32_t size);
 void     myfree(uint8_t memx, void *ptr);

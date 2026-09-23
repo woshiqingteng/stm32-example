@@ -21,8 +21,8 @@
 
 audiodev_t g_audiodev;
 
-volatile uint8_t audio_transfer_end = 0;
-volatile uint8_t audio_witch_buf = 0;
+volatile bool audio_transfer_end = false;
+volatile bool audio_witch_buf = false;
 
 static char     g_audio_names[AUDIO_MAX_FILES][AUDIO_NAME_LEN];
 static uint16_t g_audio_count;
@@ -54,7 +54,7 @@ void audio_sai_tx_callback(void)
 
     if (sai1_tx_dma_target() != 0U)
     {
-        audio_witch_buf = 0;
+        audio_witch_buf = false;
 
         if ((g_audiodev.status & 0x01) == 0)     /* paused: silence buf1 */
         {
@@ -66,7 +66,7 @@ void audio_sai_tx_callback(void)
     }
     else
     {
-        audio_witch_buf = 1;
+        audio_witch_buf = true;
 
         if ((g_audiodev.status & 0x01) == 0)     /* paused: silence buf2 */
         {
@@ -77,7 +77,7 @@ void audio_sai_tx_callback(void)
         }
     }
 
-    audio_transfer_end = 1;
+    audio_transfer_end = true;
 }
 
 uint16_t audio_get_tnum(const char *path)
@@ -171,18 +171,18 @@ void audio_msg_show(uint32_t totsec, uint32_t cursec, uint32_t bitrate)
     }
 }
 
-uint8_t audio_play_song(char *fname)
+audio_nav_t audio_play_song(char *fname)
 {
     uint8_t res = exfuns_file_type(fname);
 
     switch (res)
     {
         case T_WAV:
-            res = wav_play_song(fname);
+            res = (uint8_t)wav_play_song(fname);
             break;
 
         case T_MP3:
-            res = mp3_play_song(fname);
+            res = (uint8_t)mp3_play_song(fname);
             break;
 
         default:
@@ -191,7 +191,7 @@ uint8_t audio_play_song(char *fname)
             break;
     }
 
-    return res;
+    return (audio_nav_t)res;
 }
 
 void audio_play(void)

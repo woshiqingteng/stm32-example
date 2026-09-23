@@ -7,6 +7,7 @@
  * gyroscope for +/-512dps, both at 500Hz with the low-pass filter enabled.
  */
 
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 #include "iic.h"
 #include "qmi8658a.h"
@@ -161,7 +162,7 @@ void qmi8658a_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     uint8_t buf[QMI8658A_DATA_LEN];
     uint8_t status = 0;
-    uint8_t ready = 0;
+    bool    ready = false;
     uint8_t retry;
 
     for (retry = 0U; retry < 3U; retry++)
@@ -170,12 +171,12 @@ void qmi8658a_read_xyz(int16_t acc[3], int16_t gyro[3])
 
         if ((status & QMI8658A_STATUS_MASK) != 0U)
         {
-            ready = 1U;
+            ready = true;
             break;
         }
     }
 
-    if (ready != 0U)
+    if (ready)
     {
         (void)qmi8658a_read_nbytes(QMI8658A_REG_AX_L, buf, QMI8658A_DATA_LEN);
 

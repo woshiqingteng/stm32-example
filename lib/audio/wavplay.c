@@ -16,12 +16,12 @@
 
 __wavctrl wavctrl;      /* parsed WAV control block */
 
-uint8_t wav_decode_init(char *fname, __wavctrl *wavx)
+wav_status_t wav_decode_init(char *fname, __wavctrl *wavx)
 {
     FIL      *ftemp;
     uint8_t  *buf;
     uint32_t  br = 0;
-    uint8_t   res = 0;
+    wav_status_t res = WAV_OK;
 
     ChunkRIFF *riff;
     ChunkFMT  *fmt;
@@ -76,17 +76,17 @@ uint8_t wav_decode_init(char *fname, __wavctrl *wavx)
                 }
                 else
                 {
-                    res = 3;        /* data chunk not found */
+                    res = WAV_ERR_DATA;        /* data chunk not found */
                 }
             }
             else
             {
-                res = 2;            /* not a WAV file */
+                res = WAV_ERR_FORMAT;          /* not a WAV file */
             }
         }
         else
         {
-            res = 1;                /* open failed */
+            res = WAV_ERR_OPEN;                /* open failed */
         }
     }
 
@@ -148,12 +148,12 @@ static void wav_get_curtime(FIL *fx, __wavctrl *wavx)
     wavx->cursec = (uint32_t)(fpos * (long long)wavx->totsec / (long long)wavx->datasize);
 }
 
-uint8_t wav_play_song(char *fname)
+audio_nav_t wav_play_song(char *fname)
 {
     FRESULT  fres;
     uint8_t  key;
     uint8_t  t = 0;
-    uint8_t  res = AUDIO_STOP;
+    audio_nav_t res = AUDIO_STOP;
     uint8_t  quit;
     uint32_t fillnum;
 
@@ -209,11 +209,11 @@ uint8_t wav_play_song(char *fname)
 
             for (;;)
             {
-                while (audio_transfer_end == 0)
+                while (!audio_transfer_end)
                 {
                     /* wait for a half-buffer to finish */
                 }
-                audio_transfer_end = 0;
+                audio_transfer_end = false;
 
                 if (fillnum != AUDIO_SAI_TX_BUF_SIZE)   /* end of stream */
                 {

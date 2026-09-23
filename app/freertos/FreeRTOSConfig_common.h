@@ -17,7 +17,7 @@
 
 extern uint32_t SystemCoreClock;
 
-/* 基础配置项 */
+/* Basic configuration */
 #ifndef configUSE_PREEMPTION
 #define configUSE_PREEMPTION                            1
 #endif
@@ -91,7 +91,7 @@ extern uint32_t SystemCoreClock;
 #define configMESSAGE_BUFFER_LENGTH_TYPE                size_t
 #endif
 
-/* 内存分配相关定义 */
+/* Memory allocation definitions */
 #ifndef configSUPPORT_STATIC_ALLOCATION
 #define configSUPPORT_STATIC_ALLOCATION                 0
 #endif
@@ -108,7 +108,7 @@ extern uint32_t SystemCoreClock;
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP       0
 #endif
 
-/* 钩子函数相关定义 */
+/* Hook function definitions */
 #ifndef configUSE_IDLE_HOOK
 #define configUSE_IDLE_HOOK                             0
 #endif
@@ -125,7 +125,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_DAEMON_TASK_STARTUP_HOOK              0
 #endif
 
-/* 运行时间和任务状态统计相关定义 */
+/* Runtime and task status statistics definitions */
 #ifndef configGENERATE_RUN_TIME_STATS
 #define configGENERATE_RUN_TIME_STATS                   0
 #endif
@@ -136,7 +136,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_STATS_FORMATTING_FUNCTIONS            1
 #endif
 
-/* 协程相关定义 */
+/* Co-routine definitions */
 #ifndef configUSE_CO_ROUTINES
 #define configUSE_CO_ROUTINES                           0
 #endif
@@ -144,7 +144,7 @@ extern uint32_t SystemCoreClock;
 #define configMAX_CO_ROUTINE_PRIORITIES                 2
 #endif
 
-/* 软件定时器相关定义 */
+/* Software timer definitions */
 #ifndef configUSE_TIMERS
 #define configUSE_TIMERS                                1
 #endif
@@ -158,7 +158,7 @@ extern uint32_t SystemCoreClock;
 #define configTIMER_TASK_STACK_DEPTH                    ( configMINIMAL_STACK_SIZE * 2 )
 #endif
 
-/* 可选函数, 1: 使能 */
+/* Optional functions, 1: enable */
 #ifndef INCLUDE_vTaskPrioritySet
 #define INCLUDE_vTaskPrioritySet                        1
 #endif
@@ -211,7 +211,7 @@ extern uint32_t SystemCoreClock;
 #define INCLUDE_xTaskResumeFromISR                      1
 #endif
 
-/* 中断嵌套行为配置 */
+/* Interrupt nesting behavior configuration */
 #ifndef configPRIO_BITS
 #ifdef __NVIC_PRIO_BITS
 #define configPRIO_BITS __NVIC_PRIO_BITS
@@ -236,7 +236,7 @@ extern uint32_t SystemCoreClock;
 #define configMAX_API_CALL_INTERRUPT_PRIORITY           configMAX_SYSCALL_INTERRUPT_PRIORITY
 #endif
 
-/* FreeRTOS中断服务函数相关定义 */
+/* FreeRTOS interrupt service handler definitions */
 #ifndef xPortPendSVHandler
 #define xPortPendSVHandler                              PendSV_Handler
 #endif
@@ -244,7 +244,7 @@ extern uint32_t SystemCoreClock;
 #define vPortSVCHandler                                 SVC_Handler
 #endif
 
-/* 断言 */
+/* Assertions */
 #ifndef vAssertCalled
 #define vAssertCalled(char, int) printf("Error: %s, %d\r\n", char, int)
 #endif

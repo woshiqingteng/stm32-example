@@ -7,6 +7,7 @@
  *          view and WK_UP triggers a single auto-focus.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include "bsp.h"
@@ -19,6 +20,7 @@
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
 #define CAM_TOP          16U
+#define CAM_FPS_INVALID  0xFFFFFFFFU
 
 #define STATUS_X         4U
 #define STATUS_WIDTH     700U
@@ -28,8 +30,8 @@
 #define CAM_KEY_DELAY_MS 200U
 #define PHOTO_DIR        "0:/PHOTO"
 
-static volatile uint8_t g_paused;
-static char             g_last_path[32];
+static volatile bool g_paused;
+static char          g_last_path[32];
 
 static void cam_frame_cb(void)
 {
@@ -37,14 +39,14 @@ static void cam_frame_cb(void)
     led_toggle(LED1);
 }
 
-static void cam_status(uint32_t fps, uint8_t sd_ok)
+static void cam_status(uint32_t fps, bool sd_ok)
 {
     char line[64];
 
     (void)sprintf(line, "OV5640 %ux%u FPS:%u SD:%s%s",
                   (unsigned int)CAM_OUT_WIDTH, (unsigned int)CAM_OUT_HEIGHT,
-                  (unsigned int)fps, (sd_ok != 0U) ? "OK" : "ERR",
-                  (g_paused != 0U) ? " PAUSE" : "");
+                  (unsigned int)fps, sd_ok ? "OK" : "ERR",
+                  g_paused ? " PAUSE" : "");
 
     lcd_fill(STATUS_X, 0U, (uint16_t)(STATUS_X + STATUS_WIDTH), STATUS_HEIGHT - 1U, BLACK);
     lcd_show_string(STATUS_X, 0U, STATUS_WIDTH, STATUS_HEIGHT, LCD_FONT_SIZE_16, line, GREEN);
@@ -68,11 +70,11 @@ static void cam_next_path(char *path)
     }
 }
 
-static uint8_t cam_save_jpeg(uint8_t sd_ok)
+static uint8_t cam_save_jpeg(bool sd_ok)
 {
     uint8_t res;
 
-    if (sd_ok == 0U)
+    if (!sd_ok)
     {
         printf("no SD card, cannot save\r\n");
         return 1U;
@@ -95,9 +97,9 @@ static uint8_t cam_save_jpeg(uint8_t sd_ok)
     return res;
 }
 
-static void cam_show_jpeg(uint8_t sd_ok)
+static void cam_show_jpeg(bool sd_ok)
 {
-    if ((sd_ok == 0U) || (g_last_path[0] == '\0'))
+    if (!sd_ok || (g_last_path[0] == '\0'))
     {
         printf("no saved picture\r\n");
         return;
@@ -105,7 +107,7 @@ static void cam_show_jpeg(uint8_t sd_ok)
 
     dcmi_stop();
     lcd_clear(BLACK);
-    (void)piclib_ai_load_picfile(g_last_path, 0U, 0U, lcd_get_width(), lcd_get_height(), 1U);
+    (void)piclib_ai_load_picfile(g_last_path, 0U, 0U, lcd_get_width(), lcd_get_height(), true);
     text_show_string(2U, 2U, lcd_get_width(), 16U, g_last_path, 16U, 1U, RED);
     delay_ms(2000U);
     lcd_clear(BLACK);
@@ -115,8 +117,8 @@ static void cam_show_jpeg(uint8_t sd_ok)
 int main(void)
 {
     uint32_t fps = 0U;
-    uint32_t last_fps = 0xFFFFFFFFU;
-    uint8_t  sd_ok = 0U;
+    uint32_t last_fps = CAM_FPS_INVALID;
+    bool     sd_ok = false;
     FRESULT  res;
 
     bsp_init();
@@ -142,8 +144,8 @@ int main(void)
         else
         {
             res = f_mkdir(PHOTO_DIR);
-            sd_ok = ((res == FR_OK) || (res == FR_EXIST)) ? 1U : 0U;
-            printf("SD mounted, PHOTO dir %s\r\n", (sd_ok != 0U) ? "ok" : "error");
+            sd_ok = ((res == FR_OK) || (res == FR_EXIST));
+            printf("SD mounted, PHOTO dir %s\r\n", sd_ok ? "ok" : "error");
         }
     }
 
@@ -194,9 +196,9 @@ int main(void)
         }
         else if (key == KEY2)
         {
-            g_paused = (g_paused == 0U) ? 1U : 0U;
+            g_paused = !g_paused;
 
-            if (g_paused != 0U)
+            if (g_paused)
             {
                 dcmi_stop();
             }

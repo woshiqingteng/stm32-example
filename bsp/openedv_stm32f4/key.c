@@ -47,7 +47,7 @@ key_state_t key_read(key_id_t id)
 {
     GPIO_TypeDef *port;
     uint16_t      pin;
-    uint8_t       active_low;
+    bool          active_low;
     GPIO_PinState level;
 
     switch (id)
@@ -78,7 +78,7 @@ key_state_t key_read(key_id_t id)
 
     level = HAL_GPIO_ReadPin(port, pin);
 
-    if (active_low != 0U)
+    if (active_low)
     {
         return (level == GPIO_PIN_RESET) ? KEY_PRESSED : KEY_RELEASED;
     }

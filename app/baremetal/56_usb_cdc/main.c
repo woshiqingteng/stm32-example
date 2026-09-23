@@ -16,6 +16,9 @@
 #define TEXT_X          30U
 #define TEXT_WIDTH      300U
 #define BLINK_PERIOD_MS 500U
+#define LOOP_DELAY_MS   10U
+#define CDC_RX_READY_FLAG 0x8000U
+#define CDC_RX_LEN_MASK   0x3FFFU
 
 USBD_HandleTypeDef USBD_Device;
 
@@ -67,9 +70,9 @@ int main(void)
             }
         }
 
-        if ((g_usb_usart_rx_sta & 0x8000U) != 0U)
+        if ((g_usb_usart_rx_sta & CDC_RX_READY_FLAG) != 0U)
         {
-            uint16_t len = g_usb_usart_rx_sta & 0x3FFFU;
+            uint16_t len = g_usb_usart_rx_sta & CDC_RX_LEN_MASK;
             char     line[48];
 
             /* Echo the line to USART1 / LCD, then back to the host. */
@@ -96,7 +99,7 @@ int main(void)
                 led_toggle(LED0);
             }
 
-            delay_ms(10U);
+            delay_ms(LOOP_DELAY_MS);
         }
     }
 }

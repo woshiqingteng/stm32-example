@@ -7,8 +7,9 @@
 #define LIB_AUDIO_MP3PLAY_H
 
 #include <stdint.h>
+#include "audio.h"
 
 /** @brief  Play one MP3 file. @return AUDIO_* navigation code. */
-uint8_t mp3_play_song(char *fname);
+audio_nav_t mp3_play_song(char *fname);
 
 #endif /* LIB_AUDIO_MP3PLAY_H */

@@ -155,15 +155,15 @@ USBH_SpeedTypeDef USBH_LL_GetSpeed(USBH_HandleTypeDef *phost)
 
     switch (HAL_HCD_GetCurrentSpeed(phost->pData))
     {
-        case 0U:
+        case USBH_SPEED_HIGH:
             speed = USBH_SPEED_HIGH;
             break;
 
-        case 2U:
+        case USBH_SPEED_LOW:
             speed = USBH_SPEED_LOW;
             break;
 
-        case 1U:
+        case USBH_SPEED_FULL:
         default:
             speed = USBH_SPEED_FULL;
             break;

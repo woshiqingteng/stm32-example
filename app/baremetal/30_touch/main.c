@@ -5,6 +5,7 @@
  *          are reported over USART1.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "bsp.h"
 
@@ -63,7 +64,7 @@ int main(void)
     uint16_t y;
     uint16_t last_x = 0U;
     uint16_t last_y = 0U;
-    uint8_t have_last = 0U;
+    bool have_last = false;
     uint32_t tick = 0U;
 
     bsp_init();
@@ -91,13 +92,13 @@ int main(void)
 
     for (;;)
     {
-        if (touch_scan(0U) != 0U)
+        if (touch_scan(false) != 0U)
         {
             touch_read_xy(&x, &y);
 
             if ((x < lcd_get_width()) && (y < lcd_get_height()))
             {
-                if (have_last != 0U)
+                if (have_last)
                 {
                     touch_draw_line(last_x, last_y, x, y, BLUE);
                 }
@@ -105,14 +106,14 @@ int main(void)
                 touch_draw_point(x, y, RED);
                 last_x = x;
                 last_y = y;
-                have_last = 1U;
+                have_last = true;
 
                 printf("touch: x=%u y=%u\r\n", (unsigned)x, (unsigned)y);
             }
         }
         else
         {
-            have_last = 0U;
+            have_last = false;
         }
 
         tick++;

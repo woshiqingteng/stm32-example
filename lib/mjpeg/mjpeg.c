@@ -109,19 +109,19 @@ static void mem_src_attach(j_decompress_ptr cinfo, uint8_t *buf, uint32_t size)
     cinfo->src = &s_src.pub;
 }
 
-uint8_t mjpegdec_init(uint16_t offx, uint16_t offy)
+mjpeg_status_t mjpegdec_init(uint16_t offx, uint16_t offy)
 {
     p_linebuf = mymalloc(SRAMIN, lcd_get_width() * 2U);
 
     if (p_linebuf == NULL)
     {
-        return 1;
+        return MJPEG_ERR_INIT;
     }
 
     g_imgoffx = offx;
     g_imgoffy = offy;
 
-    return 0;
+    return MJPEG_OK;
 }
 
 void mjpegdec_free(void)
@@ -130,7 +130,7 @@ void mjpegdec_free(void)
     p_linebuf = NULL;
 }
 
-uint8_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
+mjpeg_status_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
 {
     uint8_t  *rowbuf;
     uint32_t  row;
@@ -140,7 +140,7 @@ uint8_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
 
     if ((bsize == 0U) || (p_linebuf == NULL))
     {
-        return 1;
+        return MJPEG_ERR_INIT;
     }
 
     s_cinfo.err = jpeg_std_error(&s_jerr.pub);
@@ -150,7 +150,7 @@ uint8_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
     {
         jpeg_abort_decompress(&s_cinfo);
         jpeg_destroy_decompress(&s_cinfo);
-        return 2;
+        return MJPEG_ERR_DECODE;
     }
 
     jpeg_create_decompress(&s_cinfo);
@@ -181,7 +181,7 @@ uint8_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
     {
         jpeg_finish_decompress(&s_cinfo);
         jpeg_destroy_decompress(&s_cinfo);
-        return 3;
+        return MJPEG_ERR_MEM;
     }
 
     for (row = 0; row < h; row++)
@@ -210,5 +210,5 @@ uint8_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
     (void)jpeg_finish_decompress(&s_cinfo);
     jpeg_destroy_decompress(&s_cinfo);
 
-    return 0;
+    return MJPEG_OK;
 }

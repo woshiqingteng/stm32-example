@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define LOOP_DELAY_MS 500U
+
 int main(void)
 {
     bsp_init();
@@ -18,6 +20,6 @@ int main(void)
     {
         led_toggle(LED0);
         printf("iap app alive\r\n");
-        delay_ms(500);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

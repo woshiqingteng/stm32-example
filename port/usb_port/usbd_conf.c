@@ -16,8 +16,8 @@
 /* USB OTG FS peripheral instance. */
 PCD_HandleTypeDef g_pcd_usb_otg_fs;
 
-/* USB connection state: 0 = not connected, 1 = connected. */
-volatile uint8_t g_device_state = 0U;
+/* USB connection state: false = not connected, true = connected. */
+volatile bool g_device_state = false;
 
 static USBD_StatusTypeDef usbd_get_usb_status(HAL_StatusTypeDef hal_status);
 
@@ -98,7 +98,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 {
-    g_device_state = 0U;
+    g_device_state = false;
     USBD_LL_Suspend((USBD_HandleTypeDef *)hpcd->pData);
     __HAL_PCD_GATE_PHYCLOCK(hpcd);
 
@@ -125,13 +125,13 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd)
 {
-    g_device_state = 1U;
+    g_device_state = true;
     USBD_LL_DevConnected((USBD_HandleTypeDef *)hpcd->pData);
 }
 
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
 {
-    g_device_state = 0U;
+    g_device_state = false;
     USBD_LL_DevDisconnected((USBD_HandleTypeDef *)hpcd->pData);
 }
 
@@ -246,7 +246,7 @@ uint8_t USBD_LL_IsStallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
 
 USBD_StatusTypeDef USBD_LL_SetUSBAddress(USBD_HandleTypeDef *pdev, uint8_t dev_addr)
 {
-    g_device_state = 1U;
+    g_device_state = true;
     return usbd_get_usb_status(HAL_PCD_SetAddress(pdev->pData, dev_addr));
 }
 

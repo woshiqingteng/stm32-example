@@ -170,11 +170,11 @@ static uint8_t mp3_fill(uint8_t *dst, uint16_t len)
     return eos;
 }
 
-uint8_t mp3_play_song(char *fname)
+audio_nav_t mp3_play_song(char *fname)
 {
     uint8_t  key;
     uint8_t  t = 0;
-    uint8_t  res = AUDIO_STOP;
+    audio_nav_t res = AUDIO_STOP;
     uint32_t totsec;
     uint32_t cursec;
 
@@ -230,11 +230,11 @@ uint8_t mp3_play_song(char *fname)
                 {
                     uint8_t eos;
 
-                    while (audio_transfer_end == 0)
+                    while (!audio_transfer_end)
                     {
                         /* wait for a half-buffer to finish */
                     }
-                    audio_transfer_end = 0;
+                    audio_transfer_end = false;
 
                     if (audio_witch_buf)
                     {

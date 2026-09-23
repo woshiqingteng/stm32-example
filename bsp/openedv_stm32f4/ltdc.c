@@ -344,7 +344,7 @@ void ltdc_init(void)
     g_ltdc_framebuf[0] = (uint32_t *)LTDC_FRAME_BUF_ADDR;
     lcdltdc.pixsize = LTDC_PIXSIZE;
 
-    /* MSP begin */
+    /* ---- MSP begin ---- */
     __HAL_RCC_LTDC_CLK_ENABLE();
     __HAL_RCC_DMA2D_CLK_ENABLE();
 
@@ -374,17 +374,15 @@ void ltdc_init(void)
     gpio_init_struct.Pin = LTDC_CLK_PIN;
     HAL_GPIO_Init(LTDC_CLK_PORT, &gpio_init_struct);
 
-    gpio_init_struct.Pin = GPIO_PIN_6 | GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOG, &gpio_init_struct);
+    gpio_init_struct.Pin = LTDC_R_PINS;
+    HAL_GPIO_Init(LTDC_R_PORT, &gpio_init_struct);
 
-    gpio_init_struct.Pin = GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 |
-                           GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOH, &gpio_init_struct);
+    gpio_init_struct.Pin = LTDC_G_PINS;
+    HAL_GPIO_Init(LTDC_G_PORT, &gpio_init_struct);
 
-    gpio_init_struct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 |
-                           GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
-    HAL_GPIO_Init(GPIOI, &gpio_init_struct);
-    /* MSP end */
+    gpio_init_struct.Pin = LTDC_B_PINS;
+    HAL_GPIO_Init(LTDC_B_PORT, &gpio_init_struct);
+    /* ---- MSP end ---- */
 
     g_ltdc_handle.Instance = LTDC;
     g_ltdc_handle.Init.HSPolarity = LTDC_HSPOLARITY_AL;

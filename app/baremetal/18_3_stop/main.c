@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define LOOP_DELAY_MS 10U
+
 int main(void)
 {
     uint32_t t = 0U;
@@ -33,6 +35,6 @@ int main(void)
         {
             led_toggle(LED0);
         }
-        delay_ms(10);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

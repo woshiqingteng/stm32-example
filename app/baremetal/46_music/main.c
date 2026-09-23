@@ -18,6 +18,7 @@
 #define TEXT_X      30U
 #define TEXT_WIDTH  320U
 #define FONT_SIZE   16U
+#define LOOP_DELAY_MS 500U
 
 static void app_font_prepare(void)
 {
@@ -88,6 +89,6 @@ int main(void)
     for (;;)
     {
         led_toggle(LED0);
-        delay_ms(500);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

@@ -334,12 +334,12 @@ uint8_t touch_init(void)
     gt9xxx_wr_reg(GT9XXX_CTRL_REG, &ctrl, 1U);
 
     g_touch.type = TOUCH_TYPE_CAPACITIVE;
-    g_touch.pressed = 0U;
+    g_touch.pressed = false;
 
     return ret;
 }
 
-uint8_t touch_scan(uint8_t mode)
+bool touch_scan(bool mode)
 {
     uint8_t status;
     uint8_t count;
@@ -368,7 +368,7 @@ uint8_t touch_scan(uint8_t mode)
             raw_x = (uint16_t)(((uint16_t)buf[1] << 8) | buf[0]);
             raw_y = (uint16_t)(((uint16_t)buf[3] << 8) | buf[2]);
 
-            if (mode != 0U)
+            if (mode)
             {
                 g_touch.x[i] = raw_x;
                 g_touch.y[i] = raw_y;
@@ -379,12 +379,12 @@ uint8_t touch_scan(uint8_t mode)
             }
         }
 
-        g_touch.pressed = 1U;
-        return 1U;
+        g_touch.pressed = true;
+        return true;
     }
 
-    g_touch.pressed = 0U;
-    return 0U;
+    g_touch.pressed = false;
+    return false;
 }
 
 void touch_read_xy(uint16_t *x, uint16_t *y)
@@ -400,7 +400,7 @@ void touch_read_xy(uint16_t *x, uint16_t *y)
     }
 }
 
-uint8_t touch_pressed(void)
+bool touch_pressed(void)
 {
     return g_touch.pressed;
 }

@@ -65,6 +65,16 @@ typedef enum
 #define LTDC_CLK_PORT   GPIOG
 #define LTDC_CLK_PIN    GPIO_PIN_7
 
+/* LTDC RGB565 data pins, grouped per GPIO port for MSP init. */
+#define LTDC_R_PORT     GPIOG
+#define LTDC_R_PINS     (GPIO_PIN_6 | GPIO_PIN_11)
+#define LTDC_G_PORT     GPIOH
+#define LTDC_G_PINS     (GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | \
+                         GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15)
+#define LTDC_B_PORT     GPIOI
+#define LTDC_B_PINS     (GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | \
+                         GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7)
+
 #define LTDC_BL(x) do { \
         (x) ? HAL_GPIO_WritePin(LTDC_BL_PORT, LTDC_BL_PIN, GPIO_PIN_SET) : \
               HAL_GPIO_WritePin(LTDC_BL_PORT, LTDC_BL_PIN, GPIO_PIN_RESET); \

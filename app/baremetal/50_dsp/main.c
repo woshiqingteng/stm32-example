@@ -23,6 +23,13 @@
 #define TEXT_X          30U
 #define TEXT_WIDTH      300U
 
+/** @brief  sin/cos implementation under test. */
+typedef enum
+{
+    DSP_MATH_PLAIN = 0,   /*!< plain sinf/cosf */
+    DSP_MATH_CMSIS = 1    /*!< CMSIS-DSP arm_sin_f32/arm_cos_f32 */
+} dsp_math_mode_t;
+
 /* FFT input (complex pairs) and output (magnitudes). */
 static float g_fft_inputbuf[FFT_LENGTH * 2U];
 static float g_fft_outputbuf[FFT_LENGTH];
@@ -35,7 +42,7 @@ static float g_fir_out[FIR_BLOCK];
 
 /* 0 = plain sinf/cosf, 1 = CMSIS-DSP arm_sin_f32/arm_cos_f32. Returns 0xFF
  * when a result deviates from 1 by more than DELTA. */
-static uint8_t sin_cos_test(float angle, uint32_t times, uint8_t mode)
+static uint8_t sin_cos_test(float angle, uint32_t times, dsp_math_mode_t mode)
 {
     float    sinx;
     float    cosx;
@@ -44,7 +51,7 @@ static uint8_t sin_cos_test(float angle, uint32_t times, uint8_t mode)
 
     for (i = 0U; i < times; i++)
     {
-        if (mode == 0U)
+        if (mode == DSP_MATH_PLAIN)
         {
             cosx = cosf(angle);
             sinx = sinf(angle);
@@ -141,7 +148,7 @@ int main(void)
 
     /* BasicMath benchmark: plain libm, then the CMSIS-DSP kernels. */
     t0      = sys_get_tick();
-    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
+    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, DSP_MATH_PLAIN);
     elapsed = sys_get_tick() - t0;
     sprintf(line, "Math noDSP:%lu ms", (unsigned long)elapsed);
     printf("sin/cos noDSP : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");
@@ -149,7 +156,7 @@ int main(void)
                     (res == 0U) ? BLUE : RED);
 
     t0      = sys_get_tick();
-    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
+    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, DSP_MATH_CMSIS);
     elapsed = sys_get_tick() - t0;
     sprintf(line, "Math DSP  :%lu ms", (unsigned long)elapsed);
     printf("sin/cos DSP   : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");

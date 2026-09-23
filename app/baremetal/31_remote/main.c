@@ -9,32 +9,34 @@
 
 #define TEXT_X          30U
 #define TEXT_WIDTH      300U
+#define KEY_SETTLE_DELAY_MS 100U
+#define POLL_DELAY_MS   10U
 
 static const char *remote_symbol(uint8_t key)
 {
     switch (key)
     {
-        case 69U: return "POWER";
-        case 70U: return "UP";
-        case 64U: return "PLAY";
-        case 71U: return "ALIENTEK";
-        case 67U: return "RIGHT";
-        case 68U: return "LEFT";
-        case 7U:  return "VOL-";
-        case 21U: return "DOWN";
-        case 9U:  return "VOL+";
-        case 22U: return "1";
-        case 25U: return "2";
-        case 13U: return "3";
-        case 12U: return "4";
-        case 24U: return "5";
-        case 94U: return "6";
-        case 8U:  return "7";
-        case 28U: return "8";
-        case 90U: return "9";
-        case 66U: return "0";
-        case 74U: return "DELETE";
-        default:  return "UNKNOWN";
+        case REMOTE_KEY_POWER:    return "POWER";
+        case REMOTE_KEY_UP:       return "UP";
+        case REMOTE_KEY_PLAY:     return "PLAY";
+        case REMOTE_KEY_ALIENTEK: return "ALIENTEK";
+        case REMOTE_KEY_RIGHT:    return "RIGHT";
+        case REMOTE_KEY_LEFT:     return "LEFT";
+        case REMOTE_KEY_VOL_DOWN: return "VOL-";
+        case REMOTE_KEY_DOWN:     return "DOWN";
+        case REMOTE_KEY_VOL_UP:   return "VOL+";
+        case REMOTE_KEY_1:        return "1";
+        case REMOTE_KEY_2:        return "2";
+        case REMOTE_KEY_3:        return "3";
+        case REMOTE_KEY_4:        return "4";
+        case REMOTE_KEY_5:        return "5";
+        case REMOTE_KEY_6:        return "6";
+        case REMOTE_KEY_7:        return "7";
+        case REMOTE_KEY_8:        return "8";
+        case REMOTE_KEY_9:        return "9";
+        case REMOTE_KEY_0:        return "0";
+        case REMOTE_KEY_DELETE:   return "DELETE";
+        default:                  return "UNKNOWN";
     }
 }
 
@@ -67,19 +69,19 @@ int main(void)
         {
             lcd_show_xnum(TEXT_X + 60U, 90U, key, 3U, LCD_FONT_SIZE_16,
                           LCD_TEXT_BG_OVERWRITE, BLUE);
-            lcd_show_xnum(TEXT_X + 60U, 110U, g_remote_cnt, 3U, LCD_FONT_SIZE_16,
+            lcd_show_xnum(TEXT_X + 60U, 110U, remote_repeat_count(), 3U, LCD_FONT_SIZE_16,
                           LCD_TEXT_BG_OVERWRITE, BLUE);
             lcd_show_string(TEXT_X + 60U, 130U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
                             remote_symbol(key), BLUE);
 
-            sprintf(line, "KEY: %u CNT: %u SYM: %s", key, g_remote_cnt, remote_symbol(key));
+            sprintf(line, "KEY: %u CNT: %u SYM: %s", key, remote_repeat_count(), remote_symbol(key));
             printf("%s\r\n", line);
 
-            delay_ms(100U);
+            delay_ms(KEY_SETTLE_DELAY_MS);
         }
         else
         {
-            delay_ms(10U);
+            delay_ms(POLL_DELAY_MS);
         }
 
         led_tick++;

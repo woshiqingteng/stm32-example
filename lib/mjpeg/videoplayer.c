@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
@@ -27,7 +28,7 @@
 /* TIM7 video frame pacing. */
 static TIM_HandleTypeDef g_vtim_handle;
 uint16_t                 g_avi_frame;
-volatile uint8_t         g_avi_frameup;
+volatile bool            g_avi_frameup;
 
 /* Audio ring shared with the SAI DMA callback. */
 volatile uint8_t g_avi_sai_playbuf;
@@ -62,7 +63,7 @@ void TIM7_IRQHandler(void)
     if (__HAL_TIM_GET_FLAG(&g_vtim_handle, TIM_FLAG_UPDATE) != RESET)
     {
         __HAL_TIM_CLEAR_FLAG(&g_vtim_handle, TIM_FLAG_UPDATE);
-        g_avi_frameup = 1;
+        g_avi_frameup = true;
         led_toggle(LED1);
     }
 }
@@ -316,11 +317,11 @@ uint8_t video_play_mjpeg(char *pname)
                         (void)f_read(favi, pbuf, g_avix.StreamSize + 8U, (UINT *)&nr);
                         (void)mjpegdec_decode(pbuf, g_avix.StreamSize);
 
-                        while (g_avi_frameup == 0)
+                        while (!g_avi_frameup)
                         {
                             /* wait for the frame period */
                         }
-                        g_avi_frameup = 0;
+                        g_avi_frameup = false;
                         g_avi_frame++;
                     }
                     else                                    /* audio chunk */

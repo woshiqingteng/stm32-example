@@ -46,6 +46,14 @@
 #define OLED_D7_PORT    GPIOB
 #define OLED_D7_PIN     GPIO_PIN_9
 
+/* MSP init groups (per GPIO port). */
+#define OLED_GPIOB_PORT GPIOB
+#define OLED_GPIOB_PINS (OLED_CS_PIN | OLED_RS_PIN | OLED_RD_PIN | OLED_D6_PIN | OLED_D7_PIN)
+#define OLED_GPIOC_PORT GPIOC
+#define OLED_GPIOC_PINS (OLED_D0_PIN | OLED_D1_PIN | OLED_D2_PIN | OLED_D3_PIN | OLED_D4_PIN)
+#define OLED_GPIOD_PORT GPIOD
+#define OLED_GPIOD_PINS (OLED_D5_PIN)
+
 #define OLED_DATA_BIT(data, bit, port, pin) \
     HAL_GPIO_WritePin((port), (pin), ((((data) >> (bit)) & 0x01U) != 0U) ? \
                       GPIO_PIN_SET : GPIO_PIN_RESET)
@@ -335,7 +343,7 @@ void oled_init(void)
 {
     GPIO_InitTypeDef gpio = {0};
 
-    /* MSP begin */
+    /* ---- MSP begin ---- */
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -349,14 +357,14 @@ void oled_init(void)
     gpio.Pin = OLED_RST_PIN;
     HAL_GPIO_Init(OLED_RST_PORT, &gpio);
 
-    gpio.Pin = OLED_CS_PIN | OLED_RS_PIN | OLED_RD_PIN | GPIO_PIN_8 | GPIO_PIN_9;
-    HAL_GPIO_Init(GPIOB, &gpio);
+    gpio.Pin = OLED_GPIOB_PINS;
+    HAL_GPIO_Init(OLED_GPIOB_PORT, &gpio);
 
-    gpio.Pin = GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOC, &gpio);
+    gpio.Pin = OLED_GPIOC_PINS;
+    HAL_GPIO_Init(OLED_GPIOC_PORT, &gpio);
 
-    gpio.Pin = GPIO_PIN_3;
-    HAL_GPIO_Init(GPIOD, &gpio);
+    gpio.Pin = OLED_GPIOD_PINS;
+    HAL_GPIO_Init(OLED_GPIOD_PORT, &gpio);
 
     gpio.Pin = OLED_WR_PIN;
     HAL_GPIO_Init(OLED_WR_PORT, &gpio);
@@ -365,7 +373,7 @@ void oled_init(void)
     HAL_GPIO_WritePin(OLED_RD_PORT, OLED_RD_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
-    /* MSP end */
+    /* ---- MSP end ---- */
 
     HAL_GPIO_WritePin(OLED_RST_PORT, OLED_RST_PIN, GPIO_PIN_RESET);
     delay_ms(OLED_RESET_DELAY_MS);

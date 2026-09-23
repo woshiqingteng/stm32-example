@@ -9,12 +9,14 @@
  * contrast / effect / focus and pause the capture.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "bsp.h"
 
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
 #define CAM_TOP          16U
+#define CAM_FPS_INVALID  0xFFFFFFFFU
 
 #define STATUS_X         4U
 #define STATUS_WIDTH     700U
@@ -24,7 +26,7 @@
 #define CAM_KEY_DELAY_MS 200U
 #define CAM_LOOP_MS      20U
 
-static volatile uint8_t g_paused;
+static volatile bool g_paused;
 
 static void cam_frame_cb(void)
 {
@@ -39,7 +41,7 @@ static void cam_show_status(uint32_t fps, uint8_t contrast, uint8_t effect)
     (void)sprintf(line, "OV5640 RGB565 %ux%u FPS:%u C:%u E:%u%s",
                   (unsigned int)CAM_OUT_WIDTH, (unsigned int)CAM_OUT_HEIGHT,
                   (unsigned int)fps, (unsigned int)contrast, (unsigned int)effect,
-                  (g_paused != 0U) ? " PAUSE" : "");
+                  g_paused ? " PAUSE" : "");
 
     lcd_fill(STATUS_X, 0U, (uint16_t)(STATUS_X + STATUS_WIDTH), STATUS_HEIGHT - 1U, BLACK);
     lcd_show_string(STATUS_X, 0U, STATUS_WIDTH, STATUS_HEIGHT, LCD_FONT_SIZE_16, line, GREEN);
@@ -48,10 +50,10 @@ static void cam_show_status(uint32_t fps, uint8_t contrast, uint8_t effect)
 int main(void)
 {
     uint32_t fps = 0U;
-    uint32_t last_fps = 0xFFFFFFFFU;
+    uint32_t last_fps = CAM_FPS_INVALID;
     uint8_t contrast = 2U;
     uint8_t effect = 0U;
-    uint8_t redraw = 1U;
+    bool    redraw = true;
     uint16_t id;
 
     bsp_init();
@@ -109,7 +111,7 @@ int main(void)
             ov5640_contrast(contrast);
             delay_ms(CAM_KEY_DELAY_MS);
             dcmi_start();
-            redraw = 1U;
+            redraw = true;
         }
         else if (key == KEY1)
         {
@@ -127,21 +129,21 @@ int main(void)
             ov5640_special_effects(effect);
             delay_ms(CAM_KEY_DELAY_MS);
             dcmi_start();
-            redraw = 1U;
+            redraw = true;
         }
         else if (key == KEY_WKUP)
         {
-            if (g_paused == 0U)
+            if (!g_paused)
             {
-                g_paused = 1U;
+                g_paused = true;
                 dcmi_stop();
             }
             else
             {
-                g_paused = 0U;
+                g_paused = false;
                 dcmi_start();
             }
-            redraw = 1U;
+            redraw = true;
         }
         else
         {
@@ -150,10 +152,10 @@ int main(void)
 
         fps = timer_frame_rate();
 
-        if ((fps != last_fps) || (redraw != 0U))
+        if ((fps != last_fps) || redraw)
         {
             last_fps = fps;
-            redraw = 0U;
+            redraw = false;
             cam_show_status(fps, contrast, effect);
             printf("FPS:%u\r\n", (unsigned int)fps);
         }

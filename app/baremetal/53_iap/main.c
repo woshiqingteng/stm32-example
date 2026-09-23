@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define LOOP_DELAY_MS 100U
+
 int main(void)
 {
     bsp_init();
@@ -25,6 +27,6 @@ int main(void)
             printf("IAP: jump failed\r\n");
         }
 
-        delay_ms(100);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

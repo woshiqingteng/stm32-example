@@ -8,22 +8,21 @@
 #ifndef LIB_PICTURE_PICLIB_H
 #define LIB_PICTURE_PICLIB_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "bmp.h"
 #include "gif.h"
 #include "jpeg_dec.h"
 
-#define PIC_FORMAT_ERR      0x27    /* unsupported image format */
-#define PIC_SIZE_ERR        0x28    /* image too large */
-#define PIC_WINDOW_ERR      0x29    /* window out of range */
-#define PIC_MEM_ERR         0x11    /* out of memory */
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-#ifndef FALSE
-#define FALSE   0
-#endif
+/** @brief  Image load result codes. */
+typedef enum
+{
+    PIC_OK           = 0,     /*!< success */
+    PIC_MEM_ERR      = 0x11,  /*!< out of memory */
+    PIC_FORMAT_ERR   = 0x27,  /*!< unsupported image format */
+    PIC_SIZE_ERR     = 0x28,  /*!< image too large */
+    PIC_WINDOW_ERR   = 0x29,  /*!< window out of range */
+} pic_status_t;
 
 /** @brief  Drawing primitives the decoders render through. */
 typedef struct
@@ -61,7 +60,7 @@ void     piclib_mem_free(void *paddr);
 void     piclib_init(void);
 void     piclib_ai_draw_init(void);
 uint16_t piclib_alpha_blend(uint16_t src, uint16_t dst, uint8_t alpha);
-uint8_t  piclib_is_element_ok(uint16_t x, uint16_t y, uint8_t chg);
-uint8_t  piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t fast);
+bool     piclib_is_element_ok(uint16_t x, uint16_t y, bool chg);
+pic_status_t piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height, bool fast);
 
 #endif /* LIB_PICTURE_PICLIB_H */

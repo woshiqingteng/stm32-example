@@ -15,6 +15,13 @@
 #define TEXT_X              30U
 #define TEXT_WIDTH          300U
 
+/** @brief  Selected NRF24L01 role. */
+typedef enum
+{
+    NRF_MODE_RX = 0,
+    NRF_MODE_TX = 1
+} nrf_mode_t;
+
 static void nrf_run_rx(void)
 {
     uint8_t payload[NRF24L01_RX_PLOAD_WIDTH];
@@ -84,7 +91,7 @@ int main(void)
 {
     uint8_t  key;
     uint32_t waited = 0U;
-    uint8_t  mode = 0U; /* 0 = RX, 1 = TX */
+    nrf_mode_t mode = NRF_MODE_RX; /* RX by default */
 
     bsp_init();
     sdram_init();
@@ -113,12 +120,12 @@ int main(void)
 
         if (key == KEY0)
         {
-            mode = 0U;
+            mode = NRF_MODE_RX;
             break;
         }
         else if (key == KEY1)
         {
-            mode = 1U;
+            mode = NRF_MODE_TX;
             break;
         }
 
@@ -126,7 +133,7 @@ int main(void)
         delay_ms(10U);
     }
 
-    if (mode == 0U)
+    if (mode == NRF_MODE_RX)
     {
         nrf_run_rx();
     }

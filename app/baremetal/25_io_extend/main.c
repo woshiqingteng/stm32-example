@@ -5,6 +5,7 @@
  *          are also polled. Results are shown on the RGB panel and USART1.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "bsp.h"
 
@@ -19,7 +20,7 @@ int main(void)
     char line[48];
     uint8_t idx = 0U;
     uint8_t status;
-    uint8_t ack = 0U;
+    bool ack = false;
 
     bsp_init();
     sdram_init();
@@ -51,11 +52,11 @@ int main(void)
         pcf8574_write_byte(write_val);
         read_val = pcf8574_read_byte();
 
-        ack = (read_val == write_val) ? 1U : 0U;
+        ack = (read_val == write_val);
 
         sprintf(line, "Write:0x%02X Read:0x%02X", write_val, read_val);
         lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line,
-                        (ack != 0U) ? BLUE : RED);
+                        ack ? BLUE : RED);
         printf("%s\r\n", line);
 
         status = (pcf8574_int_asserted()) ? 1U : 0U;

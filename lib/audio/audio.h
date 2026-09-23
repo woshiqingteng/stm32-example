@@ -8,6 +8,7 @@
 #ifndef LIB_AUDIO_AUDIO_H
 #define LIB_AUDIO_AUDIO_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /* The FatFs file handle stays opaque here so this public header does not pull
@@ -17,11 +18,15 @@
  *  192 kbps / 24-bit. */
 #define AUDIO_SAI_TX_BUF_SIZE    8192U
 
-/* Player return codes (kept out of the FRESULT range, which has FR_OK == 0). */
-#define AUDIO_STOP               0U   /* stop / finished */
-#define AUDIO_NEXT               1U   /* KEY0: next track          */
-#define AUDIO_PREV               2U   /* KEY2: previous track      */
-#define AUDIO_ERROR              0xFFU
+/** @brief  Player navigation result codes (kept out of the FRESULT range,
+ *  which has FR_OK == 0). */
+typedef enum
+{
+    AUDIO_STOP  = 0,      /*!< stop / finished    */
+    AUDIO_NEXT  = 1,      /*!< KEY0: next track   */
+    AUDIO_PREV  = 2,      /*!< KEY2: previous track */
+    AUDIO_ERROR = 0xFF,   /*!< playback error     */
+} audio_nav_t;
 
 /** @brief  Shared audio device state. */
 typedef struct
@@ -37,8 +42,8 @@ typedef struct
 extern audiodev_t g_audiodev;
 
 /** @brief  SAI TX half-transfer flags shared with the format players. */
-extern volatile uint8_t audio_transfer_end;   /* 1 when a half-buffer finished */
-extern volatile uint8_t audio_witch_buf;      /* 0: buf1 served, 1: buf2 served */
+extern volatile bool audio_transfer_end;   /* true when a half-buffer finished */
+extern volatile bool audio_witch_buf;      /* false: buf1 served, true: buf2 served */
 
 /** @brief  Configure the codec for DAC playback and set a default volume. */
 void audio_hw_init(void);
@@ -65,6 +70,6 @@ void audio_msg_show(uint32_t totsec, uint32_t cursec, uint32_t bitrate);
 void audio_play(void);
 
 /** @brief  Play one file, dispatching on the extension (WAV or MP3). */
-uint8_t audio_play_song(char *fname);
+audio_nav_t audio_play_song(char *fname);
 
 #endif /* LIB_AUDIO_AUDIO_H */

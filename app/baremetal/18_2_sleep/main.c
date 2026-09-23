@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "bsp.h"
 
+#define LOOP_DELAY_MS 10U
+
 /** @brief Cause recorded when the MCU wakes from sleep. */
 typedef enum
 {
@@ -55,6 +57,6 @@ int main(void)
         {
             led_toggle(LED0);
         }
-        delay_ms(10);
+        delay_ms(LOOP_DELAY_MS);
     }
 }

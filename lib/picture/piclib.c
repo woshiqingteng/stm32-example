@@ -110,26 +110,26 @@ void piclib_ai_draw_init(void)
     picinfo.staticy = 0xffff;
 }
 
-uint8_t piclib_is_element_ok(uint16_t x, uint16_t y, uint8_t chg)
+bool piclib_is_element_ok(uint16_t x, uint16_t y, bool chg)
 {
     if ((x != picinfo.staticx) || (y != picinfo.staticy))
     {
-        if (chg == 1U)
+        if (chg)
         {
             picinfo.staticx = x;
             picinfo.staticy = y;
         }
 
-        return 1;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
-uint8_t piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t fast)
+pic_status_t piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint16_t width, uint16_t height, bool fast)
 {
-    uint8_t res;
-    uint8_t temp;
+    pic_status_t res;
+    uint8_t      temp;
 
     if ((x + width) > picinfo.lcdwidth)
     {
@@ -153,12 +153,12 @@ uint8_t piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint16_t 
     {
         picinfo.S_Height = lcd_get_height();
         picinfo.S_Width  = lcd_get_width();
-        return FALSE;
+        return PIC_OK;
     }
 
     if (pic_phy.fillcolor == NULL)
     {
-        fast = 0U;
+        fast = false;
     }
 
     picinfo.S_YOFF = y;

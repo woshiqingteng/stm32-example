@@ -43,7 +43,7 @@ static uint8_t exfuns_char_upper(uint8_t c)
     return c;
 }
 
-uint8_t exfuns_file_type(char *fname)
+file_type_t exfuns_file_type(char *fname)
 {
     uint8_t tbuf[5];
     char *attr = 0;
@@ -63,7 +63,7 @@ uint8_t exfuns_file_type(char *fname)
 
     if (i == 250U)
     {
-        return 0xFFU;
+        return T_UNKNOWN;
     }
 
     for (i = 0; i < 5U; i++)
@@ -80,7 +80,7 @@ uint8_t exfuns_file_type(char *fname)
 
     if (attr == 0)
     {
-        return 0xFFU;
+        return T_UNKNOWN;
     }
 
     memset(tbuf, 0, sizeof(tbuf));
@@ -105,12 +105,12 @@ uint8_t exfuns_file_type(char *fname)
 
             if (strcmp((const char *)g_file_type_tbl[i][j], (const char *)tbuf) == 0)
             {
-                return (uint8_t)((i << 4) | j);
+                return (file_type_t)((i << 4) | j);
             }
         }
     }
 
-    return 0xFFU;
+    return T_UNKNOWN;
 }
 
 uint8_t exfuns_init(void)

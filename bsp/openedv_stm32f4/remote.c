@@ -15,12 +15,18 @@
 #define REMOTE_NVIC_UP_SUB      3U
 #define REMOTE_NVIC_CC_SUB      2U
 
-#define REMOTE_STA_HIGH         0x10U /*!< a high level has been captured */
-#define REMOTE_STA_KEY          0x40U /*!< a decoded key is available    */
-#define REMOTE_STA_READY        0x80U /*!< a full frame has been received */
-#define REMOTE_STA_TIME_MASK    0x0FU
-#define REMOTE_STA_ALL_FLAGS    0xF0U
 #define REMOTE_REPEAT_MAX       14U
+
+/* Receiver bit flags: the low nibble counts frames, the high nibble holds the
+ * decode state. */
+typedef enum
+{
+    REMOTE_STA_TIME_MASK = 0x0FU,
+    REMOTE_STA_HIGH      = 0x10U,
+    REMOTE_STA_KEY       = 0x40U,
+    REMOTE_STA_READY     = 0x80U,
+    REMOTE_STA_ALL_FLAGS = 0xF0U,
+} remote_sta_t;
 
 #define REMOTE_BIT0_MIN         300U
 #define REMOTE_BIT0_MAX         800U
@@ -34,8 +40,7 @@
 static TIM_HandleTypeDef g_remote_handle;
 static uint8_t           g_remote_sta;
 static uint32_t          g_remote_data;
-
-uint8_t g_remote_cnt;
+static uint8_t           g_remote_cnt;
 
 void remote_init(void)
 {
@@ -214,4 +219,9 @@ uint8_t remote_scan(void)
     }
 
     return key;
+}
+
+uint8_t remote_repeat_count(void)
+{
+    return g_remote_cnt;
 }

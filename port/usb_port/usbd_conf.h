@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,8 +41,8 @@ extern "C" {
 #define DEVICE_FS                       0U
 #define DEVICE_HS                       1U
 
-/* USB connection state, maintained by usbd_conf.c: 0 = disconnected. */
-extern volatile uint8_t g_device_state;
+/* USB connection state, maintained by usbd_conf.c: false = disconnected. */
+extern volatile bool g_device_state;
 
 /*
  * The device stack allocates one class handle. Only a single class is

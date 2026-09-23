@@ -5,6 +5,7 @@
  *          reported on the RGB panel and USART1.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include "bsp.h"
@@ -32,8 +33,8 @@ int main(void)
 {
     char line[48];
     uint8_t i;
-    uint8_t byte_ok = 1U;
-    uint8_t text_ok;
+    bool byte_ok = true;
+    bool text_ok;
     char text_read[EEPROM_STR_LEN + 1U];
 
     bsp_init();
@@ -70,19 +71,19 @@ int main(void)
     {
         if (g_readback[i] != g_pattern[i])
         {
-            byte_ok = 0U;
+            byte_ok = false;
         }
     }
 
-    text_ok = (strncmp(text_read, g_text, EEPROM_STR_LEN) == 0) ? 1U : 0U;
+    text_ok = (strncmp(text_read, g_text, EEPROM_STR_LEN) == 0);
 
-    sprintf(line, "Bytes: %s", (byte_ok != 0U) ? "OK" : "FAIL");
-    lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, (byte_ok != 0U) ? BLUE : RED);
+    sprintf(line, "Bytes: %s", byte_ok ? "OK" : "FAIL");
+    lcd_show_string(TEXT_X, 120U, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, byte_ok ? BLUE : RED);
     printf("%s\r\n", line);
 
     sprintf(line, "String: %s", text_read);
-    lcd_show_string(TEXT_X, 120U + LINE_HEIGHT, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, (text_ok != 0U) ? BLUE : RED);
-    printf("%s (%s)\r\n", line, (text_ok != 0U) ? "OK" : "FAIL");
+    lcd_show_string(TEXT_X, 120U + LINE_HEIGHT, TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, line, text_ok ? BLUE : RED);
+    printf("%s (%s)\r\n", line, text_ok ? "OK" : "FAIL");
 
     for (;;)
     {
