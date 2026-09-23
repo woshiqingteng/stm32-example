@@ -1,29 +1,71 @@
-set(MCU_GEN_FULL_ARTIFACT OFF CACHE BOOL "Generate full artifacts")
+option(GEN_ALL_ARTIFACT "Generate all artifacts (bin/hex/lst)" OFF)
 
 function(mcu_generate target base)
-    set_target_properties(${target} PROPERTIES OUTPUT_NAME "${base}.elf")
+    set_target_properties(${target} PROPERTIES
+        OUTPUT_NAME "${base}"
+        SUFFIX ".elf"
+    )
+
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O binary
                 $<TARGET_FILE:${target}>
                 $<TARGET_FILE_DIR:${target}>/${base}.bin
         COMMENT "Generating ${base}.bin")
-    if(MCU_GEN_FULL_ARTIFACT)
+
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${target}>
+        COMMENT "Size of ${base}")
+
+    if(GEN_ALL_ARTIFACT)
         add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_OBJCOPY} -O ihex
                     $<TARGET_FILE:${target}>
                     $<TARGET_FILE_DIR:${target}>/${base}.hex
             COMMENT "Generating ${base}.hex")
-        add_custom_command(TARGET ${target} POST_BUILD
-            COMMAND ${CMAKE_OBJDUMP} -h -S $<TARGET_FILE:${target}>
-                    > $<TARGET_FILE_DIR:${target}>/${base}.lst
-            COMMENT "Generating ${base}.lst")
     endif()
 endfunction()
 
+# mcu_flash(<target> <base>): per-app load address via MCU_FLASH_ADDR (set in the
+# app's CMakeLists before add_*_app), falling back to the board's MCU_FLASH_BASE.
 function(mcu_flash target base)
-    add_custom_target(flash
-        COMMAND ${OPENOCD} -f interface/${OPENOCD_INTERFACE} -f target/${OPENOCD_TARGET}
-                -c "program $<TARGET_FILE_DIR:${target}>/${base}.bin ${MCU_FLASH_BASE} verify reset exit"
-        DEPENDS ${target}
-        COMMENT "Flashing ${base}.bin via OpenOCD (CMSIS-DAP)")
+    if(NOT OPENOCD)
+        find_program(OPENOCD openocd REQUIRED)
+    endif()
+    if(NOT OPENOCD_INTERFACE OR NOT OPENOCD_TARGET)
+        message(FATAL_ERROR "OPENOCD_INTERFACE / OPENOCD_TARGET not set")
+    endif()
+
+    set(_addr "${MCU_FLASH_ADDR}")
+    if(NOT _addr)
+        set(_addr "${MCU_FLASH_BASE}")
+    endif()
+    if(NOT _addr)
+        message(FATAL_ERROR "Neither MCU_FLASH_ADDR nor MCU_FLASH_BASE is set")
+    endif()
+
+    if(MCU_BOOT_MODE STREQUAL "flash")
+        add_custom_target(${target}_flash
+            COMMAND ${OPENOCD}
+                    -f interface/${OPENOCD_INTERFACE}
+                    -f target/${OPENOCD_TARGET}
+                    -c "program $<TARGET_FILE_DIR:${target}>/${base}.bin ${_addr} verify reset exit"
+            DEPENDS ${target}
+            USES_TERMINAL
+            COMMENT "Flashing ${base}.bin to FLASH @ ${_addr}")
+    elseif(MCU_BOOT_MODE STREQUAL "ram")
+        add_custom_target(${target}_flash
+            COMMAND ${OPENOCD}
+                    -f interface/${OPENOCD_INTERFACE}
+                    -f target/${OPENOCD_TARGET}
+                    -c "halt"
+                    -c "load_image $<TARGET_FILE_DIR:${target}>/${base}.bin ${_addr} bin"
+                    -c "reg pc ${_addr}"
+                    -c "resume"
+                    -c "shutdown"
+            DEPENDS ${target}
+            USES_TERMINAL
+            COMMENT "Loading ${base}.bin to RAM @ ${_addr}")
+    else()
+        message(FATAL_ERROR "Invalid MCU_BOOT_MODE: ${MCU_BOOT_MODE}")
+    endif()
 endfunction()

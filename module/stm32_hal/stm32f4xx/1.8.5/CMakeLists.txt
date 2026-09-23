@@ -53,4 +53,4 @@ set(HAL_SRC_HCD     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32f4xx_hal_hcd.c
 add_library(stm32f4xx_hal STATIC)
 
 target_include_directories(stm32f4xx_hal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
-target_link_libraries(stm32f4xx_hal PRIVATE ${TARGET_LIB} cmsis_core)
+target_link_libraries(stm32f4xx_hal PUBLIC ${TARGET_LIB} cmsis_core)

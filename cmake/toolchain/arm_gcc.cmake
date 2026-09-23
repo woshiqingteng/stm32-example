@@ -1,29 +1,22 @@
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR arm)
-
 set(TOOLCHAIN_PREFIX arm-none-eabi-)
 
-set(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}gcc)
-set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
-set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+find_program(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}gcc REQUIRED)
+find_program(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++ REQUIRED)
+find_program(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc REQUIRED)
+find_program(CMAKE_OBJCOPY      ${TOOLCHAIN_PREFIX}objcopy REQUIRED)
+find_program(CMAKE_SIZE         ${TOOLCHAIN_PREFIX}size REQUIRED)
+find_program(CMAKE_OBJDUMP      ${TOOLCHAIN_PREFIX}objdump REQUIRED)
 
-set(CMAKE_OBJCOPY      ${TOOLCHAIN_PREFIX}objcopy)
-set(CMAKE_SIZE         ${TOOLCHAIN_PREFIX}size)
-set(CMAKE_OBJDUMP      ${TOOLCHAIN_PREFIX}objdump)
-
+set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(CMAKE_C_FLAGS "-std=gnu11 -Wall -ffunction-sections -fdata-sections" CACHE STRING "" FORCE)
-
-set(CMAKE_C_FLAGS_DEBUG   "-Og -g3 -DDEBUG"  CACHE STRING "" FORCE)
-set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG"     CACHE STRING "" FORCE)
-
-set(CMAKE_EXE_LINKER_FLAGS "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections" CACHE STRING "" FORCE)
-
-set(OPENOCD openocd CACHE FILEPATH "openocd executable")
-set(OPENOCD_INTERFACE cmsis-dap.cfg CACHE STRING "openocd interface config")
-set(OPENOCD_TARGET    stm32f4x.cfg   CACHE STRING "openocd target config")
+set(CMAKE_C_FLAGS_INIT "-std=gnu11 -Wall -ffunction-sections -fdata-sections")
+set(CMAKE_ASM_FLAGS_INIT "-x assembler-with-cpp")
+set(CMAKE_C_FLAGS_DEBUG_INIT "-Og -g3 -DDEBUG")
+set(CMAKE_C_FLAGS_RELEASE_INIT "-Os -DNDEBUG")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections")

@@ -19,6 +19,6 @@ target_include_directories(lib_picture PRIVATE
     $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:fatfs_port,INTERFACE_INCLUDE_DIRECTORIES>)
 
-target_link_libraries(lib_picture PUBLIC bsp lib_text libjpeg lib_malloc ${TARGET_LIB})
+target_link_libraries(lib_picture PUBLIC bsp lib_text libjpeg lib_malloc)
 
 set(LIB_COMPONENTS ${LIB_COMPONENTS} PICTURE CACHE INTERNAL "" FORCE)

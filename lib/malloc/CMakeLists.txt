@@ -9,6 +9,6 @@ add_library(lib_malloc STATIC ${LIB_SRC_MALLOC})
 set_target_properties(lib_malloc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories(lib_malloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(lib_malloc PUBLIC bsp ${TARGET_LIB})
+target_link_libraries(lib_malloc PUBLIC bsp)
 
 set(LIB_COMPONENTS ${LIB_COMPONENTS} MALLOC CACHE INTERNAL "" FORCE)

@@ -44,7 +44,7 @@ if(MODULE_HAL_ENABLE)
     set(_m ${HAL_MODULE_DIR}/${HAL_MODULE_VERSION})
     if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${_m})
         message(FATAL_ERROR
-            "No HAL module for series '${STM32_SERIES}': module/${_m}")
+            "No HAL module for family '${MCU_FAMILY}': module/${_m}")
     endif()
     add_subdirectory(${_m})
 endif()

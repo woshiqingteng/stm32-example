@@ -19,6 +19,6 @@ target_include_directories(lib_audio PRIVATE
     $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:fatfs_port,INTERFACE_INCLUDE_DIRECTORIES>)
 
-target_link_libraries(lib_audio PUBLIC bsp lib_text lib_malloc helix_mp3 ${TARGET_LIB})
+target_link_libraries(lib_audio PUBLIC bsp lib_text lib_malloc helix_mp3)
 
 set(LIB_COMPONENTS ${LIB_COMPONENTS} AUDIO CACHE INTERNAL "" FORCE)

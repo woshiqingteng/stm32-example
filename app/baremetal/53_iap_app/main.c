@@ -1,7 +1,7 @@
 /**
  * @file    main.c
  * @brief   53_iap_app: application image for the IAP bootloader, linked at
- *          0x08010000 (see LD stm32f429ig_iap_app.ld).
+ *          0x08010000 (see the app-local stm32f4xx_iap_app.ld).
  */
 
 #include <stdio.h>

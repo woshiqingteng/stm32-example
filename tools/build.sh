@@ -101,7 +101,7 @@ for entry in "${expanded[@]}"; do
         continue
     fi
     if [ "$flash" -eq 1 ]; then
-        if ! cmake --build "$build_dir" --target flash; then
+        if ! cmake --build "$build_dir" --target "${target}_flash"; then
             echo "!!! flash failed: $app"
             failed=1
         fi

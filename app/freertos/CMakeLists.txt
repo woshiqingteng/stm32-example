@@ -11,27 +11,15 @@ set(FREERTOS_BSP_COMMON
     ${BSP_SRC_BSP} ${BSP_SRC_SYS} ${BSP_SRC_DELAY}
     ${BSP_SRC_USART} ${BSP_SRC_LED} ${BSP_SRC_KEY})
 
-set(MCU_LD flash CACHE STRING "Linker script variant (flash|ram)")
-set_property(CACHE MCU_LD PROPERTY STRINGS flash ram)
-
-# Apps list only BSP/LIB components; the matching HAL sources are derived.
+# Apps list only BSP and LIB components; the matching HAL sources are derived.
+# Linker script selection is owned by the target layer (MCU_LD_SCRIPT property).
 function(add_freertos_app name)
-    cmake_parse_arguments(ARG "" "LD" "SOURCES;BSP;LIB;DEPS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;BSP;LIB;DEPS" ${ARGN})
     set(_target app_freertos_${name})
     add_executable(${_target} ${ARG_SOURCES})
 
     bsp_resolve_hal(_hal ${ARG_BSP})
     lib_resolve(_libs _lib_hal _lib_bsp ${ARG_LIB})
-
-    set(_ld ${STM32_LD_FLASH})
-    if(MCU_LD STREQUAL "ram")
-        set(_ld ${STM32_LD_RAM})
-    endif()
-    if(ARG_LD)
-        set(_ld ${ARG_LD})
-    endif()
-    target_link_options(${_target} PRIVATE
-        "-Wl,-T${CMAKE_SOURCE_DIR}/target/${STM32_TARGET_DIR}/${_ld}")
 
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${FREERTOS_APP_DIR})
     target_compile_definitions(bsp PUBLIC USE_FREERTOS=1)

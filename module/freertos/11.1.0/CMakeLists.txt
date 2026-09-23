@@ -15,4 +15,4 @@ target_include_directories(freertos PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/portable/GCC/ARM_CM4F)
 
-target_link_libraries(freertos PRIVATE ${TARGET_LIB})
+target_link_libraries(freertos PUBLIC ${TARGET_LIB})

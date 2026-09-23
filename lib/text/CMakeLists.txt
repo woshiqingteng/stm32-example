@@ -14,6 +14,6 @@ target_include_directories(lib_text PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # fonts.c talks to the FatFs core directly to pull the font files off the SD.
 target_include_directories(lib_text PRIVATE
     $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>)
-target_link_libraries(lib_text PUBLIC bsp lib_malloc ${TARGET_LIB})
+target_link_libraries(lib_text PUBLIC bsp lib_malloc)
 
 set(LIB_COMPONENTS ${LIB_COMPONENTS} TEXT CACHE INTERNAL "" FORCE)

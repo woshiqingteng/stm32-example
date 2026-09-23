@@ -1,47 +1,57 @@
-# Board manifest: the single source of truth for the chip, the HAL/CMSIS
-# modules and the board support package selected by BOARD.
+set(MCU STM32F429IGTx CACHE STRING "MCU")
 
-set(CPU cortex-m4)
-include(${CMAKE_CURRENT_LIST_DIR}/../cpu/${CPU}.cmake)
+if(MCU STREQUAL "STM32F429IGTx")
+    set(MCU_ARCH       cortex-m4)
+    set(MCU_VENDOR     stm32)
+    set(MCU_FAMILY     stm32f4xx)
+    set(MCU_MACRO      STM32F429xx)
+    set(MCU_HSE_VALUE  25000000)
+    set(MCU_HSI_VALUE  16000000)
+    set(MCU_TARGET_DIR ${MCU_VENDOR}/${MCU_FAMILY})
 
-# --- chip ---
-set(STM32_SERIES       stm32f4          CACHE INTERNAL "" FORCE)
-set(STM32_PART         STM32F429IGTx    CACHE INTERNAL "" FORCE)
-set(STM32_DEVICE_MACRO STM32F429xx      CACHE INTERNAL "" FORCE)
-set(STM32_HSE_VALUE    25000000         CACHE INTERNAL "" FORCE)
-set(STM32_HSI_VALUE    16000000         CACHE INTERNAL "" FORCE)
-set(MCU_FLASH_BASE     0x08000000       CACHE INTERNAL "" FORCE)
+    set(MCU_BOOT_MODE flash CACHE STRING "Boot mode (flash|ram)")
+    if(MCU_BOOT_MODE STREQUAL "flash")
+        set(MCU_FLASH_BASE 0x08000000)
+        set(MCU_LD_SUFFIX  flash)
+        set(MCU_VTOR_OFFSET 0x00000000)
+    elseif(MCU_BOOT_MODE STREQUAL "ram")
+        set(MCU_FLASH_BASE 0x20000000)
+        set(MCU_LD_SUFFIX  ram)
+        set(MCU_VTOR_OFFSET 0x00000000)
+    else()
+        message(FATAL_ERROR "Invalid MCU_BOOT_MODE: ${MCU_BOOT_MODE}")
+    endif()
+else()
+    message(FATAL_ERROR "Unsupported MCU: ${MCU}")
+endif()
+include(${CMAKE_CURRENT_LIST_DIR}/../cpu/${MCU_ARCH}.cmake)
 
-# --- HAL / CMSIS modules ---
-set(HAL_MODULE_DIR     stm32_hal/f4xx        CACHE INTERNAL "" FORCE)
-set(HAL_MODULE_VERSION 1.8.5                CACHE INTERNAL "" FORCE)
-set(MODULE_FREERTOS_VERSION 11.1.0          CACHE INTERNAL "" FORCE)
+set(BSP openedv_stm32f4 CACHE STRING "Board Support Package")
 
-# --- chip support package (target/<vendor>/<family>) ---
-set(STM32_TARGET_DIR  stm32/f4xx            CACHE INTERNAL "" FORCE)
-set(TARGET_LIB        target_${STM32_SERIES} CACHE INTERNAL "" FORCE)
-set(STM32_STARTUP_SRC startup_stm32f429ig.c  CACHE INTERNAL "" FORCE)
-set(STM32_VECTOR_SRC  vector_stm32f429ig.c   CACHE INTERNAL "" FORCE)
-set(STM32_SYSTEM_SRC  system_stm32f4xx.c     CACHE INTERNAL "" FORCE)
-set(STM32_IT_SRC      stm32f4xx_it.c         CACHE INTERNAL "" FORCE)
-set(STM32_LD_FLASH    stm32f429ig_flash.ld   CACHE INTERNAL "" FORCE)
-set(STM32_LD_RAM      stm32f429ig_ram.ld     CACHE INTERNAL "" FORCE)
+if(BSP STREQUAL "openedv_stm32f4")
+    set(BSP_DRV stm32_hal)
+else()
+    message(FATAL_ERROR "Unsupported BSP: ${BSP}")
+endif()
 
-# --- board support package ---
-set(BSP_BOARD_DIR openedv_stm32f4 CACHE INTERNAL "" FORCE)
+set(OPENOCD_INTERFACE cmsis-dap.cfg CACHE STRING "OpenOCD interface cfg")
+set(OPENOCD_TARGET    stm32f4x.cfg  CACHE STRING "OpenOCD target cfg")
 
-# The board manifest is the single source of truth: it must define the full
-# chip/HAL/BSP/target selection so the lower layers stay board-agnostic.
-foreach(_v
-        BOARD CPU STM32_SERIES STM32_PART STM32_DEVICE_MACRO
-        HAL_MODULE_DIR STM32_TARGET_DIR BSP_BOARD_DIR TARGET_LIB)
+# --- derived selections (single source of truth stays in this manifest) ---
+set(HAL_MODULE_DIR     ${BSP_DRV}/${MCU_FAMILY})
+set(HAL_MODULE_VERSION 1.8.5)
+set(TARGET_LIB         target_${MCU_FAMILY})
+set(MCU_LD_DEFAULT     ${MCU_FAMILY}_${MCU_LD_SUFFIX}.ld)
+
+foreach(_v MCU MCU_ARCH MCU_FAMILY MCU_MACRO MCU_TARGET_DIR MCU_BOOT_MODE
+           MCU_LD_SUFFIX BSP BSP_DRV HAL_MODULE_DIR TARGET_LIB)
     if(NOT ${_v})
         message(FATAL_ERROR "BOARD '${BOARD}': manifest variable '${_v}' not set")
     endif()
 endforeach()
 
-message(STATUS "Board     : ${BOARD}")
-message(STATUS "Chip      : ${STM32_PART} (${STM32_DEVICE_MACRO})")
+message(STATUS "MCU       : ${MCU} (${MCU_MACRO})")
+message(STATUS "Boot mode : ${MCU_BOOT_MODE} (${MCU_LD_SUFFIX})")
 message(STATUS "HAL       : module/${HAL_MODULE_DIR}/${HAL_MODULE_VERSION}")
-message(STATUS "BSP       : bsp/${BSP_BOARD_DIR}")
-message(STATUS "Target    : target/${STM32_TARGET_DIR}")
+message(STATUS "BSP       : bsp/${BSP}")
+message(STATUS "Target    : target/${MCU_TARGET_DIR}")
