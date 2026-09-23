@@ -64,6 +64,14 @@ iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
     return IAP_OK;
 }
 
+static void iap_stop_systick(void)
+{
+    /* Stop the kernel tick before handing control to the application. */
+    SysTick->CTRL = 0U;
+    SysTick->LOAD = 0U;
+    SysTick->VAL  = 0U;
+}
+
 void iap_jump(uint32_t addr)
 {
     uint32_t jump_addr;
@@ -75,10 +83,7 @@ void iap_jump(uint32_t addr)
     }
 
     sys_intx_disable();
-    SysTick->CTRL = 0U;
-    SysTick->LOAD = 0U;
-    SysTick->VAL  = 0U;
-
+    iap_stop_systick();
     sys_set_vector_table(addr);
     __set_MSP(*(volatile uint32_t *)addr);
 

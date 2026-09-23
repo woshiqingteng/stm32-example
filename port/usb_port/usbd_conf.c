@@ -104,6 +104,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 
     if (hpcd->Init.low_power_enable)
     {
+        /* Required low-power entry: no HAL API for SCB deep-sleep bits. */
         SCB->SCR |= (uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk);
     }
 }
