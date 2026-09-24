@@ -3,6 +3,6 @@
 # middleware (TEXT + LibJPEG) for JPEG encode/decode.
 add_baremetal_app(45_camera_pic
     SOURCES main.c
-    LIB     ${LIB_SRC_MALLOC} ${LIB_SRC_TEXT} ${LIB_SRC_PICTURE}
+    LIB     MALLOC TEXT PICTURE
 )
 

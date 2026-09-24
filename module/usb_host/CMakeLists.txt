@@ -1,0 +1,2 @@
+set(MODULE_USB_HOST_VERSION 3.5.3)
+add_subdirectory(${MODULE_USB_HOST_VERSION})

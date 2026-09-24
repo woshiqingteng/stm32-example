@@ -2,6 +2,6 @@
 # the ES8388/SAI/IIC BSP, the ST USB device stack and the board USB port.
 add_baremetal_app(55_usb_audio
     SOURCES main.c
-    LIB     ${LIB_SRC_USB_DEVICE}
+    LIB     USB_DEVICE
 )
 

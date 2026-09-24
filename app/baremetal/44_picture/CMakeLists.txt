@@ -3,6 +3,6 @@
 # text renderer.
 add_baremetal_app(44_picture
     SOURCES main.c
-    LIB     ${LIB_SRC_MALLOC} ${LIB_SRC_TEXT} ${LIB_SRC_PICTURE}
+    LIB     MALLOC TEXT PICTURE
 )
 

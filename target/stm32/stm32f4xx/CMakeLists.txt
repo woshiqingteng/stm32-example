@@ -15,6 +15,7 @@ target_compile_definitions(target_${MCU_FAMILY} INTERFACE
     ${MCU_MACRO}
     HSE_VALUE=${MCU_HSE_VALUE}
     HSI_VALUE=${MCU_HSI_VALUE}
+    MCU_BOOT_MODE_${MCU_BOOT_MODE}
 )
 
 # A single -T is emitted: the app may override the script by setting the

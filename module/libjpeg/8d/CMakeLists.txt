@@ -50,7 +50,5 @@ set(LIBJPEG_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/source/jutils.c)
 
 add_library(libjpeg STATIC ${LIBJPEG_SRC})
-set_target_properties(libjpeg PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
 target_include_directories(libjpeg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(libjpeg PUBLIC ${TARGET_LIB})
+target_link_libraries(libjpeg PUBLIC target_${MCU_FAMILY})

@@ -1,0 +1,2 @@
+set(MODULE_TJPGD_VERSION r0.03)
+add_subdirectory(${MODULE_TJPGD_VERSION})

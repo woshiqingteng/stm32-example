@@ -1,43 +1,57 @@
-# Library layer: reusable application middleware. Each lib_<name> target is
-# built from all .c files in its own directory. Apps select libraries through
-# the LIB component tokens below; the linker keeps only referenced objects.
-# Dependency rule: lib may depend on module + bsp + port.
+# ============================================================
+# 1. 直连组件：用 INTERFACE 包成 lib_*，对外名字统一
+# ============================================================
+add_library(lib_fatfs INTERFACE)
+target_link_libraries(lib_fatfs INTERFACE fatfs_core fatfs_port)
 
-set(LIB_COMPONENTS "" CACHE INTERNAL "")
+add_library(lib_usb_device INTERFACE)
+target_link_libraries(lib_usb_device INTERFACE usb_device usb_port)
 
-# Components that map straight onto port/module targets (no lib_<name> wrapper).
-set(LIB_SRC_FATFS              FATFS      CACHE INTERNAL "")
-set(LIB_SRC_FATFS_TARGETS      fatfs_core fatfs_port CACHE INTERNAL "")
-set(LIB_SRC_USB_DEVICE         USB_DEVICE      CACHE INTERNAL "")
-set(LIB_SRC_USB_DEVICE_TARGETS usb_device usb_port CACHE INTERNAL "")
-set(LIB_SRC_USB_HOST           USB_HOST      CACHE INTERNAL "")
-set(LIB_SRC_USB_HOST_TARGETS   usb_host usb_port CACHE INTERNAL "")
-set(LIB_SRC_DSP                DSP       CACHE INTERNAL "")
-set(LIB_SRC_DSP_TARGETS        cmsis_dsp m CACHE INTERNAL "")
+add_library(lib_usb_host INTERFACE)
+target_link_libraries(lib_usb_host INTERFACE usb_host usb_port)
 
-set(LIB_COMPONENTS ${LIB_COMPONENTS} FATFS USB_DEVICE USB_HOST DSP CACHE INTERNAL "" FORCE)
+add_library(lib_dsp INTERFACE)
+target_link_libraries(lib_dsp INTERFACE cmsis_dsp m)
 
-add_subdirectory(usmart)
-add_subdirectory(malloc)
-add_subdirectory(text)
-add_subdirectory(picture)
-add_subdirectory(audio)
-add_subdirectory(mjpeg)
+# ============================================================
+# 2. 中间件库：目录名 = 目标名（去掉 lib_ 前缀），一份清单驱动两件事
+# ============================================================
+set(LIB_ALL_TARGETS lib_fatfs lib_usb_device lib_usb_host lib_dsp)
 
-# lib_resolve(<libs-out> <lib tokens...>): map the selected LIB component tokens
-# to their library/port/module targets.
-function(lib_resolve libs_var)
-    set(_libs "")
-    foreach(_comp ${LIB_COMPONENTS})
-        if(LIB_SRC_${_comp} IN_LIST ARGN)
-            if(DEFINED LIB_SRC_${_comp}_TARGETS)
-                list(APPEND _libs ${LIB_SRC_${_comp}_TARGETS})
-            else()
-                string(TOLOWER ${_comp} _lc)
-                list(APPEND _libs lib_${_lc})
-            endif()
+set(LIB_DIRS usmart malloc text picture audio mjpeg)
+foreach(_d ${LIB_DIRS})
+    add_subdirectory(${_d})              # 加子目录
+    list(APPEND LIB_ALL_TARGETS lib_${_d})   # 同时进 ALL
+endforeach()
+
+# lib_resolve() 在 app 目录调用，LIB_ALL_TARGETS 必须是全局可见的缓存变量。
+set(LIB_ALL_TARGETS ${LIB_ALL_TARGETS} CACHE INTERNAL "" FORCE)
+
+# ============================================================
+# 3. 解析函数：XXXX -> lib_xxxx；ALL -> 全部
+# ============================================================
+function(lib_resolve out)
+    # ALL 必须单独使用
+    if("ALL" IN_LIST ARGN)
+        list(LENGTH ARGN _n)
+        if(_n GREATER 1)
+            message(FATAL_ERROR "LIB: 'ALL' must be used alone")
         endif()
+        set(${out} ${LIB_ALL_TARGETS} PARENT_SCOPE)
+        return()
+    endif()
+
+    set(_r "")
+    foreach(_n ${ARGN})
+        if(NOT _n MATCHES "^[A-Z0-9_]+$")
+            message(FATAL_ERROR "LIB must be UPPERCASE: '${_n}'")
+        endif()
+        string(TOLOWER ${_n} _lc)
+        if(NOT TARGET lib_${_lc})
+            message(FATAL_ERROR "Unknown LIB: '${_n}'")
+        endif()
+        list(APPEND _r lib_${_lc})
     endforeach()
-    list(REMOVE_DUPLICATES _libs)
-    set(${libs_var} ${_libs} PARENT_SCOPE)
+    list(REMOVE_DUPLICATES _r)
+    set(${out} ${_r} PARENT_SCOPE)
 endfunction()

@@ -1,0 +1,2 @@
+set(MODULE_LIBJPEG_VERSION 8d)
+add_subdirectory(${MODULE_LIBJPEG_VERSION})

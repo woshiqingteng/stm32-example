@@ -2,6 +2,6 @@
 # app-local; the AUDIO middleware provides the WAV playback device.
 add_baremetal_app(47_recorder
     SOURCES main.c recorder.c
-    LIB     ${LIB_SRC_MALLOC} ${LIB_SRC_AUDIO}
+    LIB     MALLOC AUDIO
 )
 

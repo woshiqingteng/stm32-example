@@ -3,7 +3,5 @@
 set(TJPGD_SRC ${CMAKE_CURRENT_SOURCE_DIR}/tjpgd.c)
 
 add_library(tjpgd STATIC ${TJPGD_SRC})
-set_target_properties(tjpgd PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
 target_include_directories(tjpgd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(tjpgd PUBLIC ${TARGET_LIB})
+target_link_libraries(tjpgd PUBLIC target_${MCU_FAMILY})

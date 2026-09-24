@@ -1,0 +1,2 @@
+set(MODULE_CMSIS_DSP_VERSION 1.17.1)
+add_subdirectory(${MODULE_CMSIS_DSP_VERSION})

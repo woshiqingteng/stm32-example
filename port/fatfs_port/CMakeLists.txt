@@ -1,11 +1,10 @@
 # Port layer: FatFs physical drive glue (diskio) plus the small application
-# glue (exfuns). Depends on the board BSP driver set and the FatFs core module.
+# glue (exfuns). Depends on the board BSP and the FatFs core headers.
 set(FATFS_PORT_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/diskio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/exfuns.c)
 
 add_library(fatfs_port STATIC ${FATFS_PORT_SRC})
-set_target_properties(fatfs_port PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories(fatfs_port PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # FatFs core headers only. The core library is intentionally not a link

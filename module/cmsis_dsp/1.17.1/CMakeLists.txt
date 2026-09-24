@@ -26,8 +26,6 @@ set(CMSIS_DSP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/TransformFunctions/arm_cfft_radix4_init_f32.c)
 
 add_library(cmsis_dsp STATIC ${CMSIS_DSP_SRC})
-set_target_properties(cmsis_dsp PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
 target_include_directories(cmsis_dsp
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/Include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/PrivateInclude)
@@ -40,4 +38,4 @@ target_compile_definitions(cmsis_dsp PRIVATE
     __FPU_PRESENT=1
     __FPU_USED=1)
 
-target_link_libraries(cmsis_dsp PUBLIC cmsis_core ${TARGET_LIB})
+target_link_libraries(cmsis_dsp PUBLIC cmsis_core target_${MCU_FAMILY})

@@ -1,0 +1,2 @@
+set(MODULE_CMSIS_CORE_VERSION 6.1.0)
+add_subdirectory(${MODULE_CMSIS_CORE_VERSION})

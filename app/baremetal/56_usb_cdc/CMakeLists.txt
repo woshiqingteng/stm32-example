@@ -2,6 +2,6 @@
 # and the board USB port (PCD + conf).
 add_baremetal_app(56_usb_cdc
     SOURCES main.c
-    LIB     ${LIB_SRC_USB_DEVICE}
+    LIB     USB_DEVICE
 )
 

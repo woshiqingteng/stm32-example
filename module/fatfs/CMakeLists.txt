@@ -1,0 +1,2 @@
+set(MODULE_FATFS_VERSION r0.16)
+add_subdirectory(${MODULE_FATFS_VERSION})
