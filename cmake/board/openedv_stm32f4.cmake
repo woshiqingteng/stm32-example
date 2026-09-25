@@ -7,7 +7,6 @@ if(MCU STREQUAL "STM32F429IGTx")
     set(MCU_MACRO      STM32F429xx)
     set(MCU_HSE_VALUE  25000000)
     set(MCU_HSI_VALUE  16000000)
-    set(MCU_FLASH_BASE 0x08000000)
     set(MCU_TARGET_DIR ${MCU_VENDOR}/${MCU_FAMILY})
 
     set(MCU_BOOT_MODE flash CACHE STRING "Boot mode (flash|ram)")
