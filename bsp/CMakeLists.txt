@@ -1,2 +1,3 @@
-# Board support layer: dispatch to the board selected by BOARD/BSP.
-add_subdirectory(${BSP})
+if(BSP STREQUAL "openedv_stm32f4")
+    add_subdirectory(openedv_stm32f4)
+endif()

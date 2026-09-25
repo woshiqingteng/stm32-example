@@ -1,6 +1,3 @@
-# Vendor module: ST USB Host Library (3.5.3). Core plus the MSC and HID class
-# sources. Board independent: the low level configuration header (usbh_conf.h)
-# is supplied by the port layer.
 add_library(stm32_usb_host_inc INTERFACE)
 target_include_directories(stm32_usb_host_inc INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
@@ -21,5 +18,4 @@ add_library(stm32_usb_host STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbh_hid_parser.c)
 
 target_link_libraries(stm32_usb_host PUBLIC stm32_usb_host_inc cmsis_core soc_${MCU_FAMILY})
-# The HCD HAL that usbh_conf.c (port layer) drives.
 target_link_libraries(stm32_usb_host PRIVATE drv_usb)
