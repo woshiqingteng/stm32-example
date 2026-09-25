@@ -17,9 +17,6 @@ target_compile_definitions(soc_${MCU_FAMILY} INTERFACE
     HSI_VALUE=${MCU_HSI_VALUE}
 )
 
-# A single -T is emitted: the app may override the script by setting the
-# MCU_LD_SCRIPT property on its own target (e.g. an IAP image at 0x08010000),
-# otherwise the SoC's default script for the current boot mode is used.
 target_link_options(soc_${MCU_FAMILY} INTERFACE
     "$<$<BOOL:$<TARGET_PROPERTY:${APP_TARGET},MCU_LD_SCRIPT>>:-T$<TARGET_PROPERTY:${APP_TARGET},MCU_LD_SCRIPT>>"
     "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:${APP_TARGET},MCU_LD_SCRIPT>>>:-T${CMAKE_CURRENT_LIST_DIR}/${MCU_FAMILY}_${MCU_LD_SUFFIX}.ld>"

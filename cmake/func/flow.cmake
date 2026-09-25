@@ -25,8 +25,6 @@ function(mcu_generate target base)
     endif()
 endfunction()
 
-# mcu_flash(<target> <base>): per-app load address via MCU_FLASH_ADDR (set in the
-# app's CMakeLists before add_*_app), falling back to the board's MCU_FLASH_BASE.
 function(mcu_flash target base)
     if(NOT OPENOCD)
         find_program(OPENOCD openocd REQUIRED)
@@ -38,9 +36,6 @@ function(mcu_flash target base)
     set(_addr "${MCU_FLASH_ADDR}")
     if(NOT _addr)
         set(_addr "${MCU_FLASH_BASE}")
-    endif()
-    if(NOT _addr)
-        message(FATAL_ERROR "Neither MCU_FLASH_ADDR nor MCU_FLASH_BASE is set")
     endif()
 
     if(MCU_BOOT_MODE STREQUAL "flash")
