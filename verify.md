@@ -51,7 +51,7 @@
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
 | D1 | 每驱动一叶子目标 | 46 个 | ✅ 46 |
-| D2 | `bsp_core` 常链 | INTERFACE = 6 核心叶子 | ✅ (`bsp_init/sys/delay/led/key/usart`) |
+| D2 | `bsp_core` 常链 | STATIC = `bsp.c`（入口）+ 5 核心叶子 | ✅ (`bsp_core/sys/delay/led/key/usart`) |
 | D3 | `bsp_all` 聚合 | 存在 | ✅ |
 | D4 | `bsp_resolve` | 支持 `core`/叶子/`ALL`，未知报错 | ✅ |
 | D5 | 大类注释分组 | core/time/comm_*/analog/memory/display/crypto/sensor/misc | ✅ |

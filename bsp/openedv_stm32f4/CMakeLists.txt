@@ -20,15 +20,9 @@ bsp_library(bsp_key
 bsp_library(bsp_usart
     usart.c)
 target_link_libraries(bsp_usart PUBLIC drv_uart)
-bsp_library(bsp_init
+bsp_library(bsp_core
     bsp.c)
-target_link_libraries(bsp_init PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
-
-# Aggregate of the always-linked core leaves (INTERFACE): unlike drv_core,
-# which is a real library, this only groups the targets every app links.
-add_library(bsp_core INTERFACE)
-target_link_libraries(bsp_core INTERFACE
-    bsp_init bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
+target_link_libraries(bsp_core PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
 
 # time
 bsp_library(bsp_btim
