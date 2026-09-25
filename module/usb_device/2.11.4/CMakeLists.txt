@@ -23,4 +23,4 @@ add_library(usb_device STATIC EXCLUDE_FROM_ALL
 
 target_link_libraries(usb_device PUBLIC usb_device_inc cmsis_core soc_${MCU_FAMILY})
 # The PCD HAL that usbd_conf.c (port layer) drives.
-target_link_libraries(usb_device PRIVATE hal_usb)
+target_link_libraries(usb_device PRIVATE drv_usb)

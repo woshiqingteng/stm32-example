@@ -8,7 +8,7 @@
 图例：✅ 通过 / ❌ 失败 / ⚠ 说明。
 
 **结论：28 项结构检查 + 8 项构建检查全部通过；全量 72 镜像无错误。**
-（B4/E4 中 port 直接链 `hal_usb` 属 USB LL 适配的合理例外，lib 层严格不写 `hal_`。）
+（B4/E4 中 port 直接链 `drv_usb` 属 USB LL 适配的合理例外，lib 层严格不写 `drv_*`。）
 
 ---
 
@@ -28,10 +28,10 @@
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
 | B1 | platform 不依赖上层 | 仅 cmsis_core/cpu/soc | ✅ |
-| B2 | module 仅依赖 platform/module | 无 bsp/port/lib/app | ✅ 依赖 `cmsis_core`/`soc_*`/`hal_usb`（均 module/platform） |
-| B3 | bsp 依赖 platform/module | HAL 叶子链 `cmsis_core soc`；叶子链 `hal_core` | ✅ |
-| B4 | port 依赖 bsp/module | 无 lib/app；HAL 仅 USB LL 例外 | ⚠ `usb_*_common_port` 链 `hal_usb`（USB LL，无对应 BSP 驱动） |
-| B5 | lib 不写 HAL | 无 `hal_*` | ✅ |
+| B2 | module 仅依赖 platform/module | 无 bsp/port/lib/app | ✅ 依赖 `cmsis_core`/`soc_*`/`drv_usb`（均 module/platform） |
+| B3 | bsp 依赖 platform/module | HAL 叶子链 `cmsis_core soc`；叶子链 `drv_core` | ✅ |
+| B4 | port 依赖 bsp/module | 无 lib/app；HAL 仅 USB LL 例外 | ⚠ `usb_*_common_port` 链 `drv_usb`（USB LL，无对应 BSP 驱动） |
+| B5 | lib 不写 HAL | 无 `drv_*` | ✅ |
 | B6 | 无 `target_${MCU_FAMILY}` 残留 | 无匹配 | ✅（仅 verify.md 文本） |
 
 ## C. HAL 模块化（module/stm32_hal）
@@ -39,12 +39,12 @@
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
 | C1 | 每模块一叶子目标 | 29 个 | ✅ 29 |
-| C2 | 叶子可排除构建 | 全含 EXCLUDE | ✅ 由 `hal_library()` 统一 `STATIC EXCLUDE_FROM_ALL` |
-| C3 | `hal_all` 聚合 | 存在 INTERFACE | ✅ |
+| C2 | 叶子可排除构建 | 全含 EXCLUDE | ✅ 由 `drv_library()` 统一 `STATIC EXCLUDE_FROM_ALL` |
+| C3 | `drv_all` 聚合 | 存在 INTERFACE | ✅ |
 | C4 | 大类注释分组 | core/time/comm/analog/memory/display/crypto | ✅ |
 | C5 | HAL 无 GLOB | 无匹配 | ✅ |
 | C6 | `hal_conf` 裁剪 | 远小于原 48 | ✅ 启用 30 |
-| C7 | 叶子依赖链 | 非 `hal_core` 叶子 `PUBLIC hal_core` | ✅ 函数内统一 |
+| C7 | 叶子依赖链 | 非 `drv_core` 叶子 `PUBLIC drv_core` | ✅ 函数内统一 |
 
 ## D. BSP 模块化（bsp/openedv_stm32f4）
 
@@ -68,7 +68,7 @@
 | E1 | FatFs 端口 | `fatfs_port` = common/fatfs + `<BSP>/fatfs` | ✅ |
 | E2 | USB device 端口按类 | common + cdc + audio + msc | ✅ |
 | E3 | USB host 端口 | common + msc | ✅ |
-| E4 | port 不写 HAL（USB LL 例外） | 仅 `hal_usb` | ⚠ 见 B4 |
+| E4 | port 不写 HAL（USB LL 例外） | 仅 `drv_usb` | ⚠ 见 B4 |
 | E5 | USB MSC 定义路由 | `FATFS_USB_MSC` 保留 | ✅ `57` app |
 
 ## F. lib 层
@@ -100,7 +100,7 @@
 | H4 | IAP 链接脚本覆盖 | app 内 `stm32f4xx_iap_app.ld` | ✅ |
 | H5 | 按需对象数（全新） | 未用外设不编译 | ✅ 见下表 |
 | H6 | 镜像不回归 | 一致或 ±4B | ✅ 见下表 |
-| H7 | 被排除目标可显式构建 | 成功 | ✅ `hal_tim`、`bsp_lcd` |
+| H7 | 被排除目标可显式构建 | 成功 | ✅ `drv_tim`、`bsp_lcd` |
 | H8 | FreeRTOS 变体 | 成功 | ✅ `freertos/01_led` |
 
 ## I. 命名 / 引用清洁
@@ -161,5 +161,5 @@
 
 - **结构（A–K，27 项）**：全部通过。分层清晰、依赖单向、`BSP`/`LIB` 声明式选择生效、命名统一无残留。
 - **构建（H1–H8）**：72/72 镜像成功；按需编译显著（`01_led` 313→61 对象）；镜像无功能回归。
-- **说明**：`port` 直接链 `hal_usb` 为 USB LL 适配的合理例外；lib 层严格不写 `hal_*`。
+- **说明**：`port` 直接链 `drv_usb` 为 USB LL 适配的合理例外；lib 层严格不写 `drv_*`。
 - **已知保留**：`usb_device` 内核未按类拆分（已评估，收益低）。

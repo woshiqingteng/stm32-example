@@ -29,7 +29,7 @@ add_library(usb_device_common_port STATIC EXCLUDE_FROM_ALL
 
 target_include_directories(usb_device_common_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb)
-target_link_libraries(usb_device_common_port PUBLIC bsp_core hal_usb)
+target_link_libraries(usb_device_common_port PUBLIC bsp_core drv_usb)
 target_link_libraries(usb_device_common_port PRIVATE usb_device_inc)
 # The vendor core headers include usbd_conf.h, provided here.
 target_include_directories(usb_device PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb)
@@ -62,7 +62,7 @@ add_library(usb_host_common_port STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbh_conf.c)
 target_include_directories(usb_host_common_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb)
-target_link_libraries(usb_host_common_port PUBLIC bsp_core bsp_pcf8574 hal_usb)
+target_link_libraries(usb_host_common_port PUBLIC bsp_core bsp_pcf8574 drv_usb)
 target_link_libraries(usb_host_common_port PRIVATE usb_host_inc)
 # The vendor core headers include usbh_conf.h, provided here.
 target_include_directories(usb_host PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb)

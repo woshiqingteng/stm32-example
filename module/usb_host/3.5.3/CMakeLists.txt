@@ -22,4 +22,4 @@ add_library(usb_host STATIC EXCLUDE_FROM_ALL
 
 target_link_libraries(usb_host PUBLIC usb_host_inc cmsis_core soc_${MCU_FAMILY})
 # The HCD HAL that usbh_conf.c (port layer) drives.
-target_link_libraries(usb_host PRIVATE hal_usb)
+target_link_libraries(usb_host PRIVATE drv_usb)
