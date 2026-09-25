@@ -24,24 +24,14 @@ target_include_directories(fatfs_port PRIVATE
 target_link_libraries(fatfs_port PUBLIC bsp)
 
 # ---- USB port -------------------------------------------------------------
-set(USB_PORT_SRC)
-
-if(MODULE_USB_DEVICE_ENABLE)
-    list(APPEND USB_PORT_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_conf.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_desc.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_storage_if.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_audio_if.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_cdc_if.c)
-endif()
-
-if(MODULE_USB_HOST_ENABLE)
-    list(APPEND USB_PORT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbh_conf.c)
-
-    if(MODULE_FATFS_ENABLE)
-        list(APPEND USB_PORT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/common/usb/usbh_diskio.c)
-    endif()
-endif()
+set(USB_PORT_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_conf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_desc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_storage_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_audio_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbd_cdc_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/usb/usbh_conf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/usb/usbh_diskio.c)
 
 add_library(usb_port STATIC EXCLUDE_FROM_ALL ${USB_PORT_SRC})
 
@@ -63,6 +53,4 @@ if(TARGET usb_host)
 endif()
 
 # usbh_diskio.c includes "ff.h".
-if(MODULE_FATFS_ENABLE)
-    target_link_libraries(usb_port PRIVATE fatfs_core_inc)
-endif()
+target_link_libraries(usb_port PRIVATE fatfs_core_inc)

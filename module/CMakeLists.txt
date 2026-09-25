@@ -6,15 +6,12 @@
 # never on bsp/port/lib/app.
 #
 # Enable flags are CACHE variables so sibling layers (port, bsp) can read them.
+# Only the HAL and the RTOS are genuine selections (driven by BSP_DRV / OS); the
+# other vendor modules are always added -- whether they are built is decided by
+# EXCLUDE_FROM_ALL and the app's dependency closure.
 
 set(MODULE_HAL_ENABLE        OFF CACHE BOOL "Enable the HAL module")
 set(MODULE_FREERTOS_ENABLE   OFF CACHE BOOL "Enable FreeRTOS")
-set(MODULE_FATFS_ENABLE      ON  CACHE BOOL "Enable the FatFs core module")
-set(MODULE_LIBJPEG_ENABLE    ON  CACHE BOOL "Enable the LibJPEG module")
-set(MODULE_TJPGD_ENABLE      ON  CACHE BOOL "Enable the TJpgDec module")
-set(MODULE_CMSIS_DSP_ENABLE  ON  CACHE BOOL "Enable the CMSIS-DSP module")
-set(MODULE_USB_DEVICE_ENABLE ON  CACHE BOOL "Enable the ST USB device stack")
-set(MODULE_USB_HOST_ENABLE   ON  CACHE BOOL "Enable the ST USB host stack")
 
 if(BSP_DRV STREQUAL "stm32_hal")
     set(MODULE_HAL_ENABLE ON CACHE BOOL "" FORCE)
@@ -31,26 +28,9 @@ if(MODULE_FREERTOS_ENABLE)
     add_subdirectory(freertos)
 endif()
 
-if(MODULE_FATFS_ENABLE)
-    add_subdirectory(fatfs)
-endif()
-
-if(MODULE_LIBJPEG_ENABLE)
-    add_subdirectory(libjpeg)
-endif()
-
-if(MODULE_TJPGD_ENABLE)
-    add_subdirectory(tjpgd)
-endif()
-
-if(MODULE_CMSIS_DSP_ENABLE)
-    add_subdirectory(cmsis_dsp)
-endif()
-
-if(MODULE_USB_DEVICE_ENABLE)
-    add_subdirectory(usb_device)
-endif()
-
-if(MODULE_USB_HOST_ENABLE)
-    add_subdirectory(usb_host)
-endif()
+add_subdirectory(fatfs)
+add_subdirectory(libjpeg)
+add_subdirectory(tjpgd)
+add_subdirectory(cmsis_dsp)
+add_subdirectory(usb_device)
+add_subdirectory(usb_host)
