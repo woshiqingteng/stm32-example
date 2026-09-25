@@ -33,8 +33,32 @@
 static volatile bool g_paused;
 static char          g_last_path[32];
 
+static uint32_t         g_line_buf[2][CAM_OUT_WIDTH / 2U];
+static volatile uint16_t g_cam_curline;
+
+static void cam_line_cb(void)
+{
+    uint16_t *pbuf;
+
+    if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
+    {
+        pbuf = (uint16_t *)g_line_buf[0];
+    }
+    else
+    {
+        pbuf = (uint16_t *)g_line_buf[1];
+    }
+
+    if (g_cam_curline < (uint16_t)(CAM_TOP + CAM_OUT_HEIGHT))
+    {
+        lcd_color_fill(0U, g_cam_curline, (uint16_t)(CAM_OUT_WIDTH - 1U), g_cam_curline, pbuf);
+        g_cam_curline++;
+    }
+}
+
 static void cam_frame_cb(void)
 {
+    g_cam_curline = CAM_TOP;
     timer_frame_inc();
     led_toggle(LED1);
 }
@@ -172,10 +196,13 @@ int main(void)
     (void)ov5640_focus_init();
     (void)ov5640_focus_constant();
 
-    dcmi_init((uint16_t *)LTDC_FRAME_BUF_ADDR, lcd_get_width(), lcd_get_height());
-    dcmi_config(0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
-    dcmi_register_frame_callback(cam_frame_cb);
+    dcmi_init();
+    dcmi_rx_callback    = cam_line_cb;
+    dcmi_frame_callback = cam_frame_cb;
+    dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
+                  (uint16_t)(CAM_OUT_WIDTH / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 
+    g_cam_curline = CAM_TOP;
     (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
 
     timer_init();

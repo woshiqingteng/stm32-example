@@ -62,7 +62,7 @@ bsp_library(bsp_can
 target_link_libraries(bsp_can PUBLIC drv_can)
 bsp_library(bsp_dcmi
     dcmi.c)
-target_link_libraries(bsp_dcmi PUBLIC drv_dcmi)
+target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
 bsp_library(bsp_ov5640
     ov5640.c)
 target_link_libraries(bsp_ov5640 PUBLIC bsp_pcf8574)

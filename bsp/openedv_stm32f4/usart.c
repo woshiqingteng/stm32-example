@@ -222,3 +222,57 @@ void DMA2_Stream7_IRQHandler(void)
 {
     HAL_DMA_IRQHandler(&g_uart_tx_dma);
 }
+
+/* ---- USART2 (PA2 TX / PA3 RX), transmit-only, blocking ---- */
+
+#define USART2_TX_PORT    GPIOA
+#define USART2_TX_PIN     GPIO_PIN_2
+#define USART2_RX_PORT    GPIOA
+#define USART2_RX_PIN     GPIO_PIN_3
+#define USART2_GPIO_AF    GPIO_AF7_USART2
+
+UART_HandleTypeDef g_uart2_handle;
+
+void usart2_init(uint32_t baudrate)
+{
+    GPIO_InitTypeDef gpio_init = {0};
+
+    __HAL_RCC_USART2_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    gpio_init.Mode      = GPIO_MODE_AF_PP;
+    gpio_init.Pull      = GPIO_PULLUP;
+    gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio_init.Alternate = USART2_GPIO_AF;
+
+    gpio_init.Pin = USART2_TX_PIN;
+    HAL_GPIO_Init(USART2_TX_PORT, &gpio_init);
+
+    gpio_init.Pin = USART2_RX_PIN;
+    HAL_GPIO_Init(USART2_RX_PORT, &gpio_init);
+
+    g_uart2_handle.Instance          = USART2;
+    g_uart2_handle.Init.BaudRate     = baudrate;
+    g_uart2_handle.Init.WordLength   = UART_WORDLENGTH_8B;
+    g_uart2_handle.Init.StopBits     = UART_STOPBITS_1;
+    g_uart2_handle.Init.Parity       = UART_PARITY_NONE;
+    g_uart2_handle.Init.Mode         = UART_MODE_TX;
+    g_uart2_handle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    g_uart2_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+    (void)HAL_UART_Init(&g_uart2_handle);
+}
+
+void usart2_write(const uint8_t *data, uint32_t len)
+{
+    if ((data == 0) || (len == 0U))
+    {
+        return;
+    }
+
+    (void)HAL_UART_Transmit(&g_uart2_handle, (uint8_t *)data, (uint16_t)len, HAL_MAX_DELAY);
+}
+
+void usart2_write_byte(uint8_t byte)
+{
+    usart2_write(&byte, 1U);
+}

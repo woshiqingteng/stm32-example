@@ -45,4 +45,17 @@ bool usart_tx_dma_busy(void);
 /** @brief  Start a DMA transmit; returns false if the USART is still busy. */
 bool usart_tx_dma(const uint8_t *data, uint16_t len);
 
+/* ---- USART2 (PA2 TX / PA3 RX), transmit-only, blocking ---- */
+
+extern UART_HandleTypeDef g_uart2_handle;
+
+/** @brief  Initialise USART2 in transmit-only mode. */
+void usart2_init(uint32_t baudrate);
+
+/** @brief  Blocking transmit of a buffer over USART2. */
+void usart2_write(const uint8_t *data, uint32_t len);
+
+/** @brief  Blocking transmit of one byte over USART2. */
+void usart2_write_byte(uint8_t byte);
+
 #endif /* BSP_USART_H */
