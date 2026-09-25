@@ -2,7 +2,13 @@
 # GCC port and heap_4. The common configuration (FreeRTOSConfig_common.h) lives
 # in config/ and is exposed PUBLIC so any consumer of FreeRTOS (kernel, bsp)
 # sees it; each app supplies its own FreeRTOSConfig.h that includes it.
-file(GLOB FREERTOS_CORE CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+set(FREERTOS_CORE
+    ${CMAKE_CURRENT_SOURCE_DIR}/event_groups.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/list.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/queue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/stream_buffer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tasks.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/timers.c)
 
 add_library(freertos STATIC
     ${FREERTOS_CORE}
