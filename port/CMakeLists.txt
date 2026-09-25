@@ -10,7 +10,7 @@ set(FATFS_PORT_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/common/fatfs/exfuns.c
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/fatfs/diskio.c)
 
-add_library(fatfs_port STATIC ${FATFS_PORT_SRC})
+add_library(fatfs_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
 
 target_include_directories(fatfs_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common/fatfs)
@@ -43,7 +43,7 @@ if(MODULE_USB_HOST_ENABLE)
     endif()
 endif()
 
-add_library(usb_port STATIC ${USB_PORT_SRC})
+add_library(usb_port STATIC EXCLUDE_FROM_ALL ${USB_PORT_SRC})
 
 target_include_directories(usb_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common/usb

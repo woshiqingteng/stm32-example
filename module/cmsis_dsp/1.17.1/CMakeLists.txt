@@ -25,7 +25,7 @@ set(CMSIS_DSP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/TransformFunctions/arm_cfft_radix4_f32.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/TransformFunctions/arm_cfft_radix4_init_f32.c)
 
-add_library(cmsis_dsp STATIC ${CMSIS_DSP_SRC})
+add_library(cmsis_dsp STATIC EXCLUDE_FROM_ALL ${CMSIS_DSP_SRC})
 target_include_directories(cmsis_dsp
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/Include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/PrivateInclude)

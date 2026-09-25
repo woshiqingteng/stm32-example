@@ -49,6 +49,6 @@ set(LIBJPEG_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/source/jquant2.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/jutils.c)
 
-add_library(libjpeg STATIC ${LIBJPEG_SRC})
+add_library(libjpeg STATIC EXCLUDE_FROM_ALL ${LIBJPEG_SRC})
 target_include_directories(libjpeg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(libjpeg PUBLIC soc_${MCU_FAMILY})

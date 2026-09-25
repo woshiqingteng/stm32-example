@@ -6,7 +6,7 @@ set(MJPEG_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/avi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/videoplayer.c)
 
-add_library(lib_mjpeg STATIC ${MJPEG_SRC})
+add_library(lib_mjpeg STATIC EXCLUDE_FROM_ALL ${MJPEG_SRC})
 
 target_include_directories(lib_mjpeg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lib_mjpeg PUBLIC

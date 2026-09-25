@@ -6,7 +6,7 @@ set(PICTURE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/gif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/jpeg_dec.c)
 
-add_library(lib_picture STATIC ${PICTURE_SRC})
+add_library(lib_picture STATIC EXCLUDE_FROM_ALL ${PICTURE_SRC})
 
 target_include_directories(lib_picture PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lib_picture PUBLIC

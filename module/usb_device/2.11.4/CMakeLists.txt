@@ -9,7 +9,7 @@ target_include_directories(usb_device_inc INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/CDC/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Inc)
 
-add_library(usb_device STATIC
+add_library(usb_device STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usbd_core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usbd_ctlreq.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usbd_ioreq.c

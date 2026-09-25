@@ -3,7 +3,7 @@
 add_library(fatfs_core_inc INTERFACE)
 target_include_directories(fatfs_core_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(fatfs_core STATIC
+add_library(fatfs_core STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/ff.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ffunicode.c)
 target_link_libraries(fatfs_core PUBLIC fatfs_core_inc soc_${MCU_FAMILY})
