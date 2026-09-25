@@ -4,7 +4,7 @@ function(drv_library name)
     add_library(${name} STATIC EXCLUDE_FROM_ALL ${ARGN})
     target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
     target_link_libraries(${name} PUBLIC cmsis_core soc_${MCU_FAMILY})
-    if(NOT name STREQUAL "drv_core")
+    if(NOT ${name} STREQUAL "drv_core")
         target_link_libraries(${name} PUBLIC drv_core)
     endif()
 endfunction()
@@ -41,12 +41,16 @@ drv_library(drv_rtc
     Src/${DRV_PREFIX}_hal_rtc.c
     Src/${DRV_PREFIX}_hal_rtc_ex.c
     Src/${DRV_PREFIX}_ll_rtc.c)
-drv_library(drv_iwdg  Src/${DRV_PREFIX}_hal_iwdg.c)
-drv_library(drv_wwdg  Src/${DRV_PREFIX}_hal_wwdg.c)
+drv_library(drv_iwdg
+    Src/${DRV_PREFIX}_hal_iwdg.c)
+drv_library(drv_wwdg
+    Src/${DRV_PREFIX}_hal_wwdg.c)
 
 # comm
-drv_library(drv_uart  Src/${DRV_PREFIX}_hal_uart.c)
-drv_library(drv_usart Src/${DRV_PREFIX}_hal_usart.c)
+drv_library(drv_uart
+    Src/${DRV_PREFIX}_hal_uart.c)
+drv_library(drv_usart
+    Src/${DRV_PREFIX}_hal_usart.c)
 drv_library(drv_i2c
     Src/${DRV_PREFIX}_hal_i2c.c
     Src/${DRV_PREFIX}_hal_i2c_ex.c
@@ -57,8 +61,10 @@ drv_library(drv_spi
 drv_library(drv_i2s
     Src/${DRV_PREFIX}_hal_i2s.c
     Src/${DRV_PREFIX}_hal_i2s_ex.c)
-drv_library(drv_can   Src/${DRV_PREFIX}_hal_can.c)
-drv_library(drv_eth   Src/${DRV_PREFIX}_hal_eth.c)
+drv_library(drv_can
+    Src/${DRV_PREFIX}_hal_can.c)
+drv_library(drv_eth
+    Src/${DRV_PREFIX}_hal_eth.c)
 drv_library(drv_usb
     Src/${DRV_PREFIX}_hal_pcd.c
     Src/${DRV_PREFIX}_hal_pcd_ex.c
@@ -111,7 +117,8 @@ drv_library(drv_fmc
     Src/${DRV_PREFIX}_hal_nand.c
     Src/${DRV_PREFIX}_hal_nor.c
     Src/${DRV_PREFIX}_hal_pccard.c)
-drv_library(drv_qspi  Src/${DRV_PREFIX}_hal_qspi.c)
+drv_library(drv_qspi
+    Src/${DRV_PREFIX}_hal_qspi.c)
 
 # display
 drv_library(drv_dma2d
@@ -138,8 +145,11 @@ drv_library(drv_rng
 # all
 add_library(drv_all INTERFACE)
 target_link_libraries(drv_all INTERFACE
-    drv_core drv_tim drv_lptim drv_rtc drv_iwdg drv_wwdg
+    drv_core
+    drv_tim drv_lptim drv_rtc drv_iwdg drv_wwdg
     drv_uart drv_usart drv_i2c drv_spi drv_i2s drv_can drv_eth
     drv_usb drv_sd drv_dcmi drv_sai drv_comm_misc
-    drv_adc drv_dac drv_flash drv_fmc drv_qspi
-    drv_dma2d drv_ltdc drv_crc drv_cryp drv_hash drv_rng)
+    drv_adc drv_dac
+    drv_flash drv_fmc drv_qspi
+    drv_dma2d drv_ltdc
+    drv_crc drv_cryp drv_hash drv_rng)
