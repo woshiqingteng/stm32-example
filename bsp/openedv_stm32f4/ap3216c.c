@@ -4,7 +4,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "iic.h"
+#include "i2c.h"
 #include "ap3216c.h"
 #include "delay.h"
 
@@ -13,26 +13,26 @@
 
 uint8_t ap3216c_write_one_byte(uint8_t reg, uint8_t data)
 {
-    iic_start();
-    iic_send_byte(AP3216C_ADDR | 0x00U);
+    i2c_start();
+    i2c_send_byte(AP3216C_ADDR | 0x00U);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_send_byte(reg);
-    iic_wait_ack();
-    iic_send_byte(data);
+    i2c_send_byte(reg);
+    i2c_wait_ack();
+    i2c_send_byte(data);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_stop();
+    i2c_stop();
     return 0U;
 }
 
@@ -40,17 +40,17 @@ uint8_t ap3216c_read_one_byte(uint8_t reg)
 {
     uint8_t res;
 
-    iic_start();
-    iic_send_byte(AP3216C_ADDR | 0x00U);
-    iic_wait_ack();
-    iic_send_byte(reg);
-    iic_wait_ack();
+    i2c_start();
+    i2c_send_byte(AP3216C_ADDR | 0x00U);
+    i2c_wait_ack();
+    i2c_send_byte(reg);
+    i2c_wait_ack();
 
-    iic_start();
-    iic_send_byte(AP3216C_ADDR | 0x01U);
-    iic_wait_ack();
-    res = iic_read_byte(0);
-    iic_stop();
+    i2c_start();
+    i2c_send_byte(AP3216C_ADDR | 0x01U);
+    i2c_wait_ack();
+    res = i2c_read_byte(0);
+    i2c_stop();
 
     return res;
 }
@@ -59,7 +59,7 @@ uint8_t ap3216c_init(void)
 {
     uint8_t temp;
 
-    iic_init();
+    i2c_init();
 
     ap3216c_write_one_byte(AP3216C_SYS_REG, AP3216C_RESET);
     delay_ms(AP3216C_RESET_DELAY_MS);

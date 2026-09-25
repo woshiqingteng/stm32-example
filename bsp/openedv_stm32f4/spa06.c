@@ -8,7 +8,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "iic.h"
+#include "i2c.h"
 #include "spa06.h"
 #include "delay.h"
 
@@ -44,32 +44,32 @@ static const uint32_t g_spa06_scale_factor[8] =
 
 uint8_t spa06_write_byte(uint8_t reg, uint8_t data)
 {
-    iic_start();
-    iic_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
+    i2c_start();
+    i2c_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_send_byte(reg);
+    i2c_send_byte(reg);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_send_byte(data);
+    i2c_send_byte(data);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_stop();
+    i2c_stop();
     return 0U;
 }
 
@@ -77,34 +77,34 @@ uint8_t spa06_read_byte(uint8_t reg)
 {
     uint8_t temp;
 
-    iic_start();
-    iic_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
+    i2c_start();
+    i2c_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 0U;
     }
 
-    iic_send_byte(reg);
+    i2c_send_byte(reg);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 0U;
     }
 
-    iic_start();
-    iic_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x01U));
+    i2c_start();
+    i2c_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x01U));
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 0U;
     }
 
-    temp = iic_read_byte(0);
-    iic_stop();
+    temp = i2c_read_byte(0);
+    i2c_stop();
 
     return temp;
 }
@@ -113,38 +113,38 @@ static uint8_t spa06_read_nbytes(uint8_t reg, uint8_t *buf, uint8_t len)
 {
     uint8_t i;
 
-    iic_start();
-    iic_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
+    i2c_start();
+    i2c_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x00U));
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_send_byte(reg);
+    i2c_send_byte(reg);
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
-    iic_start();
-    iic_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x01U));
+    i2c_start();
+    i2c_send_byte((uint8_t)((SPA06_I2C_ADDR << 1) | 0x01U));
 
-    if (iic_wait_ack() != 0U)
+    if (i2c_wait_ack() != 0U)
     {
-        iic_stop();
+        i2c_stop();
         return 1U;
     }
 
     for (i = 0U; i < len; i++)
     {
-        buf[i] = iic_read_byte((i == (uint8_t)(len - 1U)) ? 0U : 1U);
+        buf[i] = i2c_read_byte((i == (uint8_t)(len - 1U)) ? 0U : 1U);
     }
 
-    iic_stop();
+    i2c_stop();
     return 0U;
 }
 
@@ -243,7 +243,7 @@ uint8_t spa06_init(void)
 {
     uint8_t chip_id;
 
-    iic_init();
+    i2c_init();
     delay_ms(SPA06_STARTUP_DELAY_MS);
 
     chip_id = spa06_read_byte(SPA06_CHIP_ID);

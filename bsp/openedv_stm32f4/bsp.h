@@ -28,7 +28,7 @@
 #include "sdram.h"
 #include "lcd.h"
 #include "oled.h"
-#include "iic.h"
+#include "i2c.h"
 #include "24cxx.h"
 #include "pcf8574.h"
 #include "ap3216c.h"

@@ -4,12 +4,12 @@
  */
 
 #include "es8388.h"
-#include "iic.h"
+#include "i2c.h"
 #include "delay.h"
 
 uint8_t es8388_init(void)
 {
-    iic_init();                     /* initialise the IIC interface */
+    i2c_init();                     /* initialise the IIC interface */
 
     es8388_write_reg(0, 0x80);      /* software reset */
     es8388_write_reg(0, 0x00);
@@ -45,27 +45,27 @@ uint8_t es8388_init(void)
 
 uint8_t es8388_write_reg(uint8_t reg, uint8_t val)
 {
-    iic_start();
+    i2c_start();
 
-    iic_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (iic_wait_ack())
+    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
+    if (i2c_wait_ack())
     {
         return 1;
     }
 
-    iic_send_byte(reg);                     /* register address */
-    if (iic_wait_ack())
+    i2c_send_byte(reg);                     /* register address */
+    if (i2c_wait_ack())
     {
         return 2;
     }
 
-    iic_send_byte(val & 0xFF);              /* data */
-    if (iic_wait_ack())
+    i2c_send_byte(val & 0xFF);              /* data */
+    if (i2c_wait_ack())
     {
         return 3;
     }
 
-    iic_stop();
+    i2c_stop();
 
     return 0;
 }
@@ -74,30 +74,30 @@ uint8_t es8388_read_reg(uint8_t reg)
 {
     uint8_t temp = 0;
 
-    iic_start();
+    i2c_start();
 
-    iic_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (iic_wait_ack())
+    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
+    if (i2c_wait_ack())
     {
         return 1;
     }
 
-    iic_send_byte(reg);                     /* register address */
-    if (iic_wait_ack())
+    i2c_send_byte(reg);                     /* register address */
+    if (i2c_wait_ack())
     {
         return 1;
     }
 
-    iic_start();
-    iic_send_byte((ES8388_ADDR << 1) | 1);  /* device address + read */
-    if (iic_wait_ack())
+    i2c_start();
+    i2c_send_byte((ES8388_ADDR << 1) | 1);  /* device address + read */
+    if (i2c_wait_ack())
     {
         return 1;
     }
 
-    temp = iic_read_byte(0);
+    temp = i2c_read_byte(0);
 
-    iic_stop();
+    i2c_stop();
 
     return temp;
 }

@@ -46,13 +46,13 @@ target_link_libraries(bsp_rtc  PUBLIC drv_rtc)
 target_link_libraries(bsp_wdg  PUBLIC drv_iwdg drv_wwdg)
 
 # ===== comm_basic ===========================================================
-bsp_leaf(bsp_iic     iic.c)
+bsp_leaf(bsp_i2c     i2c.c)
 bsp_leaf(bsp_spi     spi.c)
 bsp_leaf(bsp_pcf8574 pcf8574.c)
 bsp_leaf(bsp_24cxx   24cxx.c)
 target_link_libraries(bsp_spi     PUBLIC drv_spi)
-target_link_libraries(bsp_pcf8574 PUBLIC bsp_iic)
-target_link_libraries(bsp_24cxx   PUBLIC bsp_iic)
+target_link_libraries(bsp_pcf8574 PUBLIC bsp_i2c)
+target_link_libraries(bsp_24cxx   PUBLIC bsp_i2c)
 
 # ===== comm_can / comm_dcmi / comm_audio / comm_misc ========================
 bsp_leaf(bsp_can     can.c)
@@ -65,7 +65,7 @@ bsp_leaf(bsp_nrf24l01 nrf24l01.c)
 target_link_libraries(bsp_can       PUBLIC drv_can)
 target_link_libraries(bsp_dcmi      PUBLIC drv_dcmi)
 target_link_libraries(bsp_ov5640    PUBLIC bsp_pcf8574)
-target_link_libraries(bsp_es8388    PUBLIC bsp_iic)
+target_link_libraries(bsp_es8388    PUBLIC bsp_i2c)
 target_link_libraries(bsp_sai       PUBLIC drv_sai)
 target_link_libraries(bsp_rs485     PUBLIC bsp_pcf8574 drv_uart)
 target_link_libraries(bsp_nrf24l01  PUBLIC bsp_spi)
@@ -112,9 +112,9 @@ bsp_leaf(bsp_qmi8658a qmi8658a.c)
 bsp_leaf(bsp_spa06    spa06.c)
 bsp_leaf(bsp_ds18b20  ds18b20.c)
 bsp_leaf(bsp_dht11    dht11.c)
-target_link_libraries(bsp_ap3216c  PUBLIC bsp_iic)
-target_link_libraries(bsp_qmi8658a PUBLIC bsp_iic)
-target_link_libraries(bsp_spa06    PUBLIC bsp_iic)
+target_link_libraries(bsp_ap3216c  PUBLIC bsp_i2c)
+target_link_libraries(bsp_qmi8658a PUBLIC bsp_i2c)
+target_link_libraries(bsp_spa06    PUBLIC bsp_i2c)
 
 # ===== misc =================================================================
 bsp_leaf(bsp_exti exti.c)
@@ -129,7 +129,7 @@ add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
     bsp_btim bsp_gtim bsp_atim bsp_ir bsp_rtc bsp_wdg
-    bsp_iic bsp_spi bsp_pcf8574 bsp_24cxx
+    bsp_i2c bsp_spi bsp_pcf8574 bsp_24cxx
     bsp_can bsp_dcmi bsp_ov5640 bsp_es8388 bsp_sai bsp_rs485 bsp_nrf24l01
     bsp_adc bsp_dac bsp_pwmdac
     bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio

@@ -8,7 +8,7 @@
  */
 
 #include "stm32f4xx_hal.h"
-#include "iic.h"
+#include "i2c.h"
 #include "24cxx.h"
 #include "delay.h"
 
@@ -17,61 +17,61 @@
 
 void at24cxx_init(void)
 {
-    iic_init();
+    i2c_init();
 }
 
 uint8_t at24cxx_read_one_byte(uint16_t addr)
 {
     uint8_t temp = 0;
 
-    iic_start();
+    i2c_start();
 
     if (EE_TYPE > AT24C16)
     {
-        iic_send_byte(0xA0U);
-        iic_wait_ack();
-        iic_send_byte((uint8_t)(addr >> 8));
+        i2c_send_byte(0xA0U);
+        i2c_wait_ack();
+        i2c_send_byte((uint8_t)(addr >> 8));
     }
     else
     {
-        iic_send_byte((uint8_t)(0xA0U + ((addr >> 8) << 1)));
+        i2c_send_byte((uint8_t)(0xA0U + ((addr >> 8) << 1)));
     }
 
-    iic_wait_ack();
-    iic_send_byte((uint8_t)(addr % 256U));
-    iic_wait_ack();
+    i2c_wait_ack();
+    i2c_send_byte((uint8_t)(addr % 256U));
+    i2c_wait_ack();
 
-    iic_start();
-    iic_send_byte(0xA1U);
-    iic_wait_ack();
-    temp = iic_read_byte(0);
-    iic_stop();
+    i2c_start();
+    i2c_send_byte(0xA1U);
+    i2c_wait_ack();
+    temp = i2c_read_byte(0);
+    i2c_stop();
 
     return temp;
 }
 
 void at24cxx_write_one_byte(uint16_t addr, uint8_t data)
 {
-    iic_start();
+    i2c_start();
 
     if (EE_TYPE > AT24C16)
     {
-        iic_send_byte(0xA0U);
-        iic_wait_ack();
-        iic_send_byte((uint8_t)(addr >> 8));
+        i2c_send_byte(0xA0U);
+        i2c_wait_ack();
+        i2c_send_byte((uint8_t)(addr >> 8));
     }
     else
     {
-        iic_send_byte((uint8_t)(0xA0U + ((addr >> 8) << 1)));
+        i2c_send_byte((uint8_t)(0xA0U + ((addr >> 8) << 1)));
     }
 
-    iic_wait_ack();
-    iic_send_byte((uint8_t)(addr % 256U));
-    iic_wait_ack();
+    i2c_wait_ack();
+    i2c_send_byte((uint8_t)(addr % 256U));
+    i2c_wait_ack();
 
-    iic_send_byte(data);
-    iic_wait_ack();
-    iic_stop();
+    i2c_send_byte(data);
+    i2c_wait_ack();
+    i2c_stop();
 
     delay_ms(AT24CXX_WRITE_DELAY_MS);
 }

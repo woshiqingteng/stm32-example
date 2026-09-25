@@ -34,9 +34,6 @@ drv_library(drv_tim
     Src/${DRV_PREFIX}_hal_tim.c
     Src/${DRV_PREFIX}_hal_tim_ex.c
     Src/${DRV_PREFIX}_ll_tim.c)
-drv_library(drv_lptim
-    Src/${DRV_PREFIX}_hal_lptim.c
-    Src/${DRV_PREFIX}_ll_lptim.c)
 drv_library(drv_rtc
     Src/${DRV_PREFIX}_hal_rtc.c
     Src/${DRV_PREFIX}_hal_rtc_ex.c
@@ -80,19 +77,6 @@ drv_library(drv_dcmi
 drv_library(drv_sai
     Src/${DRV_PREFIX}_hal_sai.c
     Src/${DRV_PREFIX}_hal_sai_ex.c)
-drv_library(drv_comm_misc
-    Src/${DRV_PREFIX}_hal_irda.c
-    Src/${DRV_PREFIX}_hal_smartcard.c
-    Src/${DRV_PREFIX}_hal_cec.c
-    Src/${DRV_PREFIX}_hal_smbus.c
-    Src/${DRV_PREFIX}_hal_fmpsmbus.c
-    Src/${DRV_PREFIX}_hal_fmpsmbus_ex.c
-    Src/${DRV_PREFIX}_hal_fmpi2c.c
-    Src/${DRV_PREFIX}_hal_fmpi2c_ex.c
-    Src/${DRV_PREFIX}_hal_spdifrx.c
-    Src/${DRV_PREFIX}_hal_dfsdm.c
-    Src/${DRV_PREFIX}_hal_dsi.c
-    Src/${DRV_PREFIX}_ll_fmpi2c.c)
 
 # analog
 drv_library(drv_adc
@@ -117,8 +101,6 @@ drv_library(drv_fmc
     Src/${DRV_PREFIX}_hal_nand.c
     Src/${DRV_PREFIX}_hal_nor.c
     Src/${DRV_PREFIX}_hal_pccard.c)
-drv_library(drv_qspi
-    Src/${DRV_PREFIX}_hal_qspi.c)
 
 # display
 drv_library(drv_dma2d
@@ -132,12 +114,6 @@ drv_library(drv_ltdc
 drv_library(drv_crc
     Src/${DRV_PREFIX}_hal_crc.c
     Src/${DRV_PREFIX}_ll_crc.c)
-drv_library(drv_cryp
-    Src/${DRV_PREFIX}_hal_cryp.c
-    Src/${DRV_PREFIX}_hal_cryp_ex.c)
-drv_library(drv_hash
-    Src/${DRV_PREFIX}_hal_hash.c
-    Src/${DRV_PREFIX}_hal_hash_ex.c)
 drv_library(drv_rng
     Src/${DRV_PREFIX}_hal_rng.c
     Src/${DRV_PREFIX}_ll_rng.c)
@@ -146,10 +122,10 @@ drv_library(drv_rng
 add_library(drv_all INTERFACE)
 target_link_libraries(drv_all INTERFACE
     drv_core
-    drv_tim drv_lptim drv_rtc drv_iwdg drv_wwdg
+    drv_tim drv_rtc drv_iwdg drv_wwdg
     drv_uart drv_usart drv_i2c drv_spi drv_i2s drv_can drv_eth
-    drv_usb drv_sd drv_dcmi drv_sai drv_comm_misc
+    drv_usb drv_sd drv_dcmi drv_sai
     drv_adc drv_dac
-    drv_flash drv_fmc drv_qspi
+    drv_flash drv_fmc
     drv_dma2d drv_ltdc
-    drv_crc drv_cryp drv_hash drv_rng)
+    drv_crc drv_rng)
