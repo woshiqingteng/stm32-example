@@ -73,6 +73,9 @@ typedef struct
     uint16_t  valid_blocknum;   /* logical blocks in use */
     uint32_t  id;               /* device ID */
     uint16_t *lut;              /* logical -> physical block table */
+    uint32_t  ecc_hard;         /* last hardware ECC value */
+    uint32_t  ecc_hdbuf[NAND_MAX_PAGE_SIZE / NAND_ECC_SECTOR_SIZE]; /* computed ECC per sector */
+    uint32_t  ecc_rdbuf[NAND_MAX_PAGE_SIZE / NAND_ECC_SECTOR_SIZE]; /* ECC read back from spare */
 } nand_attriute;
 
 extern NAND_HandleTypeDef g_nand_handle;
@@ -103,9 +106,14 @@ uint8_t  nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
 uint8_t  nand_readpagecomp(uint32_t pagenum, uint16_t colnum, uint32_t cmpval, uint16_t numbyte_to_read, uint16_t *numbyte_equal);
 uint8_t  nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_write);
 uint8_t  nand_write_pageconst(uint32_t pagenum, uint16_t colnum, uint32_t cval, uint16_t numbyte_to_write);
+uint8_t  nand_copypage_withoutwrite(uint32_t source_pagenum, uint32_t dest_pagenum);
+uint8_t  nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_write);
 uint8_t  nand_readspare(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_read);
 uint8_t  nand_writespare(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_write);
 uint8_t  nand_eraseblock(uint32_t blocknum);
 void     nand_erasechip(void);
+
+uint16_t nand_ecc_get_oe(uint8_t oe, uint32_t eccval);
+uint8_t  nand_ecc_correction(uint8_t *data_buf, uint32_t eccrd, uint32_t ecccl);
 
 #endif /* BSP_NAND_H */

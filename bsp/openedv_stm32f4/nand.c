@@ -1,11 +1,12 @@
 /**
  * @file    nand.c
  * @brief   NAND FLASH driver over FMC bank3 (8-bit bus), ported from the vendor
- *          NAND example. The FMC hardware ECC is disabled and the page access
- *          functions perform raw main-area transfers. MSP content is inlined
- *          into nand_init().
+ *          NAND example. The FMC hardware ECC is used on demand while reading
+ *          (PCR3) and page copy support is provided for the FTL. MSP content is
+ *          inlined into nand_init().
  */
 
+#include <stdio.h>
 #include "nand.h"
 #include "delay.h"
 
@@ -226,7 +227,11 @@ void nand_get_info(nand_info_t *info)
 uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_read)
 {
     volatile uint16_t i;
-    uint8_t res;
+    uint8_t  sect;
+    uint8_t  eccnum;
+    uint8_t  eccstart;
+    uint8_t  errsta = 0U;
+    uint8_t *p;
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_AREA_A;
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)colnum;
@@ -236,29 +241,90 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(pagenum >> 16);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_AREA_TRUE1;
 
-    res = nand_waitrb(0);
-    if (res != 0U)
+    if (nand_waitrb(0) != 0U)
     {
         return NSTA_TIMEOUT;
     }
 
-    res = nand_waitrb(1);
-    if (res != 0U)
+    if (nand_waitrb(1) != 0U)
     {
         return NSTA_TIMEOUT;
     }
 
-    for (i = 0U; i < numbyte_to_read; i++)
+    if ((numbyte_to_read % NAND_ECC_SECTOR_SIZE) != 0U)
     {
-        pbuffer[i] = *(volatile uint8_t *)NAND_ADDRESS;
+        /* Not a whole number of ECC sectors: raw read, no ECC. */
+        for (i = 0U; i < numbyte_to_read; i++)
+        {
+            *pbuffer++ = *(volatile uint8_t *)NAND_ADDRESS;
+        }
+    }
+    else
+    {
+        eccnum   = (uint8_t)(numbyte_to_read / NAND_ECC_SECTOR_SIZE);
+        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE);
+        p        = pbuffer;
+
+        for (sect = 0U; sect < eccnum; sect++)
+        {
+            FMC_Bank2_3->PCR3 |= 1U << 6;                       /* enable ECC */
+
+            for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+            {
+                *pbuffer++ = *(volatile uint8_t *)NAND_ADDRESS;
+            }
+
+            while ((FMC_Bank2_3->SR3 & (1U << 6)) == 0U)         /* wait FIFO ready */
+            {
+            }
+
+            nand_dev.ecc_hdbuf[sect + eccstart] = FMC_Bank2_3->ECCR3;
+            FMC_Bank2_3->PCR3 &= ~(1U << 6);                    /* disable ECC */
+        }
+
+        i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
+        nand_delay(NAND_TRHW_DELAY);
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x05; /* random data output */
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(i >> 8);
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0xE0;
+
+        nand_delay(NAND_TWHR_DELAY);
+        pbuffer = (uint8_t *)&nand_dev.ecc_rdbuf[eccstart];
+
+        for (i = 0U; i < (4U * eccnum); i++)                    /* read stored ECC */
+        {
+            *pbuffer++ = *(volatile uint8_t *)NAND_ADDRESS;
+        }
+
+        for (i = 0U; i < eccnum; i++)
+        {
+            if (nand_dev.ecc_rdbuf[i + eccstart] != nand_dev.ecc_hdbuf[i + eccstart])
+            {
+                printf("err hd,rd:0x%x,0x%x\r\n", nand_dev.ecc_hdbuf[i + eccstart], nand_dev.ecc_rdbuf[i + eccstart]);
+                printf("eccnum,eccstart:%d,%d\r\n", eccnum, eccstart);
+                printf("PageNum,ColNum:%d,%d\r\n", (int)pagenum, (int)colnum);
+
+                if (nand_ecc_correction(p + NAND_ECC_SECTOR_SIZE * i,
+                                        nand_dev.ecc_rdbuf[i + eccstart],
+                                        nand_dev.ecc_hdbuf[i + eccstart]) != 0U)
+                {
+                    errsta = NSTA_ECC2BITERR;
+                }
+                else
+                {
+                    errsta = NSTA_ECC1BITERR;
+                }
+            }
+        }
     }
 
     if (nand_wait_for_ready() != NSTA_READY)
     {
-        return NSTA_ERROR;
+        errsta = NSTA_ERROR;
     }
 
-    return 0U;
+    return errsta;
 }
 
 uint8_t nand_readpagecomp(uint32_t pagenum, uint16_t colnum, uint32_t cmpval,
@@ -426,4 +492,199 @@ void nand_erasechip(void)
     {
         (void)nand_eraseblock(i);
     }
+}
+
+uint8_t nand_copypage_withoutwrite(uint32_t source_pagenum, uint32_t dest_pagenum)
+{
+    uint32_t source_block = source_pagenum / nand_dev.block_pagenum;
+    uint32_t dest_block   = dest_pagenum / nand_dev.block_pagenum;
+
+    if ((source_block % 2U) != (dest_block % 2U))
+    {
+        return NSTA_ERROR;                                  /* must be in the same plane */
+    }
+
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD0;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)source_pagenum;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(source_pagenum >> 8);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(source_pagenum >> 16);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD1;
+
+    if (nand_waitrb(0) != 0U)
+    {
+        return NSTA_TIMEOUT;
+    }
+
+    if (nand_waitrb(1) != 0U)
+    {
+        return NSTA_TIMEOUT;
+    }
+
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD2;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)dest_pagenum;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 8);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 16);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD3;
+    delay_us(NAND_TPROG_DELAY);
+
+    if (nand_wait_for_ready() != NSTA_READY)
+    {
+        return NSTA_ERROR;
+    }
+
+    return 0U;
+}
+
+uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, uint16_t colnum,
+                                uint8_t *pbuffer, uint16_t numbyte_to_write)
+{
+    volatile uint16_t i;
+    uint8_t  sect;
+    uint8_t  eccnum;
+    uint8_t  eccstart;
+    uint32_t source_block = source_pagenum / nand_dev.block_pagenum;
+    uint32_t dest_block   = dest_pagenum / nand_dev.block_pagenum;
+
+    if ((source_block % 2U) != (dest_block % 2U))
+    {
+        return NSTA_ERROR;                                  /* must be in the same plane */
+    }
+
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = NAND_MOVEDATA_CMD0;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = 0x00;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)source_pagenum;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(source_pagenum >> 8);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(source_pagenum >> 16);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = NAND_MOVEDATA_CMD1;
+
+    if (nand_waitrb(0) != 0U)
+    {
+        return NSTA_TIMEOUT;
+    }
+
+    if (nand_waitrb(1) != 0U)
+    {
+        return NSTA_TIMEOUT;
+    }
+
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = NAND_MOVEDATA_CMD2;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)colnum;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(colnum >> 8);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)dest_pagenum;
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 8);
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 16);
+    nand_delay(NAND_TADL_DELAY);
+
+    if ((numbyte_to_write % NAND_ECC_SECTOR_SIZE) != 0U)
+    {
+        for (i = 0U; i < numbyte_to_write; i++)
+        {
+            *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+        }
+    }
+    else
+    {
+        eccnum   = (uint8_t)(numbyte_to_write / NAND_ECC_SECTOR_SIZE);
+        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE);
+
+        for (sect = 0U; sect < eccnum; sect++)
+        {
+            FMC_Bank2_3->PCR3 |= 1U << 6;
+
+            for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+            {
+                *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+            }
+
+            while ((FMC_Bank2_3->SR3 & (1U << 6)) == 0U)
+            {
+            }
+
+            nand_dev.ecc_hdbuf[sect + eccstart] = FMC_Bank2_3->ECCR3;
+            FMC_Bank2_3->PCR3 &= ~(1U << 6);
+        }
+
+        i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
+        nand_delay(NAND_TADL_DELAY);
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x85;
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
+        *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(i >> 8);
+        nand_delay(NAND_TADL_DELAY);
+
+        pbuffer = (uint8_t *)&nand_dev.ecc_hdbuf[eccstart];
+
+        for (i = 0U; i < eccnum; i++)
+        {
+            *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+            *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+            *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+            *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
+        }
+    }
+
+    *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD3;
+    delay_us(NAND_TPROG_DELAY);
+
+    if (nand_wait_for_ready() != NSTA_READY)
+    {
+        return NSTA_ERROR;
+    }
+
+    return 0U;
+}
+
+uint16_t nand_ecc_get_oe(uint8_t oe, uint32_t eccval)
+{
+    uint8_t  i;
+    uint16_t ecctemp = 0U;
+
+    for (i = 0U; i < 24U; i++)
+    {
+        if ((i % 2U) == oe)
+        {
+            if (((eccval >> i) & 0x01U) != 0U)
+            {
+                ecctemp = (uint16_t)(ecctemp + (1U << (i >> 1)));
+            }
+        }
+    }
+
+    return ecctemp;
+}
+
+uint8_t nand_ecc_correction(uint8_t *data_buf, uint32_t eccrd, uint32_t ecccl)
+{
+    uint16_t eccrdo;
+    uint16_t eccrde;
+    uint16_t eccclo;
+    uint16_t ecccle;
+    uint16_t errorpos;
+    uint32_t bytepos;
+
+    eccrdo = nand_ecc_get_oe(1U, eccrd);
+    eccrde = nand_ecc_get_oe(0U, eccrd);
+    eccclo = nand_ecc_get_oe(1U, ecccl);
+    ecccle = nand_ecc_get_oe(0U, ecccl);
+
+    if ((uint16_t)(eccrdo ^ eccrde ^ eccclo ^ ecccle) == 0xFFFFU)
+    {
+        /* single-bit error: locate and flip it */
+        errorpos = (uint16_t)(eccrdo ^ eccclo);
+        printf("errorpos:%d\r\n", errorpos);
+        bytepos  = errorpos / 8U;
+        data_buf[bytepos] ^= (uint8_t)(1U << (errorpos % 8U));
+    }
+    else
+    {
+        /* two or more bit errors cannot be recovered */
+        printf("2bit ecc error or more\r\n");
+        return 1U;
+    }
+
+    return 0U;
 }

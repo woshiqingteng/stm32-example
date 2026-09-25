@@ -109,6 +109,9 @@ target_link_libraries(bsp_norflash PUBLIC bsp_spi)
 bsp_library(bsp_sdio
     sdio.c)
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
+bsp_library(bsp_ftl
+    ftl.c)
+target_link_libraries(bsp_ftl PUBLIC bsp_nand lib_malloc)
 
 # display
 bsp_library(bsp_ltdc
@@ -164,7 +167,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_i2c bsp_spi bsp_pcf8574 bsp_24cxx
     bsp_can bsp_dcmi bsp_ov5640 bsp_es8388 bsp_sai bsp_rs485 bsp_nrf24l01
     bsp_adc bsp_dac bsp_pwmdac
-    bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio
+    bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_rng
     bsp_ap3216c bsp_qmi8658a bsp_spa06 bsp_ds18b20 bsp_dht11
