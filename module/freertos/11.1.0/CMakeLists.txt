@@ -1,7 +1,3 @@
-# Vendor module: FreeRTOS-Kernel (11.1.0). Kernel sources plus the Cortex-M4F
-# GCC port and heap_4. The common configuration (FreeRTOSConfig_common.h) lives
-# in config/ and is exposed PUBLIC so any consumer of FreeRTOS (kernel, bsp)
-# sees it; each app supplies its own FreeRTOSConfig.h that includes it.
 set(FREERTOS_CORE
     ${CMAKE_CURRENT_SOURCE_DIR}/event_groups.c
     ${CMAKE_CURRENT_SOURCE_DIR}/list.c
