@@ -20,6 +20,6 @@ add_library(usb_host STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbh_hid_mouse.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbh_hid_parser.c)
 
-target_link_libraries(usb_host PUBLIC usb_host_inc cmsis_core target_${MCU_FAMILY})
+target_link_libraries(usb_host PUBLIC usb_host_inc cmsis_core soc_${MCU_FAMILY})
 # The HCD HAL that usbh_conf.c (port layer) drives.
 target_link_libraries(usb_host PRIVATE bsp_drv)

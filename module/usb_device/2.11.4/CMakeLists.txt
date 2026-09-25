@@ -21,6 +21,6 @@ add_library(usb_device STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/CDC/Src/usbd_cdc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbd_hid.c)
 
-target_link_libraries(usb_device PUBLIC usb_device_inc cmsis_core target_${MCU_FAMILY})
+target_link_libraries(usb_device PUBLIC usb_device_inc cmsis_core soc_${MCU_FAMILY})
 # The PCD HAL that usbd_conf.c (port layer) drives.
 target_link_libraries(usb_device PRIVATE bsp_drv)

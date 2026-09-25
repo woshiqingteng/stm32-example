@@ -2,12 +2,11 @@
 # version selection (module/<name>/CMakeLists.txt sets <name>_VERSION and adds
 # the versioned subdirectory).
 #
-# Dependency rule: modules depend only on the target base and other modules;
+# Dependency rule: modules depend only on the platform base and other modules;
 # never on bsp/port/lib/app.
 #
-# Enable flags are CACHE variables so sibling layers (port) can read them.
+# Enable flags are CACHE variables so sibling layers (port, bsp) can read them.
 
-set(MODULE_CMSIS_CORE_ENABLE OFF CACHE BOOL "Enable cmsis_core")
 set(MODULE_HAL_ENABLE        OFF CACHE BOOL "Enable the HAL module")
 set(MODULE_FREERTOS_ENABLE   OFF CACHE BOOL "Enable FreeRTOS")
 set(MODULE_FATFS_ENABLE      ON  CACHE BOOL "Enable the FatFs core module")
@@ -17,18 +16,11 @@ set(MODULE_CMSIS_DSP_ENABLE  ON  CACHE BOOL "Enable the CMSIS-DSP module")
 set(MODULE_USB_DEVICE_ENABLE ON  CACHE BOOL "Enable the ST USB device stack")
 set(MODULE_USB_HOST_ENABLE   ON  CACHE BOOL "Enable the ST USB host stack")
 
-if(MCU_ARCH MATCHES "^cortex-m")
-    set(MODULE_CMSIS_CORE_ENABLE ON CACHE BOOL "" FORCE)
-endif()
 if(BSP_DRV STREQUAL "stm32_hal")
     set(MODULE_HAL_ENABLE ON CACHE BOOL "" FORCE)
 endif()
 if(OS STREQUAL "freertos")
     set(MODULE_FREERTOS_ENABLE ON CACHE BOOL "" FORCE)
-endif()
-
-if(MODULE_CMSIS_CORE_ENABLE)
-    add_subdirectory(cmsis_core)
 endif()
 
 if(MODULE_HAL_ENABLE)

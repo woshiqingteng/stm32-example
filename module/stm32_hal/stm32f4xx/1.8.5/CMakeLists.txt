@@ -8,4 +8,4 @@ list(FILTER DRV_SRC EXCLUDE REGEX "_template\\.c$")
 add_library(bsp_drv STATIC ${DRV_SRC})
 
 target_include_directories(bsp_drv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
-target_link_libraries(bsp_drv PUBLIC cmsis_core target_${MCU_FAMILY})
+target_link_libraries(bsp_drv PUBLIC cmsis_core soc_${MCU_FAMILY})

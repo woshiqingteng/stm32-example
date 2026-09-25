@@ -51,4 +51,4 @@ set(LIBJPEG_SRC
 
 add_library(libjpeg STATIC ${LIBJPEG_SRC})
 target_include_directories(libjpeg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(libjpeg PUBLIC target_${MCU_FAMILY})
+target_link_libraries(libjpeg PUBLIC soc_${MCU_FAMILY})

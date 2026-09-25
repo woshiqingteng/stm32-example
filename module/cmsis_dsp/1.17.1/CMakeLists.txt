@@ -38,4 +38,4 @@ target_compile_definitions(cmsis_dsp PRIVATE
     __FPU_PRESENT=1
     __FPU_USED=1)
 
-target_link_libraries(cmsis_dsp PUBLIC cmsis_core target_${MCU_FAMILY})
+target_link_libraries(cmsis_dsp PUBLIC cmsis_core soc_${MCU_FAMILY})

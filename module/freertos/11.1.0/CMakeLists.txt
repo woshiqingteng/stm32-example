@@ -14,4 +14,4 @@ target_include_directories(freertos PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/portable/GCC/ARM_CM4F
     ${CMAKE_CURRENT_SOURCE_DIR}/config)
 
-target_link_libraries(freertos PUBLIC target_${MCU_FAMILY})
+target_link_libraries(freertos PUBLIC soc_${MCU_FAMILY})
