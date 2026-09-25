@@ -1,4 +1,4 @@
-set(DRV_PREFIX ${MCU_FAMILY})        # vendor source prefix, e.g. stm32f4xx
+set(DRV_PREFIX ${MCU_FAMILY})
 
 function(drv_library name)
     add_library(${name} STATIC EXCLUDE_FROM_ALL ${ARGN})
@@ -30,18 +30,33 @@ drv_library(drv_core
     Src/${DRV_PREFIX}_ll_pwr.c)
 
 # time
-drv_library(drv_tim   Src/${DRV_PREFIX}_hal_tim.c Src/${DRV_PREFIX}_hal_tim_ex.c Src/${DRV_PREFIX}_ll_tim.c)
-drv_library(drv_lptim Src/${DRV_PREFIX}_hal_lptim.c Src/${DRV_PREFIX}_ll_lptim.c)
-drv_library(drv_rtc   Src/${DRV_PREFIX}_hal_rtc.c Src/${DRV_PREFIX}_hal_rtc_ex.c Src/${DRV_PREFIX}_ll_rtc.c)
+drv_library(drv_tim
+    Src/${DRV_PREFIX}_hal_tim.c
+    Src/${DRV_PREFIX}_hal_tim_ex.c
+    Src/${DRV_PREFIX}_ll_tim.c)
+drv_library(drv_lptim
+    Src/${DRV_PREFIX}_hal_lptim.c
+    Src/${DRV_PREFIX}_ll_lptim.c)
+drv_library(drv_rtc
+    Src/${DRV_PREFIX}_hal_rtc.c
+    Src/${DRV_PREFIX}_hal_rtc_ex.c
+    Src/${DRV_PREFIX}_ll_rtc.c)
 drv_library(drv_iwdg  Src/${DRV_PREFIX}_hal_iwdg.c)
 drv_library(drv_wwdg  Src/${DRV_PREFIX}_hal_wwdg.c)
 
 # comm
 drv_library(drv_uart  Src/${DRV_PREFIX}_hal_uart.c)
 drv_library(drv_usart Src/${DRV_PREFIX}_hal_usart.c)
-drv_library(drv_i2c   Src/${DRV_PREFIX}_hal_i2c.c Src/${DRV_PREFIX}_hal_i2c_ex.c Src/${DRV_PREFIX}_ll_i2c.c)
-drv_library(drv_spi   Src/${DRV_PREFIX}_hal_spi.c Src/${DRV_PREFIX}_ll_spi.c)
-drv_library(drv_i2s   Src/${DRV_PREFIX}_hal_i2s.c Src/${DRV_PREFIX}_hal_i2s_ex.c)
+drv_library(drv_i2c
+    Src/${DRV_PREFIX}_hal_i2c.c
+    Src/${DRV_PREFIX}_hal_i2c_ex.c
+    Src/${DRV_PREFIX}_ll_i2c.c)
+drv_library(drv_spi
+    Src/${DRV_PREFIX}_hal_spi.c
+    Src/${DRV_PREFIX}_ll_spi.c)
+drv_library(drv_i2s
+    Src/${DRV_PREFIX}_hal_i2s.c
+    Src/${DRV_PREFIX}_hal_i2s_ex.c)
 drv_library(drv_can   Src/${DRV_PREFIX}_hal_can.c)
 drv_library(drv_eth   Src/${DRV_PREFIX}_hal_eth.c)
 drv_library(drv_usb
@@ -53,8 +68,12 @@ drv_library(drv_sd
     Src/${DRV_PREFIX}_hal_sd.c
     Src/${DRV_PREFIX}_hal_mmc.c
     Src/${DRV_PREFIX}_ll_sdmmc.c)
-drv_library(drv_dcmi  Src/${DRV_PREFIX}_hal_dcmi.c Src/${DRV_PREFIX}_hal_dcmi_ex.c)
-drv_library(drv_sai   Src/${DRV_PREFIX}_hal_sai.c Src/${DRV_PREFIX}_hal_sai_ex.c)
+drv_library(drv_dcmi
+    Src/${DRV_PREFIX}_hal_dcmi.c
+    Src/${DRV_PREFIX}_hal_dcmi_ex.c)
+drv_library(drv_sai
+    Src/${DRV_PREFIX}_hal_sai.c
+    Src/${DRV_PREFIX}_hal_sai_ex.c)
 drv_library(drv_comm_misc
     Src/${DRV_PREFIX}_hal_irda.c
     Src/${DRV_PREFIX}_hal_smartcard.c
@@ -70,11 +89,20 @@ drv_library(drv_comm_misc
     Src/${DRV_PREFIX}_ll_fmpi2c.c)
 
 # analog
-drv_library(drv_adc   Src/${DRV_PREFIX}_hal_adc.c Src/${DRV_PREFIX}_hal_adc_ex.c Src/${DRV_PREFIX}_ll_adc.c)
-drv_library(drv_dac   Src/${DRV_PREFIX}_hal_dac.c Src/${DRV_PREFIX}_hal_dac_ex.c Src/${DRV_PREFIX}_ll_dac.c)
+drv_library(drv_adc
+    Src/${DRV_PREFIX}_hal_adc.c
+    Src/${DRV_PREFIX}_hal_adc_ex.c
+    Src/${DRV_PREFIX}_ll_adc.c)
+drv_library(drv_dac
+    Src/${DRV_PREFIX}_hal_dac.c
+    Src/${DRV_PREFIX}_hal_dac_ex.c
+    Src/${DRV_PREFIX}_ll_dac.c)
 
 # memory
-drv_library(drv_flash Src/${DRV_PREFIX}_hal_flash.c Src/${DRV_PREFIX}_hal_flash_ex.c Src/${DRV_PREFIX}_hal_flash_ramfunc.c)
+drv_library(drv_flash
+    Src/${DRV_PREFIX}_hal_flash.c
+    Src/${DRV_PREFIX}_hal_flash_ex.c
+    Src/${DRV_PREFIX}_hal_flash_ramfunc.c)
 drv_library(drv_fmc
     Src/${DRV_PREFIX}_ll_fmc.c
     Src/${DRV_PREFIX}_ll_fsmc.c
@@ -86,14 +114,26 @@ drv_library(drv_fmc
 drv_library(drv_qspi  Src/${DRV_PREFIX}_hal_qspi.c)
 
 # display
-drv_library(drv_dma2d Src/${DRV_PREFIX}_hal_dma2d.c Src/${DRV_PREFIX}_ll_dma2d.c)
-drv_library(drv_ltdc  Src/${DRV_PREFIX}_hal_ltdc.c Src/${DRV_PREFIX}_hal_ltdc_ex.c)
+drv_library(drv_dma2d
+    Src/${DRV_PREFIX}_hal_dma2d.c
+    Src/${DRV_PREFIX}_ll_dma2d.c)
+drv_library(drv_ltdc
+    Src/${DRV_PREFIX}_hal_ltdc.c
+    Src/${DRV_PREFIX}_hal_ltdc_ex.c)
 
 # crypto
-drv_library(drv_crc   Src/${DRV_PREFIX}_hal_crc.c Src/${DRV_PREFIX}_ll_crc.c)
-drv_library(drv_cryp  Src/${DRV_PREFIX}_hal_cryp.c Src/${DRV_PREFIX}_hal_cryp_ex.c)
-drv_library(drv_hash  Src/${DRV_PREFIX}_hal_hash.c Src/${DRV_PREFIX}_hal_hash_ex.c)
-drv_library(drv_rng   Src/${DRV_PREFIX}_hal_rng.c Src/${DRV_PREFIX}_ll_rng.c)
+drv_library(drv_crc
+    Src/${DRV_PREFIX}_hal_crc.c
+    Src/${DRV_PREFIX}_ll_crc.c)
+drv_library(drv_cryp
+    Src/${DRV_PREFIX}_hal_cryp.c
+    Src/${DRV_PREFIX}_hal_cryp_ex.c)
+drv_library(drv_hash
+    Src/${DRV_PREFIX}_hal_hash.c
+    Src/${DRV_PREFIX}_hal_hash_ex.c)
+drv_library(drv_rng
+    Src/${DRV_PREFIX}_hal_rng.c
+    Src/${DRV_PREFIX}_ll_rng.c)
 
 # all
 add_library(drv_all INTERFACE)
