@@ -1,15 +1,3 @@
-# Vendor module: Arm CMSIS-DSP (source build). Board independent. Only the
-# sources needed by the DSP experiment are vendored, so the precompiled vendor
-# .lib is not used. The public Include/ tree plus PrivateInclude/ (internal
-# helpers) are shipped; the compiled subset is listed in CMSIS_DSP_SRC.
-#
-# Required for Cortex-M4F:
-#   ARM_MATH_CM4            - select the Cortex-M4 build in arm_math.h
-#   ARM_MATH_LOOPUNROLL     - enable the unrolled kernels
-#   ARM_MATH_MATRIX_CHECK   - argument checking on matrix ops
-#   ARM_MATH_ROUNDING       - rounding on fixed-point support functions
-#   __FPU_PRESENT / __FPU_USED - declare the FPU to the CMSIS core headers
-
 set(CMSIS_DSP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/BasicMathFunctions/arm_dot_prod_f32.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/CommonTables/arm_common_tables.c
@@ -30,12 +18,15 @@ target_include_directories(cmsis_dsp
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/Include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/PrivateInclude)
 
+# Core and FPU are described by the toolchain and the SoC, not hard-coded here:
+#  - core: cmake/cpu/cortex-m4.cmake adds -mcpu=cortex-m4, so the compiler
+#    defines __ARM_ARCH_7EM__ / __ARM_FEATURE_DSP and CMSIS-DSP auto-detects
+#    the build (ARM_MATH_DSP) in arm_math_types.h.
+#  - FPU : the SoC device header defines __FPU_PRESENT, and core_cm4.h derives
+#    __FPU_USED from -mfloat-abi / -mfpu.
+# Only the performance knob is kept; loop unrolling has a plain fallback.
 target_compile_definitions(cmsis_dsp PRIVATE
-    ARM_MATH_CM4
-    ARM_MATH_LOOPUNROLL
-    ARM_MATH_MATRIX_CHECK
-    ARM_MATH_ROUNDING
-    __FPU_PRESENT=1
-    __FPU_USED=1)
+    ARM_MATH_LOOPUNROLL)
 
-target_link_libraries(cmsis_dsp PUBLIC cmsis_core soc_${MCU_FAMILY})
+# libm: arm_sqrt_f32 (public inline) falls back to sqrtf() without VFP.
+target_link_libraries(cmsis_dsp PUBLIC cmsis_core soc_${MCU_FAMILY} m)

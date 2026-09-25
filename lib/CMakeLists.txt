@@ -25,7 +25,7 @@ target_link_libraries(lib_usb_host_msc INTERFACE
     usb_host usb_host_common_port usb_host_msc_port)
 
 add_library(lib_dsp INTERFACE)
-target_link_libraries(lib_dsp INTERFACE cmsis_dsp m)
+target_link_libraries(lib_dsp INTERFACE cmsis_dsp)
 
 # ============================================================
 # 2. 中间件库：目录名 = 目标名（去掉 lib_ 前缀），一份清单驱动两件事
