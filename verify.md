@@ -19,7 +19,7 @@
 | A1 | 顶层目录 | `platform/module/bsp/port/lib/app/tool/cmake`，无 `target/`、`tools/` | ✅ |
 | A2 | 顶层 add 顺序 | platform→module→bsp→port→lib→app | ✅ `31:platform 32:module 33:bsp 34:port 35:lib 36:app` |
 | A3 | platform 分层 | `arch/cmsis_core` + `soc/stm32/stm32f4xx`（扁平） | ✅ |
-| A4 | module 分层 | 每第三方模块含版本子目录 | ✅ `cmsis_dsp/fatfs/freertos/libjpeg/tjpgd/usb_device/usb_host` |
+| A4 | module 分层 | 每第三方模块含版本子目录 | ✅ `cmsis_dsp/fatfs/freertos/ijg_libjpeg/stm32_hal/tjpgd/stm32_usb_device/stm32_usb_host` |
 | A5 | port 分层 | `common/{fatfs,usb}` + `<BSP>/{fatfs,usb}` | ✅ |
 | A6 | app 分层 | `baremetal/` + `freertos/` | ✅ |
 
@@ -30,7 +30,7 @@
 | B1 | platform 不依赖上层 | 仅 cmsis_core/cpu/soc | ✅ |
 | B2 | module 仅依赖 platform/module | 无 bsp/port/lib/app | ✅ 依赖 `cmsis_core`/`soc_*`/`drv_usb`（均 module/platform） |
 | B3 | bsp 依赖 platform/module | HAL 叶子链 `cmsis_core soc`；叶子链 `drv_core` | ✅ |
-| B4 | port 依赖 bsp/module | 无 lib/app；HAL 仅 USB LL 例外 | ⚠ `usb_*_common_port` 链 `drv_usb`（USB LL，无对应 BSP 驱动） |
+| B4 | port 依赖 bsp/module | 无 lib/app；HAL 仅 USB LL 例外 | ⚠ `stm32_usb_*_common_port` 链 `drv_usb`（USB LL，无对应 BSP 驱动） |
 | B5 | lib 不写 HAL | 无 `drv_*` | ✅ |
 | B6 | 无 `target_${MCU_FAMILY}` 残留 | 无匹配 | ✅（仅 verify.md 文本） |
 
@@ -75,7 +75,7 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| F1 | 直连组件 | `lib_fatfs` / `lib_usb_device_{cdc,audio,msc}` / `lib_usb_host_{hid,msc}` / `lib_dsp` | ✅ |
+| F1 | 直连组件 | `lib_fatfs` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
 | F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg |
 | F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 6/6 |
@@ -88,7 +88,7 @@
 | G2 | `BSP` 在 `LIB` 前 | 全部满足 | ✅ |
 | G3 | `LIB` 参数小写 | 参数小写 | ✅ 抽查全部小写 |
 | G4 | 标注一致性 | 与约定一致 | ✅（60 app 含 BSP） |
-| G5 | USB 关键字 | 仅 `usb_device_*`/`usb_host_*` | ✅ `usb_device_cdc/audio/msc`、`usb_host_hid/msc` |
+| G5 | USB 关键字 | 仅 `stm32_usb_device_*`/`stm32_usb_host_*` | ✅ `stm32_usb_device_cdc/audio/msc`、`stm32_usb_host_hid/msc` |
 
 ## H. 构建与产物
 
@@ -153,7 +153,7 @@
 | `56_usb_cdc` | 94 | 12 | 24416/356/23132 | stm32f4xx_flash.ld |
 | `53_iap_app` | 61 | 8 | 10880/112/4848 | stm32f4xx_iap_app.ld |
 
-`56_usb_cdc` 仅编 `usb_device_common_port` + `usb_device_cdc_port`（无 audio/msc/host）；镜像差异均 ≤ ±4B，属 HAL 归档分组/段对齐，**无功能回归**。
+`56_usb_cdc` 仅编 `stm32_usb_device_common_port` + `stm32_usb_device_cdc_port`（无 audio/msc/host）；镜像差异均 ≤ ±4B，属 HAL 归档分组/段对齐，**无功能回归**。
 
 ---
 
@@ -162,4 +162,4 @@
 - **结构（A–K，27 项）**：全部通过。分层清晰、依赖单向、`BSP`/`LIB` 声明式选择生效、命名统一无残留。
 - **构建（H1–H8）**：72/72 镜像成功；按需编译显著（`01_led` 313→61 对象）；镜像无功能回归。
 - **说明**：`port` 直接链 `drv_usb` 为 USB LL 适配的合理例外；lib 层严格不写 `drv_*`。
-- **已知保留**：`usb_device` 内核未按类拆分（已评估，收益低）。
+- **已知保留**：`stm32_usb_device` 内核未按类拆分（已评估，收益低）。

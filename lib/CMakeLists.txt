@@ -4,25 +4,25 @@
 add_library(lib_fatfs INTERFACE)
 target_link_libraries(lib_fatfs INTERFACE fatfs_core fatfs_port)
 
-add_library(lib_usb_device_cdc INTERFACE)
-target_link_libraries(lib_usb_device_cdc INTERFACE
-    usb_device usb_device_common_port usb_device_cdc_port)
+add_library(lib_stm32_usb_device_cdc INTERFACE)
+target_link_libraries(lib_stm32_usb_device_cdc INTERFACE
+    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_cdc_port)
 
-add_library(lib_usb_device_audio INTERFACE)
-target_link_libraries(lib_usb_device_audio INTERFACE
-    usb_device usb_device_common_port usb_device_audio_port)
+add_library(lib_stm32_usb_device_audio INTERFACE)
+target_link_libraries(lib_stm32_usb_device_audio INTERFACE
+    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_audio_port)
 
-add_library(lib_usb_device_msc INTERFACE)
-target_link_libraries(lib_usb_device_msc INTERFACE
-    usb_device usb_device_common_port usb_device_msc_port)
+add_library(lib_stm32_usb_device_msc INTERFACE)
+target_link_libraries(lib_stm32_usb_device_msc INTERFACE
+    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_msc_port)
 
-add_library(lib_usb_host_hid INTERFACE)
-target_link_libraries(lib_usb_host_hid INTERFACE
-    usb_host usb_host_common_port)
+add_library(lib_stm32_usb_host_hid INTERFACE)
+target_link_libraries(lib_stm32_usb_host_hid INTERFACE
+    stm32_usb_host stm32_usb_host_common_port)
 
-add_library(lib_usb_host_msc INTERFACE)
-target_link_libraries(lib_usb_host_msc INTERFACE
-    usb_host usb_host_common_port usb_host_msc_port)
+add_library(lib_stm32_usb_host_msc INTERFACE)
+target_link_libraries(lib_stm32_usb_host_msc INTERFACE
+    stm32_usb_host stm32_usb_host_common_port stm32_usb_host_msc_port)
 
 add_library(lib_dsp INTERFACE)
 target_link_libraries(lib_dsp INTERFACE cmsis_dsp)
@@ -32,8 +32,8 @@ target_link_libraries(lib_dsp INTERFACE cmsis_dsp)
 # ============================================================
 set(LIB_ALL_TARGETS
     lib_fatfs
-    lib_usb_device_cdc lib_usb_device_audio lib_usb_device_msc
-    lib_usb_host_hid lib_usb_host_msc
+    lib_stm32_usb_device_cdc lib_stm32_usb_device_audio lib_stm32_usb_device_msc
+    lib_stm32_usb_host_hid lib_stm32_usb_host_msc
     lib_dsp)
 
 set(LIB_DIRS usmart malloc text picture audio mjpeg)

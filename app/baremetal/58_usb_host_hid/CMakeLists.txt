@@ -3,6 +3,6 @@
 add_baremetal_app(58_usb_host_hid
     SOURCES main.c
     BSP     pcf8574
-    LIB     usb_host_hid
+    LIB     stm32_usb_host_hid
 )
 

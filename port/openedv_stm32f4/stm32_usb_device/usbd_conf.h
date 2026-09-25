@@ -2,7 +2,7 @@
  * @file    usbd_conf.h
  * @brief   USB Device low level configuration for the ST USB device stack
  *          (2.11.4). The device core headers include this file, so the port
- *          layer hands its directory to the usb_device target at configure time.
+ *          layer hands its directory to the stm32_usb_device target at configure time.
  */
 
 #ifndef PORT_USBD_CONF_H
