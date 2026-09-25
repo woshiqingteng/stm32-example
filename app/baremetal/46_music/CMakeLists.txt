@@ -2,7 +2,7 @@
 # the AUDIO middleware provides the self-contained WAV playback device.
 add_baremetal_app(46_music
     SOURCES main.c audioplay.c
-    LIB     MALLOC AUDIO
     BSP     sdio sdram
+    LIB     malloc audio
 )
 

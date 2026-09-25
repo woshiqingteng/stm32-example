@@ -3,7 +3,7 @@
 # ES8388/SAI audio) and the text renderer.
 add_baremetal_app(48_video
     SOURCES main.c
-    LIB     MALLOC TEXT MJPEG
     BSP     lcd sdio sdram
+    LIB     malloc text mjpeg
 )
 
