@@ -1,5 +1,5 @@
 # Baremetal application tree.
-# Default build type is debug (see tools/build.sh); each app has its own build tree.
+# Default build type is debug (see tool/build.sh); each app has its own build tree.
 
 # Apps list SOURCES and (optionally) LIB components; all board drivers live in
 # the bsp library and the linker keeps only the objects the image references.

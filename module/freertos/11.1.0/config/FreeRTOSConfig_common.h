@@ -21,6 +21,9 @@ extern uint32_t SystemCoreClock;
 #ifndef configUSE_PREEMPTION
 #define configUSE_PREEMPTION                            1
 #endif
+#ifdef configUSE_PORT_OPTIMISED_TASK_SELECTION
+#error "configUSE_PORT_OPTIMISED_TASK_SELECTION is fixed by the Cortex-M4 port and must not be overridden"
+#endif
 #ifndef configUSE_PORT_OPTIMISED_TASK_SELECTION
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION         1
 #endif
@@ -212,6 +215,9 @@ extern uint32_t SystemCoreClock;
 #endif
 
 /* Interrupt nesting behavior configuration */
+#ifdef configPRIO_BITS
+#error "configPRIO_BITS is fixed by the Cortex-M4 port and must not be overridden"
+#endif
 #ifndef configPRIO_BITS
 #ifdef __NVIC_PRIO_BITS
 #define configPRIO_BITS __NVIC_PRIO_BITS
@@ -226,19 +232,34 @@ extern uint32_t SystemCoreClock;
 #ifndef configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY    5
 #endif
+#ifdef configKERNEL_INTERRUPT_PRIORITY
+#error "configKERNEL_INTERRUPT_PRIORITY is fixed by the Cortex-M4 port and must not be overridden"
+#endif
 #ifndef configKERNEL_INTERRUPT_PRIORITY
 #define configKERNEL_INTERRUPT_PRIORITY                 ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
 #endif
+#ifdef configMAX_SYSCALL_INTERRUPT_PRIORITY
+#error "configMAX_SYSCALL_INTERRUPT_PRIORITY is fixed by the Cortex-M4 port and must not be overridden"
+#endif
 #ifndef configMAX_SYSCALL_INTERRUPT_PRIORITY
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY            ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
+#endif
+#ifdef configMAX_API_CALL_INTERRUPT_PRIORITY
+#error "configMAX_API_CALL_INTERRUPT_PRIORITY is fixed by the Cortex-M4 port and must not be overridden"
 #endif
 #ifndef configMAX_API_CALL_INTERRUPT_PRIORITY
 #define configMAX_API_CALL_INTERRUPT_PRIORITY           configMAX_SYSCALL_INTERRUPT_PRIORITY
 #endif
 
 /* FreeRTOS interrupt service handler definitions */
+#ifdef xPortPendSVHandler
+#error "xPortPendSVHandler is fixed by the Cortex-M4 port and must not be overridden"
+#endif
 #ifndef xPortPendSVHandler
 #define xPortPendSVHandler                              PendSV_Handler
+#endif
+#ifdef vPortSVCHandler
+#error "vPortSVCHandler is fixed by the Cortex-M4 port and must not be overridden"
 #endif
 #ifndef vPortSVCHandler
 #define vPortSVCHandler                                 SVC_Handler

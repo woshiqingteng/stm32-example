@@ -1,11 +1,12 @@
 # FreeRTOS application tree.
-# Default build type is debug (see tools/build.sh); each app has its own build tree.
+# Default build type is debug (see tool/build.sh); each app has its own build tree.
 
 set(FREERTOS_APP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Apps list SOURCES and (optionally) LIB components. The FreeRTOS kernel is
 # built by module/freertos; this helper supplies the app include path so the
-# kernel compiles against the app's FreeRTOSConfig.h.
+# kernel (and bsp, which uses the RTOS timing services) compiles against the
+# app's FreeRTOSConfig.h. The OS wiring itself lives in the bsp library.
 function(add_freertos_app name)
     cmake_parse_arguments(APP "" "" "SOURCES;LIB" ${ARGN})
 
@@ -22,8 +23,6 @@ function(add_freertos_app name)
     lib_resolve(_libs ${APP_LIB})
 
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${FREERTOS_APP_DIR})
-    target_compile_definitions(bsp PUBLIC USE_FREERTOS=1)
-    target_link_libraries(bsp PUBLIC freertos)
     target_link_libraries(${_target} PRIVATE bsp freertos ${_libs})
 
     mcu_generate(${_target} ${name})

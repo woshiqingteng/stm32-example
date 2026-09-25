@@ -9,7 +9,7 @@
 #   app/freertos/<name>  -> APP_TARGET=app_freertos_<name>
 #
 # usage:
-#   tools/build.sh [debug|release] <app|all|all-freertos> [<app> ...] [--flash]
+#   tool/build.sh [debug|release] <app|all|all-freertos> [<app> ...] [--flash]
 #
 #   all           -> every baremetal app
 #   all-freertos  -> every freertos app
