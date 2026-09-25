@@ -53,7 +53,7 @@ set(BSP_SRC
 add_library(bsp STATIC ${BSP_SRC})
 
 target_include_directories(bsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(bsp PUBLIC bsp_drv)
+target_link_libraries(bsp PUBLIC hal_all)
 
 # When the FreeRTOS module is enabled, the board layer uses the RTOS timing
 # services (delay/tick in delay.c). The OS selection is driven here, not by the
