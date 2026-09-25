@@ -173,7 +173,7 @@ target_link_libraries(bsp_all INTERFACE
 function(bsp_resolve out)
     set(_r bsp_core)
     foreach(_n ${ARGN})
-        if(_n STREQUAL "ALL")
+        if(_n STREQUAL "all")
             list(APPEND _r bsp_all)
         elseif(_n STREQUAL "core")
             # already included

@@ -39,21 +39,21 @@ set(LIB_ALL_TARGETS
 set(LIB_DIRS usmart malloc text picture audio mjpeg)
 foreach(_d ${LIB_DIRS})
     add_subdirectory(${_d})              # 加子目录
-    list(APPEND LIB_ALL_TARGETS lib_${_d})   # 同时进 ALL
+    list(APPEND LIB_ALL_TARGETS lib_${_d})   # 同时进 all
 endforeach()
 
 # lib_resolve() 在 app 目录调用，LIB_ALL_TARGETS 必须是全局可见的缓存变量。
 set(LIB_ALL_TARGETS ${LIB_ALL_TARGETS} CACHE INTERNAL "" FORCE)
 
 # ============================================================
-# 3. 解析函数：XXXX -> lib_xxxx；ALL -> 全部
+# 3. 解析函数：XXXX -> lib_xxxx；all -> 全部
 # ============================================================
 function(lib_resolve out)
-    # ALL 必须单独使用
-    if("ALL" IN_LIST ARGN)
+    # all 必须单独使用
+    if("all" IN_LIST ARGN)
         list(LENGTH ARGN _n)
         if(_n GREATER 1)
-            message(FATAL_ERROR "LIB: 'ALL' must be used alone")
+            message(FATAL_ERROR "LIB: 'all' must be used alone")
         endif()
         set(${out} ${LIB_ALL_TARGETS} PARENT_SCOPE)
         return()
