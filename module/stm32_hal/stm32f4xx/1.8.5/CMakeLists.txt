@@ -67,10 +67,6 @@ drv_library(drv_usb
     Src/${DRV_PREFIX}_hal_pcd_ex.c
     Src/${DRV_PREFIX}_hal_hcd.c
     Src/${DRV_PREFIX}_ll_usb.c)
-drv_library(drv_sd
-    Src/${DRV_PREFIX}_hal_sd.c
-    Src/${DRV_PREFIX}_hal_mmc.c
-    Src/${DRV_PREFIX}_ll_sdmmc.c)
 drv_library(drv_dcmi
     Src/${DRV_PREFIX}_hal_dcmi.c
     Src/${DRV_PREFIX}_hal_dcmi_ex.c)
@@ -101,6 +97,10 @@ drv_library(drv_fmc
     Src/${DRV_PREFIX}_hal_nand.c
     Src/${DRV_PREFIX}_hal_nor.c
     Src/${DRV_PREFIX}_hal_pccard.c)
+drv_library(drv_sd
+    Src/${DRV_PREFIX}_hal_sd.c
+    Src/${DRV_PREFIX}_hal_mmc.c
+    Src/${DRV_PREFIX}_ll_sdmmc.c)
 
 # display
 drv_library(drv_dma2d
@@ -124,8 +124,8 @@ target_link_libraries(drv_all INTERFACE
     drv_core
     drv_tim drv_rtc drv_iwdg drv_wwdg
     drv_uart drv_usart drv_i2c drv_spi drv_i2s drv_can drv_eth
-    drv_usb drv_sd drv_dcmi drv_sai
+    drv_usb drv_dcmi drv_sai
     drv_adc drv_dac
-    drv_flash drv_fmc
+    drv_flash drv_fmc drv_sd
     drv_dma2d drv_ltdc
     drv_crc drv_rng)
