@@ -1,118 +1,166 @@
-function(bsp_leaf name)
+function(bsp_library name)
     add_library(${name} STATIC EXCLUDE_FROM_ALL ${ARGN})
     target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(${name} PUBLIC drv_core)
 endfunction()
 
 # core
-bsp_leaf(bsp_init  bsp.c)
-bsp_leaf(bsp_sys   sys.c)
-bsp_leaf(bsp_delay delay.c)
-bsp_leaf(bsp_led   led.c)
-bsp_leaf(bsp_key   key.c)
-bsp_leaf(bsp_usart usart.c)
-target_link_libraries(bsp_usart PUBLIC drv_uart)
-target_link_libraries(bsp_init PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
-if(MODULE_FREERTOS_ENABLE)
+bsp_library(bsp_sys
+    sys.c)
+bsp_library(bsp_delay
+    delay.c)
+if(OS STREQUAL "freertos")
     target_compile_definitions(bsp_delay PUBLIC USE_FREERTOS=1)
     target_link_libraries(bsp_delay PUBLIC freertos)
 endif()
+bsp_library(bsp_led
+    led.c)
+bsp_library(bsp_key
+    key.c)
+bsp_library(bsp_usart
+    usart.c)
+target_link_libraries(bsp_usart PUBLIC drv_uart)
+bsp_library(bsp_init
+    bsp.c)
+target_link_libraries(bsp_init PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
+
+# Aggregate of the always-linked core leaves (INTERFACE): unlike drv_core,
+# which is a real library, this only groups the targets every app links.
 add_library(bsp_core INTERFACE)
 target_link_libraries(bsp_core INTERFACE
     bsp_init bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
 
 # time
-bsp_leaf(bsp_btim btim.c)
-bsp_leaf(bsp_gtim gtim.c timer.c)
-bsp_leaf(bsp_atim atim.c)
-bsp_leaf(bsp_ir   ir.c)
-bsp_leaf(bsp_rtc  rtc.c)
-bsp_leaf(bsp_wdg  wdg.c)
+bsp_library(bsp_btim
+    btim.c)
 target_link_libraries(bsp_btim PUBLIC drv_tim)
+bsp_library(bsp_gtim
+    gtim.c
+    timer.c)
 target_link_libraries(bsp_gtim PUBLIC drv_tim)
+bsp_library(bsp_atim
+    atim.c)
 target_link_libraries(bsp_atim PUBLIC drv_tim)
-target_link_libraries(bsp_ir   PUBLIC drv_tim)
-target_link_libraries(bsp_rtc  PUBLIC drv_rtc)
-target_link_libraries(bsp_wdg  PUBLIC drv_iwdg drv_wwdg)
+bsp_library(bsp_ir
+    ir.c)
+target_link_libraries(bsp_ir PUBLIC drv_tim)
+bsp_library(bsp_rtc
+    rtc.c)
+target_link_libraries(bsp_rtc PUBLIC drv_rtc)
+bsp_library(bsp_wdg
+    wdg.c)
+target_link_libraries(bsp_wdg PUBLIC drv_iwdg drv_wwdg)
 
-# comm_basic
-bsp_leaf(bsp_i2c     i2c.c)
-bsp_leaf(bsp_spi     spi.c)
-bsp_leaf(bsp_pcf8574 pcf8574.c)
-bsp_leaf(bsp_24cxx   24cxx.c)
-target_link_libraries(bsp_spi     PUBLIC drv_spi)
+# comm
+bsp_library(bsp_i2c
+    i2c.c)
+bsp_library(bsp_spi
+    spi.c)
+target_link_libraries(bsp_spi PUBLIC drv_spi)
+bsp_library(bsp_pcf8574
+    pcf8574.c)
 target_link_libraries(bsp_pcf8574 PUBLIC bsp_i2c)
-target_link_libraries(bsp_24cxx   PUBLIC bsp_i2c)
-
-# comm_can/comm_dcmi/comm_audio/comm_misc
-bsp_leaf(bsp_can     can.c)
-bsp_leaf(bsp_dcmi    dcmi.c)
-bsp_leaf(bsp_ov5640  ov5640.c)
-bsp_leaf(bsp_es8388  es8388.c)
-bsp_leaf(bsp_sai     sai.c)
-bsp_leaf(bsp_rs485   rs485.c)
-bsp_leaf(bsp_nrf24l01 nrf24l01.c)
-target_link_libraries(bsp_can       PUBLIC drv_can)
-target_link_libraries(bsp_dcmi      PUBLIC drv_dcmi)
-target_link_libraries(bsp_ov5640    PUBLIC bsp_pcf8574)
-target_link_libraries(bsp_es8388    PUBLIC bsp_i2c)
-target_link_libraries(bsp_sai       PUBLIC drv_sai)
-target_link_libraries(bsp_rs485     PUBLIC bsp_pcf8574 drv_uart)
-target_link_libraries(bsp_nrf24l01  PUBLIC bsp_spi)
+bsp_library(bsp_24cxx
+    24cxx.c)
+target_link_libraries(bsp_24cxx PUBLIC bsp_i2c)
+bsp_library(bsp_can
+    can.c)
+target_link_libraries(bsp_can PUBLIC drv_can)
+bsp_library(bsp_dcmi
+    dcmi.c)
+target_link_libraries(bsp_dcmi PUBLIC drv_dcmi)
+bsp_library(bsp_ov5640
+    ov5640.c)
+target_link_libraries(bsp_ov5640 PUBLIC bsp_pcf8574)
+bsp_library(bsp_es8388
+    es8388.c)
+target_link_libraries(bsp_es8388 PUBLIC bsp_i2c)
+bsp_library(bsp_sai
+    sai.c)
+target_link_libraries(bsp_sai PUBLIC drv_sai)
+bsp_library(bsp_rs485
+    rs485.c)
+target_link_libraries(bsp_rs485 PUBLIC bsp_pcf8574 drv_uart)
+bsp_library(bsp_nrf24l01
+    nrf24l01.c)
+target_link_libraries(bsp_nrf24l01 PUBLIC bsp_spi)
 
 # analog
-bsp_leaf(bsp_adc    adc.c)
-bsp_leaf(bsp_dac    dac.c)
-bsp_leaf(bsp_pwmdac pwmdac.c)
-target_link_libraries(bsp_adc    PUBLIC drv_adc)
-target_link_libraries(bsp_dac    PUBLIC drv_dac drv_tim)
+bsp_library(bsp_adc
+    adc.c)
+target_link_libraries(bsp_adc PUBLIC drv_adc)
+bsp_library(bsp_dac
+    dac.c)
+target_link_libraries(bsp_dac PUBLIC drv_dac drv_tim)
+bsp_library(bsp_pwmdac
+    pwmdac.c)
 target_link_libraries(bsp_pwmdac PUBLIC bsp_dac drv_tim)
 
 # memory
-bsp_leaf(bsp_stmflash stmflash.c)
-bsp_leaf(bsp_sram     sram.c)
-bsp_leaf(bsp_sdram    sdram.c)
-bsp_leaf(bsp_nand     nand.c)
-bsp_leaf(bsp_norflash norflash.c)
-bsp_leaf(bsp_sdio     sdio.c)
+bsp_library(bsp_stmflash
+    stmflash.c)
 target_link_libraries(bsp_stmflash PUBLIC drv_flash)
-target_link_libraries(bsp_sram     PUBLIC drv_fmc)
-target_link_libraries(bsp_sdram    PUBLIC drv_fmc)
-target_link_libraries(bsp_nand     PUBLIC drv_fmc)
+bsp_library(bsp_sram
+    sram.c)
+target_link_libraries(bsp_sram PUBLIC drv_fmc)
+bsp_library(bsp_sdram
+    sdram.c)
+target_link_libraries(bsp_sdram PUBLIC drv_fmc)
+bsp_library(bsp_nand
+    nand.c)
+target_link_libraries(bsp_nand PUBLIC drv_fmc)
+bsp_library(bsp_norflash
+    norflash.c)
 target_link_libraries(bsp_norflash PUBLIC bsp_spi)
-target_link_libraries(bsp_sdio     PUBLIC drv_sd)
+bsp_library(bsp_sdio
+    sdio.c)
+target_link_libraries(bsp_sdio PUBLIC drv_sd)
 
 # display
-bsp_leaf(bsp_ltdc  ltdc.c)
-bsp_leaf(bsp_lcd   lcd.c)
-bsp_leaf(bsp_oled  oled.c)
-bsp_leaf(bsp_touch touch.c)
-bsp_leaf(bsp_tpad  tpad.c)
+bsp_library(bsp_ltdc
+    ltdc.c)
 target_link_libraries(bsp_ltdc PUBLIC drv_ltdc drv_dma2d)
-target_link_libraries(bsp_lcd  PUBLIC bsp_ltdc)
+bsp_library(bsp_lcd
+    lcd.c)
+target_link_libraries(bsp_lcd PUBLIC bsp_ltdc)
+bsp_library(bsp_oled
+    oled.c)
+bsp_library(bsp_touch
+    touch.c)
+bsp_library(bsp_tpad
+    tpad.c)
 target_link_libraries(bsp_tpad PUBLIC drv_tim)
 
 # crypto
-bsp_leaf(bsp_rng rng.c)
+bsp_library(bsp_rng
+    rng.c)
 target_link_libraries(bsp_rng PUBLIC drv_rng)
 
 # sensor
-bsp_leaf(bsp_ap3216c  ap3216c.c)
-bsp_leaf(bsp_qmi8658a qmi8658a.c)
-bsp_leaf(bsp_spa06    spa06.c)
-bsp_leaf(bsp_ds18b20  ds18b20.c)
-bsp_leaf(bsp_dht11    dht11.c)
-target_link_libraries(bsp_ap3216c  PUBLIC bsp_i2c)
+bsp_library(bsp_ap3216c
+    ap3216c.c)
+target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
+bsp_library(bsp_qmi8658a
+    qmi8658a.c)
 target_link_libraries(bsp_qmi8658a PUBLIC bsp_i2c)
-target_link_libraries(bsp_spa06    PUBLIC bsp_i2c)
+bsp_library(bsp_spa06
+    spa06.c)
+target_link_libraries(bsp_spa06 PUBLIC bsp_i2c)
+bsp_library(bsp_ds18b20
+    ds18b20.c)
+bsp_library(bsp_dht11
+    dht11.c)
 
 # misc
-bsp_leaf(bsp_exti exti.c)
-bsp_leaf(bsp_pwr  pwr.c)
-bsp_leaf(bsp_iap  iap.c)
+bsp_library(bsp_exti
+    exti.c)
 target_link_libraries(bsp_exti PUBLIC bsp_key)
-target_link_libraries(bsp_pwr  PUBLIC bsp_exti)
-target_link_libraries(bsp_iap  PUBLIC bsp_usart drv_flash)
+bsp_library(bsp_pwr
+    pwr.c)
+target_link_libraries(bsp_pwr PUBLIC bsp_exti)
+bsp_library(bsp_iap
+    iap.c)
+target_link_libraries(bsp_iap PUBLIC bsp_usart drv_flash)
 
 # all
 add_library(bsp_all INTERFACE)
