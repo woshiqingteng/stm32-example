@@ -5,6 +5,6 @@ if(OS STREQUAL "freertos")
     add_subdirectory(freertos)
 endif()
 
-foreach(dir cmsis_dsp fatfs libjpeg tjpgd usb_device usb_host)
+foreach(dir cmsis_dsp fatfs ijg_libjpeg tjpgd usb_device usb_host)
     add_subdirectory(${dir})
 endforeach()
