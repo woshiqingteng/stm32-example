@@ -140,10 +140,9 @@ void rgblcd_dcmi_rx_callback(void)
         pbuf = (uint16_t *)g_dcmi_line_buf[1];
     }
 
-    lcd_color_fill(0U, g_curline, (uint16_t)(lcd_get_width() - 1U), g_curline, pbuf);
-
     if (g_curline < lcd_get_height())
     {
+        lcd_color_fill(0U, g_curline, (uint16_t)(lcd_get_width() - 1U), g_curline, pbuf);
         g_curline++;
     }
 }
@@ -327,7 +326,7 @@ static void rgb565_test(void)
 
     dcmi_init();
     dcmi_rx_callback    = rgblcd_dcmi_rx_callback;
-    dcmi_frame_callback = 0;
+    dcmi_frame_callback = jpeg_data_process;
     dcmi_dma_init((uint32_t)g_dcmi_line_buf[0], (uint32_t)g_dcmi_line_buf[1],
                   (uint16_t)(lcd_get_width() / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 
