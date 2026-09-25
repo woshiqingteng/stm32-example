@@ -4,5 +4,6 @@
 add_baremetal_app(44_picture
     SOURCES main.c
     LIB     MALLOC TEXT PICTURE
+    BSP     lcd sdio sdram
 )
 

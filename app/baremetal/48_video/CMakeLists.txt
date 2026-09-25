@@ -4,5 +4,6 @@
 add_baremetal_app(48_video
     SOURCES main.c
     LIB     MALLOC TEXT MJPEG
+    BSP     lcd sdio sdram
 )
 

@@ -4,11 +4,25 @@
 add_library(lib_fatfs INTERFACE)
 target_link_libraries(lib_fatfs INTERFACE fatfs_core fatfs_port)
 
-add_library(lib_usb_device INTERFACE)
-target_link_libraries(lib_usb_device INTERFACE usb_device usb_port)
+add_library(lib_usb_device_cdc INTERFACE)
+target_link_libraries(lib_usb_device_cdc INTERFACE
+    usb_device usb_device_common_port usb_device_cdc_port)
 
-add_library(lib_usb_host INTERFACE)
-target_link_libraries(lib_usb_host INTERFACE usb_host usb_port)
+add_library(lib_usb_device_audio INTERFACE)
+target_link_libraries(lib_usb_device_audio INTERFACE
+    usb_device usb_device_common_port usb_device_audio_port)
+
+add_library(lib_usb_device_msc INTERFACE)
+target_link_libraries(lib_usb_device_msc INTERFACE
+    usb_device usb_device_common_port usb_device_msc_port)
+
+add_library(lib_usb_host_hid INTERFACE)
+target_link_libraries(lib_usb_host_hid INTERFACE
+    usb_host usb_host_common_port)
+
+add_library(lib_usb_host_msc INTERFACE)
+target_link_libraries(lib_usb_host_msc INTERFACE
+    usb_host usb_host_common_port usb_host_msc_port)
 
 add_library(lib_dsp INTERFACE)
 target_link_libraries(lib_dsp INTERFACE cmsis_dsp m)
@@ -16,7 +30,11 @@ target_link_libraries(lib_dsp INTERFACE cmsis_dsp m)
 # ============================================================
 # 2. 中间件库：目录名 = 目标名（去掉 lib_ 前缀），一份清单驱动两件事
 # ============================================================
-set(LIB_ALL_TARGETS lib_fatfs lib_usb_device lib_usb_host lib_dsp)
+set(LIB_ALL_TARGETS
+    lib_fatfs
+    lib_usb_device_cdc lib_usb_device_audio lib_usb_device_msc
+    lib_usb_host_hid lib_usb_host_msc
+    lib_dsp)
 
 set(LIB_DIRS usmart malloc text picture audio mjpeg)
 foreach(_d ${LIB_DIRS})

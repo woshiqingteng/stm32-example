@@ -3,5 +3,6 @@
 add_baremetal_app(43_text
     SOURCES main.c
     LIB     MALLOC TEXT FATFS
+    BSP     lcd sdio sdram
 )
 

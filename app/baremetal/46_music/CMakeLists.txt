@@ -3,5 +3,6 @@
 add_baremetal_app(46_music
     SOURCES main.c audioplay.c
     LIB     MALLOC AUDIO
+    BSP     sdio sdram
 )
 

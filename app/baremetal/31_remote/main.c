@@ -10,30 +10,30 @@
 #define KEY_SETTLE_DELAY_MS 100U
 #define POLL_DELAY_MS   10U
 
-static const char *remote_symbol(uint8_t key)
+static const char *ir_symbol(uint8_t key)
 {
     switch (key)
     {
-        case REMOTE_KEY_POWER:    return "POWER";
-        case REMOTE_KEY_UP:       return "UP";
-        case REMOTE_KEY_PLAY:     return "PLAY";
-        case REMOTE_KEY_ALIENTEK: return "ALIENTEK";
-        case REMOTE_KEY_RIGHT:    return "RIGHT";
-        case REMOTE_KEY_LEFT:     return "LEFT";
-        case REMOTE_KEY_VOL_DOWN: return "VOL-";
-        case REMOTE_KEY_DOWN:     return "DOWN";
-        case REMOTE_KEY_VOL_UP:   return "VOL+";
-        case REMOTE_KEY_1:        return "1";
-        case REMOTE_KEY_2:        return "2";
-        case REMOTE_KEY_3:        return "3";
-        case REMOTE_KEY_4:        return "4";
-        case REMOTE_KEY_5:        return "5";
-        case REMOTE_KEY_6:        return "6";
-        case REMOTE_KEY_7:        return "7";
-        case REMOTE_KEY_8:        return "8";
-        case REMOTE_KEY_9:        return "9";
-        case REMOTE_KEY_0:        return "0";
-        case REMOTE_KEY_DELETE:   return "DELETE";
+        case IR_KEY_POWER:    return "POWER";
+        case IR_KEY_UP:       return "UP";
+        case IR_KEY_PLAY:     return "PLAY";
+        case IR_KEY_ALIENTEK: return "ALIENTEK";
+        case IR_KEY_RIGHT:    return "RIGHT";
+        case IR_KEY_LEFT:     return "LEFT";
+        case IR_KEY_VOL_DOWN: return "VOL-";
+        case IR_KEY_DOWN:     return "DOWN";
+        case IR_KEY_VOL_UP:   return "VOL+";
+        case IR_KEY_1:        return "1";
+        case IR_KEY_2:        return "2";
+        case IR_KEY_3:        return "3";
+        case IR_KEY_4:        return "4";
+        case IR_KEY_5:        return "5";
+        case IR_KEY_6:        return "6";
+        case IR_KEY_7:        return "7";
+        case IR_KEY_8:        return "8";
+        case IR_KEY_9:        return "9";
+        case IR_KEY_0:        return "0";
+        case IR_KEY_DELETE:   return "DELETE";
         default:                  return "UNKNOWN";
     }
 }
@@ -45,17 +45,17 @@ int main(void)
     char    line[48];
 
     bsp_init();
-    remote_init();
+    ir_init();
 
     printf("31_remote ready\r\n");
 
     for (;;)
     {
-        key = remote_scan();
+        key = ir_scan();
 
         if (key != 0U)
         {
-            sprintf(line, "KEY: %u CNT: %u SYM: %s", key, remote_repeat_count(), remote_symbol(key));
+            sprintf(line, "KEY: %u CNT: %u SYM: %s", key, ir_repeat_count(), ir_symbol(key));
             printf("%s\r\n", line);
 
             delay_ms(KEY_SETTLE_DELAY_MS);

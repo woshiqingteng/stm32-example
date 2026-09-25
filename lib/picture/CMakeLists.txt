@@ -10,4 +10,5 @@ add_library(lib_picture STATIC EXCLUDE_FROM_ALL ${PICTURE_SRC})
 
 target_include_directories(lib_picture PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lib_picture PUBLIC
-    bsp lib_text libjpeg tjpgd lib_malloc fatfs_core fatfs_port)
+    bsp_lcd
+    lib_text libjpeg tjpgd lib_malloc fatfs_core fatfs_port)

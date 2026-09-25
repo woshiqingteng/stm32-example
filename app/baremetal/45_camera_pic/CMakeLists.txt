@@ -4,5 +4,6 @@
 add_baremetal_app(45_camera_pic
     SOURCES main.c
     LIB     MALLOC TEXT PICTURE
+    BSP     dcmi lcd ov5640 pcf8574 sdio sdram gtim
 )
 

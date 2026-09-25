@@ -39,7 +39,7 @@
 #include "norflash.h"
 #include "rs485.h"
 #include "can.h"
-#include "remote.h"
+#include "ir.h"
 #include "ds18b20.h"
 #include "dht11.h"
 #include "nrf24l01.h"

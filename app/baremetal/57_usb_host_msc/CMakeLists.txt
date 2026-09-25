@@ -3,7 +3,7 @@
 # the board USB port (HCD + conf) and the FatFs core/port.
 add_baremetal_app(57_usb_host_msc
     SOURCES main.c
-    LIB     FATFS USB_HOST
+    LIB     FATFS USB_HOST_MSC
 )
 
 # Route FatFs drive 2 to the USB MSC glue (port/common/usb/usbh_diskio.c).
