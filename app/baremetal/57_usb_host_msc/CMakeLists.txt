@@ -6,6 +6,6 @@ add_baremetal_app(57_usb_host_msc
     LIB     FATFS USB_HOST
 )
 
-# Route FatFs drive 2 to the USB MSC glue in port/usb_port/usbh_diskio.c.
+# Route FatFs drive 2 to the USB MSC glue (port/common/usb/usbh_diskio.c).
+# The include path is owned by the port layer.
 target_compile_definitions(fatfs_port PRIVATE FATFS_USB_MSC=1)
-target_include_directories(fatfs_port PRIVATE ${CMAKE_SOURCE_DIR}/port/usb_port)

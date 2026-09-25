@@ -4,7 +4,7 @@
  *          Drive 0 maps to the SD card (SDIO), drive 1 maps to the on-board SPI
  *          NOR flash (W25Qxx) and, when FATFS_USB_MSC is defined by the
  *          application, drive 2 maps to a USB mass storage device enumerated by
- *          the USB host stack (usb_port/usbh_diskio.c). The NAND drive is not
+ *          the USB host stack (port/common/usb/usbh_diskio.c). The NAND drive is not
  *          wired here because the raw NAND needs the vendor FTL for the
  *          erase-before-write mapping.
  */

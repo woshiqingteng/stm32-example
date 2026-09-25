@@ -2,7 +2,7 @@
  * @file    usbh_diskio.c
  * @brief   FatFs physical drive glue for a USB mass storage device. The FatFs
  *          layer is told to route one logical drive here (see the USB MSC
- *          mapping in port/fatfs_port/diskio.c).
+ *          mapping in port/openedv_stm32f4/fatfs/diskio.c).
  */
 
 #include "usbh_diskio.h"
