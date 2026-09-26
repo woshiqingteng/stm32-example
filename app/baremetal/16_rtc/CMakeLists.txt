@@ -1,4 +1,4 @@
 add_baremetal_app(16_rtc
-    SOURCE main.c
+    SOURCE  main.c
     BSP     rtc
 )

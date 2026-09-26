@@ -22,6 +22,10 @@ function(mcu_generate target base)
                     $<TARGET_FILE:${target}>
                     $<TARGET_FILE_DIR:${target}>/${base}.hex
             COMMENT "Generating ${base}.hex")
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_OBJDUMP} -h -S $<TARGET_FILE:${target}>
+                    > $<TARGET_FILE_DIR:${target}>/${base}.lst
+            COMMENT "Generating ${base}.lst")
     endif()
 endfunction()
 

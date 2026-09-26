@@ -1,4 +1,4 @@
-if(MCU_ARCH MATCHES "^cortex-m")
+if(MCU_ARCH MATCHES "^cortex")
     add_subdirectory(cmsis_core)
 else()
     message(FATAL_ERROR "Unsupported MCU arch: ${MCU_ARCH}")

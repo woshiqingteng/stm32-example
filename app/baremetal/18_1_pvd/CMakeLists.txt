@@ -1,4 +1,4 @@
 add_baremetal_app(18_1_pvd
-    SOURCE main.c
+    SOURCE  main.c
     BSP     pwr
 )

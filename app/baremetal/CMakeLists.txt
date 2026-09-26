@@ -16,8 +16,8 @@ function(add_baremetal_app name)
     lib_resolve(_libs ${APP_LIB})
     bsp_resolve(_bsp ${APP_BSP})
     message(STATUS "[${name}] SOURCE = ${APP_SOURCE}")
-    message(STATUS "[${name}] BSP     = ${APP_BSP}")
-    message(STATUS "[${name}] LIB     = ${APP_LIB}")
+    message(STATUS "[${name}] BSP    = ${APP_BSP}")
+    message(STATUS "[${name}] LIB    = ${APP_LIB}")
 
     # link
     target_link_libraries(${_target} PRIVATE ${_bsp} ${_libs})
@@ -28,3 +28,4 @@ function(add_baremetal_app name)
 endfunction()
 
 add_subdirectory(${APP_NAME})
+

@@ -1,5 +1,5 @@
 add_baremetal_app(54_usb_device_msc
-    SOURCE main.c
+    SOURCE  main.c
     BSP     sdio
     LIB     stm32_usb_device_msc
 )

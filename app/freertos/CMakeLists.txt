@@ -16,8 +16,8 @@ function(add_freertos_app name)
     lib_resolve(_libs ${APP_LIB})
     bsp_resolve(_bsp ${APP_BSP})
     message(STATUS "[${name}] SOURCE = ${APP_SOURCE}")
-    message(STATUS "[${name}] BSP     = ${APP_BSP}")
-    message(STATUS "[${name}] LIB     = ${APP_LIB}")
+    message(STATUS "[${name}] BSP    = ${APP_BSP}")
+    message(STATUS "[${name}] LIB    = ${APP_LIB}")
 
     # link
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

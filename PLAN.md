@@ -347,3 +347,16 @@ verify.md：D1 45→46；F1/F3/F4；F5 改；M3 改。PLAN.md 进度。
 
 ## 3. 进度追踪
 - [x] 写 PLAN 章节 [x] 导出 1.18.0 子集 + CMake [x] 版本指针 + 删 1.17.1 [x] 全量回归 73/73
+
+---
+
+# 对齐目标结构（A/B/C/E；D 不改名）
+
+- A：flow.cmake 增加 .lst。
+- B：platform/arch 用 "^cortex"。
+- C：cmsis_core/6.3.0 增加 profile/core 校验。
+- D：保持 stm32_usb_host 目录名（不改 _port）。
+- E：72 app SOURCE 后 2 空格；BSP/LIB 消息对齐列 4；app/baremetal/CMakeLists 末尾补空行。
+
+## 进度
+- [x] 写 PLAN 章节 [x] A [x] B [x] C [x] E [x] 全量回归 73/73

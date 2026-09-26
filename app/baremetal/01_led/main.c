@@ -12,7 +12,7 @@ int main(void)
 {
     bsp_init();
 
-    printf("01_led: STM32F429IGTx, HCLK = %lu Hz\r\n", (unsigned long)sys_clk_get_hz());
+    printf("01_led");
 
     for (;;)
     {
