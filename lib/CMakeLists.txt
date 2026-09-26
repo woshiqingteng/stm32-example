@@ -1,37 +1,48 @@
 # wrapper
-add_library(lib_fatfs INTERFACE)
-target_link_libraries(lib_fatfs INTERFACE fatfs_core fatfs_port)
-add_library(lib_fatfs_stm32_usb_msc INTERFACE)
-target_link_libraries(lib_fatfs_stm32_usb_msc INTERFACE fatfs_core fatfs_stm32_usb_msc_port)
-add_library(lib_stm32_usb_device_cdc INTERFACE)
-target_link_libraries(lib_stm32_usb_device_cdc INTERFACE
+set(LIB_ALL_TARGET "")
+
+function(lib_wrapper name)
+    add_library(${name} INTERFACE)
+    if(ARGN)
+        target_link_libraries(${name} INTERFACE ${ARGN})
+    endif()
+    set(_all ${LIB_ALL_TARGET})
+    list(APPEND _all ${name})
+    set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
+endfunction()
+
+lib_wrapper(lib_fatfs
+    fatfs_core fatfs_port)
+lib_wrapper(lib_fatfs_stm32_usb_msc
+    fatfs_core fatfs_stm32_usb_msc_port)
+lib_wrapper(lib_stm32_usb_device_cdc
     stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_cdc_port)
-add_library(lib_stm32_usb_device_audio INTERFACE)
-target_link_libraries(lib_stm32_usb_device_audio INTERFACE
+lib_wrapper(lib_stm32_usb_device_audio
     stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_audio_port)
-add_library(lib_stm32_usb_device_msc INTERFACE)
-target_link_libraries(lib_stm32_usb_device_msc INTERFACE
+lib_wrapper(lib_stm32_usb_device_msc
     stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_msc_port)
-add_library(lib_stm32_usb_host_hid INTERFACE)
-target_link_libraries(lib_stm32_usb_host_hid INTERFACE
+lib_wrapper(lib_stm32_usb_host_hid
     stm32_usb_host stm32_usb_host_conf_port)
-add_library(lib_stm32_usb_host_msc INTERFACE)
-target_link_libraries(lib_stm32_usb_host_msc INTERFACE
+lib_wrapper(lib_stm32_usb_host_msc
     stm32_usb_host stm32_usb_host_conf_port stm32_usb_host_msc_port)
-add_library(lib_dsp INTERFACE)
-target_link_libraries(lib_dsp INTERFACE cmsis_dsp)
+lib_wrapper(lib_dsp
+    cmsis_dsp)
 
 # lib all
-set(LIB_ALL_TARGET
-    lib_fatfs lib_fatfs_stm32_usb_msc
-    lib_stm32_usb_device_cdc lib_stm32_usb_device_audio lib_stm32_usb_device_msc
-    lib_stm32_usb_host_hid lib_stm32_usb_host_msc
-    lib_dsp)
-set(LIB_DIR usmart malloc text picture audio mjpeg)
-foreach(_d ${LIB_DIR})
-    add_subdirectory(${_d})
-    list(APPEND LIB_ALL_TARGET lib_${_d})
-endforeach()
+function(lib_dir name)
+    add_subdirectory(${name})
+    set(_all ${LIB_ALL_TARGET})
+    list(APPEND _all lib_${name})
+    set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
+endfunction()
+
+lib_dir(usmart)
+lib_dir(malloc)
+lib_dir(text)
+lib_dir(picture)
+lib_dir(audio)
+lib_dir(mjpeg)
+lib_dir(ftl)
 
 set(LIB_ALL_TARGET ${LIB_ALL_TARGET} CACHE INTERNAL "" FORCE)
 

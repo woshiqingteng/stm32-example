@@ -50,7 +50,7 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| D1 | 每驱动一叶子目标 | 46 个 | ✅ 46 |
+| D1 | 每驱动一叶子目标 | 45 个 | ✅ 45 |
 | D2 | `bsp_core` 常链 | STATIC = `bsp.c`（入口）+ 5 核心叶子 | ✅ (`bsp_core/sys/delay/led/key/usart`) |
 | D3 | `bsp_all` 聚合 | 存在 | ✅ |
 | D4 | `bsp_resolve` | 支持 `core`/叶子/`ALL`，未知报错 | ✅ |
@@ -78,7 +78,7 @@
 | F1 | 直连组件 | `lib_fatfs` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
 | F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg |
-| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 6/6 |
+| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 7/7 |
 
 ## G. app 声明
 
