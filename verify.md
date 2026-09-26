@@ -199,7 +199,7 @@
 
 | module | 版本 | 参考仓库 | 状态 |
 |---|---|---|---|
-| freertos | V11.3.1 | FreeRTOS-Kernel | ✅ 已更新（保留 11.1.0 目录） |
+| freertos | V11.3.1 | FreeRTOS-Kernel | ✅ 已更新（旧版已删除） |
 | stm32_usb_device | v2.11.6 | stm32-mw-usb-device | ✅ 已更新（旧版已删除） |
 | stm32_usb_host | v3.5.5 | stm32-mw-usb-host | ✅ 已更新（旧版已删除） |
 | stm32_hal/stm32f4xx | v1.8.5 | stm32f4xx-hal-driver | ✅ 已是最新 tag |
