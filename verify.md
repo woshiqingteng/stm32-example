@@ -77,7 +77,7 @@
 |---|---|---|---|
 | F1 | 直连组件 | `lib_fatfs` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
-| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg |
+| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl |
 | F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 7/7 |
 
 ## G. app 声明
