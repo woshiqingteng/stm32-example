@@ -218,3 +218,35 @@ system 段 + 空行 + local 段；删除冗余 bsp 头（保留 ltdc.h 与 lib/U
 
 ## 6. 进度追踪
 - [x] SG1 [x] SG2 [x] SG3 [x] SG4 [x] 全量回归 73/73
+
+---
+
+# Module 版本更新（参考 D:\work\git）
+
+## 0. 决策
+- 更新：freertos → V11.3.1；stm32_usb_device → v2.11.6；stm32_usb_host → v3.5.5。
+- 保持：stm32_hal/stm32f4xx = v1.8.5（当前=最新 tag）。
+- 不动：cmsis_dsp、fatfs、ijg_libjpeg、tjpgd（参考中更旧/缺失）。
+- 旧版本目录保留。
+
+## 1. 新增目录
+module/freertos/11.3.1/、module/stm32_usb_device/2.11.6/、module/stm32_usb_host/3.5.5/
+
+## 2. 导出（按参考 tag，裁剪所需）
+- FreeRTOS @V11.3.1：tasks/queue/list/timers/event_groups/stream_buffer.c、include/*.h、
+  portable/GCC/ARM_CM4F/{port.c,portmacro.h}、portable/MemMang/heap_4.c、LICENSE.md History.txt；
+  复用 config/FreeRTOSConfig_common.h。
+- USB device @v2.11.6：Core/{Inc,Src}、Class/{MSC,AUDIO,CDC,HID}/{Inc,Src}。
+- USB host @v3.5.5：Core/{Inc,Src}、Class/{MSC,HID}/{Inc,Src}。
+
+## 3. CMake
+各新目录移植旧 CMake 源列表；版本指针 11.1.0→11.3.1、2.11.4→2.11.6、3.5.3→3.5.5。
+
+## 4. 配置
+保留 FreeRTOSConfig_common.h；USB 接口预计不变，按编译错误修正。
+
+## 5. 验证
+逐模块构建 01_led / 54-56 / 57-58；全量 73/73；更新 verify.md。
+
+## 6. 进度追踪
+- [ ] 写 PLAN 章节 [ ] FreeRTOS 11.3.1 [ ] USB device 2.11.6 [ ] USB host 3.5.5 [ ] 全量回归 73/73
