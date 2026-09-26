@@ -1,5 +1,3 @@
-# ALIENTEK TEXT middleware: GBK text rendering over the RGB panel plus the
-# NOR-flash GBK font store.
 set(TEXT_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/text.c
     ${CMAKE_CURRENT_SOURCE_DIR}/fonts.c)

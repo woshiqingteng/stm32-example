@@ -1,5 +1,3 @@
-# ALIENTEK PICTURE middleware: BMP / JPEG / GIF viewer over the RGB panel.
-# JPEG decoding uses TJpgDec, JPEG encoding uses LibJPEG.
 set(PICTURE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/piclib.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bmp.c

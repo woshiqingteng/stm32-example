@@ -1,4 +1,3 @@
-# USMART serial shell.
 set(USMART_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/usmart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/usmart_str.c

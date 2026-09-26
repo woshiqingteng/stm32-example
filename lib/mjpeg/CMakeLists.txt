@@ -1,6 +1,3 @@
-# ALIENTEK MJPEG middleware: AVI (Motion JPEG + PCM) video player with
-# synchronised, self-contained ES8388 + SAI audio. JPEG frames decode through
-# LibJPEG.
 set(MJPEG_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/avi.c
