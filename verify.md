@@ -20,7 +20,7 @@
 | A2 | 顶层 add 顺序 | platform→module→bsp→port→lib→app | ✅ `31:platform 32:module 33:bsp 34:port 35:lib 36:app` |
 | A3 | platform 分层 | `arch/cmsis_core` + `soc/stm32/stm32f4xx`（扁平） | ✅ |
 | A4 | module 分层 | 每第三方模块含版本子目录 | ✅ `cmsis_dsp/fatfs/freertos/ijg_libjpeg/stm32_hal/tjpgd/stm32_usb_device/stm32_usb_host` |
-| A5 | port 分层 | `common/{fatfs,usb}` + `<BSP>/{fatfs,usb}` | ✅ |
+| A5 | port 分层 | `<BSP>/{fatfs,stm32_usb_device,stm32_usb_host}` | ✅ |
 | A6 | app 分层 | `baremetal/` + `freertos/` | ✅ |
 
 ## B. 依赖方向 / 层次规则
@@ -65,7 +65,7 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| E1 | FatFs 端口 | `fatfs_port`（+ 变体 `fatfs_usbmsc_port`）= common/fatfs + `<BSP>/fatfs` | ✅ |
+| E1 | FatFs 端口 | `fatfs_port`（+ 变体 `fatfs_usbmsc_port`）= `<BSP>/fatfs`（exfuns + diskio） | ✅ |
 | E2 | USB device 端口按类 | common + cdc + audio + msc | ✅ |
 | E3 | USB host 端口 | common + msc | ✅ |
 | E4 | port 不写 HAL（USB LL 例外） | 仅 `drv_usb` | ⚠ 见 B4 |

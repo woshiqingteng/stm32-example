@@ -5,7 +5,7 @@
  *          NOR flash (W25Qxx) and, when FATFS_USB_MSC is defined by the
  *          fatfs_usbmsc_port variant, drive 2 maps to a USB mass storage device
  *          enumerated by
- *          the USB host stack (port/common/stm32_usb_host/usbh_diskio.c). The NAND drive is not
+ *          the USB host stack (port/openedv_stm32f4/stm32_usb_host/usbh_diskio.c). The NAND drive is not
  *          wired here because the raw NAND needs the vendor FTL for the
  *          erase-before-write mapping.
  */
