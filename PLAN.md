@@ -108,7 +108,7 @@
   - S3 54_usb_device_msc 三 LUN（NOR/NAND/SD）
   - S4 53_iap 手控（WKUP 编程 / KEY1 运行）
   - S5 53_iap_app 保持 FLASH 镜像
-- [ ] P2-N1 `lib/imu` 融合 + ANO_TC
+- [x] P2-N1 `lib/imu` 融合 + ANO_TC
 - [ ] P2-D1..D7 显示项完成
 - [ ] P2-P1..P8 外设/交互项完成
 - [ ] 全量回归 73/73
@@ -121,7 +121,7 @@
 - [x] P0-1  [x] P0-2  [x] P0-3   (c7b518c)
 - [x] P1-1  [x] P1-2  [x] P1-3
 - [x] P2-S1 [x] P2-S2 [x] P2-S3 [x] P2-S4 [x] P2-S5
-- [ ] P2-N1
+- [x] P2-N1
 - [ ] P2-D1 [ ] P2-D2 [ ] P2-D3 [ ] P2-D4 [ ] P2-D5 [ ] P2-D6 [ ] P2-D7
 - [ ] P2-P1 [ ] P2-P2 [ ] P2-P3 [ ] P2-P4 [ ] P2-P5 [ ] P2-P6 [ ] P2-P7 [ ] P2-P8
 - [ ] P3 验证

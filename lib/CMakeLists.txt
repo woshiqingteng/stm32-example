@@ -36,7 +36,7 @@ function(lib_dir name)
     set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
 endfunction()
 
-foreach(_d usmart malloc text picture audio mjpeg ftl nand_storage)
+foreach(_d usmart malloc text picture audio mjpeg ftl nand_storage imu)
     lib_dir(${_d})
 endforeach()
 
