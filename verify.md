@@ -50,7 +50,7 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| D1 | 每驱动一叶子目标 | 45 个 | ✅ 45 |
+| D1 | 每驱动一叶子目标 | 46 个（+`bsp_ftl`） | ✅ 46 |
 | D2 | `bsp_core` 常链 | STATIC = `bsp.c`（入口）+ 5 核心叶子 | ✅ (`bsp_core/sys/delay/led/key/usart`) |
 | D3 | `bsp_all` 聚合 | 存在 | ✅ |
 | D4 | `bsp_resolve` | 支持 `core`/叶子/`ALL`，未知报错 | ✅ |
@@ -75,11 +75,11 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_nand_storage` / `lib_cam_jpeg` | ✅ |
+| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_fatfs_nand` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
-| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl/nand_storage/cam_jpeg |
-| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 9/9 |
-| F5 | NAND 分层 | port 不依赖 lib：port 留 weak 钩子，强实现在 `lib_nand_storage` | ✅ `diskio.c`/`usbd_storage_if.c` weak + object override |
+| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg |
+| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 6/6 |
+| F5 | NAND 分层 | FTL 在 BSP（`bsp_ftl`），port 直接调用；无 weak 钩子 | ✅ `diskio.c`/`usbd_storage_if.c` 直连 `ftl_*`；NAND 盘为 `FATFS_NAND` 端口变体 |
 
 ## G. app 声明
 
@@ -156,7 +156,7 @@
 |---|---|---|---|
 | M1 | 打包位状态消除 | wavplay/recorder/usbd_storage/usbd_cdc/ir/38/45 改显式状态枚举 | ✅ 无位掩码状态 |
 | M2 | USB 设备状态 | `usbd_dev_state_t` 替代 bool；54/55/56 同步 | ✅ |
-| M3 | 相机 JPEG 复用 | 38/45 共用 `lib_cam_jpeg` | ✅ 抽公共 helper |
+| M3 | 相机 JPEG 采集 | 引擎并入 `bsp_dcmi`（`dcmi_jpeg_*`） | ✅ 38/45 共用 |
 | M4 | 忙等超时 | `wavplay` 半缓冲等待有界 | ✅ `AUDIO_WAIT_TIMEOUT_MS` |
 | M5 | FTL 格式 | 项目头注释、TAB→空格、去冗余/中文注释 | ✅ |
 | M6 | 魔法数具名 | `RTC_WAKEUP_1HZ`、`CAM_OUTSIZE_OFFSET_X` | ✅ |
