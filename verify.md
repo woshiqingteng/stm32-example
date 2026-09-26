@@ -206,3 +206,12 @@
 | cmsis_dsp / fatfs / ijg_libjpeg / tjpgd | 1.17.1 / r0.16 / 10 / r0.03 | （参考中更旧/缺失） | ⏸ 不动 |
 
 - 验证：`01_led`（freertos）、`54/55/56`（usb device）、`57/58`（usb host）逐项构建；全量回归 **73/73**。
+
+## O. cmsis_core 版本（参考 `D:\work\git\CMSIS_6`）
+
+| 项 | 版本 | 来源 | 状态 |
+|---|---|---|---|
+| `platform/arch/cmsis_core` | 6.1.0 → **6.3.0** | CMSIS_6 main HEAD（Core(M) 6.3.0） | ✅ 已更新（旧版已删除） |
+
+- 变更：`cmsis_version.h` 6.1.0→6.3.0，另 3 个 M/R 头微调与 1 处文件名更正；`core_cm4.h/cmsis_gcc.h/cmsis_compiler.h` 不变。
+- 验证：`01_led`/`50_2_dsp_fft`/`54`/`57` 逐项构建；全量回归 **73/73**。

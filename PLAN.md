@@ -250,3 +250,28 @@ module/freertos/11.3.1/、module/stm32_usb_device/2.11.6/、module/stm32_usb_hos
 
 ## 6. 进度追踪
 - [x] 写 PLAN 章节 [x] FreeRTOS 11.3.1 [x] USB device 2.11.6 [x] USB host 3.5.5 [x] 全量回归 73/73
+
+---
+
+# cmsis_core 更新（参考 D:\work\git\CMSIS_6）
+
+## 0. 决策
+- 目标：CMSIS_6 main HEAD（Cortex-M 头版本 cmsis_version.h = 6.3.0）。
+- 新目录：platform/arch/cmsis_core/6.3.0/；删除旧 6.1.0/。
+- 完整复制 CMSIS/Core/Include（64 文件）。
+
+## 1. 导出
+- git -C D:/work/git/CMSIS_6 archive HEAD CMSIS/Core/Include | tar -x -C platform/arch/cmsis_core/6.3.0 --strip-components=2
+- 复制 6.1.0/CMakeLists.txt → 6.3.0/CMakeLists.txt；换行统一 LF。
+
+## 2. 版本指针
+PLATFORM_CMSIS_CORE_VERSION 6.1.0 → 6.3.0
+
+## 3. 删除旧版
+rm -rf platform/arch/cmsis_core/6.1.0
+
+## 4. 验证
+逐项 01_led / 50_2_dsp_fft / 54_usb_device_msc / 57_usb_host_msc；全量 73/73；更新 verify.md。
+
+## 5. 进度追踪
+- [x] 写 PLAN 章节 [x] 导出 6.3.0 [x] 版本指针+删 6.1.0 [x] 全量回归 73/73
