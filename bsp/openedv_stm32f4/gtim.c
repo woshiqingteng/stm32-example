@@ -1,10 +1,12 @@
 /**
  * @file    gtim.c
  * @brief   General timer driver: TIM3 update, TIM3_CH4 PWM, TIM5_CH1 capture,
- *          TIM2_CH1 external counter. MSP content is inlined; dispatch uses
- *          function pointers and an explicit capture state machine.
+ *          TIM2_CH1 external counter and the TIM14 1 Hz frame-rate counter.
+ *          MSP content is inlined; dispatch uses function pointers and an
+ *          explicit capture state machine.
  */
 
+#include <stdio.h>
 #include "stm32f4xx_hal.h"
 #include "gtim.h"
 #include "sys.h"
@@ -261,5 +263,70 @@ void TIM2_IRQHandler(void)
     {
         __HAL_TIM_CLEAR_FLAG(&g_gtim_cnt_handle, TIM_FLAG_UPDATE);
         g_gtim_cnt_overflows++;
+    }
+}
+
+/* ---- TIM14 1 Hz frame-rate timer ---- */
+#define GTIM_FRAME_TIMX                  TIM14
+#define GTIM_FRAME_TIMX_IRQN             TIM8_TRG_COM_TIM14_IRQn
+/* 90 MHz / (9000 * 10000) = 1 Hz. */
+#define GTIM_FRAME_PRESCALER             9000U
+#define GTIM_FRAME_PERIOD                10000U
+
+static TIM_HandleTypeDef g_gtim_frame_handle;
+
+static volatile uint32_t g_gtim_frame_count;
+static volatile uint32_t g_gtim_frame_total;
+static volatile uint32_t g_gtim_frame_rate;
+static volatile uint32_t g_gtim_frame_uptime;
+
+void gtim_frame_init(void)
+{
+    __HAL_RCC_TIM14_CLK_ENABLE();
+
+    HAL_NVIC_SetPriority(GTIM_FRAME_TIMX_IRQN, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_EnableIRQ(GTIM_FRAME_TIMX_IRQN);
+
+    g_gtim_frame_handle.Instance           = GTIM_FRAME_TIMX;
+    g_gtim_frame_handle.Init.Prescaler     = GTIM_FRAME_PRESCALER - 1U;
+    g_gtim_frame_handle.Init.CounterMode   = TIM_COUNTERMODE_UP;
+    g_gtim_frame_handle.Init.Period        = GTIM_FRAME_PERIOD - 1U;
+    g_gtim_frame_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    (void)HAL_TIM_Base_Init(&g_gtim_frame_handle);
+    (void)HAL_TIM_Base_Start_IT(&g_gtim_frame_handle);
+}
+
+void gtim_frame_inc(void)
+{
+    g_gtim_frame_count++;
+    g_gtim_frame_total++;
+}
+
+uint32_t gtim_frame_count(void)
+{
+    return g_gtim_frame_total;
+}
+
+uint32_t gtim_frame_rate(void)
+{
+    return g_gtim_frame_rate;
+}
+
+uint32_t gtim_frame_uptime(void)
+{
+    return g_gtim_frame_uptime;
+}
+
+void TIM8_TRG_COM_TIM14_IRQHandler(void)
+{
+    if (__HAL_TIM_GET_FLAG(&g_gtim_frame_handle, TIM_FLAG_UPDATE) != RESET)
+    {
+        __HAL_TIM_CLEAR_FLAG(&g_gtim_frame_handle, TIM_FLAG_UPDATE);
+
+        g_gtim_frame_rate = g_gtim_frame_count;
+        g_gtim_frame_count = 0U;
+        g_gtim_frame_uptime++;
+
+        printf("frame:%u\r\n", (unsigned int)g_gtim_frame_rate);
     }
 }

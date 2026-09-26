@@ -48,7 +48,6 @@
 #include "nand.h"
 #include "dcmi.h"
 #include "ov5640.h"
-#include "timer.h"
 #include "es8388.h"
 #include "sai.h"
 

@@ -29,8 +29,7 @@ bsp_library(bsp_btim
     btim.c)
 target_link_libraries(bsp_btim PUBLIC drv_tim)
 bsp_library(bsp_gtim
-    gtim.c
-    timer.c)
+    gtim.c)
 target_link_libraries(bsp_gtim PUBLIC drv_tim)
 bsp_library(bsp_atim
     atim.c)

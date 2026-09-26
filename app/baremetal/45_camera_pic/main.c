@@ -59,7 +59,7 @@ static void cam_line_cb(void)
 static void cam_frame_cb(void)
 {
     g_cam_curline = CAM_TOP;
-    timer_frame_inc();
+    gtim_frame_inc();
     led_toggle(LED1);
 }
 
@@ -205,7 +205,7 @@ int main(void)
     g_cam_curline = CAM_TOP;
     (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
 
-    timer_init();
+    gtim_frame_init();
     cam_status(0U, sd_ok);
     dcmi_start();
 
@@ -243,7 +243,7 @@ int main(void)
             /* no key */
         }
 
-        fps = timer_frame_rate();
+        fps = gtim_frame_rate();
 
         if (fps != last_fps)
         {
