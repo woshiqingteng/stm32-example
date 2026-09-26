@@ -1,13 +1,10 @@
 /**
  * @file    diskio.c
  * @brief   FatFs physical drive glue for the ALIENTEK F429 board.
- *          Drive 0 maps to the SD card (SDIO), drive 1 maps to the on-board SPI
- *          NOR flash (W25Qxx) and, when FATFS_USB_MSC is defined by the
- *          fatfs_stm32_usb_msc_port variant, drive 2 maps to a USB mass storage device
- *          enumerated by
- *          the USB host stack (port/openedv_stm32f4/stm32_usb_host/usbh_diskio.c). The NAND drive is not
- *          wired here because the raw NAND needs the vendor FTL for the
- *          erase-before-write mapping.
+ *          Drive 0 is the SD card (SDIO) and drive 1 the on-board SPI NOR flash
+ *          (W25Qxx). Drive 2 depends on the port variant: with FATFS_NAND it is
+ *          the NAND flash through the FTL (fatfs_nand_port); with FATFS_USB_MSC
+ *          it is a USB mass storage device (fatfs_stm32_usb_msc_port).
  */
 
 #include "ff.h"
@@ -21,24 +18,12 @@
 #ifdef FATFS_USB_MSC
 #include "usbh_diskio.h"
 #define USB_MSC     2   /* USB mass storage (logical drive "2:") */
-#else
-#define EX_NAND     2   /* NAND flash via the FTL (logical drive "2:") */
 #endif
 
-/*
- * Weak NAND hooks: the base port must not depend on the FTL (which lives in
- * the lib layer). Apps that expose the NAND drive link lib_nand_storage, whose
- * strong definitions override these stubs.
- */
-#ifndef FATFS_USB_MSC
-__attribute__((weak)) DSTATUS nand_disk_status(void)                 { return STA_NOINIT; }
-__attribute__((weak)) DSTATUS nand_disk_initialize(void)             { return STA_NOINIT; }
-__attribute__((weak)) DRESULT nand_disk_read(BYTE *buff, LBA_t sector, UINT count)
-{ (void)buff; (void)sector; (void)count; return RES_ERROR; }
-__attribute__((weak)) DRESULT nand_disk_write(const BYTE *buff, LBA_t sector, UINT count)
-{ (void)buff; (void)sector; (void)count; return RES_ERROR; }
-__attribute__((weak)) DRESULT nand_disk_ioctl(BYTE cmd, void *buff)
-{ (void)cmd; (void)buff; return RES_PARERR; }
+#ifdef FATFS_NAND
+#include "ftl.h"
+#include "nand.h"
+#define EX_NAND     2   /* NAND flash via the FTL (logical drive "2:") */
 #endif
 
 /* NOR flash region handed to FatFs: the first 25 MB of the 32 MB part. */
@@ -46,6 +31,10 @@ __attribute__((weak)) DRESULT nand_disk_ioctl(BYTE cmd, void *buff)
 #define NOR_FATFS_SECTOR_COUNT  (25U * 1024U * 2U)  /* 25 MB / 512 B */
 #define NOR_FATFS_BLOCK_SIZE    8U                  /* 8 sectors = one 4 KB erase block */
 #define NOR_FATFS_BASE    0U
+
+#ifdef FATFS_NAND
+#define NAND_SECTOR_SIZE        512U
+#endif
 
 DSTATUS disk_status(BYTE pdrv)
 {
@@ -59,10 +48,12 @@ DSTATUS disk_status(BYTE pdrv)
     {
         return USBH_status();
     }
-#else
+#endif
+
+#ifdef FATFS_NAND
     if (pdrv == EX_NAND)
     {
-        return nand_disk_status();
+        return 0;   /* NAND is always ready once the FTL initialises */
     }
 #endif
 
@@ -87,9 +78,11 @@ DSTATUS disk_initialize(BYTE pdrv)
         case USB_MSC:
             res = (uint8_t)USBH_initialize();
             break;
-#else
+#endif
+
+#ifdef FATFS_NAND
         case EX_NAND:
-            res = (nand_disk_initialize() == 0U) ? 0U : 1U;
+            res = (ftl_init() == 0U) ? 0U : 1U;
             break;
 #endif
 
@@ -129,9 +122,12 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 #ifdef FATFS_USB_MSC
         case USB_MSC:
             return USBH_read(buff, (DWORD)sector, count);
-#else
+#endif
+
+#ifdef FATFS_NAND
         case EX_NAND:
-            return nand_disk_read(buff, sector, count);
+            return (ftl_read_sectors(buff, (uint32_t)sector, NAND_SECTOR_SIZE, count) == 0U)
+                   ? RES_OK : RES_ERROR;
 #endif
 
         default:
@@ -170,9 +166,12 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 #ifdef FATFS_USB_MSC
         case USB_MSC:
             return USBH_write(buff, (DWORD)sector, count);
-#else
+#endif
+
+#ifdef FATFS_NAND
         case EX_NAND:
-            return nand_disk_write(buff, sector, count);
+            return (ftl_write_sectors((uint8_t *)buff, (uint32_t)sector, NAND_SECTOR_SIZE, count) == 0U)
+                   ? RES_OK : RES_ERROR;
 #endif
 
         default:
@@ -247,10 +246,37 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
     {
         res = USBH_ioctl(cmd, buff);
     }
-#else
+#endif
+#ifdef FATFS_NAND
     else if (pdrv == EX_NAND)
     {
-        res = nand_disk_ioctl(cmd, buff);
+        switch (cmd)
+        {
+            case CTRL_SYNC:
+                res = RES_OK;
+                break;
+
+            case GET_SECTOR_SIZE:
+                *(DWORD *)buff = NAND_SECTOR_SIZE;
+                res = RES_OK;
+                break;
+
+            case GET_BLOCK_SIZE:
+                *(DWORD *)buff = (DWORD)(nand_dev.page_mainsize / NAND_SECTOR_SIZE);
+                res = RES_OK;
+                break;
+
+            case GET_SECTOR_COUNT:
+                *(DWORD *)buff = (DWORD)((uint32_t)nand_dev.valid_blocknum *
+                                         nand_dev.block_pagenum *
+                                         nand_dev.page_mainsize / NAND_SECTOR_SIZE);
+                res = RES_OK;
+                break;
+
+            default:
+                res = RES_PARERR;
+                break;
+        }
     }
 #endif
     else

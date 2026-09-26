@@ -2,13 +2,13 @@
  * @file    usbd_storage_if.c
  * @brief   USB device Mass Storage class interface. Three logical units are
  *          exposed: SPI NOR flash, NAND flash (via the FTL) and the SD card.
- *          The NAND glue is a weak hook overridden by lib_nand_storage, so the
- *          port layer keeps no lib dependency.
  */
 
 #include "usbd_storage_if.h"
 #include "sdio.h"
 #include "nor.h"
+#include "ftl.h"
+#include "nand.h"
 
 #define STORAGE_LUN_NBR         3U
 #define STORAGE_BLK_SIZE        512U
@@ -22,15 +22,6 @@
 
 volatile usb_storage_activity_t g_usb_storage_activity = USB_STORAGE_ACTIVITY_IDLE;
 volatile usb_storage_error_t    g_usb_storage_error    = USB_STORAGE_ERROR_NONE;
-
-/* Weak NAND hooks: strong versions live in lib_nand_storage. */
-__attribute__((weak)) int8_t nand_storage_init(void)                    { return -1; }
-__attribute__((weak)) int8_t nand_storage_capacity(uint32_t *block_num, uint16_t *block_size)
-{ (void)block_num; (void)block_size; return -1; }
-__attribute__((weak)) int8_t nand_storage_read(uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)
-{ (void)buf; (void)blk_addr; (void)blk_len; return -1; }
-__attribute__((weak)) int8_t nand_storage_write(uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)
-{ (void)buf; (void)blk_addr; (void)blk_len; return -1; }
 
 /* Mass storage inquiry data, one 36 byte record per logical unit. */
 static const int8_t STORAGE_Inquirydata[] = {
@@ -84,7 +75,7 @@ static int8_t STORAGE_Init(uint8_t lun)
 
     if (lun == LUN_NAND)
     {
-        return nand_storage_init();
+        return (ftl_init() == 0U) ? 0 : -1;
     }
 
     return (sdio_init() == 0U) ? 0 : -1;
@@ -101,7 +92,11 @@ static int8_t STORAGE_GetCapacity(uint8_t lun, uint32_t *block_num, uint16_t *bl
 
     if (lun == LUN_NAND)
     {
-        return nand_storage_capacity(block_num, block_size);
+        *block_size = STORAGE_BLK_SIZE;
+        *block_num  = (uint32_t)nand_dev.valid_blocknum *
+                      nand_dev.block_pagenum *
+                      nand_dev.page_mainsize / STORAGE_BLK_SIZE;
+        return 0;
     }
 
     {
@@ -149,7 +144,7 @@ static int8_t STORAGE_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_
 
     if (lun == LUN_NAND)
     {
-        res = nand_storage_read(buf, blk_addr, blk_len);
+        res = (ftl_read_sectors(buf, blk_addr, STORAGE_BLK_SIZE, blk_len) == 0U) ? 0 : -1;
     }
     else
     {
@@ -186,7 +181,7 @@ static int8_t STORAGE_Write(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16
 
     if (lun == LUN_NAND)
     {
-        res = nand_storage_write(buf, blk_addr, blk_len);
+        res = (ftl_write_sectors(buf, blk_addr, STORAGE_BLK_SIZE, blk_len) == 0U) ? 0 : -1;
     }
     else
     {

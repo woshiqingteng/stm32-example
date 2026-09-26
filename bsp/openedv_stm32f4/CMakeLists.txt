@@ -85,6 +85,9 @@ target_link_libraries(bsp_sdram PUBLIC drv_fmc)
 bsp_library(bsp_nand
     nand.c)
 target_link_libraries(bsp_nand PUBLIC drv_fmc)
+bsp_library(bsp_ftl
+    ftl.c)
+target_link_libraries(bsp_ftl PUBLIC bsp_nand)
 bsp_library(bsp_nor
     nor.c)
 target_link_libraries(bsp_nor PUBLIC bsp_spi)
@@ -164,7 +167,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_i2c bsp_spi bsp_io_expand
     bsp_can bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
-    bsp_internal_flash bsp_sdram bsp_nand bsp_nor bsp_eeprom bsp_sdio
+    bsp_internal_flash bsp_sdram bsp_nand bsp_ftl bsp_nor bsp_eeprom bsp_sdio
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng

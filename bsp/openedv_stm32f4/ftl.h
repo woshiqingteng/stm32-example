@@ -3,8 +3,8 @@
  * @brief   NAND flash FTL (flash translation layer) over the raw NAND driver.
  */
 
-#ifndef LIB_FTL_H
-#define LIB_FTL_H
+#ifndef BSP_FTL_H
+#define BSP_FTL_H
 
 #include <stdint.h>
 
@@ -26,4 +26,4 @@ uint8_t  ftl_blockcompare(uint32_t blockx, uint32_t cmpval);
 uint32_t ftl_search_badblock(void);
 uint8_t  ftl_format(void);
 
-#endif /* LIB_FTL_H */
+#endif /* BSP_FTL_H */

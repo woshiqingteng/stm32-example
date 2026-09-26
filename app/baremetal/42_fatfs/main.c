@@ -4,7 +4,7 @@
  *          NAND ("2:"). Each is mounted (formatted when it carries no
  *          filesystem), its root listed, a text file written/read back and the
  *          free space reported on USART1. The NAND volume is reached through
- *          the FTL (lib_nand_storage).
+ *          the FTL.
  */
 
 #include <stdio.h>
@@ -13,7 +13,6 @@
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
-#include "nand_storage.h"
 #define BLINK_PERIOD_MS 500U
 
 static const char *const g_drv[3]  = { "0:", "1:", "2:" };
@@ -123,7 +122,6 @@ int main(void)
 
     bsp_init();
 
-    nand_storage_activate();
 
     printf("42_fatfs ready (0:SD 1:NOR 2:NAND)\r\n");
 

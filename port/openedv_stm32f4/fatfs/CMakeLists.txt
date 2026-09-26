@@ -10,6 +10,15 @@ target_link_libraries(fatfs_port
     PUBLIC bsp_sdio bsp_nor
     PRIVATE fatfs_core_inc)
 
+add_library(fatfs_nand_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
+
+target_include_directories(fatfs_nand_port PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(fatfs_nand_port
+    PUBLIC bsp_sdio bsp_nor bsp_ftl
+    PRIVATE fatfs_core_inc)
+target_compile_definitions(fatfs_nand_port PRIVATE FATFS_NAND=1)
+
 add_library(fatfs_stm32_usb_msc_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
 
 target_include_directories(fatfs_stm32_usb_msc_port

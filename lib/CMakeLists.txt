@@ -13,6 +13,8 @@ endfunction()
 
 lib_wrapper(lib_fatfs
     fatfs_core fatfs_port)
+lib_wrapper(lib_fatfs_nand
+    fatfs_core fatfs_nand_port)
 lib_wrapper(lib_fatfs_stm32_usb_msc
     fatfs_core fatfs_stm32_usb_msc_port)
 lib_wrapper(lib_stm32_usb_device_cdc
@@ -36,7 +38,7 @@ function(lib_dir name)
     set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
 endfunction()
 
-foreach(_d usmart malloc text picture audio mjpeg ftl nand_storage)
+foreach(_d usmart malloc text picture audio mjpeg)
     lib_dir(${_d})
 endforeach()
 
