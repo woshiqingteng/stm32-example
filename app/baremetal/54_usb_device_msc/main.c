@@ -9,14 +9,12 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "sdio.h"
 #include "nand_storage.h"
 #include "usbd_core.h"
 #include "usbd_handle.h"
 #include "usbd_desc.h"
 #include "usbd_msc.h"
 #include "usbd_storage_if.h"
-
 #define BLINK_PERIOD_MS 500U
 
 int main(void)

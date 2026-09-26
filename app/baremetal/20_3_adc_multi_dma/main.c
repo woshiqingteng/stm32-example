@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define ADC_SCAN_SAMPLES     50U
 #define ADC_DMA_BUF_LEN      (ADC_SCAN_SAMPLES * ADC_SCAN_CH_NUM)
 #define ADC_VREF_MV          3300U

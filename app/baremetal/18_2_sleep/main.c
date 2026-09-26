@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define LOOP_DELAY_MS 10U
 
 /** @brief Cause recorded when the MCU wakes from sleep. */

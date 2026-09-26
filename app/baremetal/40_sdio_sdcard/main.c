@@ -7,9 +7,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "bsp.h"
-#include "sdio.h"
 
+#include "bsp.h"
 #define SD_TEST_SECTOR  1000U
 #define SD_TEST_COUNT   1U
 #define SD_BLOCK_LEN    512U

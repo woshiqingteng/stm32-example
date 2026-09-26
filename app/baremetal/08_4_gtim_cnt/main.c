@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define GTIM_CNT_PSC       0U
 #define GTIM_CNT_BLINK_DIV 20U
 #define GTIM_CNT_LOOP_MS   10U

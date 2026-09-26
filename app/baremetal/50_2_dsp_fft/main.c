@@ -7,9 +7,9 @@
 
 #include <stdio.h>
 #include <math.h>
+
 #include "bsp.h"
 #include "arm_math.h"
-
 #define FFT_LENGTH      1024U       /* FFT length: 16, 64, 256 or 1024 */
 #define FFT_RUNS        100U        /* FFT repetitions used for the timing */
 #define FFT_SIGNAL_LEN  32U         /* Serial dump of the first N magnitudes */

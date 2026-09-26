@@ -8,9 +8,9 @@
 
 #include <stdio.h>
 #include <math.h>
+
 #include "bsp.h"
 #include "arm_math.h"
-
 #define DELTA           0.0001f     /* Maximum allowed sin^2 + cos^2 error */
 #define SIN_COS_TIMES   200000U     /* Iterations per run */
 

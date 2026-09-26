@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define PVD_LEVEL  PWR_PVDLEVEL_7  /* 2.9 V */
 #define LOOP_DELAY_MS 10U
 

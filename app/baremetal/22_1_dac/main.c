@@ -6,9 +6,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
-#include "adc.h"
 
+#include "bsp.h"
 #define DAC_STEP     256U
 #define DAC_MV_FULL  3300U
 

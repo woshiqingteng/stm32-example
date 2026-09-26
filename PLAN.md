@@ -186,3 +186,35 @@ wireless.c ov5640.c codec.c lib/picture/gif.c piclib.c oled.c` CMSIS。
 - [x] G2 F1
 - [x] G3 O1 [x] O2 [x] O3 [x] O4
 - [x] 全量回归 73/73
+
+---
+
+# Style（第二批）：逐 app 风格统一
+
+## 0. 决策（锁定）
+- include：统一为「system 段 (`<...>`) + 空行 + local 段 (`"..."`)」；删除被 `bsp.h` 聚合的冗余头（保留 `ltdc.h` 与 lib/USB 头）。
+- 打印：仅「结果只喂 `printf`」的 `sprintf` 改直出；保留路径/文件名、LCD 显示、hex dump 等需缓冲者。
+- 注释：精简冗余注释；不新增 `@brief`。
+- 长行：折到 ≤100 列。
+- 全局：行为不变；逐组构建 + 全量 73/73。
+
+## 1. SG1 长行折行（≤100 列）
+12_tftlcd、14_ltdc_lcd、22_1_dac、23_pwm_dac、30_touch_screen、38_camera_stream、
+43_font、45_camera_storage、47_sai_record/recorder.c、48_video。
+
+## 2. SG2 打印直出（仅 printf-only 的 sprintf）
+21_internal_temp、24_i2c_eeprom、25_i2c_extend_io、26_i2c_als、28_rs485、29_can、
+31_ir、32_1wire_temp、33_1wire_humi、35_i2c_imu、36_spi_wireless、39_malloc、
+40_sdio_sdcard、50_1_dsp_math、54_usb_device_msc、57_usb_host_msc
+
+## 3. SG3 include 统一
+system 段 + 空行 + local 段；删除冗余 bsp 头（保留 ltdc.h 与 lib/USB 头）。
+
+## 4. SG4 注释精简
+删除复述代码的注释；保留文件级 @brief 与非直观说明；不新增 helper @brief。
+
+## 5. 验证
+逐组构建 + 全量 73/73；按 SG3 / (SG1+SG2) / SG4 提交；更新 verify.md M 章节。
+
+## 6. 进度追踪
+- [ ] SG1 [ ] SG2 [ ] SG3 [ ] SG4 [ ] 全量回归 73/73

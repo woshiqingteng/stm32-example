@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define ADC_AVG_TIMES         10U
 #define ADC_VREF_MV           3300U
 #define ADC_VREF_UV           (ADC_VREF_MV * 1000U)

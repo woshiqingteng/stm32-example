@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define ADC_OVERSAMPLE_TIMES 256U
 #define ADC_DMA_GROUPS       10U
 #define ADC_DMA_BUF_LEN      (ADC_OVERSAMPLE_TIMES * ADC_DMA_GROUPS)

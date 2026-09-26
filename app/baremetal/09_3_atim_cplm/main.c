@@ -4,7 +4,6 @@
  */
 
 #include "bsp.h"
-
 #define ATIM_CPLM_ARR     1000U
 #define ATIM_CPLM_PSC     180U
 #define ATIM_CPLM_CCR     300U

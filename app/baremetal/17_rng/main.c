@@ -4,9 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
-#include "rng.h"
 
+#include "bsp.h"
 #define RNG_RANGE_MIN  0
 #define RNG_RANGE_MAX  9
 #define RNG_RETRY_MS   200U

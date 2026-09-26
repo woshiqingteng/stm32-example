@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define GTIM_CAP_ARR     0xFFFFU
 #define GTIM_CAP_PSC     90U
 #define GTIM_CAP_LOOP_MS 200U

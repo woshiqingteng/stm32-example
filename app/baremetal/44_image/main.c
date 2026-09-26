@@ -9,12 +9,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"
 #include "piclib.h"
-
 #define PIC_DIR         "0:/PICTURE"
 #define MAX_PICS        64U
 #define NAME_LEN        64U

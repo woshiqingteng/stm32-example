@@ -7,8 +7,8 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define TOUCH_POINT_SIZE  2U
 #define TOUCH_SAMPLE_MS   5U
 #define TOUCH_LED_DIV     40U

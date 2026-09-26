@@ -7,8 +7,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define RTC_APP_BKP_REG    1U
 #define RTC_APP_BKP_MAGIC  0x52544331U  /* "RTC1" */
 

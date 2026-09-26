@@ -5,8 +5,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define ATIM_PWMIN_TEST_ARR      10U
 #define ATIM_PWMIN_TEST_PSC      90U
 #define ATIM_PWMIN_TEST_CCR      2U

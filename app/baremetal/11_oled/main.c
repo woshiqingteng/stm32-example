@@ -5,9 +5,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
-#include "oled.h"
 
+#include "bsp.h"
 #define OLED_TITLE_Y       0U
 #define OLED_SUBTITLE_Y    24U
 #define OLED_INFO_Y        48U

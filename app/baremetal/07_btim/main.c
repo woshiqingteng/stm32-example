@@ -4,7 +4,6 @@
  */
 
 #include "bsp.h"
-
 #define BTIM_ARR_500MS 5000U
 #define BTIM_PSC_500MS 9000U
 #define BTIM_LOOP_MS   200U

@@ -6,8 +6,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define NRF_MODE_SELECT_MS  5000U
 #define NRF_TX_PERIOD_MS    500U
 

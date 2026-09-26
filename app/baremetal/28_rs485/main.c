@@ -7,8 +7,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define RS485_BAUDRATE      9600U
 #define RS485_PERIOD_MS     500U
 

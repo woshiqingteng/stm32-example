@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define KEY_IDLE_POLL_MS 10U
 
 typedef enum

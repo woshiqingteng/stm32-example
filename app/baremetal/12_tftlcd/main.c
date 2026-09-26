@@ -8,10 +8,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
-#include "sdram.h"
-#include "lcd.h"
 
+#include "bsp.h"
 #define LCD_COLOR_COUNT 12U
 #define DEMO_TEXT_X     10U
 #define DEMO_TEXT_WIDTH 240U

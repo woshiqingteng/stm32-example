@@ -13,7 +13,6 @@
 #include "usbh_core.h"
 #include "usbh_handle.h"
 #include "usbh_msc.h"
-
 #define USB_DRIVE       "2:"
 #define BLINK_PERIOD_MS 500U
 

@@ -12,11 +12,10 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include "bsp.h"
 #include "malloc.h"
-#include "nand.h"
 #include "ftl.h"
-
 #define TEST_SECTOR   2U
 
 int main(void)

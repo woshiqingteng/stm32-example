@@ -4,8 +4,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define USART_PROMPT_PERIOD 200U
 #define USART_BLINK_PERIOD  20U
 #define USART_POLL_MS       10U

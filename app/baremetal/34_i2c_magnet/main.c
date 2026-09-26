@@ -7,8 +7,8 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define SAMPLE_PERIOD   200U
 
 static int16_t g_magx_offset;

@@ -7,8 +7,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define LOOP_DELAY_MS 100U
 
 int main(void)

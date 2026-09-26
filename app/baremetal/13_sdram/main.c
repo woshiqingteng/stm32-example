@@ -6,9 +6,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
-#include "sdram.h"
 
+#include "bsp.h"
 #define SDRAM_TEST_BLOCKS   2048U                 /* 2048 * 16 KB = 32 MB */
 #define SDRAM_BLOCK_STEP    (16U * 1024U)
 #define SDRAM_PATTERN_WORDS (512U * 1024U / 4U)   /* 512 KB of words */

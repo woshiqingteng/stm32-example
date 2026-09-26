@@ -6,8 +6,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define FPU_ITERATION   128U
 #define FPU_REAL_CONST  0.285f
 #define FPU_IMG_CONST   0.01f

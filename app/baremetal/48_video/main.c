@@ -6,13 +6,13 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"
 #include "malloc.h"
 #include "videoplayer.h"
-
 #define DRIVE       "0:"
 #define TEXT_X      30U
 #define TEXT_WIDTH  320U

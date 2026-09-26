@@ -4,7 +4,6 @@
  */
 
 #include "bsp.h"
-
 #define KEY_EXTI_DEBOUNCE_MS 20U
 #define IDLE_DELAY_MS        1000U
 

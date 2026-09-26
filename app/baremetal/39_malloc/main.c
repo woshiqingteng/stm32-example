@@ -8,9 +8,9 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "bsp.h"
 #include "malloc.h"
-
 #define TEST_SIZE       2048U
 #define BLINK_PERIOD_MS 500U
 

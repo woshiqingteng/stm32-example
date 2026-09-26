@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define FLASH_TEXT        "STM32 FLASH TEST"
 #define FLASH_TEXT_SIZE   (sizeof(FLASH_TEXT))
 #define FLASH_WORDS       ((FLASH_TEXT_SIZE + 3U) / 4U)

@@ -5,8 +5,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define TRI_TIMER_ARR 899U
 #define TRI_TIMER_PSC 0U
 

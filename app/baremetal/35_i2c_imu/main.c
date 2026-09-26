@@ -8,10 +8,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "bsp.h"
-#include "usart.h"
-#include "imu.h"
 
+#include "bsp.h"
+#include "imu.h"
 #define SAMPLE_PERIOD_MS    10U
 #define PI_F                3.14159265f
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */

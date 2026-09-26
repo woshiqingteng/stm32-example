@@ -14,19 +14,10 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "bsp.h"
-#include "dcmi.h"
-#include "usart.h"
-#include "btim.h"
-#include "lcd.h"
-#include "ltdc.h"
-#include "led.h"
-#include "key.h"
-#include "sdram.h"
-#include "ov5640.h"
-#include "delay.h"
-#include "cam_jpeg.h"
 
+#include "bsp.h"
+#include "ltdc.h"
+#include "cam_jpeg.h"
 /** @brief  Current camera mode. */
 typedef enum
 {

@@ -4,7 +4,6 @@
  */
 
 #include "bsp.h"
-
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U
 #define GTIM_PWM_DUTY_MAX   300

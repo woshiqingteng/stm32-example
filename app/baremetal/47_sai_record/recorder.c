@@ -10,12 +10,12 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "malloc.h"
 #include "wavplay.h"
 #include "recorder.h"
-
 static uint8_t *p_sai_recbuf1;      /* capture DMA half-buffer 1 */
 static uint8_t *p_sai_recbuf2;      /* capture DMA half-buffer 2 */
 

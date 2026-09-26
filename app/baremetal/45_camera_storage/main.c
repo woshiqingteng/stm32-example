@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
@@ -17,12 +18,8 @@
 #include "piclib.h"
 #include "jpeg_dec.h"
 #include "bmp.h"
-#include "ov5640.h"
-#include "dcmi.h"
 #include "ltdc.h"
-#include "sys.h"
 #include "cam_jpeg.h"
-
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
 #define CAM_TOP          16U

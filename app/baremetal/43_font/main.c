@@ -8,11 +8,11 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"
-
 #define DRIVE           "0:"
 #define TEXT_X          30U
 #define TEXT_WIDTH      320U

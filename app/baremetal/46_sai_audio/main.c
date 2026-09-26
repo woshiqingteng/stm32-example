@@ -6,12 +6,12 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "malloc.h"
 #include "audioplay.h"
-
 #define DRIVE       "0:"
 #define LOOP_DELAY_MS 500U
 

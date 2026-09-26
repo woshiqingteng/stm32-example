@@ -5,8 +5,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define SAMPLE_PERIOD   120U
 
 int main(void)

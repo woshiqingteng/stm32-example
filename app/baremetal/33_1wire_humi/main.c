@@ -5,8 +5,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define DHT11_PERIOD_MS 1000U
 
 int main(void)

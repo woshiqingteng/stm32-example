@@ -6,8 +6,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define CAN_TEST_ID         0x12U
 #define CAN_TEST_LEN        8U
 #define CAN_PERIOD_MS       500U

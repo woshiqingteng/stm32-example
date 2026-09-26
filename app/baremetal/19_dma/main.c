@@ -8,8 +8,8 @@
  */
 
 #include <stdio.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define DMA_TX_BUF_SIZE       (6U * 1024U)
 #define DMA_TX_CHUNK          1024U
 

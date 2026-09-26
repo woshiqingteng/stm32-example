@@ -8,8 +8,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include "bsp.h"
 
+#include "bsp.h"
 #define EEPROM_TEST_ADDR   0U
 #define EEPROM_BYTE_COUNT  16U
 #define EEPROM_STR_LEN     14U

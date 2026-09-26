@@ -13,7 +13,6 @@
 #include "usbd_desc.h"
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
-
 #define BLINK_PERIOD_MS 500U
 #define LOOP_DELAY_MS   10U
 
