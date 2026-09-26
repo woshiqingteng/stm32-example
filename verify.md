@@ -41,7 +41,7 @@
 | C1 | 每模块一叶子目标 | 29 个 | ✅ 29 |
 | C2 | 叶子可排除构建 | 全含 EXCLUDE | ✅ 由 `drv_library()` 统一 `STATIC EXCLUDE_FROM_ALL` |
 | C3 | `drv_all` 聚合 | 存在 INTERFACE | ✅ |
-| C4 | 大类注释分组 | core/time/comm/analog/memory/display/crypto | ✅ |
+| C4 | 大类注释分组 | core/time/comm/analog/memory/display/multimedia/crypto | ✅ |
 | C5 | HAL 无 GLOB | 无匹配 | ✅ |
 | C6 | `hal_conf` 裁剪 | 远小于原 48 | ✅ 启用 30 |
 | C7 | 叶子依赖链 | 非 `drv_core` 叶子 `PUBLIC drv_core` | ✅ 函数内统一 |
@@ -54,7 +54,7 @@
 | D2 | `bsp_core` 常链 | STATIC = `bsp.c`（入口）+ 5 核心叶子 | ✅ (`bsp_core/sys/delay/led/key/usart`) |
 | D3 | `bsp_all` 聚合 | 存在 | ✅ |
 | D4 | `bsp_resolve` | 支持 `core`/叶子/`ALL`，未知报错 | ✅ |
-| D5 | 大类注释分组 | core/time/comm_*/analog/memory/display/crypto/sensor/misc | ✅ |
+| D5 | 大类注释分组 | core/time/comm/analog/memory/display/multimedia/crypto/sensor/misc | ✅ |
 | D6 | 跨类依赖 | `lcd→ltdc`、`pwmdac→dac`、`pwr→exti`、`iap→usart`、`nor→spi`、`ov5640→io_expand` 等 | ✅ |
 | D7 | 帧率定时器归入 `bsp_gtim` | 无 `timer.c/h`；TIM14 帧率 API `gtim_frame_*` 在 `gtim.c/h` | ✅ |
 | D8 | `remote→ir`，归入 `# comm` | `ir.c/ir.h`（无 `remote_`/`REMOTE_`），`bsp_ir` 位于 `# comm` 段，依赖 `drv_tim` | ✅ |

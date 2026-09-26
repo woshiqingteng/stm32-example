@@ -55,9 +55,6 @@ drv_library(drv_i2c
 drv_library(drv_spi
     Src/${DRV_PREFIX}_hal_spi.c
     Src/${DRV_PREFIX}_ll_spi.c)
-drv_library(drv_i2s
-    Src/${DRV_PREFIX}_hal_i2s.c
-    Src/${DRV_PREFIX}_hal_i2s_ex.c)
 drv_library(drv_can
     Src/${DRV_PREFIX}_hal_can.c)
 drv_library(drv_eth
@@ -67,12 +64,6 @@ drv_library(drv_usb
     Src/${DRV_PREFIX}_hal_pcd_ex.c
     Src/${DRV_PREFIX}_hal_hcd.c
     Src/${DRV_PREFIX}_ll_usb.c)
-drv_library(drv_dcmi
-    Src/${DRV_PREFIX}_hal_dcmi.c
-    Src/${DRV_PREFIX}_hal_dcmi_ex.c)
-drv_library(drv_sai
-    Src/${DRV_PREFIX}_hal_sai.c
-    Src/${DRV_PREFIX}_hal_sai_ex.c)
 
 # analog
 drv_library(drv_adc
@@ -110,6 +101,17 @@ drv_library(drv_ltdc
     Src/${DRV_PREFIX}_hal_ltdc.c
     Src/${DRV_PREFIX}_hal_ltdc_ex.c)
 
+# multimedia
+drv_library(drv_dcmi
+    Src/${DRV_PREFIX}_hal_dcmi.c
+    Src/${DRV_PREFIX}_hal_dcmi_ex.c)
+drv_library(drv_sai
+    Src/${DRV_PREFIX}_hal_sai.c
+    Src/${DRV_PREFIX}_hal_sai_ex.c)
+drv_library(drv_i2s
+    Src/${DRV_PREFIX}_hal_i2s.c
+    Src/${DRV_PREFIX}_hal_i2s_ex.c)
+
 # crypto
 drv_library(drv_crc
     Src/${DRV_PREFIX}_hal_crc.c
@@ -123,9 +125,9 @@ add_library(drv_all INTERFACE)
 target_link_libraries(drv_all INTERFACE
     drv_core
     drv_tim drv_rtc drv_iwdg drv_wwdg
-    drv_uart drv_usart drv_i2c drv_spi drv_i2s drv_can drv_eth
-    drv_usb drv_dcmi drv_sai
+    drv_uart drv_usart drv_i2c drv_spi drv_can drv_eth drv_usb
     drv_adc drv_dac
     drv_flash drv_fmc drv_sd
     drv_dma2d drv_ltdc
+    drv_dcmi drv_sai drv_i2s
     drv_crc drv_rng)

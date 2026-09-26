@@ -51,24 +51,9 @@ target_link_libraries(bsp_spi PUBLIC drv_spi)
 bsp_library(bsp_io_expand
     io_expand.c)
 target_link_libraries(bsp_io_expand PUBLIC bsp_i2c)
-bsp_library(bsp_eeprom
-    eeprom.c)
-target_link_libraries(bsp_eeprom PUBLIC bsp_i2c)
 bsp_library(bsp_can
     can.c)
 target_link_libraries(bsp_can PUBLIC drv_can)
-bsp_library(bsp_dcmi
-    dcmi.c)
-target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
-bsp_library(bsp_ov5640
-    ov5640.c)
-target_link_libraries(bsp_ov5640 PUBLIC bsp_io_expand)
-bsp_library(bsp_codec
-    codec.c)
-target_link_libraries(bsp_codec PUBLIC bsp_i2c)
-bsp_library(bsp_sai
-    sai.c)
-target_link_libraries(bsp_sai PUBLIC drv_sai)
 bsp_library(bsp_rs485
     rs485.c)
 target_link_libraries(bsp_rs485 PUBLIC bsp_io_expand drv_uart)
@@ -103,6 +88,9 @@ target_link_libraries(bsp_nand PUBLIC drv_fmc)
 bsp_library(bsp_nor
     nor.c)
 target_link_libraries(bsp_nor PUBLIC bsp_spi)
+bsp_library(bsp_eeprom
+    eeprom.c)
+target_link_libraries(bsp_eeprom PUBLIC bsp_i2c)
 bsp_library(bsp_sdio
     sdio.c)
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
@@ -124,6 +112,20 @@ bsp_library(bsp_touch
 bsp_library(bsp_tpad
     tpad.c)
 target_link_libraries(bsp_tpad PUBLIC drv_tim)
+
+# multimedia
+bsp_library(bsp_dcmi
+    dcmi.c)
+target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
+bsp_library(bsp_ov5640
+    ov5640.c)
+target_link_libraries(bsp_ov5640 PUBLIC bsp_io_expand)
+bsp_library(bsp_codec
+    codec.c)
+target_link_libraries(bsp_codec PUBLIC bsp_i2c)
+bsp_library(bsp_sai
+    sai.c)
+target_link_libraries(bsp_sai PUBLIC drv_sai)
 
 # crypto
 bsp_library(bsp_rng
@@ -161,11 +163,12 @@ add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
     bsp_btim bsp_gtim bsp_atim bsp_rtc bsp_wdg
-    bsp_i2c bsp_spi bsp_io_expand bsp_eeprom
-    bsp_can bsp_dcmi bsp_ov5640 bsp_codec bsp_sai bsp_rs485 bsp_wireless bsp_ir
+    bsp_i2c bsp_spi bsp_io_expand
+    bsp_can bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
-    bsp_stmflash bsp_sdram bsp_nand bsp_nor bsp_sdio bsp_ftl
+    bsp_stmflash bsp_sdram bsp_nand bsp_nor bsp_eeprom bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
+    bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
     bsp_ap3216c bsp_qmi8658a bsp_st480mc bsp_ds18b20 bsp_dht11
     bsp_exti bsp_pwr bsp_iap)
