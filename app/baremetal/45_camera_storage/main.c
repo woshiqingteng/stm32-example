@@ -1,10 +1,10 @@
 /**
  * @file    main.c
- * @brief   45_camera_storage: OV5640 RGB565 live view plus JPEG capture. The DCMI
- *          streams the sensor into the LTDC frame buffer; KEY0 encodes the
- *          visible frame to a JPEG file on the SD card, KEY1 decodes and shows
- *          the last capture with the PICTURE middleware, KEY2 pauses the live
- *          view and WK_UP triggers a single auto-focus.
+ * @brief   45_camera_storage: OV5640 RGB565 live view plus photo capture.
+ *          KEY0 captures a sensor-native 500W JPEG into 0:/PHOTO, KEY1 shows
+ *          the last JPEG, KEY2 saves a BMP of the current frame, WK_UP triggers
+ *          a single auto-focus. The DCMI/SDIO shared pins are muxed around each
+ *          card access.
  */
 
 #include <stdbool.h>
@@ -16,6 +16,11 @@
 #include "text.h"
 #include "piclib.h"
 #include "jpeg_dec.h"
+#include "bmp.h"
+#include "ov5640.h"
+#include "dcmi.h"
+#include "ltdc.h"
+#include "sys.h"
 
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
@@ -27,14 +32,23 @@
 #define STATUS_HEIGHT    16U
 
 #define CAM_LOOP_MS      20U
-#define CAM_KEY_DELAY_MS 200U
 #define PHOTO_DIR        "0:/PHOTO"
+
+#define JPEG_SIZE_W      2592U
+#define JPEG_SIZE_H      1944U
+#define JPEG_LINE_WORDS  512U
+#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
 
 static volatile bool g_paused;
 static char          g_last_path[32];
 
 static uint32_t         g_line_buf[2][CAM_OUT_WIDTH / 2U];
 static volatile uint16_t g_cam_curline;
+
+static uint32_t          g_jpeg_line_buf[2][JPEG_LINE_WORDS];
+static uint32_t *const   g_jpeg_buf = (uint32_t *)JPEG_BUF_ADDR;
+static volatile uint32_t g_jpeg_len;
+static volatile uint8_t  g_jpeg_ok;
 
 static void cam_line_cb(void)
 {
@@ -63,6 +77,62 @@ static void cam_frame_cb(void)
     led_toggle(LED1);
 }
 
+static void jpeg_rx_cb(void)
+{
+    uint16_t  i;
+    uint32_t *pbuf = g_jpeg_buf + g_jpeg_len;
+
+    if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
+    {
+        for (i = 0U; i < JPEG_LINE_WORDS; i++)
+        {
+            pbuf[i] = g_jpeg_line_buf[0][i];
+        }
+    }
+    else
+    {
+        for (i = 0U; i < JPEG_LINE_WORDS; i++)
+        {
+            pbuf[i] = g_jpeg_line_buf[1][i];
+        }
+    }
+
+    g_jpeg_len += JPEG_LINE_WORDS;
+}
+
+static void jpeg_frame_cb(void)
+{
+    uint16_t  i;
+    uint16_t  rlen;
+    uint32_t *pbuf;
+
+    if (g_jpeg_ok == 0U)
+    {
+        __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
+
+        rlen = (uint16_t)(JPEG_LINE_WORDS - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
+        pbuf = g_jpeg_buf + g_jpeg_len;
+
+        if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
+        {
+            for (i = 0U; i < rlen; i++)
+            {
+                pbuf[i] = g_jpeg_line_buf[1][i];
+            }
+        }
+        else
+        {
+            for (i = 0U; i < rlen; i++)
+            {
+                pbuf[i] = g_jpeg_line_buf[0][i];
+            }
+        }
+
+        g_jpeg_len += rlen;
+        g_jpeg_ok   = 1U;
+    }
+}
+
 static void cam_status(uint32_t fps, bool sd_ok)
 {
     char line[64];
@@ -76,14 +146,14 @@ static void cam_status(uint32_t fps, bool sd_ok)
     lcd_show_string(STATUS_X, 0U, STATUS_WIDTH, STATUS_HEIGHT, LCD_FONT_SIZE_16, line, GREEN);
 }
 
-static void cam_next_path(char *path)
+static void cam_next_path(char *path, const char *ext)
 {
     uint16_t index;
     FIL      f;
 
     for (index = 0U; index < 9999U; index++)
     {
-        (void)sprintf(path, PHOTO_DIR "/PIC%05u.jpg", (unsigned int)index);
+        (void)sprintf(path, PHOTO_DIR "/PIC%05u.%s", (unsigned int)index, ext);
 
         if (f_open(&f, path, FA_READ) == FR_NO_FILE)
         {
@@ -94,33 +164,98 @@ static void cam_next_path(char *path)
     }
 }
 
-static uint8_t cam_save_jpeg(bool sd_ok)
+/* Sensor-native JPEG: switch the sensor to JPEG mode, capture one frame at
+ * 500W into SDRAM, store it, then restore the RGB565 live view. */
+static uint8_t cam_save_native_jpeg(bool sd_ok)
 {
-    uint8_t res;
+    FIL      f;
+    UINT     bw = 0U;
+    FRESULT  fr;
+    uint32_t t0;
 
     if (!sd_ok)
     {
-        printf("no SD card, cannot save\r\n");
+        printf("no SD card\r\n");
         return 1U;
     }
 
     dcmi_stop();
     dcmi_switch_sdcard();
-    cam_next_path(g_last_path);
-    res = jpg_encode(g_last_path, 0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
-    dcmi_switch_ov5640();
+    cam_next_path(g_last_path, "jpg");
+
+    ov5640_jpeg_mode();
+    (void)ov5640_outsize_set(4U, 0U, JPEG_SIZE_W, JPEG_SIZE_H);
+
+    dcmi_init();
+    dcmi_dma_init((uint32_t)g_jpeg_line_buf[0], (uint32_t)g_jpeg_line_buf[1],
+                  JPEG_LINE_WORDS, DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
+    dcmi_rx_callback    = jpeg_rx_cb;
+    dcmi_frame_callback = jpeg_frame_cb;
+
+    g_jpeg_len = 0U;
+    g_jpeg_ok  = 0U;
     dcmi_start();
 
-    if (res != 0U)
+    t0 = sys_get_tick();
+
+    while ((g_jpeg_ok == 0U) && ((sys_get_tick() - t0) < 3000U))
     {
-        printf("jpeg encode failed (%u)\r\n", (unsigned int)res);
+        /* wait for the frame */
+    }
+
+    dcmi_stop();
+
+    fr = f_open(&f, g_last_path, FA_CREATE_ALWAYS | FA_WRITE);
+
+    if (fr == FR_OK)
+    {
+        (void)f_write(&f, (uint8_t *)g_jpeg_buf, g_jpeg_len * 4U, &bw);
+        (void)f_close(&f);
+        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(g_jpeg_len * 4U));
     }
     else
     {
-        printf("saved %s\r\n", g_last_path);
+        printf("open failed (%d)\r\n", (int)fr);
+        bw = 0U;
     }
 
-    return res;
+    /* Restore the RGB565 live view. */
+    ov5640_rgb565_mode();
+    (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
+
+    dcmi_init();
+    dcmi_switch_ov5640();
+    dcmi_rx_callback    = cam_line_cb;
+    dcmi_frame_callback = cam_frame_cb;
+    dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
+                  (uint16_t)(CAM_OUT_WIDTH / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
+    g_cam_curline = CAM_TOP;
+    dcmi_start();
+
+    return (bw == 0U) ? 1U : 0U;
+}
+
+static uint8_t cam_save_bmp(bool sd_ok)
+{
+    char path[32];
+
+    if (!sd_ok)
+    {
+        printf("no SD card\r\n");
+        return 1U;
+    }
+
+    dcmi_stop();
+    dcmi_switch_sdcard();
+    cam_next_path(path, "bmp");
+
+    (void)bmp_encode((uint8_t *)path, 0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT, 0);
+
+    dcmi_switch_ov5640();
+    dcmi_start();
+
+    printf("saved %s\r\n", path);
+    return 0U;
 }
 
 static void cam_show_jpeg(bool sd_ok)
@@ -220,7 +355,7 @@ int main(void)
 
         if (key == KEY0)
         {
-            (void)cam_save_jpeg(sd_ok);
+            (void)cam_save_native_jpeg(sd_ok);
         }
         else if (key == KEY1)
         {
@@ -228,16 +363,7 @@ int main(void)
         }
         else if (key == KEY2)
         {
-            g_paused = !g_paused;
-
-            if (g_paused)
-            {
-                dcmi_stop();
-            }
-            else
-            {
-                dcmi_start();
-            }
+            (void)cam_save_bmp(sd_ok);
         }
         else if (key == KEY_WKUP)
         {

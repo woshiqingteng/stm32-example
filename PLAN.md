@@ -109,7 +109,9 @@
   - S4 53_iap 手控（WKUP 编程 / KEY1 运行）
   - S5 53_iap_app 保持 FLASH 镜像
 - [x] P2-N1 `lib/imu` 融合 + ANO_TC
-- [ ] P2-D1..D7 显示项完成
+- [x] P2-D1..D7 显示项完成
+  - D1 43 全 GBK 遍历；D2 11 OLED 12/16/24；D3 30 多点；D4 45 原生 500W JPEG+BMP；
+  - D5 38 缩放（既有 KEY_WKUP）；D6 49 LCD 渲染；D7 44/48 nor_init（fonts_init）
 - [x] P2-P1..P8 外设/交互项完成
   - P1 16_rtc wakeup；P2 22_1/23 按键+ADC；P3 22_3 运行期表+切频；P4 29_can normal 模式；
   - P5 58 HID 累积/缓冲/重连；P6 50_2 FFT KEY 触发全谱；P7 25 BEEP；P8 46 时长/码率（既有）
@@ -124,7 +126,7 @@
 - [x] P1-1  [x] P1-2  [x] P1-3
 - [x] P2-S1 [x] P2-S2 [x] P2-S3 [x] P2-S4 [x] P2-S5
 - [x] P2-N1
-- [ ] P2-D1 [ ] P2-D2 [ ] P2-D3 [ ] P2-D4 [ ] P2-D5 [ ] P2-D6 [ ] P2-D7
+- [x] P2-D1 [x] P2-D2 [x] P2-D3 [x] P2-D4 [x] P2-D5 [x] P2-D6 [x] P2-D7
 - [x] P2-P1 [x] P2-P2 [x] P2-P3 [x] P2-P4 [x] P2-P5 [x] P2-P6 [x] P2-P7 [x] P2-P8
 - [ ] P3 验证
 
