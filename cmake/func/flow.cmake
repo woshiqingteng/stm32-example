@@ -4,6 +4,7 @@ function(mcu_generate target base)
     set_target_properties(${target} PROPERTIES
         OUTPUT_NAME "${base}"
         SUFFIX ".elf"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
     )
 
     add_custom_command(TARGET ${target} POST_BUILD
