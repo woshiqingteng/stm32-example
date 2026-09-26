@@ -109,6 +109,7 @@ bsp_library(bsp_oled
     oled.c)
 bsp_library(bsp_touch
     touch.c)
+target_link_libraries(bsp_touch PUBLIC bsp_ltdc)
 bsp_library(bsp_tpad
     tpad.c)
 target_link_libraries(bsp_tpad PUBLIC drv_tim)
