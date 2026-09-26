@@ -5,6 +5,7 @@ target_sources(soc_${MCU_FAMILY} INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/vector_${MCU_FAMILY}.c
     ${CMAKE_CURRENT_LIST_DIR}/system_${MCU_FAMILY}.c
     ${CMAKE_CURRENT_LIST_DIR}/${MCU_FAMILY}_it.c
+    ${CMAKE_CURRENT_LIST_DIR}/syscalls.c
 )
 
 target_include_directories(soc_${MCU_FAMILY} INTERFACE

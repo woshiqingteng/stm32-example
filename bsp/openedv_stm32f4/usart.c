@@ -1,6 +1,6 @@
 /**
  * @file    usart.c
- * @brief   USART1 driver: TX via newlib-nano _write, RX interrupt line reception.
+ * @brief   USART1 driver: TX via newlib-nano __io_putchar, RX interrupt line reception.
  *
  * MSP content (clock/GPIO/NVIC) is inlined into usart_init() instead of HAL_UART_MspInit().
  * The RX interrupt is handled directly (RXNE register polling) so this driver does
@@ -149,20 +149,15 @@ void usart_rx_clear(void)
 }
 
 /**
- * @brief  newlib-nano stdout hook: send a buffer over USART1.
+ * @brief  newlib-nano stdout sink: send one byte over USART1.
  */
-int _write(int file, char *ptr, int len)
+int __io_putchar(int ch)
 {
-    (void)file;
+    uint8_t byte = (uint8_t)ch;
 
-    if (len <= 0)
-    {
-        return 0;
-    }
+    (void)HAL_UART_Transmit(&g_uart1_handle, &byte, 1U, USART_TX_TIMEOUT_MS);
 
-    (void)HAL_UART_Transmit(&g_uart1_handle, (uint8_t *)ptr, (uint16_t)len, USART_TX_TIMEOUT_MS);
-
-    return len;
+    return ch;
 }
 
 /* ---- USART1 TX over DMA2 Stream7 / channel 4 ---- */

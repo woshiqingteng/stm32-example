@@ -51,5 +51,5 @@ set(CMAKE_C_FLAGS_RELEASE_INIT   ${OPT_RELEASE_C})
 set(CMAKE_CXX_FLAGS_RELEASE_INIT ${OPT_RELEASE_CXX})
 
 # link
-set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nano.specs --specs=nosys.specs -Wl,--gc-sections")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nano.specs -Wl,--gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT ${OPT_RELEASE_LINK})

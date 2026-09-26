@@ -17,6 +17,15 @@ MEMORY
   FLASH  (rx)  : ORIGIN = 0x08010000, LENGTH = 960K
 }
 
+/* Explicit segment permissions so .init_array/.fini_array (WA) cannot turn
+ * the code LOAD segment into RWX. */
+PHDRS
+{
+  text PT_LOAD FLAGS(5); /* R E */
+  data PT_LOAD FLAGS(6); /* R W */
+  bss  PT_LOAD FLAGS(6); /* R W */
+}
+
 SECTIONS
 {
   .isr_vector :
@@ -24,7 +33,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector))
     . = ALIGN(4);
-  } >FLASH
+  } >FLASH :text
 
   .text :
   {
@@ -38,7 +47,7 @@ SECTIONS
     KEEP(*(.fini))
     . = ALIGN(4);
     _etext = .;
-  } >FLASH
+  } >FLASH :text
 
   .rodata :
   {
@@ -46,26 +55,26 @@ SECTIONS
     *(.rodata)
     *(.rodata*)
     . = ALIGN(4);
-  } >FLASH
+  } >FLASH :text
 
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
-  } >FLASH
+  } >FLASH :text
 
   .ARM :
   {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } >FLASH
+  } >FLASH :text
 
   .preinit_array :
   {
     PROVIDE_HIDDEN(__preinit_array_start = .);
     KEEP(*(.preinit_array*))
     PROVIDE_HIDDEN(__preinit_array_end = .);
-  } >FLASH
+  } >FLASH :text
 
   .init_array :
   {
@@ -73,7 +82,7 @@ SECTIONS
     KEEP(*(SORT(.init_array.*)))
     KEEP(*(.init_array*))
     PROVIDE_HIDDEN(__init_array_end = .);
-  } >FLASH
+  } >FLASH :text
 
   .fini_array :
   {
@@ -81,7 +90,7 @@ SECTIONS
     KEEP(*(SORT(.fini_array.*)))
     KEEP(*(.fini_array*))
     PROVIDE_HIDDEN(__fini_array_end = .);
-  } >FLASH
+  } >FLASH :text
 
   _sidata = LOADADDR(.data);
 
@@ -93,10 +102,10 @@ SECTIONS
     *(.data*)
     . = ALIGN(4);
     _edata = .;
-  } >RAM AT> FLASH
+  } >RAM AT> FLASH :data
 
   . = ALIGN(4);
-  .bss :
+  .bss (NOLOAD) :
   {
     _sbss = .;
     __bss_start__ = _sbss;
@@ -106,16 +115,16 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;
     __bss_end__ = _ebss;
-  } >RAM
+  } >RAM AT> RAM :bss
 
-  ._user_heap_stack :
+  ._user_heap_stack (NOLOAD) :
   {
     . = ALIGN(8);
     PROVIDE(end = .);
     PROVIDE(_end = .);
     . = . + 0x1000;
     . = ALIGN(8);
-  } >RAM
+  } >RAM AT> RAM :bss
 
   /DISCARD/ :
   {
