@@ -128,7 +128,7 @@
 - [x] P2-N1
 - [x] P2-D1 [x] P2-D2 [x] P2-D3 [x] P2-D4 [x] P2-D5 [x] P2-D6 [x] P2-D7
 - [x] P2-P1 [x] P2-P2 [x] P2-P3 [x] P2-P4 [x] P2-P5 [x] P2-P6 [x] P2-P7 [x] P2-P8
-- [ ] P3 验证
+- [x] P3 验证   (73/73, 396fb97)
 
 ## 10. 风险与备注
 - `42_fatfs`/`54` 引入 NAND(FTL)：确认 `FF_VOLUMES`、port 链接 `lib_ftl`，NAND 扇区尺寸与 FTL 接口一致。
