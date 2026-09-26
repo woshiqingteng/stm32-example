@@ -1,0 +1,5 @@
+# Board-specific port adapters.
+
+add_subdirectory(fatfs)
+add_subdirectory(stm32_usb_device)
+add_subdirectory(stm32_usb_host)

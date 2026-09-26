@@ -4,6 +4,9 @@
 add_library(lib_fatfs INTERFACE)
 target_link_libraries(lib_fatfs INTERFACE fatfs_core fatfs_port)
 
+add_library(lib_fatfs_usbmsc INTERFACE)
+target_link_libraries(lib_fatfs_usbmsc INTERFACE fatfs_core fatfs_usbmsc_port)
+
 add_library(lib_stm32_usb_device_cdc INTERFACE)
 target_link_libraries(lib_stm32_usb_device_cdc INTERFACE
     stm32_usb_device stm32_usb_device_common_port stm32_usb_device_cdc_port)
@@ -31,7 +34,7 @@ target_link_libraries(lib_dsp INTERFACE cmsis_dsp)
 # 2. 中间件库：目录名 = 目标名（去掉 lib_ 前缀），一份清单驱动两件事
 # ============================================================
 set(LIB_ALL_TARGETS
-    lib_fatfs
+    lib_fatfs lib_fatfs_usbmsc
     lib_stm32_usb_device_cdc lib_stm32_usb_device_audio lib_stm32_usb_device_msc
     lib_stm32_usb_host_hid lib_stm32_usb_host_msc
     lib_dsp)

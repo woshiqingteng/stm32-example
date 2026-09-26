@@ -1,8 +1,8 @@
 /**
  * @file    usbh_conf.h
  * @brief   USB Host low level configuration for the ST USB host stack (3.5.3).
- *          The host core headers include this file, so the port layer hands its
- *          directory to the stm32_usb_host target at configure time.
+ *          The host core headers include this file; the port layer exposes this
+ *          directory through the stm32_usb_host_inc include interface.
  */
 
 #ifndef PORT_USBH_CONF_H

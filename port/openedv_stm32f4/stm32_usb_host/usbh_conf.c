@@ -15,6 +15,7 @@
 
 /* USB OTG FS host instance. */
 HCD_HandleTypeDef g_hhcd_USB_OTG_FS;
+USBH_HandleTypeDef g_hUSBHost;
 
 USBH_StatusTypeDef USBH_Get_USB_Status(HAL_StatusTypeDef hal_status);
 

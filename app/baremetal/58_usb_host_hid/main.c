@@ -10,13 +10,12 @@
 
 #include "bsp.h"
 #include "usbh_core.h"
+#include "usbh_handle.h"
 #include "usbh_hid.h"
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_mouse.h"
 
 #define BLINK_PERIOD_MS 500U
-
-USBH_HandleTypeDef g_hUSBHost;
 
 static bool g_hid_ready = false;
 

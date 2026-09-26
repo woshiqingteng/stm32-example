@@ -8,11 +8,9 @@
 #include "usbh_diskio.h"
 #include "usbh_core.h"
 #include "usbh_msc.h"
+#include "usbh_handle.h"
 
 #define USB_DEFAULT_BLOCK_SIZE   512U
-
-/* USB host handle owned by the application. */
-extern USBH_HandleTypeDef g_hUSBHost;
 
 DSTATUS USBH_initialize(void)
 {
