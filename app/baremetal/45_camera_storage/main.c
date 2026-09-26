@@ -21,6 +21,7 @@
 #include "dcmi.h"
 #include "ltdc.h"
 #include "sys.h"
+#include "cam_jpeg.h"
 
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
@@ -32,31 +33,20 @@
 #define STATUS_HEIGHT    16U
 
 #define CAM_LOOP_MS      20U
+#define CAM_OUTSIZE_OFFSET_X 4U   /* sensor output window X offset */
 #define PHOTO_DIR        "0:/PHOTO"
 
 #define JPEG_SIZE_W      2592U
 #define JPEG_SIZE_H      1944U
-#define JPEG_LINE_WORDS  512U
 #define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
+#define JPEG_BUF_WORDS   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
+#define JPEG_CAPTURE_TIMEOUT_MS 3000U
 
 static volatile bool g_paused;
 static char          g_last_path[32];
 
 static uint32_t         g_line_buf[2][CAM_OUT_WIDTH / 2U];
 static volatile uint16_t g_cam_curline;
-
-static uint32_t          g_jpeg_line_buf[2][JPEG_LINE_WORDS];
-static uint32_t *const   g_jpeg_buf = (uint32_t *)JPEG_BUF_ADDR;
-static volatile uint32_t g_jpeg_len;
-
-/** @brief  One-shot JPEG capture phase. */
-typedef enum
-{
-    JPEG_CAP_WAIT = 0,
-    JPEG_CAP_DONE
-} jpeg_cap_state_t;
-
-static volatile jpeg_cap_state_t g_jpeg_cap = JPEG_CAP_WAIT;
 
 static void cam_line_cb(void)
 {
@@ -83,62 +73,6 @@ static void cam_frame_cb(void)
     g_cam_curline = CAM_TOP;
     gtim_frame_inc();
     led_toggle(LED1);
-}
-
-static void jpeg_rx_cb(void)
-{
-    uint16_t  i;
-    uint32_t *pbuf = g_jpeg_buf + g_jpeg_len;
-
-    if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
-    {
-        for (i = 0U; i < JPEG_LINE_WORDS; i++)
-        {
-            pbuf[i] = g_jpeg_line_buf[0][i];
-        }
-    }
-    else
-    {
-        for (i = 0U; i < JPEG_LINE_WORDS; i++)
-        {
-            pbuf[i] = g_jpeg_line_buf[1][i];
-        }
-    }
-
-    g_jpeg_len += JPEG_LINE_WORDS;
-}
-
-static void jpeg_frame_cb(void)
-{
-    uint16_t  i;
-    uint16_t  rlen;
-    uint32_t *pbuf;
-
-    if (g_jpeg_cap == JPEG_CAP_WAIT)
-    {
-        __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
-
-        rlen = (uint16_t)(JPEG_LINE_WORDS - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
-        pbuf = g_jpeg_buf + g_jpeg_len;
-
-        if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
-        {
-            for (i = 0U; i < rlen; i++)
-            {
-                pbuf[i] = g_jpeg_line_buf[1][i];
-            }
-        }
-        else
-        {
-            for (i = 0U; i < rlen; i++)
-            {
-                pbuf[i] = g_jpeg_line_buf[0][i];
-            }
-        }
-
-        g_jpeg_len += rlen;
-        g_jpeg_cap = JPEG_CAP_DONE;
-    }
 }
 
 static void cam_status(uint32_t fps, bool sd_ok)
@@ -179,7 +113,7 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
     FIL      f;
     UINT     bw = 0U;
     FRESULT  fr;
-    uint32_t t0;
+    bool     captured;
 
     if (!sd_ok)
     {
@@ -192,44 +126,34 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
     cam_next_path(g_last_path, "jpg");
 
     ov5640_jpeg_mode();
-    (void)ov5640_outsize_set(4U, 0U, JPEG_SIZE_W, JPEG_SIZE_H);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, JPEG_SIZE_W, JPEG_SIZE_H);
 
     dcmi_init();
-    dcmi_dma_init((uint32_t)g_jpeg_line_buf[0], (uint32_t)g_jpeg_line_buf[1],
-                  JPEG_LINE_WORDS, DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
-    dcmi_rx_callback    = jpeg_rx_cb;
-    dcmi_frame_callback = jpeg_frame_cb;
-
-    g_jpeg_len = 0U;
-    g_jpeg_cap = JPEG_CAP_WAIT;
-    dcmi_start();
-
-    t0 = sys_get_tick();
-
-    while ((g_jpeg_cap == JPEG_CAP_WAIT) && ((sys_get_tick() - t0) < 3000U))
-    {
-        /* wait for the frame */
-    }
-
-    dcmi_stop();
+    cam_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
+    captured = cam_jpeg_capture(JPEG_CAPTURE_TIMEOUT_MS);
 
     fr = f_open(&f, g_last_path, FA_CREATE_ALWAYS | FA_WRITE);
 
-    if (fr == FR_OK)
+    if (captured && (fr == FR_OK))
     {
-        (void)f_write(&f, (uint8_t *)g_jpeg_buf, g_jpeg_len * 4U, &bw);
+        (void)f_write(&f, (uint8_t *)JPEG_BUF_ADDR, cam_jpeg_words() * 4U, &bw);
         (void)f_close(&f);
-        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(g_jpeg_len * 4U));
+        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(cam_jpeg_words() * 4U));
     }
     else
     {
-        printf("open failed (%d)\r\n", (int)fr);
+        if (fr == FR_OK)
+        {
+            (void)f_close(&f);
+        }
+
+        printf("jpeg capture failed\r\n");
         bw = 0U;
     }
 
     /* Restore the RGB565 live view. */
     ov5640_rgb565_mode();
-    (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
 
     dcmi_init();
     dcmi_switch_ov5640();

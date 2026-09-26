@@ -75,10 +75,10 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_nand_storage` / `lib_imu` | ✅ |
+| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_nand_storage` / `lib_imu` / `lib_cam_jpeg` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
-| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl/nand_storage/imu |
-| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 9/9 |
+| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl/nand_storage/imu/cam_jpeg |
+| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 10/10 |
 | F5 | NAND 分层 | port 不依赖 lib：port 留 weak 钩子，强实现在 `lib_nand_storage` | ✅ `diskio.c`/`usbd_storage_if.c` weak + object override |
 
 ## G. app 声明
@@ -149,6 +149,17 @@
 | L5 | P2 外设/交互 | 16 wakeup、22/23 按键+ADC、29 模式、50 FFT、58 HID、25 BEEP | ✅ |
 | L6 | 全量回归 | 73 镜像 | ✅ 73 |
 | L7 | 进程记录 | `PLAN.md` 勾选与提交对应 | ✅ |
+
+## M. 状态机与风格统一
+
+| ID | 验证项 | 期望 | 结果 |
+|---|---|---|---|
+| M1 | 打包位状态消除 | wavplay/recorder/usbd_storage/usbd_cdc/ir/38/45 改显式状态枚举 | ✅ 无位掩码状态 |
+| M2 | USB 设备状态 | `usbd_dev_state_t` 替代 bool；54/55/56 同步 | ✅ |
+| M3 | 相机 JPEG 复用 | 38/45 共用 `lib_cam_jpeg` | ✅ 抽公共 helper |
+| M4 | 忙等超时 | `wavplay` 半缓冲等待有界 | ✅ `AUDIO_WAIT_TIMEOUT_MS` |
+| M5 | FTL 格式 | 项目头注释、TAB→空格、去冗余/中文注释 | ✅ |
+| M6 | 魔法数具名 | `RTC_WAKEUP_1HZ`、`CAM_OUTSIZE_OFFSET_X` | ✅ |
 
 ---
 

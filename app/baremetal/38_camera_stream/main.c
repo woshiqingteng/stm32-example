@@ -25,6 +25,7 @@
 #include "sdram.h"
 #include "ov5640.h"
 #include "delay.h"
+#include "cam_jpeg.h"
 
 /** @brief  Current camera mode. */
 typedef enum
@@ -33,30 +34,19 @@ typedef enum
     CAM_MODE_JPEG
 } cam_mode_t;
 
-/** @brief  One-shot JPEG capture phase. */
-typedef enum
-{
-    JPEG_PHASE_CAPTURING = 0,
-    JPEG_PHASE_READY,
-    JPEG_PHASE_SENT
-} jpeg_phase_t;
-
-cam_mode_t            g_cam_mode = CAM_MODE_RGB565;
-uint16_t g_curline = 0;                 /* current capture line (RGB mode) */
-uint16_t g_yoffset = 0;                 /* vertical offset (RGB mode) */
+cam_mode_t g_cam_mode = CAM_MODE_RGB565;
+uint16_t   g_curline = 0;                 /* current capture line (RGB mode) */
+uint16_t   g_yoffset = 0;                 /* vertical offset (RGB mode) */
 
 #define JPEG_BUF_WORDS   (1U * 1024U * 1024U)               /* 4 MB JPEG buffer (words) */
-#define JPEG_LINE_WORDS  (4U * 1024U)                       /* per-line DMA buffer (words) */
+#define RGB_LINE_WORDS   (LTDC_PANEL_WIDTH / 2U)            /* per-line DMA buffer (words) */
+#define CAM_OUTSIZE_OFFSET_X 4U                              /* sensor output window X offset */
 
 /* The RGB565 panel frame buffer occupies the start of SDRAM; the JPEG capture
  * buffer is placed right after it. */
 #define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
 
-static uint32_t  g_dcmi_line_buf[2][JPEG_LINE_WORDS];
-static uint32_t *const g_jpeg_data_buf = (uint32_t *)JPEG_BUF_ADDR;
-
-volatile uint32_t g_jpeg_data_len = 0;  /* valid data in g_jpeg_data_buf, in words */
-volatile jpeg_phase_t g_jpeg_phase = JPEG_PHASE_CAPTURING;
+static uint32_t g_dcmi_line_buf[2][RGB_LINE_WORDS];
 
 static const uint16_t jpeg_img_size_tbl[][2] =
 {
@@ -73,73 +63,9 @@ static const char *const JPEG_SIZE_TBL[12] =
 
 /* ---- Application DCMI hooks ------------------------------------------------ */
 
-void jpeg_data_process(void)
+static void rgb_frame_cb(void)
 {
-    uint16_t  i;
-    uint16_t  rlen;
-    uint32_t *pbuf;
-
     g_curline = g_yoffset;
-
-    if (g_cam_mode == CAM_MODE_JPEG)                          /* JPEG mode */
-    {
-        if (g_jpeg_phase == JPEG_PHASE_CAPTURING)                           /* frame not captured yet */
-        {
-            __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
-
-            rlen = (uint16_t)(JPEG_LINE_WORDS - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
-            pbuf = g_jpeg_data_buf + g_jpeg_data_len;
-
-            if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
-            {
-                for (i = 0U; i < rlen; i++)
-                {
-                    pbuf[i] = g_dcmi_line_buf[1][i];
-                }
-            }
-            else
-            {
-                for (i = 0U; i < rlen; i++)
-                {
-                    pbuf[i] = g_dcmi_line_buf[0][i];
-                }
-            }
-
-            g_jpeg_data_len += rlen;
-            g_jpeg_phase   = JPEG_PHASE_READY;                          /* frame ready */
-        }
-
-        if (g_jpeg_phase == JPEG_PHASE_SENT)                           /* previous frame sent */
-        {
-            __HAL_DMA_SET_COUNTER(&g_dma_dcmi_handle, JPEG_LINE_WORDS);
-            __HAL_DMA_ENABLE(&g_dma_dcmi_handle);
-            g_jpeg_phase  = JPEG_PHASE_CAPTURING;
-            g_jpeg_data_len = 0U;
-        }
-    }
-}
-
-void jpeg_dcmi_rx_callback(void)
-{
-    uint16_t  i;
-    uint32_t *pbuf = g_jpeg_data_buf + g_jpeg_data_len;
-
-    if ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U)
-    {
-        for (i = 0U; i < JPEG_LINE_WORDS; i++)
-        {
-            pbuf[i] = g_dcmi_line_buf[0][i];
-        }
-    }
-    else
-    {
-        for (i = 0U; i < JPEG_LINE_WORDS; i++)
-        {
-            pbuf[i] = g_dcmi_line_buf[1][i];
-        }
-    }
-
-    g_jpeg_data_len += JPEG_LINE_WORDS;
 }
 
 void rgblcd_dcmi_rx_callback(void)
@@ -204,26 +130,24 @@ static void jpeg_test(void)
     (void)ov5640_focus_constant();
 
     dcmi_init();
-    dcmi_rx_callback    = jpeg_dcmi_rx_callback;
-    dcmi_frame_callback = jpeg_data_process;
-    dcmi_dma_init((uint32_t)g_dcmi_line_buf[0], (uint32_t)g_dcmi_line_buf[1],
-                  JPEG_LINE_WORDS, DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
-
-    (void)ov5640_outsize_set(4U, 0U, jpeg_img_size_tbl[size][0], jpeg_img_size_tbl[size][1]);
-    dcmi_start();
+    cam_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, jpeg_img_size_tbl[size][0], jpeg_img_size_tbl[size][1]);
+    cam_jpeg_begin();
 
     for (;;)
     {
-        if (g_jpeg_phase == JPEG_PHASE_READY)                           /* a whole frame is ready */
+        if (cam_jpeg_state() == CAM_JPEG_READY)                         /* a whole frame is ready */
         {
-            p = (uint8_t *)g_jpeg_data_buf;
-            printf("g_jpeg_data_len:%u\r\n", (unsigned int)(g_jpeg_data_len * 4U));
+            cam_jpeg_end();
+            jpglen = 0U;
+
+            p = (uint8_t *)JPEG_BUF_ADDR;
+            printf("g_jpeg_data_len:%u\r\n", (unsigned int)(cam_jpeg_words() * 4U));
             lcd_show_string(30, 210, 210, 16, LCD_FONT_SIZE_16, "Sending JPEG data...", RED);
 
-            jpglen  = 0U;
             headok  = 0U;
 
-            for (i = 0U; i < (g_jpeg_data_len * 4U); i++)
+            for (i = 0U; i < (cam_jpeg_words() * 4U); i++)
             {
                 if ((p[i] == 0xFFU) && (p[i + 1U] == 0xD8U))
                 {
@@ -307,8 +231,10 @@ static void jpeg_test(void)
                 lcd_show_string(30, 210, 210, 16, LCD_FONT_SIZE_16, "Send data complete!!", RED);
             }
 
-            g_jpeg_phase = JPEG_PHASE_SENT;                            /* allow the next frame */
+            cam_jpeg_begin();                            /* allow the next frame */
         }
+
+        delay_ms(1);
     }
 }
 
@@ -341,7 +267,7 @@ static void rgb565_test(void)
 
     dcmi_init();
     dcmi_rx_callback    = rgblcd_dcmi_rx_callback;
-    dcmi_frame_callback = jpeg_data_process;
+    dcmi_frame_callback = rgb_frame_cb;
     dcmi_dma_init((uint32_t)g_dcmi_line_buf[0], (uint32_t)g_dcmi_line_buf[1],
                   (uint16_t)(lcd_get_width() / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 

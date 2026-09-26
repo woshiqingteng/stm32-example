@@ -15,6 +15,8 @@
 #include "wavplay.h"
 
 /* Self-contained playback device: ES8388 + SAI double-buffered TX path. */
+#define AUDIO_WAIT_TIMEOUT_MS  1000U    /* half-buffer DMA stall timeout */
+
 typedef struct
 {
     uint8_t *saibuf1;       /* SAI TX half-buffer 1 */
@@ -299,10 +301,25 @@ audio_nav_t wav_play_song(char *fname)
 
             for (;;)
             {
+                uint32_t wait = 0U;
+
                 while (!s_transfer_end)
                 {
-                    /* wait for a half-buffer to finish */
+                    if (wait >= AUDIO_WAIT_TIMEOUT_MS)
+                    {
+                        break;          /* DMA stalled */
+                    }
+
+                    wait++;
+                    delay_ms(1);
                 }
+
+                if (!s_transfer_end)
+                {
+                    res = AUDIO_ERROR;
+                    break;
+                }
+
                 s_transfer_end = false;
 
                 if (fillnum != AUDIO_SAI_TX_BUF_SIZE)   /* end of stream */
