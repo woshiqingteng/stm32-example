@@ -17,7 +17,7 @@
 
 int main(void)
 {
-    uint8_t  usb_status = 0xFFU;
+    usbd_dev_state_t usb_status = USBD_DEV_STATE_DISCONNECTED;
     uint8_t  volume = 70U;
     key_id_t key;
 
@@ -72,7 +72,7 @@ int main(void)
         {
             usb_status = g_device_state;
 
-            if (usb_status == 1U)
+            if (usb_status == USBD_DEV_STATE_CONNECTED)
             {
                 printf("USB Connected\r\n");
                 led_on(LED1);

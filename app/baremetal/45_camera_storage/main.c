@@ -48,7 +48,15 @@ static volatile uint16_t g_cam_curline;
 static uint32_t          g_jpeg_line_buf[2][JPEG_LINE_WORDS];
 static uint32_t *const   g_jpeg_buf = (uint32_t *)JPEG_BUF_ADDR;
 static volatile uint32_t g_jpeg_len;
-static volatile uint8_t  g_jpeg_ok;
+
+/** @brief  One-shot JPEG capture phase. */
+typedef enum
+{
+    JPEG_CAP_WAIT = 0,
+    JPEG_CAP_DONE
+} jpeg_cap_state_t;
+
+static volatile jpeg_cap_state_t g_jpeg_cap = JPEG_CAP_WAIT;
 
 static void cam_line_cb(void)
 {
@@ -106,7 +114,7 @@ static void jpeg_frame_cb(void)
     uint16_t  rlen;
     uint32_t *pbuf;
 
-    if (g_jpeg_ok == 0U)
+    if (g_jpeg_cap == JPEG_CAP_WAIT)
     {
         __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
 
@@ -129,7 +137,7 @@ static void jpeg_frame_cb(void)
         }
 
         g_jpeg_len += rlen;
-        g_jpeg_ok   = 1U;
+        g_jpeg_cap = JPEG_CAP_DONE;
     }
 }
 
@@ -193,12 +201,12 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
     dcmi_frame_callback = jpeg_frame_cb;
 
     g_jpeg_len = 0U;
-    g_jpeg_ok  = 0U;
+    g_jpeg_cap = JPEG_CAP_WAIT;
     dcmi_start();
 
     t0 = sys_get_tick();
 
-    while ((g_jpeg_ok == 0U) && ((sys_get_tick() - t0) < 3000U))
+    while ((g_jpeg_cap == JPEG_CAP_WAIT) && ((sys_get_tick() - t0) < 3000U))
     {
         /* wait for the frame */
     }

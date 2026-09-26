@@ -6,6 +6,7 @@
  */
 
 #include "stm32f4xx_hal.h"
+#include <stdbool.h>
 #include "ir.h"
 
 #define IR_PRESCALER        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
@@ -17,16 +18,12 @@
 
 #define IR_REPEAT_MAX       14U
 
-/* Receiver bit flags: the low nibble counts frames, the high nibble holds the
- * decode state. */
+/** @brief  NEC decoder state. */
 typedef enum
 {
-    IR_STA_TIME_MASK = 0x0FU,
-    IR_STA_HIGH      = 0x10U,
-    IR_STA_KEY       = 0x40U,
-    IR_STA_READY     = 0x80U,
-    IR_STA_ALL_FLAGS = 0xF0U,
-} ir_sta_t;
+    IR_STATE_IDLE = 0,   /*!< waiting for a leader */
+    IR_STATE_FRAME       /*!< leader seen, decoding the 32 bits */
+} ir_state_t;
 
 #define IR_BIT0_MIN         300U
 #define IR_BIT0_MAX         800U
@@ -38,9 +35,12 @@ typedef enum
 #define IR_LEAD_MAX         4700U
 
 static TIM_HandleTypeDef g_ir_handle;
-static uint8_t           g_ir_sta;
+static ir_state_t        g_ir_state;
+static bool              g_ir_in_high;      /* a high-level pulse is in progress */
+static bool              g_ir_key_pending;  /* a decoded key waits in ir_scan() */
 static uint32_t          g_ir_data;
-static uint8_t           g_ir_cnt;
+static uint8_t           g_ir_timeout;      /* update ticks since the last capture */
+static uint8_t           g_ir_cnt;          /* repeat-frame counter */
 
 void ir_init(void)
 {
@@ -78,9 +78,12 @@ void ir_init(void)
     ic.ICFilter    = IR_IC_FILTER;
     (void)HAL_TIM_IC_ConfigChannel(&g_ir_handle, &ic, IR_IN_TIMX_CHY);
 
-    g_ir_sta  = 0U;
-    g_ir_data = 0U;
-    g_ir_cnt  = 0U;
+    g_ir_state       = IR_STATE_IDLE;
+    g_ir_in_high     = false;
+    g_ir_key_pending = false;
+    g_ir_data        = 0U;
+    g_ir_timeout     = 0U;
+    g_ir_cnt         = 0U;
 
     __HAL_TIM_ENABLE_IT(&g_ir_handle, TIM_IT_UPDATE);
     (void)HAL_TIM_IC_Start_IT(&g_ir_handle, IR_IN_TIMX_CHY);
@@ -88,23 +91,23 @@ void ir_init(void)
 
 static void ir_update_isr(void)
 {
-    if ((g_ir_sta & IR_STA_READY) != 0U)
+    if (g_ir_state == IR_STATE_FRAME)
     {
-        g_ir_sta &= (uint8_t)~IR_STA_HIGH;
+        g_ir_in_high = false;
 
-        if ((g_ir_sta & IR_STA_TIME_MASK) == 0U)
+        if (g_ir_timeout == 0U)
         {
-            g_ir_sta |= IR_STA_KEY;
+            g_ir_key_pending = true;
         }
 
-        if ((g_ir_sta & IR_STA_TIME_MASK) < IR_REPEAT_MAX)
+        if (g_ir_timeout < IR_REPEAT_MAX)
         {
-            g_ir_sta++;
+            g_ir_timeout++;
         }
         else
         {
-            g_ir_sta &= (uint8_t)~IR_STA_READY;
-            g_ir_sta &= IR_STA_ALL_FLAGS;
+            g_ir_state   = IR_STATE_IDLE;
+            g_ir_timeout = 0U;
         }
     }
 }
@@ -119,7 +122,7 @@ static void ir_capture_isr(void)
         __HAL_TIM_SET_CAPTUREPOLARITY(&g_ir_handle, IR_IN_TIMX_CHY,
                                       TIM_INPUTCHANNELPOLARITY_FALLING);
         __HAL_TIM_SET_COUNTER(&g_ir_handle, 0U);
-        g_ir_sta |= IR_STA_HIGH;
+        g_ir_in_high = true;
     }
     else
     {
@@ -128,9 +131,9 @@ static void ir_capture_isr(void)
         __HAL_TIM_SET_CAPTUREPOLARITY(&g_ir_handle, IR_IN_TIMX_CHY,
                                       TIM_INPUTCHANNELPOLARITY_RISING);
 
-        if ((g_ir_sta & IR_STA_HIGH) != 0U)
+        if (g_ir_in_high)
         {
-            if ((g_ir_sta & IR_STA_READY) != 0U)
+            if (g_ir_state == IR_STATE_FRAME)
             {
                 if ((dval > IR_BIT0_MIN) && (dval < IR_BIT0_MAX))
                 {
@@ -145,17 +148,25 @@ static void ir_capture_isr(void)
                 else if ((dval > IR_REPEAT_MIN) && (dval < IR_REPEAT_MAX_VAL))
                 {
                     g_ir_cnt++;
-                    g_ir_sta &= IR_STA_ALL_FLAGS;
+                    g_ir_timeout = 0U;
+                }
+                else
+                {
+                    /* out-of-range pulse: ignore */
                 }
             }
             else if ((dval > IR_LEAD_MIN) && (dval < IR_LEAD_MAX))
             {
-                g_ir_sta |= IR_STA_READY;
-                g_ir_cnt = 0U;
+                g_ir_state = IR_STATE_FRAME;
+                g_ir_cnt   = 0U;
+            }
+            else
+            {
+                /* not a leader: stay idle */
             }
         }
 
-        g_ir_sta &= (uint8_t)~IR_STA_HIGH;
+        g_ir_in_high = false;
     }
 }
 
@@ -207,14 +218,14 @@ uint8_t ir_scan(void)
 {
     uint8_t key = 0U;
 
-    if ((g_ir_sta & IR_STA_KEY) != 0U)
+    if (g_ir_key_pending)
     {
         key = ir_parse(g_ir_data);
 
-        if ((key == 0U) || ((g_ir_sta & IR_STA_READY) == 0U))
+        if ((key == 0U) || (g_ir_state != IR_STATE_FRAME))
         {
-            g_ir_sta &= (uint8_t)~IR_STA_KEY;
-            g_ir_cnt = 0U;
+            g_ir_key_pending = false;
+            g_ir_cnt         = 0U;
         }
     }
 

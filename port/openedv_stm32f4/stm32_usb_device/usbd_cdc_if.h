@@ -11,8 +11,17 @@
 #define USB_USART_REC_LEN       200U
 #define CDC_POLLING_INTERVAL    1U
 
-extern uint8_t  g_usb_usart_rx_buffer[USB_USART_REC_LEN];
-extern uint16_t g_usb_usart_rx_sta;
+/** @brief  Line reception state on the virtual COM port. */
+typedef enum
+{
+    CDC_RX_STATE_IDLE = 0,  /*!< collecting data bytes */
+    CDC_RX_STATE_SEEN_CR,   /*!< received CR, expecting LF */
+    CDC_RX_STATE_DONE       /*!< a complete line is ready */
+} cdc_rx_state_t;
+
+extern uint8_t        g_usb_usart_rx_buffer[USB_USART_REC_LEN];
+extern uint16_t       g_usb_usart_rx_len;
+extern cdc_rx_state_t g_usb_usart_rx_state;
 
 extern USBD_CDC_ItfTypeDef USBD_CDC_fops;
 

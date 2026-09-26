@@ -135,3 +135,54 @@
 - `45` 引脚切换：确认与 RGB/LTDC、以及 SDIO 初始化顺序兼容。
 - `11_oled`/`43_font` 字形表体量较大，注意 flash 占用。
 - `35` 融合需较高主频与 `m`（math）链接。
+
+---
+
+# Style：状态机化与格式统一
+
+## 1. 决策
+- 位掩码/打包状态 → 显式状态枚举/状态机（A1–A8，含 A5 `ir.c`、A8 `g_device_state`）。
+- 相机 JPEG 采集抽公共 helper：**新增 lib 层组件 `lib/cam_jpeg`（target `lib_cam_jpeg`）**，`38`/`45` 链接。
+- 忙等加**有界超时**（C1 纳入）。
+- `ftl` 仅格式化并**去除冗余/厂商注释**。
+- 三组提交：**G1 状态枚举化 / G2 FTL 格式化 / G3 其他**；每步行为不变。
+
+## 2. 排除项（硬件/协议寄存器位运算，保留）
+`nand.c nor.c i2c.c spi ap3216c.c ds18b20.c io_expand.c touch.c qmi8658a.c
+wireless.c ov5640.c codec.c lib/picture/gif.c piclib.c oled.c` CMSIS。
+
+## 3. G1 状态枚举化
+| ID | 文件 | 现状 → 目标 |
+|---|---|---|
+| S1 | `lib/audio/wavplay.c` | `s_dev.status` 位域 → `enum {AUDIO_STATE_IDLE,PLAYING,PAUSED}` |
+| S2 | `app/baremetal/47_sai_record/recorder.c` | `g_rec_sta`(bit7/bit0) → `enum {REC_IDLE,RECORDING,PAUSED,PLAYING}` |
+| S3 | `port/.../usbd_storage_if.{c,h}` + `54` | 值+错误位 → `enum usb_storage_activity_t{IDLE,READING,WRITING}` + `enum usb_storage_error_t{NONE,READ,WRITE}` |
+| S4 | `port/.../usbd_cdc_if.c` | `g_usb_usart_rx_sta` 打包 → `enum {CDC_RX_IDLE,SEEN_CR,DONE}` + `g_cdc_rx_len` |
+| S5 | `bsp/openedv_stm32f4/ir.{c,h}` | `g_ir_sta` 打包 → `enum {IR_IDLE,LEADER,DATA}` + edge/repeat/key/ready |
+| S6 | `app/baremetal/38_camera_stream/main.c` | `g_ov_mode`/`g_jpeg_data_ok` → `enum cam_mode_t` + `enum jpeg_phase_t` |
+| S7 | `app/baremetal/45_camera_storage/main.c` | `g_jpeg_ok` → `enum {JPEG_CAP_WAIT,JPEG_CAP_DONE}` |
+| S8 | `port/.../usbd_conf.{c,h}` + `54/55/56` | `g_device_state` bool → `enum usbd_dev_state_t{DISCONNECTED,CONNECTED}` |
+
+## 4. G2 FTL 格式化
+| ID | 文件 | 目标 |
+|---|---|---|
+| F1 | `lib/ftl/ftl.h`, `lib/ftl/ftl.c` | 厂商横幅→项目 `/** @file @brief */`；TAB→4 空格；删除冗余/中文注释；逻辑不变 |
+
+## 5. G3 其他
+| ID | 文件 | 目标 |
+|---|---|---|
+| O1 | `lib/audio/wavplay.c`, `app/baremetal/47_sai_record/recorder.c` | 忙等加有界超时，超时退出并返回错误/停止 |
+| O2 | 新增 `lib/cam_jpeg/{cam_jpeg.c,.h,CMakeLists.txt}`；重构 `38`/`45` | 抽出行缓冲+回调+`cam_jpeg_init/capture/size`；38 采集后经 USART2 发送，45 采集后写 SD；注册进 `lib/CMakeLists.txt` |
+| O3 | `app/baremetal/16_rtc/main.c`、相机 `outsize` 常量 | 魔法数具名（`RTC_WAKEUP_1HZ`、`CAM_OUTSIZE_OFFSET_X` 等） |
+| O4 | `verify.md` + 本文件勾选 | 记录 G1–G3 完成 |
+
+## 6. 验证
+- 逐组构建：`wavplay→46`、`recorder→47`、`storage→54`、`cdc→56`、`ir→31`、`camera→38/45`、`usbd_conf→54/55/56`。
+- 全量回归 `bash tool/build.sh debug all all-freertos` → **73/73**。
+- 三组分别提交（G1/G2/G3）。
+
+## 7. 进度追踪
+- [x] G1 S1 [x] S2 [x] S3 [x] S4 [x] S5 [x] S6 [x] S7 [x] S8
+- [ ] G2 F1
+- [ ] G3 O1 [ ] O2 [ ] O3 [ ] O4
+- [ ] 全量回归 73/73

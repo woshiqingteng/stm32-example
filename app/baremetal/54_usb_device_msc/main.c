@@ -5,6 +5,7 @@
  *          host accesses the disk.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "bsp.h"
@@ -21,8 +22,9 @@
 int main(void)
 {
     sd_card_info_t info;
-    uint8_t  usb_status = 0xFFU;
-    uint8_t  storage_status = 0xFFU;
+    usbd_dev_state_t       usb_state = USBD_DEV_STATE_DISCONNECTED;
+    usb_storage_activity_t storage_activity = USB_STORAGE_ACTIVITY_IDLE;
+    bool                   first = true;
     char     line[48];
 
     bsp_init();
@@ -54,29 +56,23 @@ int main(void)
 
     for (;;)
     {
-        if (usb_status != g_device_state)
+        if (first || (usb_state != g_device_state))
         {
-            usb_status = g_device_state;
-
-            if (usb_status == 1U)
-            {
-                printf("USB Connected\r\n");
-            }
-            else
-            {
-                printf("USB DisConnected\r\n");
-            }
+            first = false;
+            usb_state = g_device_state;
+            printf(usb_state == USBD_DEV_STATE_CONNECTED ? "USB Connected\r\n"
+                                                         : "USB DisConnected\r\n");
         }
 
-        if (storage_status != g_usb_storage_state)
+        if (storage_activity != g_usb_storage_activity)
         {
-            storage_status = g_usb_storage_state;
+            storage_activity = g_usb_storage_activity;
 
-            if ((storage_status & USB_STORAGE_WRITING) != 0U)
+            if (storage_activity == USB_STORAGE_ACTIVITY_WRITING)
             {
                 printf("USB Writing...\r\n");
             }
-            else if ((storage_status & USB_STORAGE_READING) != 0U)
+            else if (storage_activity == USB_STORAGE_ACTIVITY_READING)
             {
                 printf("USB Reading...\r\n");
             }
@@ -84,18 +80,21 @@ int main(void)
             {
                 /* idle */
             }
+        }
 
-            if ((storage_status & USB_STORAGE_WRITE_ERR) != 0U)
-            {
-                printf("USB Write Err\r\n");
-            }
-
-            if ((storage_status & USB_STORAGE_READ_ERR) != 0U)
-            {
-                printf("USB Read Err\r\n");
-            }
-
-            g_usb_storage_state = 0U;
+        if (g_usb_storage_error == USB_STORAGE_ERROR_WRITE)
+        {
+            printf("USB Write Err\r\n");
+            g_usb_storage_error = USB_STORAGE_ERROR_NONE;
+        }
+        else if (g_usb_storage_error == USB_STORAGE_ERROR_READ)
+        {
+            printf("USB Read Err\r\n");
+            g_usb_storage_error = USB_STORAGE_ERROR_NONE;
+        }
+        else
+        {
+            /* no error */
         }
 
         led_toggle(LED0);

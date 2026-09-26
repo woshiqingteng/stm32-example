@@ -16,12 +16,10 @@
 
 #define BLINK_PERIOD_MS 500U
 #define LOOP_DELAY_MS   10U
-#define CDC_RX_READY_FLAG 0x8000U
-#define CDC_RX_LEN_MASK   0x3FFFU
 
 int main(void)
 {
-    uint8_t  usb_status = 0xFFU;
+    usbd_dev_state_t usb_status = USBD_DEV_STATE_DISCONNECTED;
     uint16_t times = 0U;
 
     bsp_init();
@@ -44,7 +42,7 @@ int main(void)
         {
             usb_status = g_device_state;
 
-            if (usb_status == 1U)
+            if (usb_status == USBD_DEV_STATE_CONNECTED)
             {
                 printf("USB Connected\r\n");
                 led_on(LED1);
@@ -56,9 +54,9 @@ int main(void)
             }
         }
 
-        if ((g_usb_usart_rx_sta & CDC_RX_READY_FLAG) != 0U)
+        if (g_usb_usart_rx_state == CDC_RX_STATE_DONE)
         {
-            uint16_t len = g_usb_usart_rx_sta & CDC_RX_LEN_MASK;
+            uint16_t len = g_usb_usart_rx_len;
             char     line[48];
 
             /* Echo the line to USART1, then back to the host. */
@@ -67,7 +65,8 @@ int main(void)
             printf("usb rx %u bytes: %s\r\n", (unsigned)len, line);
 
             cdc_vcp_data_tx(g_usb_usart_rx_buffer, len);
-            g_usb_usart_rx_sta = 0U;
+            g_usb_usart_rx_len   = 0U;
+            g_usb_usart_rx_state = CDC_RX_STATE_IDLE;
         }
         else
         {

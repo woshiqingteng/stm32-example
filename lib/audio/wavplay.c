@@ -21,10 +21,18 @@ typedef struct
     uint8_t *saibuf2;       /* SAI TX half-buffer 2 */
     uint8_t *tbuf;          /* scratch buffer (24-bit WAV repacking) */
     void    *file;          /* file being played (FatFs FIL *) */
-    uint8_t  status;        /* bit0: 0 paused, 1 playing; bit1: 0 stopped, 1 running */
 } audio_dev_t;
 
+/** @brief  Playback state. */
+typedef enum
+{
+    AUDIO_STATE_IDLE = 0,
+    AUDIO_STATE_PLAYING,
+    AUDIO_STATE_PAUSED
+} audio_state_t;
+
 static audio_dev_t   s_dev;
+static audio_state_t s_audio_state = AUDIO_STATE_IDLE;
 static volatile bool s_transfer_end;    /* true when a half-buffer finished */
 static volatile bool s_witch_buf;       /* false: buf1 served, true: buf2 served */
 
@@ -41,13 +49,13 @@ void audio_hw_init(void)
 
 static void audio_start(void)
 {
-    s_dev.status = 3 << 0;      /* running + playing */
+    s_audio_state = AUDIO_STATE_PLAYING;
     sai1_play_start();
 }
 
 static void audio_stop(void)
 {
-    s_dev.status = 0;
+    s_audio_state = AUDIO_STATE_IDLE;
     sai1_play_stop();
 }
 
@@ -59,7 +67,7 @@ static void audio_sai_tx_callback(void)
     {
         s_witch_buf = false;
 
-        if ((s_dev.status & 0x01) == 0)     /* paused: silence buf1 */
+        if (s_audio_state != AUDIO_STATE_PLAYING)     /* paused: silence buf1 */
         {
             for (i = 0; i < AUDIO_SAI_TX_BUF_SIZE; i++)
             {
@@ -71,7 +79,7 @@ static void audio_sai_tx_callback(void)
     {
         s_witch_buf = true;
 
-        if ((s_dev.status & 0x01) == 0)     /* paused: silence buf2 */
+        if (s_audio_state != AUDIO_STATE_PLAYING)     /* paused: silence buf2 */
         {
             for (i = 0; i < AUDIO_SAI_TX_BUF_SIZE; i++)
             {
@@ -320,13 +328,13 @@ audio_nav_t wav_play_song(char *fname)
 
                     if (key == KEY_WKUP)            /* pause / resume */
                     {
-                        if (s_dev.status & 0x01)
+                        if (s_audio_state == AUDIO_STATE_PLAYING)
                         {
-                            s_dev.status &= (uint8_t)~(1 << 0);
+                            s_audio_state = AUDIO_STATE_PAUSED;
                         }
-                        else
+                        else if (s_audio_state == AUDIO_STATE_PAUSED)
                         {
-                            s_dev.status |= 0x01;
+                            s_audio_state = AUDIO_STATE_PLAYING;
                         }
                     }
 
@@ -354,7 +362,7 @@ audio_nav_t wav_play_song(char *fname)
                         led_toggle(LED0);
                     }
 
-                    if ((s_dev.status & 0x01) == 0)
+                    if (s_audio_state == AUDIO_STATE_PAUSED)
                     {
                         delay_ms(10);
                     }

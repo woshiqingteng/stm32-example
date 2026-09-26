@@ -20,7 +20,8 @@
 /* NOR region exposed to the host: the first 25 MB (the FatFs area). */
 #define NOR_LUN_SECTOR_COUNT    (25U * 1024U * 2U)
 
-volatile uint8_t g_usb_storage_state = 0U;
+volatile usb_storage_activity_t g_usb_storage_activity = USB_STORAGE_ACTIVITY_IDLE;
+volatile usb_storage_error_t    g_usb_storage_error    = USB_STORAGE_ERROR_NONE;
 
 /* Weak NAND hooks: strong versions live in lib_nand_storage. */
 __attribute__((weak)) int8_t nand_storage_init(void)                    { return -1; }
@@ -130,7 +131,7 @@ static int8_t STORAGE_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_
 {
     int8_t res;
 
-    g_usb_storage_state = USB_STORAGE_READING;
+    g_usb_storage_activity = USB_STORAGE_ACTIVITY_READING;
 
     if (lun == LUN_NOR)
     {
@@ -157,7 +158,7 @@ static int8_t STORAGE_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_
 
     if (res != 0)
     {
-        g_usb_storage_state |= USB_STORAGE_READ_ERR;
+        g_usb_storage_error = USB_STORAGE_ERROR_READ;
     }
 
     return res;
@@ -167,7 +168,7 @@ static int8_t STORAGE_Write(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16
 {
     int8_t res;
 
-    g_usb_storage_state = USB_STORAGE_WRITING;
+    g_usb_storage_activity = USB_STORAGE_ACTIVITY_WRITING;
 
     if (lun == LUN_NOR)
     {
@@ -194,7 +195,7 @@ static int8_t STORAGE_Write(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16
 
     if (res != 0)
     {
-        g_usb_storage_state |= USB_STORAGE_WRITE_ERR;
+        g_usb_storage_error = USB_STORAGE_ERROR_WRITE;
     }
 
     return res;

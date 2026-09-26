@@ -26,7 +26,22 @@
 #include "ov5640.h"
 #include "delay.h"
 
-uint8_t  g_ov_mode = 0;                 /* bit0: 0 = RGB565, 1 = JPEG */
+/** @brief  Current camera mode. */
+typedef enum
+{
+    CAM_MODE_RGB565 = 0,
+    CAM_MODE_JPEG
+} cam_mode_t;
+
+/** @brief  One-shot JPEG capture phase. */
+typedef enum
+{
+    JPEG_PHASE_CAPTURING = 0,
+    JPEG_PHASE_READY,
+    JPEG_PHASE_SENT
+} jpeg_phase_t;
+
+cam_mode_t            g_cam_mode = CAM_MODE_RGB565;
 uint16_t g_curline = 0;                 /* current capture line (RGB mode) */
 uint16_t g_yoffset = 0;                 /* vertical offset (RGB mode) */
 
@@ -41,7 +56,7 @@ static uint32_t  g_dcmi_line_buf[2][JPEG_LINE_WORDS];
 static uint32_t *const g_jpeg_data_buf = (uint32_t *)JPEG_BUF_ADDR;
 
 volatile uint32_t g_jpeg_data_len = 0;  /* valid data in g_jpeg_data_buf, in words */
-volatile uint8_t  g_jpeg_data_ok  = 0;  /* 0 capturing, 1 ready to send, 2 sent  */
+volatile jpeg_phase_t g_jpeg_phase = JPEG_PHASE_CAPTURING;
 
 static const uint16_t jpeg_img_size_tbl[][2] =
 {
@@ -66,9 +81,9 @@ void jpeg_data_process(void)
 
     g_curline = g_yoffset;
 
-    if ((g_ov_mode & 0x01U) != 0U)                          /* JPEG mode */
+    if (g_cam_mode == CAM_MODE_JPEG)                          /* JPEG mode */
     {
-        if (g_jpeg_data_ok == 0U)                           /* frame not captured yet */
+        if (g_jpeg_phase == JPEG_PHASE_CAPTURING)                           /* frame not captured yet */
         {
             __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
 
@@ -91,14 +106,14 @@ void jpeg_data_process(void)
             }
 
             g_jpeg_data_len += rlen;
-            g_jpeg_data_ok   = 1U;                          /* frame ready */
+            g_jpeg_phase   = JPEG_PHASE_READY;                          /* frame ready */
         }
 
-        if (g_jpeg_data_ok == 2U)                           /* previous frame sent */
+        if (g_jpeg_phase == JPEG_PHASE_SENT)                           /* previous frame sent */
         {
             __HAL_DMA_SET_COUNTER(&g_dma_dcmi_handle, JPEG_LINE_WORDS);
             __HAL_DMA_ENABLE(&g_dma_dcmi_handle);
-            g_jpeg_data_ok  = 0U;
+            g_jpeg_phase  = JPEG_PHASE_CAPTURING;
             g_jpeg_data_len = 0U;
         }
     }
@@ -199,7 +214,7 @@ static void jpeg_test(void)
 
     for (;;)
     {
-        if (g_jpeg_data_ok == 1U)                           /* a whole frame is ready */
+        if (g_jpeg_phase == JPEG_PHASE_READY)                           /* a whole frame is ready */
         {
             p = (uint8_t *)g_jpeg_data_buf;
             printf("g_jpeg_data_len:%u\r\n", (unsigned int)(g_jpeg_data_len * 4U));
@@ -292,7 +307,7 @@ static void jpeg_test(void)
                 lcd_show_string(30, 210, 210, 16, LCD_FONT_SIZE_16, "Send data complete!!", RED);
             }
 
-            g_jpeg_data_ok = 2U;                            /* allow the next frame */
+            g_jpeg_phase = JPEG_PHASE_SENT;                            /* allow the next frame */
         }
     }
 }
@@ -436,12 +451,12 @@ int main(void)
 
         if (key == KEY0)
         {
-            g_ov_mode = 0U;
+            g_cam_mode = CAM_MODE_RGB565;
             break;
         }
         else if (key == KEY1)
         {
-            g_ov_mode = 1U;
+            g_cam_mode = CAM_MODE_JPEG;
             break;
         }
 
@@ -462,7 +477,7 @@ int main(void)
         delay_ms(5);
     }
 
-    if (g_ov_mode == 1U)
+    if (g_cam_mode == CAM_MODE_JPEG)
     {
         jpeg_test();
     }

@@ -42,7 +42,14 @@ extern "C" {
 #define DEVICE_HS                       1U
 
 /* USB connection state, maintained by usbd_conf.c: false = disconnected. */
-extern volatile bool g_device_state;
+/** @brief  USB device connection state. */
+typedef enum
+{
+    USBD_DEV_STATE_DISCONNECTED = 0,
+    USBD_DEV_STATE_CONNECTED
+} usbd_dev_state_t;
+
+extern volatile usbd_dev_state_t g_device_state;
 
 /*
  * The device stack allocates one class handle. Only a single class is

@@ -25,7 +25,16 @@ static volatile uint8_t g_sai_recfifo_wrpos = 0;
 static uint8_t *p_sai_recfifo_buf[REC_SAI_RX_FIFO_SIZE];
 
 static uint32_t g_wav_size;         /* recorded PCM size, excluding the header */
-static uint8_t  g_rec_sta = 0;      /* bit7 recording, bit0 paused */
+
+/** @brief  Recorder state. */
+typedef enum
+{
+    REC_STATE_IDLE = 0,
+    REC_STATE_RECORDING,
+    REC_STATE_PAUSED
+} rec_state_t;
+
+static rec_state_t g_rec_state = REC_STATE_IDLE;
 
 /* Two zero samples keep the SAI TX master clock running while recording. */
 static const uint16_t SAI_PLAY_BUF[2] = { 0x0000, 0x0000 };
@@ -77,7 +86,7 @@ uint8_t recoder_sai_fifo_write(uint8_t *buf)
 
 void recoder_sai_dma_rx_callback(void)
 {
-    if (g_rec_sta == 0x80)                          /* record mode */
+    if (g_rec_state == REC_STATE_RECORDING)         /* capture only while recording */
     {
         if (sai1_rx_dma_target() != 0U)
         {
@@ -255,9 +264,8 @@ void wav_recorder(void)
             switch (key)
             {
                 case KEY2:      /* stop and save */
-                    if (g_rec_sta & 0x80)
+                    if (g_rec_state != REC_STATE_IDLE)
                     {
-                        g_rec_sta = 0;
                         wavhead->riff.ChunkSize = g_wav_size + 36U;
                         wavhead->data.ChunkSize = g_wav_size;
                         (void)f_lseek(f_rec, 0);
@@ -266,21 +274,21 @@ void wav_recorder(void)
                         g_wav_size = 0;
                     }
 
-                    g_rec_sta = 0;
+                    g_rec_state = REC_STATE_IDLE;
                     recsec = 0;
                     led_off(LED1);
                     break;
 
                 case KEY0:      /* record / pause */
-                    if (g_rec_sta & 0x01)               /* paused: resume */
+                    if (g_rec_state == REC_STATE_PAUSED)          /* paused: resume */
                     {
-                        g_rec_sta &= (uint8_t)0xFE;
+                        g_rec_state = REC_STATE_RECORDING;
                     }
-                    else if (g_rec_sta & 0x80)          /* recording: pause */
+                    else if (g_rec_state == REC_STATE_RECORDING)  /* recording: pause */
                     {
-                        g_rec_sta |= 0x01;
+                        g_rec_state = REC_STATE_PAUSED;
                     }
-                    else                                /* start a new recording */
+                    else                                          /* start a new recording */
                     {
                         recsec = 0;
                         recoder_new_pathname(pname);
@@ -291,18 +299,18 @@ void wav_recorder(void)
 
                         if (res != 0U)
                         {
-                            g_rec_sta = 0;
+                            g_rec_state = REC_STATE_IDLE;
                             rval = 0xFE;
                         }
                         else
                         {
                             (void)f_write(f_rec, (const void *)wavhead, sizeof(__WaveHeader), &bw);
                             recoder_msg_show(0, 0);
-                            g_rec_sta |= 0x80;
+                            g_rec_state = REC_STATE_RECORDING;
                         }
                     }
 
-                    if (g_rec_sta & 0x01)
+                    if (g_rec_state == REC_STATE_PAUSED)
                     {
                         led_on(LED1);       /* pause indicator */
                     }
@@ -313,7 +321,7 @@ void wav_recorder(void)
                     break;
 
                 case KEY_WKUP:      /* play the last recording */
-                    if (g_rec_sta != 0x80)
+                    if (g_rec_state != REC_STATE_RECORDING)
                     {
                         if (pname[0] != '\0')
                         {

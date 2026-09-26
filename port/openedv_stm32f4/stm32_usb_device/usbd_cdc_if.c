@@ -13,9 +13,6 @@
 #include "usbd_handle.h"
 #include "delay.h"
 
-#define USB_USART_CMD_END   0x8000U
-#define USB_USART_CR        0x4000U
-
 static USBD_CDC_LineCodingTypeDef g_line_coding = {
     115200U,    /* bitrate   */
     0x00U,      /* stop bits */
@@ -26,8 +23,9 @@ static USBD_CDC_LineCodingTypeDef g_line_coding = {
 static uint8_t g_usb_printf_buffer[USB_USART_REC_LEN];
 static uint8_t g_usb_rx_buffer[USB_USART_REC_LEN];
 
-uint8_t  g_usb_usart_rx_buffer[USB_USART_REC_LEN];
-uint16_t g_usb_usart_rx_sta = 0U;
+uint8_t        g_usb_usart_rx_buffer[USB_USART_REC_LEN];
+uint16_t       g_usb_usart_rx_len = 0U;
+cdc_rx_state_t g_usb_usart_rx_state = CDC_RX_STATE_IDLE;
 
 static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
@@ -109,31 +107,33 @@ void cdc_vcp_data_rx(uint8_t *buf, uint32_t len)
     {
         res = buf[i];
 
-        if ((g_usb_usart_rx_sta & USB_USART_CMD_END) == 0U)
+        if (g_usb_usart_rx_state != CDC_RX_STATE_DONE)
         {
-            if ((g_usb_usart_rx_sta & USB_USART_CR) != 0U)
+            if (g_usb_usart_rx_state == CDC_RX_STATE_SEEN_CR)
             {
                 if (res != 0x0AU)
                 {
-                    g_usb_usart_rx_sta = 0U;
+                    g_usb_usart_rx_state = CDC_RX_STATE_IDLE;
+                    g_usb_usart_rx_len   = 0U;
                 }
                 else
                 {
-                    g_usb_usart_rx_sta |= USB_USART_CMD_END;
+                    g_usb_usart_rx_state = CDC_RX_STATE_DONE;
                 }
             }
             else if (res == 0x0DU)
             {
-                g_usb_usart_rx_sta |= USB_USART_CR;
+                g_usb_usart_rx_state = CDC_RX_STATE_SEEN_CR;
             }
             else
             {
-                g_usb_usart_rx_buffer[g_usb_usart_rx_sta & 0x3FFFU] = res;
-                g_usb_usart_rx_sta++;
+                g_usb_usart_rx_buffer[g_usb_usart_rx_len] = res;
+                g_usb_usart_rx_len++;
 
-                if (g_usb_usart_rx_sta > (USB_USART_REC_LEN - 1U))
+                if (g_usb_usart_rx_len > (USB_USART_REC_LEN - 1U))
                 {
-                    g_usb_usart_rx_sta = 0U;
+                    g_usb_usart_rx_len   = 0U;
+                    g_usb_usart_rx_state = CDC_RX_STATE_IDLE;
                 }
             }
         }
