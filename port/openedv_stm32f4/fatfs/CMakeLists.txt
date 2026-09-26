@@ -11,9 +11,7 @@ add_library(fatfs_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
 target_include_directories(fatfs_port PUBLIC
     ${CMAKE_SOURCE_DIR}/port/common/fatfs)
 target_include_directories(fatfs_port PRIVATE
-    $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>
-    # diskio.c may route a USB-MSC drive (guarded by FATFS_USB_MSC).
-    ${CMAKE_SOURCE_DIR}/port/common/stm32_usb_host)
+    $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries(fatfs_port PUBLIC bsp_sdio bsp_nor)
 
 # Variant that routes FatFs drive 2 to the USB host MSC glue

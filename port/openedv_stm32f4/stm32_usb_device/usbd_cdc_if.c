@@ -10,12 +10,11 @@
 #include <string.h>
 
 #include "usbd_cdc_if.h"
+#include "usbd_handle.h"
 #include "delay.h"
 
 #define USB_USART_CMD_END   0x8000U
 #define USB_USART_CR        0x4000U
-
-extern USBD_HandleTypeDef USBD_Device;
 
 static USBD_CDC_LineCodingTypeDef g_line_coding = {
     115200U,    /* bitrate   */

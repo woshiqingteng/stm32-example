@@ -16,6 +16,9 @@
 /* USB OTG FS peripheral instance. */
 PCD_HandleTypeDef g_pcd_usb_otg_fs;
 
+/* USB device stack handle, owned by the port layer. */
+USBD_HandleTypeDef USBD_Device;
+
 /* USB connection state: false = not connected, true = connected. */
 volatile bool g_device_state = false;
 

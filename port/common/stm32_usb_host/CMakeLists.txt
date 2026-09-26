@@ -7,4 +7,4 @@ target_include_directories(stm32_usb_host_msc_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/port/${BSP}/stm32_usb_host)
 target_link_libraries(stm32_usb_host_msc_port PUBLIC stm32_usb_host_common_port)
-target_link_libraries(stm32_usb_host_msc_port PRIVATE stm32_usb_host_inc fatfs_core_inc)
+target_link_libraries(stm32_usb_host_msc_port PRIVATE fatfs_core_inc)

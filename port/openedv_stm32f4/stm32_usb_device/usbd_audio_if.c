@@ -10,12 +10,11 @@
 
 #include "usbd_audio_if.h"
 #include "usbd_audio.h"
+#include "usbd_handle.h"
 #include "codec.h"
 #include "sai.h"
 
 #define AUDIO_MIC_BUF_SIZE   (AUDIO_TOTAL_BUF_SIZE / 2U)
-
-extern USBD_HandleTypeDef USBD_Device;
 
 uint8_t g_audio_volume = 0U;
 

@@ -9,6 +9,7 @@
 
 #include "bsp.h"
 #include "usbd_core.h"
+#include "usbd_handle.h"
 #include "usbd_desc.h"
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
@@ -17,8 +18,6 @@
 #define LOOP_DELAY_MS   10U
 #define CDC_RX_READY_FLAG 0x8000U
 #define CDC_RX_LEN_MASK   0x3FFFU
-
-USBD_HandleTypeDef USBD_Device;
 
 int main(void)
 {

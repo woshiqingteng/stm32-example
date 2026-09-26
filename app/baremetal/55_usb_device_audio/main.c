@@ -8,13 +8,12 @@
 
 #include "bsp.h"
 #include "usbd_core.h"
+#include "usbd_handle.h"
 #include "usbd_desc.h"
 #include "usbd_audio.h"
 #include "usbd_audio_if.h"
 
 #define BLINK_PERIOD_MS 200U
-
-USBD_HandleTypeDef USBD_Device;
 
 int main(void)
 {
