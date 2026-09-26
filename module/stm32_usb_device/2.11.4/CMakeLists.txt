@@ -18,5 +18,6 @@ add_library(stm32_usb_device STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/CDC/Src/usbd_cdc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbd_hid.c)
 
-target_link_libraries(stm32_usb_device PUBLIC stm32_usb_device_inc cmsis_core soc_${MCU_FAMILY})
-target_link_libraries(stm32_usb_device PRIVATE drv_usb)
+target_link_libraries(stm32_usb_device
+    PUBLIC stm32_usb_device_inc cmsis_core soc_${MCU_FAMILY}
+    PRIVATE drv_usb)
