@@ -1,25 +1,7 @@
 /**
- ****************************************************************************************************
- * @file        ftl.c
- * @author      正点原子团队(ALIENTEK)
- * @version     V1.0
- * @date        2023-01-04
- * @brief       NAND FLASH FTL层算法 代码
- * @license     Copyright (c) 2022-2032, 广州市星翼电子科技有限公司
- ****************************************************************************************************
- * @attention
- *
- * 实验平台:正点原子 阿波罗 F429开发板
- * 在线视频:www.yuanzige.com
- * 技术论坛:www.openedv.com
- * 公司网址:www.alientek.com
- * 购买地址:openedv.taobao.com
- *
- * 修改说明
- * V1.0 20230104
- * 第一次发布
- *
- ****************************************************************************************************
+ * @file    ftl.c
+ * @brief   NAND flash FTL (flash translation layer): logical-to-physical
+ *          mapping, bad-block handling and sector read/write over the raw NAND.
  */
 
 #include <string.h>
@@ -27,47 +9,28 @@
 #include "ftl.h"
 #include "nand.h"
 
-/* Static LUT / bad-block table, sized for the largest supported NAND part
- * (4096 blocks). Using static storage avoids pulling the 160 KB heap in. */
 #define FTL_MAX_BLOCKS 4096U
 static uint16_t g_ftl_lut[FTL_MAX_BLOCKS];
 static uint8_t  g_ftl_blktbl[FTL_MAX_BLOCKS];
 
-
-
-/**
- * 每个块,第一个page的spare区,前四个字节的含义:
- * 第一个字节,表示该块是否是坏块:0XFF,正常块;其他值,坏块.
- * 第二个字节,表示该块是否被用过:0XFF,没有写过数据;0XCC,写过数据了.
- * 第三和第四个字节,表示该块所属的逻辑块编号.
-
- * 每个page,spare区16字节以后的字节含义:
- * 第十六字节开始,后续每4个字节用于存储一个扇区(大小:NAND_ECC_SECTOR_SIZE)的ECC值,用于ECC校验
- */
-
-/**
- * @brief       FTL层初始化
- * @param       无
- * @retval      0,正常；其他,失败
- */
 uint8_t ftl_init(void)
 {
     uint8_t temp;
 
     if (nand_init())
     {
-        return 1;                                                   /* 初始化NAND FLASH */
+        return 1;
     }
 
-    nand_dev.lut = g_ftl_lut;                                       /* 给LUT表使用静态内存 */
-    memset(nand_dev.lut, 0, nand_dev.block_totalnum * 2);           /* 全部清理 */
+    nand_dev.lut = g_ftl_lut;
+    memset(nand_dev.lut, 0, nand_dev.block_totalnum * 2);
 
     temp = ftl_create_lut(1);
 
     if (temp)
     {
         printf("format nand flash...\r\n");
-        temp = ftl_format();                                        /* 格式化NAND */
+        temp = ftl_format();
 
         if (temp)
         {
@@ -75,7 +38,7 @@ uint8_t ftl_init(void)
             return 2;
         }
     }
-    else                                                            /* 创建LUT表成功 */
+    else
     {
         printf("total block num: %d\r\n", nand_dev.block_totalnum);
         printf("good block num: %d\r\n", nand_dev.good_blocknum);
@@ -85,72 +48,47 @@ uint8_t ftl_init(void)
     return 0;
 }
 
-/**
- * @brief       标记某一个块为坏块
- * @param       blocknum    : 块编号,范围:0~(block_totalnum-1)
- * @retval      无
- */
 void ftl_badblock_mark(uint32_t blocknum)
 {
-    uint32_t temp = 0XAAAAAAAA;/* 坏块标记mark,任意值都OK,只要不是0XFF.这里写前4个字节,方便ftl_find_unused_block函数检查坏块.(不检查备份区,以提高速度) */
-    nand_writespare(blocknum * nand_dev.block_pagenum, 0, (uint8_t *)&temp, 4);     /* 在第一个page的spare区,第一个字节做坏块标记(前4个字节都写) */
-    nand_writespare(blocknum * nand_dev.block_pagenum + 1, 0, (uint8_t *)&temp, 4); /* 在第二个page的spare区,第一个字节做坏块标记(备份用,前4个字节都写) */
+    uint32_t temp = 0XAAAAAAAA;
+    nand_writespare(blocknum * nand_dev.block_pagenum, 0, (uint8_t *)&temp, 4);
+    nand_writespare(blocknum * nand_dev.block_pagenum + 1, 0, (uint8_t *)&temp, 4);
 }
 
-/**
- * @brief       检查某一块是否是坏块
- * @param       blocknum    : 块编号,范围:0~(block_totalnum-1)
- * @retval      0,好块;
- *              其他,坏块
- */
 uint8_t ftl_check_badblock(uint32_t blocknum)
 {
     uint8_t flag = 0;
 
-    nand_readspare(blocknum * nand_dev.block_pagenum, 0, &flag, 1);         /* 读取坏块标志 */
+    nand_readspare(blocknum * nand_dev.block_pagenum, 0, &flag, 1);
 
-    if (flag == 0XFF)                                                       /* 好块?,读取备份区坏块标记 */
+    if (flag == 0XFF)
     {
-        nand_readspare(blocknum * nand_dev.block_pagenum + 1, 0, &flag, 1); /* 读取备份区坏块标志 */
+        nand_readspare(blocknum * nand_dev.block_pagenum + 1, 0, &flag, 1);
 
         if (flag == 0XFF)
         {
-            return 0;                                                       /* 好块 */
+            return 0;
         }
 
-        else return 1;                                                      /* 坏块 */
+        else return 1;
     }
 
     return 2;
 }
 
-/**
- * @brief       标记某一个块已经使用
- * @param       blocknum    : 块编号,范围:0~(block_totalnum-1)
- * @retval      0,成功;
- *              其他,失败
- */
 uint8_t ftl_used_blockmark(uint32_t blocknum)
 {
-	uint8_t buf[4];
-//    uint8_t usedflag = 0XCC;
+    uint8_t buf[4];
+
     uint8_t temp = 0;
-    nand_readspare(blocknum * nand_dev.block_pagenum, 0, buf, 4); 		/* 读出4字节 */
-	
+    nand_readspare(blocknum * nand_dev.block_pagenum, 0, buf, 4);
+
     buf[1] = 0XCC;
-    temp = nand_writespare(blocknum * nand_dev.block_pagenum, 0, buf, 4); /* 写入块已经被使用标志 */
-	
-//    temp = nand_writespare(blocknum * nand_dev.block_pagenum, 1, (uint8_t *)&usedflag, 1); /* 写入块已经被使用标志 */
+    temp = nand_writespare(blocknum * nand_dev.block_pagenum, 0, buf, 4);
+
     return temp;
 }
 
-/**
- * @brief       从给定的块开始找到往前找到一个未被使用的块(指定奇数/偶数)
- * @param       sblock      : 开始块,范围:0~(block_totalnum-1)
- * @param       flag        : 0,偶数快; 1,奇数块.
- * @retval      0XFFFFFFFF,失败;
- *              其他值,未使用块号
- */
 uint32_t ftl_find_unused_block(uint32_t sblock, uint8_t flag)
 {
     uint32_t temp = 0;
@@ -158,26 +96,20 @@ uint32_t ftl_find_unused_block(uint32_t sblock, uint8_t flag)
 
     for (blocknum = sblock + 1; blocknum > 0; blocknum--)
     {
-        if (((blocknum - 1) % 2) == flag)                                                    /* 奇偶合格,才检测 */
+        if (((blocknum - 1) % 2) == flag)
         {
-            nand_readspare((blocknum - 1) * nand_dev.block_pagenum, 0, (uint8_t *)&temp, 4); /* 读块是否被使用标记 */
+            nand_readspare((blocknum - 1) * nand_dev.block_pagenum, 0, (uint8_t *)&temp, 4);
 
             if (temp == 0XFFFFFFFF)
             {
-                return (blocknum - 1);                                                       /* 找到一个空块,返回块编号 */
+                return (blocknum - 1);
             }
         }
     }
 
-    return 0XFFFFFFFF;                                                                       /* 未找到空余块 */
+    return 0XFFFFFFFF;
 }
 
-/**
- * @brief       查找与给定块在同一个plane内的未使用的块
- * @param       sblock      : 给定块,范围:0~(block_totalnum-1)
- * @retval      0XFFFFFFFF,失败;
- *              其他值,未使用块号
- */
 uint32_t ftl_find_same_plane_unused_block(uint32_t sblock)
 {
     static uint32_t curblock = 0XFFFFFFFF;
@@ -185,91 +117,81 @@ uint32_t ftl_find_same_plane_unused_block(uint32_t sblock)
 
     if (curblock > (nand_dev.block_totalnum - 1))
     {
-        curblock = nand_dev.block_totalnum - 1;                   /* 超出范围了,强制从最后一个块开始 */
+        curblock = nand_dev.block_totalnum - 1;
     }
 
-    unusedblock = ftl_find_unused_block(curblock, sblock % 2);    /* 从当前块,开始,向前查找空余块  */
+    unusedblock = ftl_find_unused_block(curblock, sblock % 2);
 
-    if (unusedblock == 0XFFFFFFFF && curblock < (nand_dev.block_totalnum - 1))  /* 未找到,且不是从最末尾开始找的 */
+    if (unusedblock == 0XFFFFFFFF && curblock < (nand_dev.block_totalnum - 1))
     {
-        curblock = nand_dev.block_totalnum - 1;                   /* 强制从最后一个块开始 */
-        unusedblock = ftl_find_unused_block(curblock, sblock % 2);/* 从最末尾开始,重新找一遍 */
+        curblock = nand_dev.block_totalnum - 1;
+        unusedblock = ftl_find_unused_block(curblock, sblock % 2);
     }
 
     if (unusedblock == 0XFFFFFFFF)
     {
-        return 0XFFFFFFFF;                                        /* 找不到空闲block */
+        return 0XFFFFFFFF;
     }
 
-    curblock = unusedblock;                                       /* 当前块号等于未使用块编号.下次则从此处开始查找 */
+    curblock = unusedblock;
 
-    return unusedblock;                                           /* 返回找到的空闲block */
+    return unusedblock;
 }
 
-/**
- * @brief       将一个块的数据拷贝到另一块,并且可以写入数据
- * @param       source_pagenum  : 要写入数据的页地址,范围:0~(block_pagenum*block_totalnum-1)
- * @param       colnum          : 要写入的列开始地址(也就是页内地址),范围:0~(page_totalsize-1)
- * @param       pbuffer         : 要写入的数据
- * @param       numbyte_to_write: 要写入的字节数，该值不能超过块内剩余容量大小
- * @retval      0,成功;
- *              其他,失败
- */
 uint8_t ftl_copy_and_write_to_block(uint32_t source_pagenum, uint16_t colnum, uint8_t *pbuffer, uint32_t numbyte_to_write)
 {
     uint16_t i = 0, temp = 0, wrlen;
     uint32_t source_block = 0, pageoffset = 0;
     uint32_t unusedblock = 0;
-    source_block = source_pagenum / nand_dev.block_pagenum;         /* 获得页所在的块号 */
-    pageoffset = source_pagenum % nand_dev.block_pagenum;           /* 获得页在所在块内的偏移 */
+    source_block = source_pagenum / nand_dev.block_pagenum;
+    pageoffset = source_pagenum % nand_dev.block_pagenum;
 
 retry:
-    unusedblock = ftl_find_same_plane_unused_block(source_block);   /* 查找与源块在一个plane的未使用块 */
+    unusedblock = ftl_find_same_plane_unused_block(source_block);
 
     if (unusedblock > nand_dev.block_totalnum)
     {
-        return 1;                                                   /* 当找到的空余块号大于块总数量的话肯定是出错了 */
+        return 1;
     }
 
-    for (i = 0; i < nand_dev.block_pagenum; i++)                    /* 将一个块的数据复制到找到的未使用块中 */
+    for (i = 0; i < nand_dev.block_pagenum; i++)
     {
-        if (i >= pageoffset && numbyte_to_write)                    /* 数据要写入到当前页 */
+        if (i >= pageoffset && numbyte_to_write)
         {
-            if (numbyte_to_write > (nand_dev.page_mainsize - colnum)) /* 要写入的数据,超过了当前页的剩余数据 */
+            if (numbyte_to_write > (nand_dev.page_mainsize - colnum))
             {
-                wrlen = nand_dev.page_mainsize - colnum;            /* 写入长度等于当前页剩余数据长度 */
+                wrlen = nand_dev.page_mainsize - colnum;
             }
             else
             {
-                wrlen = numbyte_to_write;                           /* 写入全部数据 */
+                wrlen = numbyte_to_write;
             }
 
             temp = nand_copypage_withwrite(source_block * nand_dev.block_pagenum + i, unusedblock * nand_dev.block_pagenum + i, colnum, pbuffer, wrlen);
-            colnum = 0;                                             /* 列地址归零 */
-            pbuffer += wrlen;                                       /* 写地址偏移 */
-            numbyte_to_write -= wrlen;                              /* 写入数据减少 */
+            colnum = 0;
+            pbuffer += wrlen;
+            numbyte_to_write -= wrlen;
         }
 
-        else                                                        /* 无数据写入,直接拷贝即可 */
+        else
         {
             temp = nand_copypage_withoutwrite(source_block * nand_dev.block_pagenum + i, unusedblock * nand_dev.block_pagenum + i);
         }
 
-        if (temp)                                                   /* 返回值非零,当坏块处理 */
+        if (temp)
         {
-            ftl_badblock_mark(unusedblock);                         /* 标记为坏块 */
-            ftl_create_lut(1);                                      /* 重建LUT表 */
+            ftl_badblock_mark(unusedblock);
+            ftl_create_lut(1);
             goto retry;
         }
     }
 
-    if (i == nand_dev.block_pagenum)                                /* 拷贝完成 */
+    if (i == nand_dev.block_pagenum)
     {
-        ftl_used_blockmark(unusedblock);                            /* 标记块已经使用 */
-        nand_eraseblock(source_block);                              /* 擦除源块 */
+        ftl_used_blockmark(unusedblock);
+        nand_eraseblock(source_block);
 
-        //printf("\r\ncopy block %d to block %d\r\n",source_block,unusedblock);/* 打印调试信息 */
-        for (i = 0; i < nand_dev.block_totalnum; i++)               /* 修正LUT表，用unusedblock替换source_block */
+        for (i = 0; i < nand_dev.block_totalnum; i++)
         {
             if (nand_dev.lut[i] == source_block)
             {
@@ -279,19 +201,13 @@ retry:
         }
     }
 
-    return 0;                                                       /* 成功 */
+    return 0;
 }
 
-/**
- * @brief       逻辑块号转换为物理块号
- * @param       lbnnum      : 逻辑块编号
- * @retval      物理块编号
- */
 uint16_t ftl_lbn_to_pbn(uint32_t lbnnum)
 {
     uint16_t pbnno = 0;
 
-    /* 当逻辑块号大于有效块数的时候返回0XFFFF */
     if (lbnnum > nand_dev.valid_blocknum)
     {
         return 0XFFFF;
@@ -302,163 +218,144 @@ uint16_t ftl_lbn_to_pbn(uint32_t lbnnum)
     return pbnno;
 }
 
-/**
- * @brief       写扇区(支持多扇区写)，FATFS文件系统使用
- * @param       pbuffer     : 要写入的数据
- * @param       sectorno    : 起始扇区号
- * @param       sectorsize  : 扇区大小(不能大于NAND_ECC_SECTOR_SIZE定义的大小,否则会出错!!)
- * @param       sectorcount : 要写入的扇区数量
- * @retval      0,成功;
- *              其他,失败
- */
 uint8_t ftl_write_sectors(uint8_t *pbuffer, uint32_t sectorno, uint16_t sectorsize, uint32_t sectorcount)
 {
     uint8_t flag = 0;
     uint16_t temp;
     uint32_t i = 0;
-    uint16_t wsecs;                 /* 写页大小 */
-    uint32_t wlen;                  /* 写入长度 */
-    uint32_t lbnno;                 /* 逻辑块号 */
-    uint32_t pbnno;                 /* 物理块号 */
-    uint32_t phypageno;             /* 物理页号 */
-    uint32_t pageoffset;            /* 页内偏移地址 */
-    uint32_t blockoffset;           /* 块内偏移地址 */
-    uint32_t markdpbn = 0XFFFFFFFF; /* 标记了的物理块编号 */
+    uint16_t wsecs;
+    uint32_t wlen;
+    uint32_t lbnno;
+    uint32_t pbnno;
+    uint32_t phypageno;
+    uint32_t pageoffset;
+    uint32_t blockoffset;
+    uint32_t markdpbn = 0XFFFFFFFF;
 
     for (i = 0; i < sectorcount; i++)
     {
-        lbnno = (sectorno + i) / (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize)); /* 根据逻辑扇区号和扇区大小计算出逻辑块号 */
-        pbnno = ftl_lbn_to_pbn(lbnno);                                                             /* 将逻辑块转换为物理块 */
+        lbnno = (sectorno + i) / (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize));
+        pbnno = ftl_lbn_to_pbn(lbnno);
 
         if (pbnno >= nand_dev.block_totalnum)
         {
-            return 1;                                                                           /* 物理块号大于NAND FLASH的总块数,则失败. */
+            return 1;
         }
 
-        blockoffset = ((sectorno + i) % (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize))) * sectorsize; /* 计算块内偏移 */
-        phypageno = pbnno * nand_dev.block_pagenum + blockoffset / nand_dev.page_mainsize;                             /* 计算出物理页号 */
-        pageoffset = blockoffset % nand_dev.page_mainsize;                                                             /* 计算出页内偏移地址  */
-        temp = nand_dev.page_mainsize - pageoffset;                                                                    /* page内剩余字节数 */
-        temp /= sectorsize;                                                                                            /* 可以连续写入的sector数  */
-        wsecs = sectorcount - i;                                                                                       /* 还剩多少个sector要写 */
+        blockoffset = ((sectorno + i) % (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize))) * sectorsize;
+        phypageno = pbnno * nand_dev.block_pagenum + blockoffset / nand_dev.page_mainsize;
+        pageoffset = blockoffset % nand_dev.page_mainsize;
+        temp = nand_dev.page_mainsize - pageoffset;
+        temp /= sectorsize;
+        wsecs = sectorcount - i;
 
         if (wsecs >= temp)
         {
-            wsecs = temp;                                                                                              /* 大于可连续写入的sector数,则写入temp个扇区 */
+            wsecs = temp;
         }
 
-        wlen = wsecs * sectorsize;                                                                                     /* 每次写wsecs个sector */
+        wlen = wsecs * sectorsize;
 
-        /* 读出写入大小的内容判断是否全为0XFF */
-        flag = nand_readpagecomp(phypageno, pageoffset, 0XFFFFFFFF, wlen / 4, &temp);                                  /* 读一个wlen/4大小个数据,并与0XFFFFFFFF对比 */
+        flag = nand_readpagecomp(phypageno, pageoffset, 0XFFFFFFFF, wlen / 4, &temp);
 
         if (flag)
         {
-            return 2;                                                   /* 读写错误，坏块 */
+            return 2;
         }
 
         if (temp == (wlen / 4))
         {
-            flag = nand_writepage(phypageno, pageoffset, pbuffer, wlen);/* 全为0XFF,可以直接写数据 */
+            flag = nand_writepage(phypageno, pageoffset, pbuffer, wlen);
         }
         else
         {
-            flag = 1;                                                   /* 不全是0XFF,则另作处理 */
+            flag = 1;
         }
 
-        if (flag == 0 && (markdpbn != pbnno))                           /* 全是0XFF,且写入成功,且标记了的物理块与当前物理块不同 */
+        if (flag == 0 && (markdpbn != pbnno))
         {
-            flag = ftl_used_blockmark(pbnno);                           /* 标记此块已经使用 */
-            markdpbn = pbnno;                                           /* 标记完成,标记块=当前块,防止重复标记 */
+            flag = ftl_used_blockmark(pbnno);
+            markdpbn = pbnno;
         }
 
-        if (flag)                                                       /* 不全为0XFF/标记失败，将数据写到另一个块 */
+        if (flag)
         {
-            temp = ((uint32_t)nand_dev.block_pagenum * nand_dev.page_mainsize - blockoffset) / sectorsize;/* 计算整个block还剩下多少个SECTOR可以写入 */
-            wsecs = sectorcount - i;                                    /* 还剩多少个sector要写 */
+            temp = ((uint32_t)nand_dev.block_pagenum * nand_dev.page_mainsize - blockoffset) / sectorsize;
+            wsecs = sectorcount - i;
 
             if (wsecs >= temp)
             {
-                wsecs = temp;                                           /* 大于可连续写入的sector数,则写入temp个扇区 */
+                wsecs = temp;
             }
 
-            wlen = wsecs * sectorsize;                                  /* 每次写wsecs个sector */
-            flag = ftl_copy_and_write_to_block(phypageno, pageoffset, pbuffer, wlen);  /* 拷贝到另外一个block,并写入数据 */
+            wlen = wsecs * sectorsize;
+            flag = ftl_copy_and_write_to_block(phypageno, pageoffset, pbuffer, wlen);
 
             if (flag)
             {
-                return 3;                                                /* 失败 */
+                return 3;
             }
         }
 
         i += wsecs - 1;
-        pbuffer += wlen;                                                 /* 数据缓冲区指针偏移 */
+        pbuffer += wlen;
     }
 
     return 0;
 }
 
-/**
- * @brief       读扇区(支持多扇区读)，FATFS文件系统使用
- * @param       pbuffer     : 数据缓存区
- * @param       sectorno    : 起始扇区号
- * @param       sectorsize  : 扇区大小
- * @param       sectorcount : 要写入的扇区数量
- * @retval      0,成功;
- *              其他,失败
- */
 uint8_t ftl_read_sectors(uint8_t *pbuffer, uint32_t sectorno, uint16_t sectorsize, uint32_t sectorcount)
 {
     uint8_t flag = 0;
-    uint16_t rsecs;         /* 单次读取页数 */
+    uint16_t rsecs;
     uint32_t i = 0;
-    uint32_t lbnno;         /* 逻辑块号 */
-    uint32_t pbnno;         /* 物理块号 */
-    uint32_t phypageno;     /* 物理页号 */
-    uint32_t pageoffset;    /* 页内偏移地址 */
-    uint32_t blockoffset;   /* 块内偏移地址 */
+    uint32_t lbnno;
+    uint32_t pbnno;
+    uint32_t phypageno;
+    uint32_t pageoffset;
+    uint32_t blockoffset;
 
     for (i = 0; i < sectorcount; i++)
     {
-        lbnno = (sectorno + i) / (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize));/* 根据逻辑扇区号和扇区大小计算出逻辑块号 */
-        pbnno = ftl_lbn_to_pbn(lbnno);                                                            /* 将逻辑块转换为物理块 */
+        lbnno = (sectorno + i) / (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize));
+        pbnno = ftl_lbn_to_pbn(lbnno);
 
         if (pbnno >= nand_dev.block_totalnum)
         {
-            return 1;                                                                           /* 物理块号大于NAND FLASH的总块数,则失败. */
+            return 1;
         }
 
-        blockoffset = ((sectorno + i) % (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize))) * sectorsize; /* 计算块内偏移 */
-        phypageno = pbnno * nand_dev.block_pagenum + blockoffset / nand_dev.page_mainsize;       /* 计算出物理页号 */
-        pageoffset = blockoffset % nand_dev.page_mainsize;                                       /* 计算出页内偏移地址 */
-        rsecs = (nand_dev.page_mainsize - pageoffset) / sectorsize;                              /* 计算一次最多可以读取多少页 */
+        blockoffset = ((sectorno + i) % (nand_dev.block_pagenum * (nand_dev.page_mainsize / sectorsize))) * sectorsize;
+        phypageno = pbnno * nand_dev.block_pagenum + blockoffset / nand_dev.page_mainsize;
+        pageoffset = blockoffset % nand_dev.page_mainsize;
+        rsecs = (nand_dev.page_mainsize - pageoffset) / sectorsize;
 
         if (rsecs > (sectorcount - i))
         {
-            rsecs = sectorcount - i;                                                             /* 最多不能超过SectorCount-i */
+            rsecs = sectorcount - i;
         }
 
-        flag = nand_readpage(phypageno, pageoffset, pbuffer, rsecs * sectorsize);                /* 读取数据 */
+        flag = nand_readpage(phypageno, pageoffset, pbuffer, rsecs * sectorsize);
 
-        if (flag == NSTA_ECC1BITERR)                                                             /* 对于1bit ecc错误,可能为坏块 */
+        if (flag == NSTA_ECC1BITERR)
         {
-            flag = nand_readpage(phypageno, pageoffset, pbuffer, rsecs * sectorsize);            /* 重读数据,再次确认 */
+            flag = nand_readpage(phypageno, pageoffset, pbuffer, rsecs * sectorsize);
 
             if (flag == NSTA_ECC1BITERR)
             {
-                ftl_copy_and_write_to_block(phypageno, pageoffset, pbuffer, rsecs * sectorsize); /* 搬运数据 */
-                flag = ftl_blockcompare(phypageno / nand_dev.block_pagenum, 0XFFFFFFFF);         /* 全1检查,确认是否为坏块 */
+                ftl_copy_and_write_to_block(phypageno, pageoffset, pbuffer, rsecs * sectorsize);
+                flag = ftl_blockcompare(phypageno / nand_dev.block_pagenum, 0XFFFFFFFF);
 
                 if (flag == 0)
                 {
-                    flag = ftl_blockcompare(phypageno / nand_dev.block_pagenum, 0X00);           /* 全0检查,确认是否为坏块 */
-                    nand_eraseblock(phypageno / nand_dev.block_pagenum);                         /* 检测完成后,擦除这个块 */
+                    flag = ftl_blockcompare(phypageno / nand_dev.block_pagenum, 0X00);
+                    nand_eraseblock(phypageno / nand_dev.block_pagenum);
                 }
 
-                if (flag)                                                                        /* 全0/全1检查出错,肯定是坏块了. */
+                if (flag)
                 {
-                    ftl_badblock_mark(phypageno / nand_dev.block_pagenum);                       /* 标记为坏块 */
-                    ftl_create_lut(1);                                                           /* 重建LUT表 */
+                    ftl_badblock_mark(phypageno / nand_dev.block_pagenum);
+                    ftl_create_lut(1);
                 }
 
                 flag = 0;
@@ -467,35 +364,28 @@ uint8_t ftl_read_sectors(uint8_t *pbuffer, uint32_t sectorno, uint16_t sectorsiz
 
         if (flag == NSTA_ECC2BITERR)
         {
-            flag = 0;                                                                            /* 2bit ecc错误,不处理(可能是初次写入数据导致的) */
+            flag = 0;
         }
 
         if (flag)
         {
-            return 2;                                                                            /* 失败 */
+            return 2;
         }
 
-        pbuffer += sectorsize * rsecs;                                                           /* 数据缓冲区指针偏移 */
+        pbuffer += sectorsize * rsecs;
         i += rsecs - 1;
     }
 
     return 0;
 }
 
-/**
- * @brief       重新创建LUT表
- * @param       mode    : 0, 仅检查第一个坏块标记
- *                        1, 两个坏块标记都要检查(备份区也要检查)
- * @retval      0,成功;
- *              其他,失败
- */
 uint8_t ftl_create_lut(uint8_t mode)
 {
     uint32_t i;
     uint8_t buf[4];
-    uint32_t lbnnum = 0;                                             /* 逻辑块号 */
+    uint32_t lbnnum = 0;
 
-    for (i = 0; i < nand_dev.block_totalnum; i++)                    /* 复位LUT表，初始化为无效值，也就是0XFFFF */
+    for (i = 0; i < nand_dev.block_totalnum; i++)
     {
         nand_dev.lut[i] = 0XFFFF;
     }
@@ -504,20 +394,20 @@ uint8_t ftl_create_lut(uint8_t mode)
 
     for (i = 0; i < nand_dev.block_totalnum; i++)
     {
-        nand_readspare(i * nand_dev.block_pagenum, 0, buf, 4);        /* 读取4个字节 */
+        nand_readspare(i * nand_dev.block_pagenum, 0, buf, 4);
 
         if (buf[0] == 0XFF && mode)
         {
-            nand_readspare(i * nand_dev.block_pagenum + 1, 0, buf, 1);  /* 好块,且需要检查2次坏块标记 */
+            nand_readspare(i * nand_dev.block_pagenum + 1, 0, buf, 1);
         }
 
-        if (buf[0] == 0XFF)                                           /* 是好块 */
+        if (buf[0] == 0XFF)
         {
-            lbnnum = ((uint16_t)buf[3] << 8) + buf[2];                /* 得到逻辑块编号 */
+            lbnnum = ((uint16_t)buf[3] << 8) + buf[2];
 
-            if (lbnnum < nand_dev.block_totalnum)                     /* 逻辑块号肯定小于总的块数量 */
+            if (lbnnum < nand_dev.block_totalnum)
             {
-                nand_dev.lut[lbnnum] = i;                             /* 更新LUT表，写LBNnum对应的物理块编号 */
+                nand_dev.lut[lbnnum] = i;
             }
 
             nand_dev.good_blocknum++;
@@ -528,7 +418,6 @@ uint8_t ftl_create_lut(uint8_t mode)
         }
     }
 
-    /* LUT表建立完成以后检查有效块个数 */
     for (i = 0; i < nand_dev.block_totalnum; i++)
     {
         if (nand_dev.lut[i] >= nand_dev.block_totalnum)
@@ -540,36 +429,29 @@ uint8_t ftl_create_lut(uint8_t mode)
 
     if (nand_dev.valid_blocknum < 100)
     {
-        return 2;               /* 有效块数小于100,有问题.需要重新格式化 */
+        return 2;
     }
 
-    return 0;                   /* LUT表创建完成 */
+    return 0;
 }
 
-/**
- * @brief       FTL整个Block与某个数据对比
- * @param       blockx      : block编号
- * @param       cmpval      : 要与之对比的值
- * @retval      0,检查成功,全部相等;
-                1,检查失败,有不相等的情况
- */
 uint8_t ftl_blockcompare(uint32_t blockx, uint32_t cmpval)
 {
     uint8_t res;
     uint16_t i, j, k;
 
-    for (i = 0; i < 3; i++)                                                                               /* 允许3次机会 */
+    for (i = 0; i < 3; i++)
     {
         for (j = 0; j < nand_dev.block_pagenum; j++)
         {
-            nand_readpagecomp(blockx * nand_dev.block_pagenum, 0, cmpval, nand_dev.page_mainsize / 4, &k);/* 检查一个page,并与0XFFFFFFFF对比 */
+            nand_readpagecomp(blockx * nand_dev.block_pagenum, 0, cmpval, nand_dev.page_mainsize / 4, &k);
 
             if (k != (nand_dev.page_mainsize / 4))break;
         }
 
         if (j == nand_dev.block_pagenum)
         {
-            return 0;                                                                                     /* 检查合格,直接退出 */
+            return 0;
         }
 
         res = nand_eraseblock(blockx);
@@ -580,11 +462,11 @@ uint8_t ftl_blockcompare(uint32_t blockx, uint32_t cmpval)
         }
         else
         {
-            if (cmpval != 0XFFFFFFFF)                                                                         /* 不是判断全1,则需要重写数据 */
+            if (cmpval != 0XFFFFFFFF)
             {
                 for (k = 0; k < nand_dev.block_pagenum; k++)
                 {
-                    nand_write_pageconst(blockx * nand_dev.block_pagenum + k, 0, 0, nand_dev.page_mainsize / 4);/* 写PAGE */
+                    nand_write_pageconst(blockx * nand_dev.block_pagenum + k, 0, 0, nand_dev.page_mainsize / 4);
                 }
             }
         }
@@ -594,13 +476,6 @@ uint8_t ftl_blockcompare(uint32_t blockx, uint32_t cmpval)
     return 1;
 }
 
-/**
- * @brief       FTL初始化时，搜寻所有坏块,使用:擦-写-读 方式
- * @note        512M的NAND ,需要约3分钟时间,来完成检测
- *              对于RGB屏,由于频繁读写NAND,会引起屏幕乱闪
- * @param       无
- * @retval      好块的数量
- */
 uint32_t ftl_search_badblock(void)
 {
     uint8_t *blktbl;
@@ -608,37 +483,37 @@ uint32_t ftl_search_badblock(void)
     uint32_t i, j;
     uint32_t goodblock = 0;
 
-    blktbl = g_ftl_blktbl;                              /* 静态block坏块表,对应项:0,好块;1,坏块; */
-    nand_erasechip();                                   /* 全片擦除 */
+    blktbl = g_ftl_blktbl;
+    nand_erasechip();
 
-    for (i = 0; i < nand_dev.block_totalnum; i++)       /* 第一阶段检查,检查全1 */
+    for (i = 0; i < nand_dev.block_totalnum; i++)
     {
-        res = ftl_blockcompare(i, 0XFFFFFFFF);          /* 全1检查 */
+        res = ftl_blockcompare(i, 0XFFFFFFFF);
 
         if (res)
         {
-            blktbl[i] = 1;                              /* 坏块  */
+            blktbl[i] = 1;
         }
         else
         {
-            blktbl[i] = 0;/* 好块 */
+            blktbl[i] = 0;
 
-            for (j = 0; j < nand_dev.block_pagenum; j++)/* 写block为全0,为后面的检查准备 */
+            for (j = 0; j < nand_dev.block_pagenum; j++)
             {
                 nand_write_pageconst(i * nand_dev.block_pagenum + j, 0, 0, nand_dev.page_mainsize / 4);
             }
         }
     }
 
-    for (i = 0; i < nand_dev.block_totalnum; i++)       /* 第二阶段检查,检查全0 */
+    for (i = 0; i < nand_dev.block_totalnum; i++)
     {
-        if (blktbl[i] == 0)                             /* 在第一阶段,没有被标记坏块的,才可能是好块 */
+        if (blktbl[i] == 0)
         {
-            res = ftl_blockcompare(i, 0);               /* 全0检查 */
+            res = ftl_blockcompare(i, 0);
 
             if (res)
             {
-                blktbl[i] = 1;                          /* 标记坏块 */
+                blktbl[i] = 1;
             }
             else
             {
@@ -647,25 +522,19 @@ uint32_t ftl_search_badblock(void)
         }
     }
 
-    nand_erasechip();                                   /* 全片擦除 */
+    nand_erasechip();
 
-    for (i = 0; i < nand_dev.block_totalnum; i++)       /* 第三阶段检查,标记坏块 */
+    for (i = 0; i < nand_dev.block_totalnum; i++)
     {
         if (blktbl[i])
         {
-            ftl_badblock_mark(i);                       /* 是坏块 */
+            ftl_badblock_mark(i);
         }
     }
 
-    return goodblock;                                   /* 返回好块的数量 */
+    return goodblock;
 }
 
-/**
- * @brief       格式化NAND 重建LUT表
- * @param       无
- * @retval      0,成功;
-                其他,失败
- */
 uint8_t ftl_format(void)
 {
     uint8_t temp;
@@ -674,26 +543,26 @@ uint8_t ftl_format(void)
     uint32_t goodblock = 0;
     nand_dev.good_blocknum = 0;
 
-#if FTL_USE_BAD_BLOCK_SEARCH == 1                   /* 使用擦-写-读的方式,检测坏块 */
-    nand_dev.good_blocknum = FTL_SearchBadBlock();  /* 搜寻坏块.耗时很久 */
-#else                                               /* 直接使用NAND FLASH的出厂坏块标志(其他块,默认是好块) */
+#if FTL_USE_BAD_BLOCK_SEARCH == 1
+    nand_dev.good_blocknum = FTL_SearchBadBlock();
+#else
 
     for (i = 0; i < nand_dev.block_totalnum; i++)
     {
-        temp = ftl_check_badblock(i);               /* 检查一个块是否为坏块 */
+        temp = ftl_check_badblock(i);
 
-        if (temp == 0)                              /* 好块 */
+        if (temp == 0)
         {
             temp = nand_eraseblock(i);
 
-            if (temp)                               /* 擦除失败,认为坏块 */
+            if (temp)
             {
                 printf("Bad block:%d\r\n", i);
-                ftl_badblock_mark(i);               /* 标记是坏块 */
+                ftl_badblock_mark(i);
             }
             else
             {
-                nand_dev.good_blocknum++;           /* 好块数量加一 */
+                nand_dev.good_blocknum++;
             }
         }
     }
@@ -703,44 +572,34 @@ uint8_t ftl_format(void)
 
     if (nand_dev.good_blocknum < 100)
     {
-        return 1;                                   /*如果好块的数量少于100，则NAND Flash报废 */
+        return 1;
     }
 
-    goodblock = (nand_dev.good_blocknum * 93) / 100;/* %93的好块用于存储数据 */
+    goodblock = (nand_dev.good_blocknum * 93) / 100;
 
     n = 0;
 
-    for (i = 0; i < nand_dev.block_totalnum; i++)   /* 在好块中标记上逻辑块信息 */
+    for (i = 0; i < nand_dev.block_totalnum; i++)
     {
-        temp = ftl_check_badblock(i);               /* 检查一个块是否为坏块 */
+        temp = ftl_check_badblock(i);
 
-        if (temp == 0)                              /* 好块 */
+        if (temp == 0)
         {
-            nand_readspare(i * nand_dev.block_pagenum, 0, buf, 4);  /* 读取spare区前四个字节 */
+            nand_readspare(i * nand_dev.block_pagenum, 0, buf, 4);
             buf[2] = (uint8_t)n;
             buf[3] = (uint8_t)(n >> 8);
-			
-            nand_writespare(i * nand_dev.block_pagenum, 0, buf, 4); /* 写入逻辑块编号 */
-            n++;                                    /* 逻辑块编号加1 */
 
-            if (n == goodblock) break;              /* 全部标记完了 */
+            nand_writespare(i * nand_dev.block_pagenum, 0, buf, 4);
+            n++;
+
+            if (n == goodblock) break;
         }
     }
 
     if (ftl_create_lut(1))
     {
-        return 2;                                   /* 重建LUT表失败 */
+        return 2;
     }
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-

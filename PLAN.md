@@ -183,6 +183,6 @@ wireless.c ov5640.c codec.c lib/picture/gif.c piclib.c oled.c` CMSIS。
 
 ## 7. 进度追踪
 - [x] G1 S1 [x] S2 [x] S3 [x] S4 [x] S5 [x] S6 [x] S7 [x] S8
-- [ ] G2 F1
+- [x] G2 F1
 - [ ] G3 O1 [ ] O2 [ ] O3 [ ] O4
 - [ ] 全量回归 73/73
