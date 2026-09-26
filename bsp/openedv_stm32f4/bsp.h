@@ -20,7 +20,7 @@
 #include "adc.h"
 #include "dac.h"
 #include "pwmdac.h"
-#include "stmflash.h"
+#include "internal_flash.h"
 #include "rtc.h"
 #include "rng.h"
 #include "pwr.h"

@@ -26,10 +26,10 @@ int main(void)
     memcpy(write_buf, g_text, FLASH_TEXT_SIZE);
 
     printf("37_internal_flash ready, addr=0x%08lX, %u words\r\n",
-           (unsigned long)STMFLASH_EEPROM_ADDR, (unsigned)FLASH_WORDS);
+           (unsigned long)INTERNAL_FLASH_EEPROM_ADDR, (unsigned)FLASH_WORDS);
 
-    stmflash_write(STMFLASH_EEPROM_ADDR, write_buf, FLASH_WORDS);
-    stmflash_read(STMFLASH_EEPROM_ADDR, read_buf, FLASH_WORDS);
+    internal_flash_write(INTERNAL_FLASH_EEPROM_ADDR, write_buf, FLASH_WORDS);
+    internal_flash_read(INTERNAL_FLASH_EEPROM_ADDR, read_buf, FLASH_WORDS);
 
     verified = (memcmp(read_buf, write_buf, FLASH_TEXT_SIZE) == 0);
 
