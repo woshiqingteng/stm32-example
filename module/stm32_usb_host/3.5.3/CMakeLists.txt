@@ -18,5 +18,5 @@ add_library(stm32_usb_host STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/Class/HID/Src/usbh_hid_parser.c)
 
 target_link_libraries(stm32_usb_host
-    PUBLIC stm32_usb_host_inc cmsis_core soc_${MCU_FAMILY}
+    PUBLIC cmsis_core soc_${MCU_FAMILY} stm32_usb_host_inc
     PRIVATE drv_usb)
