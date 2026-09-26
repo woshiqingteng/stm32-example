@@ -1,10 +1,10 @@
 /**
- * @file    nrf24l01.h
+ * @file    wireless.h
  * @brief   NRF24L01 2.4 GHz transceiver on SPI2 (CE=PG12, CSN=PG10, IRQ=PI11).
  */
 
-#ifndef BSP_NRF24L01_H
-#define BSP_NRF24L01_H
+#ifndef BSP_WIRELESS_H
+#define BSP_WIRELESS_H
 
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
@@ -22,21 +22,21 @@
 #define NRF24L01_RX_PLOAD_WIDTH 32U
 
 /** @brief  Configure CE/CSN/IRQ and bring up SPI2. */
-void nrf24l01_init(void);
+void wireless_init(void);
 
 /** @brief  Write/read-back the TX address. @return 0 if the device is present. */
-uint8_t nrf24l01_check(void);
+uint8_t wireless_check(void);
 
 /** @brief  Enter receive mode. */
-void nrf24l01_rx_mode(void);
+void wireless_rx_mode(void);
 
 /** @brief  Enter transmit mode. */
-void nrf24l01_tx_mode(void);
+void wireless_tx_mode(void);
 
 /** @brief  Transmit one fixed-width packet. @return 0 on success. */
-uint8_t nrf24l01_tx_packet(uint8_t *ptxbuf);
+uint8_t wireless_tx_packet(uint8_t *ptxbuf);
 
 /** @brief  Fetch one received packet. @return 0 on success. */
-uint8_t nrf24l01_rx_packet(uint8_t *prxbuf);
+uint8_t wireless_rx_packet(uint8_t *prxbuf);
 
-#endif /* BSP_NRF24L01_H */
+#endif /* BSP_WIRELESS_H */

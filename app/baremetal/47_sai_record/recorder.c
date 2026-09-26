@@ -94,13 +94,13 @@ void recoder_enter_rec_mode(void)
 {
     sai1_tx_dma_irq_disable();          /* no TX IRQ while injecting zeros */
 
-    es8388_adda_cfg(0, 1);              /* enable ADC */
-    es8388_input_cfg(0);                /* channel 1, MIC input */
-    es8388_mic_gain(8);                 /* maximum MIC gain */
-    es8388_alc_ctrl(3, 4, 4);           /* ALC on, for a stable recording level */
-    es8388_output_cfg(0, 0);            /* outputs off */
-    es8388_spkvol_set(0);
-    es8388_sai_cfg(0, 3);               /* standard I2S, 16-bit */
+    codec_adda_cfg(0, 1);              /* enable ADC */
+    codec_input_cfg(0);                /* channel 1, MIC input */
+    codec_mic_gain(8);                 /* maximum MIC gain */
+    codec_alc_ctrl(3, 4, 4);           /* ALC on, for a stable recording level */
+    codec_output_cfg(0, 0);            /* outputs off */
+    codec_spkvol_set(0);
+    codec_sai_cfg(0, 3);               /* standard I2S, 16-bit */
 
     sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
     sai1_saib_init(SAI_MODESLAVE_RX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
@@ -120,9 +120,9 @@ void recoder_enter_rec_mode(void)
 
 void recoder_enter_play_mode(void)
 {
-    es8388_adda_cfg(1, 0);      /* enable DAC */
-    es8388_output_cfg(1, 1);    /* enable outputs */
-    es8388_spkvol_set(28);
+    codec_adda_cfg(1, 0);      /* enable DAC */
+    codec_output_cfg(1, 1);    /* enable outputs */
+    codec_spkvol_set(28);
     sai1_play_stop();
     sai1_rec_stop();
 

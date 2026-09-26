@@ -1,5 +1,5 @@
 /**
- * @file    24cxx.c
+ * @file    eeprom.c
  * @brief   AT24Cxx series I2C EEPROM driver (single byte and block access).
  *
  * Address encoding follows the vendor driver: devices larger than 24C16 send a
@@ -9,18 +9,18 @@
 
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
-#include "24cxx.h"
+#include "eeprom.h"
 #include "delay.h"
 
 #define AT24CXX_WRITE_DELAY_MS 10U
 #define AT24CXX_CHECK_VALUE    0x55U
 
-void at24cxx_init(void)
+void eeprom_init(void)
 {
     i2c_init();
 }
 
-uint8_t at24cxx_read_one_byte(uint16_t addr)
+uint8_t eeprom_read_one_byte(uint16_t addr)
 {
     uint8_t temp = 0;
 
@@ -50,7 +50,7 @@ uint8_t at24cxx_read_one_byte(uint16_t addr)
     return temp;
 }
 
-void at24cxx_write_one_byte(uint16_t addr, uint8_t data)
+void eeprom_write_one_byte(uint16_t addr, uint8_t data)
 {
     i2c_start();
 
@@ -76,37 +76,37 @@ void at24cxx_write_one_byte(uint16_t addr, uint8_t data)
     delay_ms(AT24CXX_WRITE_DELAY_MS);
 }
 
-uint8_t at24cxx_check(void)
+uint8_t eeprom_check(void)
 {
     uint8_t temp;
     uint16_t addr = EE_TYPE;
 
-    temp = at24cxx_read_one_byte(addr);
+    temp = eeprom_read_one_byte(addr);
 
     if (temp == AT24CXX_CHECK_VALUE)
     {
         return 0;
     }
 
-    at24cxx_write_one_byte(addr, AT24CXX_CHECK_VALUE);
-    temp = at24cxx_read_one_byte(addr);
+    eeprom_write_one_byte(addr, AT24CXX_CHECK_VALUE);
+    temp = eeprom_read_one_byte(addr);
 
     return (temp == AT24CXX_CHECK_VALUE) ? 0U : 1U;
 }
 
-void at24cxx_read(uint16_t addr, uint8_t *pbuf, uint16_t datalen)
+void eeprom_read(uint16_t addr, uint8_t *pbuf, uint16_t datalen)
 {
     while (datalen-- != 0U)
     {
-        *pbuf++ = at24cxx_read_one_byte(addr++);
+        *pbuf++ = eeprom_read_one_byte(addr++);
     }
 }
 
-void at24cxx_write(uint16_t addr, uint8_t *pbuf, uint16_t datalen)
+void eeprom_write(uint16_t addr, uint8_t *pbuf, uint16_t datalen)
 {
     while (datalen-- != 0U)
     {
-        at24cxx_write_one_byte(addr, *pbuf);
+        eeprom_write_one_byte(addr, *pbuf);
         addr++;
         pbuf++;
     }

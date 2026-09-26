@@ -10,7 +10,7 @@
 
 #include "usbd_audio_if.h"
 #include "usbd_audio.h"
-#include "es8388.h"
+#include "codec.h"
 #include "sai.h"
 
 #define AUDIO_MIC_BUF_SIZE   (AUDIO_TOTAL_BUF_SIZE / 2U)
@@ -145,14 +145,14 @@ uint8_t BSP_AUDIO_OUT_Init(uint16_t output_device, uint8_t volume, uint32_t audi
 {
     (void)output_device;
 
-    (void)es8388_init();
-    es8388_adda_cfg(1U, 1U);        /* DAC and ADC on      */
-    es8388_output_cfg(1U, 1U);      /* both outputs on     */
-    es8388_input_cfg(0U);           /* channel 1 (MIC)     */
-    es8388_mic_gain(8U);            /* maximum MIC gain    */
-    es8388_hpvol_set(25U);
-    es8388_spkvol_set(15U);
-    es8388_sai_cfg(0U, 3U);         /* Philips I2S, 16-bit */
+    (void)codec_init();
+    codec_adda_cfg(1U, 1U);        /* DAC and ADC on      */
+    codec_output_cfg(1U, 1U);      /* both outputs on     */
+    codec_input_cfg(0U);           /* channel 1 (MIC)     */
+    codec_mic_gain(8U);            /* maximum MIC gain    */
+    codec_hpvol_set(25U);
+    codec_spkvol_set(15U);
+    codec_sai_cfg(0U, 3U);         /* Philips I2S, 16-bit */
 
     sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
     sai1_saib_init(SAI_MODESLAVE_RX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
@@ -205,8 +205,8 @@ uint8_t BSP_AUDIO_OUT_Stop(uint32_t option)
 uint8_t BSP_AUDIO_OUT_SetVolume(uint8_t volume)
 {
     g_audio_volume = volume;
-    es8388_hpvol_set((uint8_t)(volume * 0.3f));
-    es8388_spkvol_set((uint8_t)(volume * 0.3f));
+    codec_hpvol_set((uint8_t)(volume * 0.3f));
+    codec_spkvol_set((uint8_t)(volume * 0.3f));
     return 0U;
 }
 
@@ -214,11 +214,11 @@ uint8_t BSP_AUDIO_OUT_SetMute(uint32_t cmd)
 {
     if (cmd != 0U)
     {
-        es8388_output_cfg(0U, 0U);      /* mute   */
+        codec_output_cfg(0U, 0U);      /* mute   */
     }
     else
     {
-        es8388_output_cfg(1U, 1U);      /* unmute */
+        codec_output_cfg(1U, 1U);      /* unmute */
     }
 
     return 0U;

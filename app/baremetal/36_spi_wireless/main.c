@@ -24,11 +24,11 @@ static void nrf_run_rx(void)
     char    line[48];
 
     printf("NRF24L01 RX mode\r\n");
-    nrf24l01_rx_mode();
+    wireless_rx_mode();
 
     for (;;)
     {
-        if (nrf24l01_rx_packet(payload) == 0U)
+        if (wireless_rx_packet(payload) == 0U)
         {
             payload[NRF24L01_RX_PLOAD_WIDTH - 1U] = '\0';
             sprintf(line, "RX: %s", (char *)payload);
@@ -50,7 +50,7 @@ static void nrf_run_tx(void)
     uint8_t  i;
 
     printf("NRF24L01 TX mode\r\n");
-    nrf24l01_tx_mode();
+    wireless_tx_mode();
 
     for (;;)
     {
@@ -62,7 +62,7 @@ static void nrf_run_tx(void)
         (void)snprintf((char *)payload, NRF24L01_TX_PLOAD_WIDTH, "NRF TX #%lu",
                        (unsigned long)count);
 
-        if (nrf24l01_tx_packet(payload) == 0U)
+        if (wireless_tx_packet(payload) == 0U)
         {
             sprintf(line, "TX: %s", (char *)payload);
             printf("%s\r\n", line);
@@ -85,9 +85,9 @@ int main(void)
     nrf_mode_t mode = NRF_MODE_RX; /* RX by default */
 
     bsp_init();
-    nrf24l01_init();
+    wireless_init();
 
-    while (nrf24l01_check() != 0U)
+    while (wireless_check() != 0U)
     {
         printf("NRF24L01 not found!\r\n");
         delay_ms(200U);

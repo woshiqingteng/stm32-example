@@ -46,7 +46,7 @@ add_library(stm32_usb_device_audio_port STATIC EXCLUDE_FROM_ALL
 target_include_directories(stm32_usb_device_audio_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/stm32_usb_device)
 target_link_libraries(stm32_usb_device_audio_port PUBLIC
-    stm32_usb_device_common_port bsp_es8388 bsp_sai)
+    stm32_usb_device_common_port bsp_codec bsp_sai)
 target_link_libraries(stm32_usb_device_audio_port PRIVATE stm32_usb_device_inc)
 
 add_library(stm32_usb_device_msc_port STATIC EXCLUDE_FROM_ALL

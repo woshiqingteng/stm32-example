@@ -298,12 +298,12 @@ uint8_t video_play_mjpeg(char *pname)
 
                 if (g_avix.SampleRate != 0U)            /* initialise audio playback */
                 {
-                    es8388_init();
-                    es8388_adda_cfg(1, 0);          /* enable DAC, disable ADC */
-                    es8388_output_cfg(1, 1);        /* enable both output channels */
-                    es8388_hpvol_set(25);
-                    es8388_spkvol_set(25);
-                    es8388_sai_cfg(0, 3);               /* standard I2S, 16-bit */
+                    codec_init();
+                    codec_adda_cfg(1, 0);          /* enable DAC, disable ADC */
+                    codec_output_cfg(1, 1);        /* enable both output channels */
+                    codec_hpvol_set(25);
+                    codec_spkvol_set(25);
+                    codec_sai_cfg(0, 3);               /* standard I2S, 16-bit */
                     sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
                     (void)sai1_samplerate_set(g_avix.SampleRate);
                     sai1_tx_dma_init(p_avi_sai_buf[0], p_avi_sai_buf[1], g_avix.AudioBufSize / 2U, 1);

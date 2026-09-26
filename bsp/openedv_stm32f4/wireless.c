@@ -1,12 +1,12 @@
 /**
- * @file    nrf24l01.c
+ * @file    wireless.c
  * @brief   NRF24L01 driver over the shared SPI2 bus, ported from the vendor
  *          NRF24L01 example. CE=PG12, CSN=PG10, IRQ=PI11.
  */
 
 #include "stm32f4xx_hal.h"
 #include "spi.h"
-#include "nrf24l01.h"
+#include "wireless.h"
 
 #define NRF24L01_CE_HIGH()   HAL_GPIO_WritePin(NRF24L01_CE_GPIO_PORT, NRF24L01_CE_GPIO_PIN, GPIO_PIN_SET)
 #define NRF24L01_CE_LOW()    HAL_GPIO_WritePin(NRF24L01_CE_GPIO_PORT, NRF24L01_CE_GPIO_PIN, GPIO_PIN_RESET)
@@ -46,7 +46,7 @@
 static const uint8_t g_tx_address[NRF24L01_TX_ADR_WIDTH] = {0x34U, 0x43U, 0x10U, 0x10U, 0x01U};
 static const uint8_t g_rx_address[NRF24L01_RX_ADR_WIDTH] = {0x34U, 0x43U, 0x10U, 0x10U, 0x01U};
 
-static uint8_t nrf24l01_write_reg(uint8_t reg, uint8_t value)
+static uint8_t wireless_write_reg(uint8_t reg, uint8_t value)
 {
     uint8_t status;
 
@@ -58,7 +58,7 @@ static uint8_t nrf24l01_write_reg(uint8_t reg, uint8_t value)
     return status;
 }
 
-static uint8_t nrf24l01_read_reg(uint8_t reg)
+static uint8_t wireless_read_reg(uint8_t reg)
 {
     uint8_t value;
 
@@ -70,7 +70,7 @@ static uint8_t nrf24l01_read_reg(uint8_t reg)
     return value;
 }
 
-static uint8_t nrf24l01_write_buf(uint8_t reg, const uint8_t *pbuf, uint8_t len)
+static uint8_t wireless_write_buf(uint8_t reg, const uint8_t *pbuf, uint8_t len)
 {
     uint8_t status;
     uint8_t i;
@@ -88,7 +88,7 @@ static uint8_t nrf24l01_write_buf(uint8_t reg, const uint8_t *pbuf, uint8_t len)
     return status;
 }
 
-static uint8_t nrf24l01_read_buf(uint8_t reg, uint8_t *pbuf, uint8_t len)
+static uint8_t wireless_read_buf(uint8_t reg, uint8_t *pbuf, uint8_t len)
 {
     uint8_t status;
     uint8_t i;
@@ -106,7 +106,7 @@ static uint8_t nrf24l01_read_buf(uint8_t reg, uint8_t *pbuf, uint8_t len)
     return status;
 }
 
-void nrf24l01_init(void)
+void wireless_init(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
 
@@ -135,7 +135,7 @@ void nrf24l01_init(void)
     NRF24L01_CSN_HIGH();
 }
 
-uint8_t nrf24l01_check(void)
+uint8_t wireless_check(void)
 {
     uint8_t buf[NRF24L01_TX_ADR_WIDTH];
     uint8_t i;
@@ -147,8 +147,8 @@ uint8_t nrf24l01_check(void)
 
     spi_set_speed(SPI_BUS_NRF24L01, SPI_BAUDRATEPRESCALER_32);
 
-    (void)nrf24l01_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_TX_ADDR, buf, NRF24L01_TX_ADR_WIDTH);
-    (void)nrf24l01_read_buf(NRF24L01_REG_TX_ADDR, buf, NRF24L01_TX_ADR_WIDTH);
+    (void)wireless_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_TX_ADDR, buf, NRF24L01_TX_ADR_WIDTH);
+    (void)wireless_read_buf(NRF24L01_REG_TX_ADDR, buf, NRF24L01_TX_ADR_WIDTH);
 
     for (i = 0U; i < NRF24L01_TX_ADR_WIDTH; i++)
     {
@@ -161,14 +161,14 @@ uint8_t nrf24l01_check(void)
     return 0U;
 }
 
-uint8_t nrf24l01_tx_packet(uint8_t *ptxbuf)
+uint8_t wireless_tx_packet(uint8_t *ptxbuf)
 {
     uint8_t status;
     uint8_t rval = 0xFFU;
     uint32_t timeout = NRF24L01_TX_TIMEOUT;
 
     NRF24L01_CE_LOW();
-    (void)nrf24l01_write_buf(NRF24L01_WR_TX_PLOAD, ptxbuf, NRF24L01_TX_PLOAD_WIDTH);
+    (void)wireless_write_buf(NRF24L01_WR_TX_PLOAD, ptxbuf, NRF24L01_TX_PLOAD_WIDTH);
     NRF24L01_CE_HIGH();
 
     while ((NRF24L01_IRQ_READ() != GPIO_PIN_RESET) && (timeout != 0U))
@@ -181,12 +181,12 @@ uint8_t nrf24l01_tx_packet(uint8_t *ptxbuf)
         return rval;
     }
 
-    status = nrf24l01_read_reg(NRF24L01_REG_STATUS);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_STATUS, status);
+    status = wireless_read_reg(NRF24L01_REG_STATUS);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_STATUS, status);
 
     if ((status & NRF24L01_STATUS_MAX_TX) != 0U)
     {
-        (void)nrf24l01_write_reg(NRF24L01_FLUSH_TX, 0xFFU);
+        (void)wireless_write_reg(NRF24L01_FLUSH_TX, 0xFFU);
         rval = 1U;
     }
 
@@ -198,54 +198,54 @@ uint8_t nrf24l01_tx_packet(uint8_t *ptxbuf)
     return rval;
 }
 
-uint8_t nrf24l01_rx_packet(uint8_t *prxbuf)
+uint8_t wireless_rx_packet(uint8_t *prxbuf)
 {
     uint8_t status;
     uint8_t rval = 1U;
 
-    status = nrf24l01_read_reg(NRF24L01_REG_STATUS);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_STATUS, status);
+    status = wireless_read_reg(NRF24L01_REG_STATUS);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_STATUS, status);
 
     if ((status & NRF24L01_STATUS_RX_OK) != 0U)
     {
-        (void)nrf24l01_read_buf(NRF24L01_RD_RX_PLOAD, prxbuf, NRF24L01_RX_PLOAD_WIDTH);
-        (void)nrf24l01_write_reg(NRF24L01_FLUSH_RX, 0xFFU);
+        (void)wireless_read_buf(NRF24L01_RD_RX_PLOAD, prxbuf, NRF24L01_RX_PLOAD_WIDTH);
+        (void)wireless_write_reg(NRF24L01_FLUSH_RX, 0xFFU);
         rval = 0U;
     }
 
     return rval;
 }
 
-void nrf24l01_rx_mode(void)
+void wireless_rx_mode(void)
 {
     NRF24L01_CE_LOW();
 
-    (void)nrf24l01_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_RX_ADDR_P0,
+    (void)wireless_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_RX_ADDR_P0,
                              g_rx_address, NRF24L01_RX_ADR_WIDTH);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_AA, 0x01U);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_RXADDR, 0x01U);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_CH, NRF24L01_RF_CHANNEL);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RX_PW_P0, NRF24L01_RX_PLOAD_WIDTH);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_SETUP, NRF24L01_RF_SETUP_VAL);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_CONFIG, 0x0FU);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_AA, 0x01U);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_RXADDR, 0x01U);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_CH, NRF24L01_RF_CHANNEL);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RX_PW_P0, NRF24L01_RX_PLOAD_WIDTH);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_SETUP, NRF24L01_RF_SETUP_VAL);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_CONFIG, 0x0FU);
 
     NRF24L01_CE_HIGH();
 }
 
-void nrf24l01_tx_mode(void)
+void wireless_tx_mode(void)
 {
     NRF24L01_CE_LOW();
 
-    (void)nrf24l01_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_TX_ADDR,
+    (void)wireless_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_TX_ADDR,
                              g_tx_address, NRF24L01_TX_ADR_WIDTH);
-    (void)nrf24l01_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_RX_ADDR_P0,
+    (void)wireless_write_buf(NRF24L01_WRITE_REG + NRF24L01_REG_RX_ADDR_P0,
                              g_rx_address, NRF24L01_RX_ADR_WIDTH);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_AA, 0x01U);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_RXADDR, 0x01U);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_SETUP_RETR, 0x1AU);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_CH, NRF24L01_RF_CHANNEL);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_SETUP, NRF24L01_RF_SETUP_VAL);
-    (void)nrf24l01_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_CONFIG, 0x0EU);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_AA, 0x01U);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_EN_RXADDR, 0x01U);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_SETUP_RETR, 0x1AU);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_CH, NRF24L01_RF_CHANNEL);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_RF_SETUP, NRF24L01_RF_SETUP_VAL);
+    (void)wireless_write_reg(NRF24L01_WRITE_REG + NRF24L01_REG_CONFIG, 0x0EU);
 
     NRF24L01_CE_HIGH();
 }

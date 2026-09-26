@@ -32,11 +32,11 @@ __wavctrl wavctrl;      /* parsed WAV control block */
 
 void audio_hw_init(void)
 {
-    es8388_init();
-    es8388_adda_cfg(1, 0);      /* enable DAC, disable ADC */
-    es8388_output_cfg(1, 1);    /* enable output channels 1 and 2 */
-    es8388_hpvol_set(25);
-    es8388_spkvol_set(25);
+    codec_init();
+    codec_adda_cfg(1, 0);      /* enable DAC, disable ADC */
+    codec_output_cfg(1, 1);    /* enable output channels 1 and 2 */
+    codec_hpvol_set(25);
+    codec_spkvol_set(25);
 }
 
 static void audio_start(void)
@@ -255,13 +255,13 @@ audio_nav_t wav_play_song(char *fname)
     }
     else if (wavctrl.bps == 16)
     {
-        es8388_sai_cfg(0, 3);           /* standard I2S, 16-bit */
+        codec_sai_cfg(0, 3);           /* standard I2S, 16-bit */
         sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
         sai1_tx_dma_init(s_dev.saibuf1, s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 2, 1);
     }
     else if (wavctrl.bps == 24)
     {
-        es8388_sai_cfg(0, 0);           /* standard I2S, 24-bit */
+        codec_sai_cfg(0, 0);           /* standard I2S, 24-bit */
         sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_24);
         sai1_tx_dma_init(s_dev.saibuf1, s_dev.saibuf2, AUDIO_SAI_TX_BUF_SIZE / 4, 2);
     }

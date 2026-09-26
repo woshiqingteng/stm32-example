@@ -34,11 +34,11 @@ int main(void)
     char text_read[EEPROM_STR_LEN + 1U];
 
     bsp_init();
-    at24cxx_init();
+    eeprom_init();
 
     printf("24_i2c_eeprom ready\r\n");
 
-    if (at24cxx_check() != 0U)
+    if (eeprom_check() != 0U)
     {
         printf("24C02 check failed\r\n");
     }
@@ -47,11 +47,11 @@ int main(void)
         printf("24C02 ready\r\n");
     }
 
-    at24cxx_write(EEPROM_TEST_ADDR, (uint8_t *)g_pattern, EEPROM_BYTE_COUNT);
-    at24cxx_write(EEPROM_STR_ADDR, (uint8_t *)g_text, EEPROM_STR_LEN);
+    eeprom_write(EEPROM_TEST_ADDR, (uint8_t *)g_pattern, EEPROM_BYTE_COUNT);
+    eeprom_write(EEPROM_STR_ADDR, (uint8_t *)g_text, EEPROM_STR_LEN);
 
-    at24cxx_read(EEPROM_TEST_ADDR, g_readback, EEPROM_BYTE_COUNT);
-    at24cxx_read(EEPROM_STR_ADDR, (uint8_t *)text_read, EEPROM_STR_LEN);
+    eeprom_read(EEPROM_TEST_ADDR, g_readback, EEPROM_BYTE_COUNT);
+    eeprom_read(EEPROM_STR_ADDR, (uint8_t *)text_read, EEPROM_STR_LEN);
     text_read[EEPROM_STR_LEN] = '\0';
 
     for (i = 0U; i < EEPROM_BYTE_COUNT; i++)

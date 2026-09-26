@@ -51,9 +51,9 @@ target_link_libraries(bsp_spi PUBLIC drv_spi)
 bsp_library(bsp_pcf8574
     pcf8574.c)
 target_link_libraries(bsp_pcf8574 PUBLIC bsp_i2c)
-bsp_library(bsp_24cxx
-    24cxx.c)
-target_link_libraries(bsp_24cxx PUBLIC bsp_i2c)
+bsp_library(bsp_eeprom
+    eeprom.c)
+target_link_libraries(bsp_eeprom PUBLIC bsp_i2c)
 bsp_library(bsp_can
     can.c)
 target_link_libraries(bsp_can PUBLIC drv_can)
@@ -63,18 +63,18 @@ target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
 bsp_library(bsp_ov5640
     ov5640.c)
 target_link_libraries(bsp_ov5640 PUBLIC bsp_pcf8574)
-bsp_library(bsp_es8388
-    es8388.c)
-target_link_libraries(bsp_es8388 PUBLIC bsp_i2c)
+bsp_library(bsp_codec
+    codec.c)
+target_link_libraries(bsp_codec PUBLIC bsp_i2c)
 bsp_library(bsp_sai
     sai.c)
 target_link_libraries(bsp_sai PUBLIC drv_sai)
 bsp_library(bsp_rs485
     rs485.c)
 target_link_libraries(bsp_rs485 PUBLIC bsp_pcf8574 drv_uart)
-bsp_library(bsp_nrf24l01
-    nrf24l01.c)
-target_link_libraries(bsp_nrf24l01 PUBLIC bsp_spi)
+bsp_library(bsp_wireless
+    wireless.c)
+target_link_libraries(bsp_wireless PUBLIC bsp_spi)
 bsp_library(bsp_ir
     ir.c)
 target_link_libraries(bsp_ir PUBLIC drv_tim)
@@ -94,9 +94,6 @@ target_link_libraries(bsp_pwmdac PUBLIC bsp_dac drv_tim)
 bsp_library(bsp_stmflash
     stmflash.c)
 target_link_libraries(bsp_stmflash PUBLIC drv_flash)
-bsp_library(bsp_sram
-    sram.c)
-target_link_libraries(bsp_sram PUBLIC drv_fmc)
 bsp_library(bsp_sdram
     sdram.c)
 target_link_libraries(bsp_sdram PUBLIC drv_fmc)
@@ -164,10 +161,10 @@ add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
     bsp_btim bsp_gtim bsp_atim bsp_rtc bsp_wdg
-    bsp_i2c bsp_spi bsp_pcf8574 bsp_24cxx
-    bsp_can bsp_dcmi bsp_ov5640 bsp_es8388 bsp_sai bsp_rs485 bsp_nrf24l01 bsp_ir
+    bsp_i2c bsp_spi bsp_pcf8574 bsp_eeprom
+    bsp_can bsp_dcmi bsp_ov5640 bsp_codec bsp_sai bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
-    bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
+    bsp_stmflash bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_rng
     bsp_ap3216c bsp_qmi8658a bsp_st480mc bsp_ds18b20 bsp_dht11

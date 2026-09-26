@@ -1,10 +1,10 @@
 /**
- * @file    24cxx.h
+ * @file    eeprom.h
  * @brief   AT24Cxx series I2C EEPROM driver.
  */
 
-#ifndef BSP_24CXX_H
-#define BSP_24CXX_H
+#ifndef BSP_EEPROM_H
+#define BSP_EEPROM_H
 
 #include <stdint.h>
 
@@ -22,15 +22,15 @@
 #define EE_TYPE     AT24C02
 
 /** @brief  Initialise the shared software IIC bus. */
-void at24cxx_init(void);
+void eeprom_init(void);
 
 /** @brief  Probe the device (write 0x55 to the last address, read it back). */
-uint8_t at24cxx_check(void);
+uint8_t eeprom_check(void);
 
-uint8_t at24cxx_read_one_byte(uint16_t addr);
-void    at24cxx_write_one_byte(uint16_t addr, uint8_t data);
+uint8_t eeprom_read_one_byte(uint16_t addr);
+void    eeprom_write_one_byte(uint16_t addr, uint8_t data);
 
-void at24cxx_read(uint16_t addr, uint8_t *pbuf, uint16_t datalen);
-void at24cxx_write(uint16_t addr, uint8_t *pbuf, uint16_t datalen);
+void eeprom_read(uint16_t addr, uint8_t *pbuf, uint16_t datalen);
+void eeprom_write(uint16_t addr, uint8_t *pbuf, uint16_t datalen);
 
-#endif /* BSP_24CXX_H */
+#endif /* BSP_EEPROM_H */

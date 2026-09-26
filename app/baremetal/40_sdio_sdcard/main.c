@@ -1,17 +1,15 @@
 /**
  * @file    main.c
- * @brief   40_sdio_sdcard: external SRAM test plus SD card over SDIO. The card type
- *          and capacity are printed on USART1; a block is written and read
- *          back and the result is reported on USART1.
+ * @brief   40_sdio_sdcard: SD card over SDIO. The card type and capacity are
+ *          printed on USART1; a block is written and read back and the result
+ *          is reported on USART1.
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "bsp.h"
 #include "sdio.h"
-#include "sram.h"
 
-#define SRAM_TEST_LEN   512U
 #define SD_TEST_SECTOR  1000U
 #define SD_TEST_COUNT   1U
 #define SD_BLOCK_LEN    512U
@@ -25,17 +23,11 @@ int main(void)
     sd_card_info_t info;
     uint32_t errors = 0U;
     uint32_t i;
-    uint32_t sram_errors;
     char     line[64];
 
     bsp_init();
-    sram_init();
 
     printf("40_sdio_sdcard ready\r\n");
-
-    sram_errors = sram_test(0U, SRAM_TEST_LEN);
-    printf("SRAM 0x%08lX: %lu error(s)\r\n", (unsigned long)SRAM_BASE_ADDR,
-           (unsigned long)sram_errors);
 
     if (sdio_init() != 0U)
     {
