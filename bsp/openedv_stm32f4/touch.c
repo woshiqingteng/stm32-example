@@ -380,10 +380,12 @@ bool touch_scan(bool mode)
         }
 
         g_touch.pressed = true;
+        g_touch.count = count;
         return true;
     }
 
     g_touch.pressed = false;
+    g_touch.count = 0U;
     return false;
 }
 

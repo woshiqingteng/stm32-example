@@ -183,7 +183,18 @@ static void oled_draw_point(uint8_t x, uint8_t y, bool dot)
 
 static uint8_t oled_char_width(oled_font_t size)
 {
-    return (size == OLED_FONT_6X8) ? OLED_6X8_WIDTH : OLED_8X16_WIDTH;
+    switch (size)
+    {
+        case OLED_FONT_6X8:
+        case OLED_FONT_12X6:
+            return 6U;
+
+        case OLED_FONT_24X12:
+            return 12U;
+
+        default:
+            return 8U;
+    }
 }
 
 /* Font bytes are MSB-first: row 0 is bit 7. */
@@ -194,8 +205,13 @@ static uint8_t glyph_bit(uint8_t byte, uint8_t row)
 
 static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
 {
+    const uint8_t *pfont;
     uint8_t idx;
+    uint8_t width;
+    uint8_t height;
+    uint8_t bytes_per_col;
     uint8_t col;
+    uint8_t b;
     uint8_t row;
     uint8_t font_byte;
 
@@ -208,31 +224,42 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
 
     if (size == OLED_FONT_6X8)
     {
-        for (col = 0; col < OLED_6X8_WIDTH; col++)
+        pfont = (const uint8_t *)oled_font_6x8[idx];
+        width = 6U;
+        height = 8U;
+        bytes_per_col = 1U;
+    }
+    else
+    {
+        height = (uint8_t)size;
+        width = (uint8_t)((uint8_t)size / 2U);
+        bytes_per_col = (uint8_t)((height + 7U) / 8U);
+
+        switch (size)
         {
-            font_byte = oled_font_6x8[idx][col];
-            for (row = 0; row < OLED_FONT_ROWS; row++)
-            {
-                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
-                                glyph_bit(font_byte, row));
-            }
+            case OLED_FONT_12X6:  pfont = (const uint8_t *)oled_asc2_1206[idx]; break;
+            case OLED_FONT_8X16:  pfont = (const uint8_t *)oled_asc2_1608[idx]; break;
+            case OLED_FONT_24X12: pfont = (const uint8_t *)oled_asc2_2412[idx]; break;
+            default: return;
         }
     }
-    else if (size == OLED_FONT_8X16)
-    {
-        for (col = 0; col < OLED_8X16_WIDTH; col++)
-        {
-            font_byte = oled_asc2_1608[idx][OLED_8X16_BYTES_PER_COL * col];
-            for (row = 0; row < OLED_FONT_ROWS; row++)
-            {
-                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + row),
-                                glyph_bit(font_byte, row));
-            }
 
-            font_byte = oled_asc2_1608[idx][(OLED_8X16_BYTES_PER_COL * col) + 1U];
-            for (row = 0; row < OLED_FONT_ROWS; row++)
+    for (col = 0U; col < width; col++)
+    {
+        for (b = 0U; b < bytes_per_col; b++)
+        {
+            font_byte = pfont[(uint8_t)(bytes_per_col * col) + b];
+
+            for (row = 0U; row < 8U; row++)
             {
-                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + OLED_FONT_ROWS + row),
+                uint8_t py = (uint8_t)((b * 8U) + row);
+
+                if (py >= height)
+                {
+                    break;
+                }
+
+                oled_draw_point((uint8_t)(x + col), (uint8_t)(y + py),
                                 glyph_bit(font_byte, row));
             }
         }

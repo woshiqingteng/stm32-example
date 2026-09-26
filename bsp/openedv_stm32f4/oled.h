@@ -13,8 +13,10 @@
 /** @brief  Selectable ASCII font heights. */
 typedef enum
 {
-    OLED_FONT_6X8  = 8,
-    OLED_FONT_8X16 = 16
+    OLED_FONT_12X6  = 12,
+    OLED_FONT_6X8   = 8,
+    OLED_FONT_8X16  = 16,
+    OLED_FONT_24X12 = 24
 } oled_font_t;
 
 /** @brief  Initialise the SSD1306 and clear the screen. */

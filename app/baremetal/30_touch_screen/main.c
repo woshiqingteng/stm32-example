@@ -62,9 +62,11 @@ int main(void)
 {
     uint16_t x;
     uint16_t y;
-    uint16_t last_x = 0U;
-    uint16_t last_y = 0U;
-    bool have_last = false;
+    uint16_t last_x[TOUCH_MAX_POINTS] = { 0U };
+    uint16_t last_y[TOUCH_MAX_POINTS] = { 0U };
+    bool     have_last[TOUCH_MAX_POINTS] = { false };
+    uint8_t  i;
+    uint8_t  n;
     uint32_t tick = 0U;
 
     bsp_init();
@@ -94,26 +96,40 @@ int main(void)
     {
         if (touch_scan(false) != 0U)
         {
-            touch_read_xy(&x, &y);
+            n = g_touch.count;
 
-            if ((x < lcd_get_width()) && (y < lcd_get_height()))
+            for (i = 0U; i < n; i++)
             {
-                if (have_last)
+                x = g_touch.x[i];
+                y = g_touch.y[i];
+
+                if ((x < lcd_get_width()) && (y < lcd_get_height()))
                 {
-                    touch_draw_line(last_x, last_y, x, y, BLUE);
+                    if (have_last[i])
+                    {
+                        touch_draw_line(last_x[i], last_y[i], x, y, BLUE);
+                    }
+
+                    touch_draw_point(x, y, RED);
+                    last_x[i] = x;
+                    last_y[i] = y;
+                    have_last[i] = true;
                 }
-
-                touch_draw_point(x, y, RED);
-                last_x = x;
-                last_y = y;
-                have_last = true;
-
-                printf("touch: x=%u y=%u\r\n", (unsigned)x, (unsigned)y);
             }
+
+            for (i = n; i < TOUCH_MAX_POINTS; i++)
+            {
+                have_last[i] = false;
+            }
+
+            printf("touch: %u point(s)\r\n", (unsigned)n);
         }
         else
         {
-            have_last = false;
+            for (i = 0U; i < TOUCH_MAX_POINTS; i++)
+            {
+                have_last[i] = false;
+            }
         }
 
         tick++;

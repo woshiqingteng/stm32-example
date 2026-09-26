@@ -20,6 +20,7 @@
 typedef struct
 {
     uint8_t  type;                     /*!< panel capability flags */
+    uint8_t  count;                    /*!< valid touch points in x[]/y[] */
     bool     pressed;                  /*!< true while a finger is down */
     uint16_t x[TOUCH_MAX_POINTS];      /*!< logical X coordinates */
     uint16_t y[TOUCH_MAX_POINTS];      /*!< logical Y coordinates */
