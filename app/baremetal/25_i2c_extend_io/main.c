@@ -46,6 +46,12 @@ int main(void)
         sprintf(line, "INT:%u EX_IO:%u", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
         printf("%s\r\n", line);
 
+        /* Buzzer demo: pulse BEEP via the expander bit API. */
+        io_expand_write_bit(PCF8574_BEEP_IO, 1U);
+        delay_ms(200U);
+        io_expand_write_bit(PCF8574_BEEP_IO, 0U);
+        printf("BEEP pulse\r\n");
+
         idx ^= 1U;
         led_toggle(LED0);
         delay_ms(PATTERN_PERIOD);

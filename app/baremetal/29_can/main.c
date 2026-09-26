@@ -12,6 +12,13 @@
 #define CAN_TEST_LEN        8U
 #define CAN_PERIOD_MS       500U
 
+static uint32_t g_can_mode = CAN_MODE_LOOPBACK;
+
+static uint8_t can_reinit(void)
+{
+    return can_init(CAN_SJW_1TQ, CAN_BS2_6TQ, CAN_BS1_8TQ, 6U, g_can_mode);
+}
+
 int main(void)
 {
     uint8_t txbuf[CAN_TEST_LEN];
@@ -23,7 +30,7 @@ int main(void)
 
     bsp_init();
 
-    if (can_init(CAN_SJW_1TQ, CAN_BS2_6TQ, CAN_BS1_8TQ, 6U, CAN_MODE_LOOPBACK) != 0U)
+    if (can_reinit() != 0U)
     {
         printf("CAN init failed!\r\n");
         for (;;)
@@ -33,10 +40,28 @@ int main(void)
         }
     }
 
-    printf("29_can ready\r\n");
+    printf("29_can ready (%s), WKUP toggles mode\r\n",
+           (g_can_mode == CAN_MODE_LOOPBACK) ? "loopback" : "normal");
 
     for (;;)
     {
+        key_id_t key = key_scan(false);
+
+        if (key == KEY_WKUP)
+        {
+            g_can_mode = (g_can_mode == CAN_MODE_LOOPBACK) ? CAN_MODE_NORMAL : CAN_MODE_LOOPBACK;
+
+            if (can_reinit() == 0U)
+            {
+                printf("CAN mode: %s\r\n",
+                       (g_can_mode == CAN_MODE_LOOPBACK) ? "loopback" : "normal");
+            }
+            else
+            {
+                printf("CAN mode switch failed\r\n");
+            }
+        }
+
         for (i = 0U; i < CAN_TEST_LEN; i++)
         {
             txbuf[i] = (uint8_t)(count + i);

@@ -70,7 +70,7 @@ bsp_library(bsp_adc
 target_link_libraries(bsp_adc PUBLIC drv_adc)
 bsp_library(bsp_dac
     dac.c)
-target_link_libraries(bsp_dac PUBLIC drv_dac drv_tim)
+target_link_libraries(bsp_dac PUBLIC drv_dac drv_tim m)
 bsp_library(bsp_pwmdac
     pwmdac.c)
 target_link_libraries(bsp_pwmdac PUBLIC bsp_dac drv_tim)

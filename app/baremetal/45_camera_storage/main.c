@@ -154,6 +154,7 @@ int main(void)
     lcd_init();
     lcd_clear(BLACK);
     piclib_init();
+    (void)fonts_init();
 
     printf("45_camera_storage ready\r\n");
 

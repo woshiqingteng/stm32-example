@@ -6,7 +6,10 @@
  */
 
 #include "stm32f4xx_hal.h"
+#include <math.h>
 #include "dac.h"
+
+#define DAC_PI  3.14159265f
 
 #define DAC_INSTANCE            DAC
 #define DAC_GPIO_PORT           GPIOA
@@ -25,20 +28,8 @@ static DAC_HandleTypeDef g_dac_handle;
 static DMA_HandleTypeDef g_dac_dma_handle;
 static TIM_HandleTypeDef g_dac_tim_handle;
 
-/* One full sine period, offset into the 0..4095 range (2048 * (1 + sin)). */
-static const uint16_t g_dac_sine_buf[DAC_WAVE_SAMPLES] =
-{
-    2048, 2177, 2305, 2432, 2557, 2681, 2802, 2920, 3035, 3145,
-    3252, 3353, 3450, 3541, 3626, 3705, 3777, 3843, 3901, 3952,
-    3996, 4032, 4060, 4080, 4092, 4095, 4092, 4080, 4060, 4032,
-    3996, 3952, 3901, 3843, 3777, 3705, 3626, 3541, 3450, 3353,
-    3252, 3145, 3035, 2920, 2802, 2681, 2557, 2432, 2305, 2177,
-    2048, 1919, 1791, 1664, 1539, 1415, 1294, 1176, 1061,  951,
-     844,  743,  646,  555,  470,  391,  319,  253,  195,  144,
-     100,   64,   36,   16,    4,    0,    4,   16,   36,   64,
-     100,  144,  195,  253,  319,  391,  470,  555,  646,  743,
-     844,  951, 1061, 1176, 1294, 1415, 1539, 1664, 1791, 1919,
-};
+/* One full sine period, generated at init time: 2048 * (1 + sin). */
+static uint16_t g_dac_sine_buf[DAC_WAVE_SAMPLES];
 
 /* One full triangle period: 50 rising samples followed by 50 falling. */
 static const uint16_t g_dac_triangle_buf[DAC_WAVE_SAMPLES] =
@@ -213,6 +204,8 @@ void dac_triangle_stop(void)
 
 void dac_sine_init(uint16_t arr, uint16_t psc)
 {
+    uint16_t i;
+
     /* ---- MSP begin: clocks + GPIO ---- */
     __HAL_RCC_DAC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -220,6 +213,13 @@ void dac_sine_init(uint16_t arr, uint16_t psc)
 
     dac_gpio_config(DAC_CH1_GPIO_PIN);
     /* ---- MSP end ---- */
+
+    /* Generate one full sine period at run time. */
+    for (i = 0U; i < DAC_WAVE_SAMPLES; i++)
+    {
+        g_dac_sine_buf[i] = (uint16_t)(2048.0f +
+                           2047.0f * sinf(2.0f * DAC_PI * (float)i / (float)DAC_WAVE_SAMPLES));
+    }
 
     g_dac_handle.Instance = DAC_INSTANCE;
     HAL_DAC_Init(&g_dac_handle);

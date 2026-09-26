@@ -58,43 +58,42 @@ int main(void)
         }
     }
 
-    t0 = sys_get_tick();
-
-    for (i = 0U; i < FFT_RUNS; i++)
-    {
-        fft_signal_fill();
-        arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
-    }
-
-    elapsed = sys_get_tick() - t0;
-
-    printf("%u point FFT x%u: %lu ms total\r\n", (unsigned)FFT_LENGTH,
-           (unsigned)FFT_RUNS, (unsigned long)elapsed);
-
-    arm_cmplx_mag_f32(g_fft_inputbuf, g_fft_outputbuf, FFT_LENGTH);
-
-    peak = 0U;
-
-    for (i = 1U; i < (FFT_LENGTH / 2U); i++)
-    {
-        if (g_fft_outputbuf[i] > g_fft_outputbuf[peak])
-        {
-            peak = i;
-        }
-    }
-
-    printf("FFT peak bin %lu magnitude %lu\r\n", (unsigned long)peak,
-           (unsigned long)g_fft_outputbuf[peak]);
-
-    for (i = 0U; i < FFT_SIGNAL_LEN; i++)
-    {
-        printf("g_fft_outputbuf[%lu]:%lu\r\n", (unsigned long)i,
-               (unsigned long)g_fft_outputbuf[i]);
-    }
+    printf("50_2_dsp_fft ready: KEY0 runs a %u-point FFT\r\n", (unsigned)FFT_LENGTH);
 
     for (;;)
     {
+        if (key_scan(false) == KEY0)
+        {
+            fft_signal_fill();
+
+            t0 = sys_get_tick();
+            arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
+            elapsed = sys_get_tick() - t0;
+
+            arm_cmplx_mag_f32(g_fft_inputbuf, g_fft_outputbuf, FFT_LENGTH);
+
+            peak = 0U;
+
+            for (i = 1U; i < (FFT_LENGTH / 2U); i++)
+            {
+                if (g_fft_outputbuf[i] > g_fft_outputbuf[peak])
+                {
+                    peak = i;
+                }
+            }
+
+            printf("%u point FFT: %lu ms\r\n", (unsigned)FFT_LENGTH, (unsigned long)elapsed);
+            printf("FFT peak bin %lu magnitude %lu\r\n", (unsigned long)peak,
+                   (unsigned long)g_fft_outputbuf[peak]);
+
+            for (i = 0U; i < FFT_LENGTH; i++)
+            {
+                printf("g_fft_outputbuf[%lu]:%lu\r\n", (unsigned long)i,
+                       (unsigned long)g_fft_outputbuf[i]);
+            }
+        }
+
         led_toggle(LED0);
-        delay_ms(500U);
+        delay_ms(100U);
     }
 }

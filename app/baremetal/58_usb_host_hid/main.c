@@ -1,7 +1,9 @@
 /**
  * @file    main.c
- * @brief   58_usb_host_hid: USB host HID. Reads mouse and keyboard reports
- *          from an attached device and prints/display them.
+ * @brief   58_usb_host_hid: USB host HID. Mouse motion is accumulated and
+ *          clamped to the panel; keyboard characters are collected into an
+ *          edit buffer (backspace supported). A periodic re-arm recovers from
+ *          a dead enumeration.
  */
 
 #include <stdbool.h>
@@ -15,9 +17,19 @@
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_mouse.h"
 
-#define BLINK_PERIOD_MS 500U
+#define BLINK_PERIOD_MS     500U
+#define MOUSE_MAX_X         799
+#define MOUSE_MAX_Y         479
+#define KBD_LINE_MAX        64U
+#define RECONNECT_TIMEOUT_MS 2000U
 
-static bool g_hid_ready = false;
+static bool    g_hid_ready = false;
+static uint32_t g_lost_tick;
+
+static int32_t g_mouse_x = 400;
+static int32_t g_mouse_y = 240;
+static char    g_kbd_line[KBD_LINE_MAX];
+static uint16_t g_kbd_len;
 
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 {
@@ -27,8 +39,8 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
     {
         case HOST_USER_DISCONNECTION:
             g_hid_ready = false;
+            g_lost_tick = sys_get_tick();
             printf("USB DisConnected\r\n");
-            printf("HID device removed\r\n");
             break;
 
         case HOST_USER_CLASS_ACTIVE:
@@ -37,6 +49,8 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 
             if (USBH_HID_GetDeviceType(phost) == HID_KEYBOARD)
             {
+                g_kbd_len = 0U;
+                g_kbd_line[0] = '\0';
                 printf("USB Keyboard\r\n");
             }
             else if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
@@ -70,12 +84,24 @@ static void usbh_hid_demo(void)
         {
             uint8_t c = USBH_HID_GetASCIICode(keys);
 
-            if (c != 0U)
+            if (c == 0x08U)
             {
-                char line[32];
-
-                (void)sprintf(line, "KEY '%c' (0x%02X)", (char)c, (unsigned)c);
-                printf("%s\r\n", line);
+                if (g_kbd_len > 0U)
+                {
+                    g_kbd_len--;
+                    g_kbd_line[g_kbd_len] = '\0';
+                    printf("KBD: %s\r\n", g_kbd_line);
+                }
+            }
+            else if ((c >= 0x20U) && (c <= 0x7EU) && (g_kbd_len < (KBD_LINE_MAX - 1U)))
+            {
+                g_kbd_line[g_kbd_len++] = (char)c;
+                g_kbd_line[g_kbd_len] = '\0';
+                printf("KBD: %s\r\n", g_kbd_line);
+            }
+            else
+            {
+                /* no printable change */
             }
         }
     }
@@ -85,14 +111,17 @@ static void usbh_hid_demo(void)
 
         if (mouse != NULL)
         {
-            char line[48];
+            g_mouse_x += mouse->x;
+            g_mouse_y += mouse->y;
 
-            (void)sprintf(line, "X:%3u Y:%3u B:%u%u%u",
-                          (unsigned)mouse->x, (unsigned)mouse->y,
-                          (unsigned)mouse->buttons[0],
-                          (unsigned)mouse->buttons[1],
-                          (unsigned)mouse->buttons[2]);
-            printf("%s\r\n", line);
+            if (g_mouse_x < 0) { g_mouse_x = 0; }
+            if (g_mouse_x > MOUSE_MAX_X) { g_mouse_x = MOUSE_MAX_X; }
+            if (g_mouse_y < 0) { g_mouse_y = 0; }
+            if (g_mouse_y > MOUSE_MAX_Y) { g_mouse_y = MOUSE_MAX_Y; }
+
+            printf("MOUSE X:%ld Y:%ld B:%u%u%u\r\n", (long)g_mouse_x, (long)g_mouse_y,
+                   (unsigned)mouse->buttons[0], (unsigned)mouse->buttons[1],
+                   (unsigned)mouse->buttons[2]);
         }
     }
     else
@@ -118,6 +147,8 @@ int main(void)
     (void)USBH_RegisterClass(&g_hUSBHost, USBH_HID_CLASS);
     (void)USBH_Start(&g_hUSBHost);
 
+    g_lost_tick = sys_get_tick();
+
     for (;;)
     {
         (void)USBH_Process(&g_hUSBHost);
@@ -125,6 +156,17 @@ int main(void)
         if (g_hid_ready)
         {
             usbh_hid_demo();
+        }
+        else if ((sys_get_tick() - g_lost_tick) >= RECONNECT_TIMEOUT_MS)
+        {
+            /* Re-arm the host after a failed/dead enumeration. */
+            (void)USBH_Stop(&g_hUSBHost);
+            (void)USBH_Start(&g_hUSBHost);
+            g_lost_tick = sys_get_tick();
+        }
+        else
+        {
+            /* waiting for the device */
         }
 
         led_toggle(LED0);

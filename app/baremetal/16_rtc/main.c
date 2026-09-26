@@ -21,6 +21,14 @@
 #define RTC_DEFAULT_WEEK   1U
 #define RTC_PRINT_PERIOD_MS 1000U
 
+static volatile uint32_t g_wakeups;
+
+static void rtc_wakeup_cb(void)
+{
+    g_wakeups++;
+    led_toggle(LED1);
+}
+
 int main(void)
 {
     uint8_t    hour, min, sec;
@@ -42,14 +50,19 @@ int main(void)
         printf("rtc: default time/date set\r\n");
     }
 
+    rtc_register_wakeup_hook(rtc_wakeup_cb);
+    rtc_set_wakeup(0x4U, 0U);   /* RTC_WAKEUPCLOCK_CK_SPRE_16BITS: 1 Hz */
+    printf("rtc: wakeup timer started (1 Hz)\r\n");
+
     for (;;)
     {
         rtc_get_time(&hour, &min, &sec, &ampm);
         rtc_get_date(&year, &month, &date, &week);
 
-        printf("Time: %02u:%02u:%02u  Date: 20%02u-%02u-%02u  Week: %u\r\n",
+        printf("Time: %02u:%02u:%02u  Date: 20%02u-%02u-%02u  Week: %u  Wake:%lu\r\n",
                (unsigned)hour, (unsigned)min, (unsigned)sec,
-               (unsigned)year, (unsigned)month, (unsigned)date, (unsigned)week);
+               (unsigned)year, (unsigned)month, (unsigned)date, (unsigned)week,
+               (unsigned long)g_wakeups);
 
         led_toggle(LED0);
         delay_ms(RTC_PRINT_PERIOD_MS);
