@@ -21,6 +21,24 @@
 #ifdef FATFS_USB_MSC
 #include "usbh_diskio.h"
 #define USB_MSC     2   /* USB mass storage (logical drive "2:") */
+#else
+#define EX_NAND     2   /* NAND flash via the FTL (logical drive "2:") */
+#endif
+
+/*
+ * Weak NAND hooks: the base port must not depend on the FTL (which lives in
+ * the lib layer). Apps that expose the NAND drive link lib_nand_storage, whose
+ * strong definitions override these stubs.
+ */
+#ifndef FATFS_USB_MSC
+__attribute__((weak)) DSTATUS nand_disk_status(void)                 { return STA_NOINIT; }
+__attribute__((weak)) DSTATUS nand_disk_initialize(void)             { return STA_NOINIT; }
+__attribute__((weak)) DRESULT nand_disk_read(BYTE *buff, LBA_t sector, UINT count)
+{ (void)buff; (void)sector; (void)count; return RES_ERROR; }
+__attribute__((weak)) DRESULT nand_disk_write(const BYTE *buff, LBA_t sector, UINT count)
+{ (void)buff; (void)sector; (void)count; return RES_ERROR; }
+__attribute__((weak)) DRESULT nand_disk_ioctl(BYTE cmd, void *buff)
+{ (void)cmd; (void)buff; return RES_PARERR; }
 #endif
 
 /* NOR flash region handed to FatFs: the first 25 MB of the 32 MB part. */
@@ -40,6 +58,11 @@ DSTATUS disk_status(BYTE pdrv)
     if (pdrv == USB_MSC)
     {
         return USBH_status();
+    }
+#else
+    if (pdrv == EX_NAND)
+    {
+        return nand_disk_status();
     }
 #endif
 
@@ -63,6 +86,10 @@ DSTATUS disk_initialize(BYTE pdrv)
 #ifdef FATFS_USB_MSC
         case USB_MSC:
             res = (uint8_t)USBH_initialize();
+            break;
+#else
+        case EX_NAND:
+            res = (nand_disk_initialize() == 0U) ? 0U : 1U;
             break;
 #endif
 
@@ -102,6 +129,9 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 #ifdef FATFS_USB_MSC
         case USB_MSC:
             return USBH_read(buff, (DWORD)sector, count);
+#else
+        case EX_NAND:
+            return nand_disk_read(buff, sector, count);
 #endif
 
         default:
@@ -140,6 +170,9 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 #ifdef FATFS_USB_MSC
         case USB_MSC:
             return USBH_write(buff, (DWORD)sector, count);
+#else
+        case EX_NAND:
+            return nand_disk_write(buff, sector, count);
 #endif
 
         default:
@@ -213,6 +246,11 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
     else if (pdrv == USB_MSC)
     {
         res = USBH_ioctl(cmd, buff);
+    }
+#else
+    else if (pdrv == EX_NAND)
+    {
+        res = nand_disk_ioctl(cmd, buff);
     }
 #endif
     else

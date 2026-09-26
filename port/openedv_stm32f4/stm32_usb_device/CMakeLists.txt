@@ -26,4 +26,4 @@ add_library(stm32_usb_device_msc_port STATIC EXCLUDE_FROM_ALL
 target_include_directories(stm32_usb_device_msc_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(stm32_usb_device_msc_port PUBLIC
-    stm32_usb_device_conf_port bsp_sdio)
+    stm32_usb_device_conf_port bsp_sdio bsp_nor)

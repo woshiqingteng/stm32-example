@@ -9,6 +9,7 @@
 
 #include "bsp.h"
 #include "sdio.h"
+#include "nand_storage.h"
 #include "usbd_core.h"
 #include "usbd_handle.h"
 #include "usbd_desc.h"
@@ -32,6 +33,8 @@ int main(void)
     usart_init(115200U);
 
     printf("54_usb_device_msc ready\r\n");
+
+    nand_storage_activate();
 
     if (sdio_init() != 0U)
     {

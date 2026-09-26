@@ -25,8 +25,13 @@
 #include <string.h>
 #include <stdio.h>
 #include "ftl.h"
-#include "malloc.h"
 #include "nand.h"
+
+/* Static LUT / bad-block table, sized for the largest supported NAND part
+ * (4096 blocks). Using static storage avoids pulling the 160 KB heap in. */
+#define FTL_MAX_BLOCKS 4096U
+static uint16_t g_ftl_lut[FTL_MAX_BLOCKS];
+static uint8_t  g_ftl_blktbl[FTL_MAX_BLOCKS];
 
 
 
@@ -54,18 +59,8 @@ uint8_t ftl_init(void)
         return 1;                                                   /* 初始化NAND FLASH */
     }
 
-    if (nand_dev.lut)
-    {
-        myfree(SRAMIN, nand_dev.lut);
-    }
-
-    nand_dev.lut = mymalloc(SRAMIN, (nand_dev.block_totalnum) * 2); /* 给LUT表申请内存 */
+    nand_dev.lut = g_ftl_lut;                                       /* 给LUT表使用静态内存 */
     memset(nand_dev.lut, 0, nand_dev.block_totalnum * 2);           /* 全部清理 */
-
-    if (!nand_dev.lut)
-    {
-        return 1;                                                   /* 内存申请失败  */
-    }
 
     temp = ftl_create_lut(1);
 
@@ -613,7 +608,7 @@ uint32_t ftl_search_badblock(void)
     uint32_t i, j;
     uint32_t goodblock = 0;
 
-    blktbl = mymalloc(SRAMIN, nand_dev.block_totalnum); /* 申请block坏块表内存,对应项:0,好块;1,坏块; */
+    blktbl = g_ftl_blktbl;                              /* 静态block坏块表,对应项:0,好块;1,坏块; */
     nand_erasechip();                                   /* 全片擦除 */
 
     for (i = 0; i < nand_dev.block_totalnum; i++)       /* 第一阶段检查,检查全1 */
