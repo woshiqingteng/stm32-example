@@ -249,4 +249,4 @@ module/freertos/11.3.1/、module/stm32_usb_device/2.11.6/、module/stm32_usb_hos
 逐模块构建 01_led / 54-56 / 57-58；全量 73/73；更新 verify.md。
 
 ## 6. 进度追踪
-- [ ] 写 PLAN 章节 [ ] FreeRTOS 11.3.1 [ ] USB device 2.11.6 [ ] USB host 3.5.5 [ ] 全量回归 73/73
+- [x] 写 PLAN 章节 [x] FreeRTOS 11.3.1 [x] USB device 2.11.6 [x] USB host 3.5.5 [x] 全量回归 73/73

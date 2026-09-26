@@ -194,3 +194,15 @@
 - **内容深度（L1–L7）**：P0 缺陷修复 + 逐 app 对齐（存储/传感器/显示/外设）全部落地，全量 73/73。
 - **说明**：`port` 直接链 `drv_usb` 为 USB LL 适配的合理例外；lib 层严格不写 `drv_*`。
 - **已知保留**：`stm32_usb_device` 内核未按类拆分（已评估，收益低）。
+
+## N. Module 版本（参考 `D:\work\git`）
+
+| module | 版本 | 参考仓库 | 状态 |
+|---|---|---|---|
+| freertos | V11.3.1 | FreeRTOS-Kernel | ✅ 已更新（保留 11.1.0 目录） |
+| stm32_usb_device | v2.11.6 | stm32-mw-usb-device | ✅ 已更新（保留 2.11.4） |
+| stm32_usb_host | v3.5.5 | stm32-mw-usb-host | ✅ 已更新（保留 3.5.3） |
+| stm32_hal/stm32f4xx | v1.8.5 | stm32f4xx-hal-driver | ✅ 已是最新 tag |
+| cmsis_dsp / fatfs / ijg_libjpeg / tjpgd | 1.17.1 / r0.16 / 10 / r0.03 | （参考中更旧/缺失） | ⏸ 不动 |
+
+- 验证：`01_led`（freertos）、`54/55/56`（usb device）、`57/58`（usb host）逐项构建；全量回归 **73/73**。
