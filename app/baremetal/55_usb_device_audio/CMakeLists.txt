@@ -1,5 +1,3 @@
-# 55_usb_device_audio: USB device Audio (ES8388 speaker + microphone monitor). Needs
-# the ES8388/SAI/IIC BSP, the ST USB device stack and the board USB port.
 add_baremetal_app(55_usb_device_audio
     SOURCE main.c
     LIB     stm32_usb_device_audio

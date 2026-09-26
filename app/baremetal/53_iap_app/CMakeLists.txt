@@ -1,7 +1,3 @@
-# 53_iap_app: IAP application image linked at 0x08010000 (jumped to by the
-# 53_iap bootloader). The linker script lives in this app's own directory and
-# is selected through the MCU_LD_SCRIPT target property; the flash address is
-# overridden so `--target 53_iap_app_flash` programs the image correctly.
 set(MCU_FLASH_ADDR 0x08010000)
 
 add_baremetal_app(53_iap_app
