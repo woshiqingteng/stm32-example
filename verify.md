@@ -203,7 +203,8 @@
 | stm32_usb_device | v2.11.6 | stm32-mw-usb-device | ✅ 已更新（旧版已删除） |
 | stm32_usb_host | v3.5.5 | stm32-mw-usb-host | ✅ 已更新（旧版已删除） |
 | stm32_hal/stm32f4xx | v1.8.5 | stm32f4xx-hal-driver | ✅ 已是最新 tag |
-| cmsis_dsp / fatfs / ijg_libjpeg / tjpgd | 1.17.1 / r0.16 / 10 / r0.03 | （参考中更旧/缺失） | ⏸ 不动 |
+| cmsis_dsp | v1.18.0 | CMSIS-DSP | ✅ 已更新（保留裁剪子集，旧版已删除） |
+| fatfs / ijg_libjpeg / tjpgd | r0.16 / 10 / r0.03 | （参考中更旧/缺失） | ⏸ 不动 |
 
 - 验证：`01_led`（freertos）、`54/55/56`（usb device）、`57/58`（usb host）逐项构建；全量回归 **73/73**。
 
