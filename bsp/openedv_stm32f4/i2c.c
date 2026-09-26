@@ -161,11 +161,6 @@ uint8_t i2c_read_byte(uint8_t ack)
 
 #define I2C_READ_SDA  HAL_GPIO_ReadPin(I2C_SDA_GPIO_PORT, I2C_SDA_GPIO_PIN)
 
-static void i2c_delay(void)
-{
-    delay_us(I2C_DELAY_US);
-}
-
 void i2c_init(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
@@ -189,21 +184,21 @@ void i2c_start(void)
 {
     I2C_SDA(1);
     I2C_SCL(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SDA(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 }
 
 void i2c_stop(void)
 {
     I2C_SDA(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SDA(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 }
 
 uint8_t i2c_wait_ack(void)
@@ -212,9 +207,9 @@ uint8_t i2c_wait_ack(void)
     uint8_t rack = 0;
 
     I2C_SDA(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 
     while (I2C_READ_SDA)
     {
@@ -227,11 +222,11 @@ uint8_t i2c_wait_ack(void)
             break;
         }
 
-        i2c_delay();
+        delay_us(I2C_DELAY_US);
     }
 
     I2C_SCL(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 
     return rack;
 }
@@ -239,23 +234,23 @@ uint8_t i2c_wait_ack(void)
 void i2c_ack(void)
 {
     I2C_SDA(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SDA(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 }
 
 void i2c_nack(void)
 {
     I2C_SDA(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(1);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
     I2C_SCL(0);
-    i2c_delay();
+    delay_us(I2C_DELAY_US);
 }
 
 void i2c_send_byte(uint8_t data)
@@ -265,9 +260,9 @@ void i2c_send_byte(uint8_t data)
     for (t = 0; t < 8U; t++)
     {
         I2C_SDA((data & 0x80U) >> 7);
-        i2c_delay();
+        delay_us(I2C_DELAY_US);
         I2C_SCL(1);
-        i2c_delay();
+        delay_us(I2C_DELAY_US);
         I2C_SCL(0);
         data <<= 1;
     }
@@ -284,7 +279,7 @@ uint8_t i2c_read_byte(uint8_t ack)
     {
         receive <<= 1;
         I2C_SCL(1);
-        i2c_delay();
+        delay_us(I2C_DELAY_US);
 
         if (I2C_READ_SDA != 0U)
         {
@@ -292,7 +287,7 @@ uint8_t i2c_read_byte(uint8_t ack)
         }
 
         I2C_SCL(0);
-        i2c_delay();
+        delay_us(I2C_DELAY_US);
     }
 
     if (ack != 0U)
