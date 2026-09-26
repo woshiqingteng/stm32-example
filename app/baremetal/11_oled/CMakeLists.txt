@@ -1,4 +1,4 @@
 add_baremetal_app(11_oled
-    SOURCES main.c
+    SOURCE main.c
     BSP     oled
 )

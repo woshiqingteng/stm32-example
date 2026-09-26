@@ -1,4 +1,4 @@
 add_baremetal_app(22_1_dac
-    SOURCES main.c
+    SOURCE main.c
     BSP     dac
 )

@@ -1,4 +1,4 @@
 add_baremetal_app(28_rs485
-    SOURCES main.c
+    SOURCE main.c
     BSP     rs485
 )

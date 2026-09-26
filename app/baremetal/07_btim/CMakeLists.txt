@@ -1,4 +1,4 @@
 add_baremetal_app(07_btim
-    SOURCES main.c
+    SOURCE main.c
     BSP     btim
 )

@@ -1,4 +1,4 @@
 add_baremetal_app(23_pwm_dac
-    SOURCES main.c
+    SOURCE main.c
     BSP     pwmdac
 )

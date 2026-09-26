@@ -1,4 +1,4 @@
 add_baremetal_app(18_4_standby
-    SOURCES main.c
+    SOURCE main.c
     BSP     pwr rtc
 )

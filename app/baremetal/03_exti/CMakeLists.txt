@@ -1,4 +1,4 @@
 add_baremetal_app(03_exti
-    SOURCES main.c
+    SOURCE main.c
     BSP     exti
 )

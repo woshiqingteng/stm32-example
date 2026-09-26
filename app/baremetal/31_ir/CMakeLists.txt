@@ -1,4 +1,4 @@
 add_baremetal_app(31_ir
-    SOURCES main.c
+    SOURCE main.c
     BSP     ir
 )

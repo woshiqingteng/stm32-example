@@ -1,4 +1,4 @@
 add_baremetal_app(05_iwdg
-    SOURCES main.c
+    SOURCE main.c
     BSP     wdg
 )

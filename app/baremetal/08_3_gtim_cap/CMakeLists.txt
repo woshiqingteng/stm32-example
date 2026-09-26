@@ -1,4 +1,4 @@
 add_baremetal_app(08_3_gtim_cap
-    SOURCES main.c
+    SOURCE main.c
     BSP     gtim
 )

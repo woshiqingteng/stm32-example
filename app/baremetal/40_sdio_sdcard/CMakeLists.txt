@@ -1,4 +1,4 @@
 add_baremetal_app(40_sdio_sdcard
-    SOURCES main.c
+    SOURCE main.c
     BSP     sdio
 )

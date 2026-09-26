@@ -1,4 +1,4 @@
 add_baremetal_app(09_2_atim_oc
-    SOURCES main.c
+    SOURCE main.c
     BSP     atim
 )

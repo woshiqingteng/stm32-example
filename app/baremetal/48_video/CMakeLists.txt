@@ -2,7 +2,7 @@
 # MJPEG middleware (LibJPEG + AVI parser + TIM7 frame pacing, self-contained
 # ES8388/SAI audio) and the text renderer.
 add_baremetal_app(48_video
-    SOURCES main.c
+    SOURCE main.c
     BSP     lcd sdio sdram
     LIB     malloc text mjpeg
 )

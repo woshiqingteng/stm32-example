@@ -1,7 +1,7 @@
 # 43_font: GBK text display on the RGB panel. Needs the FatFs core/port (SD
 # card) plus the TEXT middleware and its NOR-flash font store.
 add_baremetal_app(43_font
-    SOURCES main.c
+    SOURCE main.c
     BSP     lcd sdio sdram
     LIB     malloc text fatfs
 )

@@ -1,4 +1,4 @@
 add_baremetal_app(17_rng
-    SOURCES main.c
+    SOURCE main.c
     BSP     rng
 )

@@ -5,7 +5,7 @@
 set(MCU_FLASH_ADDR 0x08010000)
 
 add_baremetal_app(53_iap_app
-    SOURCES main.c
+    SOURCE main.c
 )
 
 set_target_properties(app_baremetal_53_iap_app PROPERTIES

@@ -1,4 +1,4 @@
 add_baremetal_app(29_can
-    SOURCES main.c
+    SOURCE main.c
     BSP     can
 )
