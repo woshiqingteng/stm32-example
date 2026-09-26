@@ -217,4 +217,4 @@ system 段 + 空行 + local 段；删除冗余 bsp 头（保留 ltdc.h 与 lib/U
 逐组构建 + 全量 73/73；按 SG3 / (SG1+SG2) / SG4 提交；更新 verify.md M 章节。
 
 ## 6. 进度追踪
-- [ ] SG1 [ ] SG2 [ ] SG3 [ ] SG4 [ ] 全量回归 73/73
+- [x] SG1 [x] SG2 [x] SG3 [x] SG4 [x] 全量回归 73/73

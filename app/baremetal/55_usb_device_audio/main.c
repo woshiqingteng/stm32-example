@@ -56,11 +56,6 @@ int main(void)
         {
             volume = 70U;
         }
-        else
-        {
-            /* no key */
-        }
-
         if (key != KEY_NONE)
         {
             (void)BSP_AUDIO_OUT_SetVolume(volume);

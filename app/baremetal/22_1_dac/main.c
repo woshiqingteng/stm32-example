@@ -49,11 +49,6 @@ int main(void)
         {
             next = (uint16_t)((code < DAC_STEP) ? 0U : (code - DAC_STEP));
         }
-        else
-        {
-            /* no key */
-        }
-
         if (next != code)
         {
             code = next;

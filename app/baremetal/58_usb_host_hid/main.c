@@ -98,10 +98,6 @@ static void usbh_hid_demo(void)
                 g_kbd_line[g_kbd_len] = '\0';
                 printf("KBD: %s\r\n", g_kbd_line);
             }
-            else
-            {
-                /* no printable change */
-            }
         }
     }
     else if (type == HID_MOUSE)
@@ -122,10 +118,6 @@ static void usbh_hid_demo(void)
                    (unsigned)mouse->buttons[0], (unsigned)mouse->buttons[1],
                    (unsigned)mouse->buttons[2]);
         }
-    }
-    else
-    {
-        /* nothing to do for an unsupported device */
     }
 }
 
@@ -162,10 +154,6 @@ int main(void)
             (void)USBH_Stop(&g_hUSBHost);
             (void)USBH_Start(&g_hUSBHost);
             g_lost_tick = sys_get_tick();
-        }
-        else
-        {
-            /* waiting for the device */
         }
 
         led_toggle(LED0);

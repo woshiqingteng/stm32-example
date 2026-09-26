@@ -42,10 +42,6 @@ int main(void)
             iap_jump(IAP_APP_ADDR);
             printf("IAP: jump failed (no valid app)\r\n");
         }
-        else
-        {
-            /* no key */
-        }
 
         led_toggle(LED0);
         delay_ms(LOOP_DELAY_MS);

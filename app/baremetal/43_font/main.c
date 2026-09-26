@@ -198,11 +198,6 @@ int main(void)
         {
             printf("font store fontok=0x%02X\r\n", (unsigned int)ftinfo.fontok);
         }
-        else
-        {
-            /* no key */
-        }
-
         if (g_sweep)
         {
             char    gbk[3];

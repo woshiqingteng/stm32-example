@@ -21,6 +21,7 @@ int main(void)
         {
             iwdg_feed();
         }
+
         delay_ms(KEY_POLL_MS);
     }
 }

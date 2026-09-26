@@ -72,10 +72,6 @@ int main(void)
             {
                 printf("USB Reading...\r\n");
             }
-            else
-            {
-                /* idle */
-            }
         }
 
         if (g_usb_storage_error == USB_STORAGE_ERROR_WRITE)
@@ -87,10 +83,6 @@ int main(void)
         {
             printf("USB Read Err\r\n");
             g_usb_storage_error = USB_STORAGE_ERROR_NONE;
-        }
-        else
-        {
-            /* no error */
         }
 
         led_toggle(LED0);

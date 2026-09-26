@@ -132,11 +132,6 @@ int main(void)
         {
             auto_zoom = !auto_zoom;
         }
-        else
-        {
-            /* no key */
-        }
-
         start = sys_get_tick();
         julia_draw(width, height, g_zoom_tbl[zoom_idx]);
         elapsed = sys_get_tick() - start;

@@ -57,6 +57,7 @@ int main(void)
         {
             led_toggle(LED0);
         }
+
         delay_ms(LOOP_DELAY_MS);
     }
 }

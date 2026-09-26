@@ -160,6 +160,10 @@
 | M4 | 忙等超时 | `wavplay` 半缓冲等待有界 | ✅ `AUDIO_WAIT_TIMEOUT_MS` |
 | M5 | FTL 格式 | 项目头注释、TAB→空格、去冗余/中文注释 | ✅ |
 | M6 | 魔法数具名 | `RTC_WAKEUP_1HZ`、`CAM_OUTSIZE_OFFSET_X` | ✅ |
+| M7 | include 统一 | system 段 + 空行 + local 段；去冗余 bsp 头（保留 ltdc.h/lib/USB） | ✅ 73 app |
+| M8 | 打印直出 | 仅 printf 的 sprintf 改直出（保留路径/LCD/hex dump） | ✅ 16 app |
+| M9 | 长行 | app 层 ≤100 列 | ✅ |
+| M10 | 注释精简 | 去除复述式注释与空 `else` | ✅ |
 
 ---
 

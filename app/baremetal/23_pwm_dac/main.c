@@ -51,11 +51,6 @@ int main(void)
         {
             next = (uint16_t)((vol < PWMDAC_STEP_MV) ? 0U : (vol - PWMDAC_STEP_MV));
         }
-        else
-        {
-            /* no key */
-        }
-
         if (next != vol)
         {
             vol = next;

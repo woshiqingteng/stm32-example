@@ -84,10 +84,6 @@ int main(void)
             printf("pattern test: %u bytes, %lu error(s)\r\n",
                    (unsigned)(SDRAM_PATTERN_WORDS * 4U), (unsigned long)errors);
         }
-        else
-        {
-            /* no key */
-        }
 
         led_toggle(LED0);
         delay_ms(SDRAM_BLINK_MS);

@@ -299,11 +299,6 @@ int main(void)
         {
             (void)ov5640_focus_single();
         }
-        else
-        {
-            /* no key */
-        }
-
         fps = gtim_frame_rate();
 
         if (fps != last_fps)
