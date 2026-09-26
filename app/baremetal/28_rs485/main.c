@@ -37,8 +37,6 @@ int main(void)
 
         if (rxlen > 0U)
         {
-            char line[48];
-
             rxbuf[(rxlen < RX_MAX) ? rxlen : (RX_MAX - 1U)] = '\0';
             for (i = 0U; (i < rxlen) && (i < (RX_MAX - 1U)); i++)
             {
@@ -47,8 +45,7 @@ int main(void)
                     rxbuf[i] = '.';
                 }
             }
-            sprintf(line, "RX(%u): %s", (unsigned)rxlen, (char *)rxbuf);
-            printf("%s\r\n", line);
+            printf("RX(%u): %s\r\n", (unsigned)rxlen, (char *)rxbuf);
         }
         else
         {

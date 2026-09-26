@@ -51,7 +51,6 @@ int main(void)
     uint8_t *p;
     uint16_t used;
     uint32_t errors;
-    char     line[64];
 
     bsp_init();
     sdram_init();
@@ -71,8 +70,7 @@ int main(void)
 
         if (p == NULL)
         {
-            sprintf(line, "%s malloc failed", g_bank_name[bank]);
-            printf("%s\r\n", line);
+            printf("%s malloc failed\r\n", g_bank_name[bank]);
             continue;
         }
 
@@ -83,10 +81,9 @@ int main(void)
         myfree(bank, p);
 
         used = my_mem_perused(bank);
-        sprintf(line, "%s: %s  used %u.%u%%", g_bank_name[bank],
-                (errors == 0U) ? "OK  " : "FAIL",
-                (unsigned)(used / 10U), (unsigned)(used % 10U));
-        printf("%s\r\n", line);
+        printf("%s: %s  used %u.%u%%\r\n", g_bank_name[bank],
+               (errors == 0U) ? "OK  " : "FAIL",
+               (unsigned)(used / 10U), (unsigned)(used % 10U));
     }
 
     for (;;)

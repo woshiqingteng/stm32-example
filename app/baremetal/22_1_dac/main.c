@@ -42,7 +42,8 @@ int main(void)
 
         if (key == KEY_WKUP)
         {
-            next = (uint16_t)((code + DAC_STEP > DAC_FULL_SCALE) ? DAC_FULL_SCALE : (code + DAC_STEP));
+            next = (uint16_t)((code + DAC_STEP > DAC_FULL_SCALE)
+                              ? DAC_FULL_SCALE : (code + DAC_STEP));
         }
         else if (key == KEY0)
         {

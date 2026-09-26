@@ -35,7 +35,8 @@
 
 #define JPEG_SIZE_W      2592U
 #define JPEG_SIZE_H      1944U
-#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
+#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + \
+                          ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
 #define JPEG_BUF_WORDS   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
 #define JPEG_CAPTURE_TIMEOUT_MS 3000U
 

@@ -11,7 +11,6 @@
 
 int main(void)
 {
-    char line[48];
     uint16_t ir;
     uint16_t ps;
     uint16_t als;
@@ -33,8 +32,7 @@ int main(void)
     {
         ap3216c_read_data(&ir, &ps, &als);
 
-        sprintf(line, "IR:%u PS:%u ALS:%u", (unsigned)ir, (unsigned)ps, (unsigned)als);
-        printf("%s\r\n", line);
+        printf("IR:%u PS:%u ALS:%u\r\n", (unsigned)ir, (unsigned)ps, (unsigned)als);
 
         led_toggle(LED0);
         delay_ms(SAMPLE_PERIOD);

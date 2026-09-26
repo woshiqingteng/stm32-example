@@ -14,7 +14,6 @@ static const uint8_t g_patterns[] = { 0xAAU, 0x55U };
 
 int main(void)
 {
-    char line[48];
     uint8_t idx = 0U;
     uint8_t status;
 
@@ -39,12 +38,10 @@ int main(void)
         io_expand_write_byte(write_val);
         read_val = io_expand_read_byte();
 
-        sprintf(line, "Write:0x%02X Read:0x%02X", write_val, read_val);
-        printf("%s\r\n", line);
+        printf("Write:0x%02X Read:0x%02X\r\n", write_val, read_val);
 
         status = (io_expand_int_asserted()) ? 1U : 0U;
-        sprintf(line, "INT:%u EX_IO:%u", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
-        printf("%s\r\n", line);
+        printf("INT:%u EX_IO:%u\r\n", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
 
         /* Buzzer demo: pulse BEEP via the expander bit API. */
         io_expand_write_bit(PCF8574_BEEP_IO, 1U);

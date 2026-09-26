@@ -35,7 +35,8 @@ uint16_t   g_yoffset = 0;                 /* vertical offset (RGB mode) */
 
 /* The RGB565 panel frame buffer occupies the start of SDRAM; the JPEG capture
  * buffer is placed right after it. */
-#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
+#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + \
+                          ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
 
 static uint32_t g_dcmi_line_buf[2][RGB_LINE_WORDS];
 
@@ -122,7 +123,8 @@ static void jpeg_test(void)
 
     dcmi_init();
     cam_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
-    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, jpeg_img_size_tbl[size][0], jpeg_img_size_tbl[size][1]);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, jpeg_img_size_tbl[size][0],
+                             jpeg_img_size_tbl[size][1]);
     cam_jpeg_begin();
 
     for (;;)
@@ -205,7 +207,8 @@ static void jpeg_test(void)
                         {
                             size = 0U;
                         }
-                        (void)ov5640_outsize_set(16U, 4U, jpeg_img_size_tbl[size][0], jpeg_img_size_tbl[size][1]);
+                        (void)ov5640_outsize_set(16U, 4U, jpeg_img_size_tbl[size][0],
+                                                 jpeg_img_size_tbl[size][1]);
                         (void)sprintf(msg, "JPEG Size:%s", JPEG_SIZE_TBL[size]);
                         break;
 

@@ -27,7 +27,6 @@ static uint8_t g_readback[EEPROM_BYTE_COUNT];
 
 int main(void)
 {
-    char line[48];
     uint8_t i;
     bool byte_ok = true;
     bool text_ok;
@@ -64,11 +63,8 @@ int main(void)
 
     text_ok = (strncmp(text_read, g_text, EEPROM_STR_LEN) == 0);
 
-    sprintf(line, "Bytes: %s", byte_ok ? "OK" : "FAIL");
-    printf("%s\r\n", line);
-
-    sprintf(line, "String: %s", text_read);
-    printf("%s (%s)\r\n", line, text_ok ? "OK" : "FAIL");
+    printf("Bytes: %s\r\n", byte_ok ? "OK" : "FAIL");
+    printf("String: %s (%s)\r\n", text_read, text_ok ? "OK" : "FAIL");
 
     for (;;)
     {

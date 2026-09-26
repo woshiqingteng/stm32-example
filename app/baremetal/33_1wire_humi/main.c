@@ -13,7 +13,6 @@ int main(void)
 {
     uint8_t temperature = 0U;
     uint8_t humidity    = 0U;
-    char    line[48];
 
     bsp_init();
 
@@ -38,8 +37,7 @@ int main(void)
         }
         else
         {
-            sprintf(line, "Temp: %u C  Humi: %u %%", temperature, humidity);
-            printf("%s\r\n", line);
+            printf("Temp: %u C  Humi: %u %%\r\n", temperature, humidity);
         }
 
         led_toggle(LED0);

@@ -55,7 +55,6 @@ int main(void)
     uint32_t t0;
     uint32_t elapsed;
     uint8_t  res;
-    char     line[48];
 
     bsp_init();
 
@@ -64,14 +63,14 @@ int main(void)
     t0      = sys_get_tick();
     res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
     elapsed = sys_get_tick() - t0;
-    sprintf(line, "Math noDSP:%lu ms", (unsigned long)elapsed);
-    printf("sin/cos noDSP : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");
+    printf("sin/cos noDSP : %lu ms (%s)\r\n",
+           (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
 
     t0      = sys_get_tick();
     res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
     elapsed = sys_get_tick() - t0;
-    sprintf(line, "Math DSP  :%lu ms", (unsigned long)elapsed);
-    printf("sin/cos DSP   : %s (%s)\r\n", line, (res == 0U) ? "OK" : "error");
+    printf("sin/cos DSP   : %lu ms (%s)\r\n",
+           (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
 
     for (;;)
     {

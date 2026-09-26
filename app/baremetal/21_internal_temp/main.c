@@ -11,8 +11,6 @@
 
 int main(void)
 {
-    char buf[32];
-
     bsp_init();
     adc_temp_init();
 
@@ -23,9 +21,8 @@ int main(void)
         int16_t temp = adc_get_temperature();
         int16_t temp_abs = (temp < 0) ? (int16_t)(-temp) : temp;
 
-        sprintf(buf, "TEMP: %s%d.%02dC", (temp < 0) ? "-" : "",
-                (int)(temp_abs / 100), (int)(temp_abs % 100));
-        printf("%s\r\n", buf);
+        printf("TEMP: %s%d.%02dC\r\n", (temp < 0) ? "-" : "",
+               (int)(temp_abs / 100), (int)(temp_abs % 100));
 
         led_toggle(LED0);
         delay_ms(TEMP_SAMPLE_PERIOD_MS);

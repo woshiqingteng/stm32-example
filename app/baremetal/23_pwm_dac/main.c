@@ -44,7 +44,8 @@ int main(void)
 
         if (key == KEY_WKUP)
         {
-            next = (uint16_t)((vol + PWMDAC_STEP_MV > PWMDAC_VREF_MV) ? PWMDAC_VREF_MV : (vol + PWMDAC_STEP_MV));
+            next = (uint16_t)((vol + PWMDAC_STEP_MV > PWMDAC_VREF_MV)
+                              ? PWMDAC_VREF_MV : (vol + PWMDAC_STEP_MV));
         }
         else if (key == KEY0)
         {

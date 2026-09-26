@@ -60,12 +60,14 @@ int main(void)
     printf("48_video ready\r\n");
 
     lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "STM32 VIDEO", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "KEY0:NEXT KEY2:PREV", RED);
+    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+                    "KEY0:NEXT KEY2:PREV", RED);
     lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "KEY1:REW WK_UP:FF", RED);
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "SD Card Error!", RED);
+        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+                        "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
     else
@@ -76,7 +78,8 @@ int main(void)
         if (res != FR_OK)
         {
             printf("mount failed (%d)\r\n", (int)res);
-            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "Mount failed", RED);
+            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+                            "Mount failed", RED);
         }
         else
         {

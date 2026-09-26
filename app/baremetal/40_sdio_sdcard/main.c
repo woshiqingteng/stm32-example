@@ -22,7 +22,6 @@ int main(void)
     sd_card_info_t info;
     uint32_t errors = 0U;
     uint32_t i;
-    char     line[64];
 
     bsp_init();
 
@@ -37,11 +36,10 @@ int main(void)
         sdio_get_card_info(&info);
 
         printf("SD Card OK\r\n");
-        sprintf(line, "Type:%lu Cap:%lu MB Blk:%lu",
-                (unsigned long)info.card_type,
-                (unsigned long)info.total_size_mb,
-                (unsigned long)info.block_size);
-        printf("%s\r\n", line);
+        printf("Type:%lu Cap:%lu MB Blk:%lu\r\n",
+               (unsigned long)info.card_type,
+               (unsigned long)info.total_size_mb,
+               (unsigned long)info.block_size);
 
         for (i = 0U; i < SD_BLOCK_LEN; i++)
         {
@@ -65,9 +63,8 @@ int main(void)
             errors = SD_BLOCK_LEN;
         }
 
-        sprintf(line, "SD R/W @%u: %s (%lu err)", (unsigned)SD_TEST_SECTOR,
-                (errors == 0U) ? "OK" : "FAIL", (unsigned long)errors);
-        printf("%s\r\n", line);
+        printf("SD R/W @%u: %s (%lu err)\r\n", (unsigned)SD_TEST_SECTOR,
+               (errors == 0U) ? "OK" : "FAIL", (unsigned long)errors);
     }
 
     for (;;)

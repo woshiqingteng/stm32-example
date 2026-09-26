@@ -14,7 +14,6 @@ int main(void)
 {
     int16_t temperature;
     int16_t shown;
-    char    line[48];
 
     bsp_init();
 
@@ -36,9 +35,8 @@ int main(void)
         temperature = ds18b20_get_temperature();
         shown = (temperature < 0) ? (int16_t)(-temperature) : temperature;
 
-        sprintf(line, "Temp: %s%d.%d C", (temperature < 0) ? "-" : "",
-                shown / 10, shown % 10);
-        printf("%s\r\n", line);
+        printf("Temp: %s%d.%d C\r\n", (temperature < 0) ? "-" : "",
+               shown / 10, shown % 10);
 
         led_toggle(LED0);
         delay_ms(TEMP_PERIOD_MS);

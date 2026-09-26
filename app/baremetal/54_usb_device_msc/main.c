@@ -23,7 +23,6 @@ int main(void)
     usbd_dev_state_t       usb_state = USBD_DEV_STATE_DISCONNECTED;
     usb_storage_activity_t storage_activity = USB_STORAGE_ACTIVITY_IDLE;
     bool                   first = true;
-    char     line[48];
 
     bsp_init();
     /* USB OTG FS needs an exact 48 MHz kernel clock: 336 / 7 = 48 MHz while
@@ -43,8 +42,7 @@ int main(void)
     else
     {
         sdio_get_card_info(&info);
-        (void)sprintf(line, "SD Card Size: %lu MB", (unsigned long)info.total_size_mb);
-        printf("%s\r\n", line);
+        printf("SD Card Size: %lu MB\r\n", (unsigned long)info.total_size_mb);
     }
 
     (void)USBD_Init(&USBD_Device, &MSC_Desc, DEVICE_FS);

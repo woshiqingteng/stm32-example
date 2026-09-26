@@ -26,7 +26,6 @@ int main(void)
     uint8_t count = 0U;
     uint8_t i;
     uint8_t rxlen;
-    char    line[48];
 
     bsp_init();
 
@@ -74,15 +73,13 @@ int main(void)
         else
         {
             rxlen = can_receive(CAN_TEST_ID, rxbuf);
-            sprintf(line, "TX %02X... RX len:%u", txbuf[0], (unsigned)rxlen);
-            printf("%s\r\n", line);
+            printf("TX %02X... RX len:%u\r\n", txbuf[0], (unsigned)rxlen);
 
             if (rxlen == CAN_TEST_LEN)
             {
-                sprintf(line, "RX: %02X %02X %02X %02X %02X %02X %02X %02X",
-                        rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3],
-                        rxbuf[4], rxbuf[5], rxbuf[6], rxbuf[7]);
-                printf("%s\r\n", line);
+                printf("RX: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+                       rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3],
+                       rxbuf[4], rxbuf[5], rxbuf[6], rxbuf[7]);
             }
         }
 

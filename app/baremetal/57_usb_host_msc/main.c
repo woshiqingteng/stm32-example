@@ -51,7 +51,6 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 {
     uint32_t total = 0U;
     uint32_t free_kb = 0U;
-    char     line[48];
 
     (void)phost;
 
@@ -76,9 +75,8 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 
                 if (exfuns_get_free((uint8_t *)USB_DRIVE, &total, &free_kb) == 0U)
                 {
-                    (void)sprintf(line, "USB %lu MB free %lu MB",
-                                  (unsigned long)(total >> 10), (unsigned long)(free_kb >> 10));
-                    printf("%s\r\n", line);
+                    printf("USB %lu MB free %lu MB\r\n",
+                           (unsigned long)(total >> 10), (unsigned long)(free_kb >> 10));
                 }
 
                 usbh_list_root();

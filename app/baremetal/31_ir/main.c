@@ -42,7 +42,6 @@ int main(void)
 {
     uint8_t key;
     uint8_t led_tick = 0U;
-    char    line[48];
 
     bsp_init();
     ir_init();
@@ -55,8 +54,7 @@ int main(void)
 
         if (key != 0U)
         {
-            sprintf(line, "KEY: %u CNT: %u SYM: %s", key, ir_repeat_count(), ir_symbol(key));
-            printf("%s\r\n", line);
+            printf("KEY: %u CNT: %u SYM: %s\r\n", key, ir_repeat_count(), ir_symbol(key));
 
             delay_ms(KEY_SETTLE_DELAY_MS);
         }

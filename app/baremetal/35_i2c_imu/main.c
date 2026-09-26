@@ -16,12 +16,12 @@
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
 #define GYRO_LSB_PER_DPS    64.0f      /* gyroscope configured for +/-512dps  */
 
-static void format_temp(char *buf, int16_t temp_x100)
+static void print_temp(int16_t temp_x100)
 {
     int16_t mag = (temp_x100 < 0) ? (int16_t)(-temp_x100) : temp_x100;
 
-    sprintf(buf, "TEMP: %s%d.%02d C", (temp_x100 < 0) ? "-" : "",
-            (int)(mag / 100), (int)(mag % 100));
+    printf("TEMP: %s%d.%02d C\r\n", (temp_x100 < 0) ? "-" : "",
+           (int)(mag / 100), (int)(mag % 100));
 }
 
 static void uart1_write(const uint8_t *buf, uint16_t len)
@@ -57,7 +57,6 @@ static void ano_tc_send(uint8_t fun, const uint8_t *data, uint8_t len)
 
 int main(void)
 {
-    char     line[64];
     int16_t  acc[3];
     int16_t  gyro[3];
     float    af[3];
@@ -97,11 +96,9 @@ int main(void)
             r100[i] = (int16_t)(rpy[i] * 100.0f);
         }
 
-        sprintf(line, "RPY(x100): %d %d %d", (int)r100[0], (int)r100[1], (int)r100[2]);
-        printf("%s\r\n", line);
+        printf("RPY(x100): %d %d %d\r\n", (int)r100[0], (int)r100[1], (int)r100[2]);
 
-        format_temp(line, (int16_t)(qmi8658a_read_temperature() * 100.0f));
-        printf("%s\r\n", line);
+        print_temp((int16_t)(qmi8658a_read_temperature() * 100.0f));
 
         /* 0x01: roll/pitch/yaw (deg*100) + 4 reserved bytes. */
         for (i = 0U; i < 3U; i++)

@@ -59,7 +59,8 @@ int main(void)
                             g_demo_lines[i].text, RED);
         }
 
-        lcd_show_string(DEMO_TEXT_X, DEMO_ID_Y, DEMO_TEXT_WIDTH, DEMO_ID_SIZE, DEMO_ID_SIZE, lcd_id, RED);
+        lcd_show_string(DEMO_TEXT_X, DEMO_ID_Y, DEMO_TEXT_WIDTH, DEMO_ID_SIZE,
+                        DEMO_ID_SIZE, lcd_id, RED);
 
         printf("color index %u\r\n", (unsigned)x);
 

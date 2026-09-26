@@ -77,16 +77,19 @@ int main(void)
     lcd_clear(WHITE);
     lcd_show_string(TOUCH_TEXT_X, 10U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
     lcd_show_string(TOUCH_TEXT_X, 30U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "TOUCH TEST", RED);
-    lcd_show_string(TOUCH_TEXT_X, 50U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
+    lcd_show_string(TOUCH_TEXT_X, 50U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+                    "ATOM@ALIENTEK", RED);
 
     if (touch_init() != 0U)
     {
-        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "Touch Init Failed!", RED);
+        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+                        "Touch Init Failed!", RED);
         printf("touch init failed\r\n");
     }
     else
     {
-        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "Touch Ready!", BLUE);
+        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+                        "Touch Ready!", BLUE);
         printf("touch ready\r\n");
     }
 

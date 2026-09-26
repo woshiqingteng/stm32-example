@@ -99,9 +99,12 @@ static void app_show_page(uint8_t page)
     (void)sprintf(g_line, "43_font page %u", (unsigned int)page);
     lcd_show_string(TEXT_X, 10U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, g_line, BLUE);
 
-    text_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE, (char *)g_sample_title[page], FONT_SIZE, 0, RED);
-    text_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE, (char *)g_sample_line1[page], FONT_SIZE, 0, BLUE);
-    text_show_string(TEXT_X, 100U, TEXT_WIDTH, FONT_SIZE, (char *)g_sample_line2[page], FONT_SIZE, 0, GREEN);
+    text_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE,
+                     (char *)g_sample_title[page], FONT_SIZE, 0, RED);
+    text_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE,
+                     (char *)g_sample_line1[page], FONT_SIZE, 0, BLUE);
+    text_show_string(TEXT_X, 100U, TEXT_WIDTH, FONT_SIZE,
+                     (char *)g_sample_line2[page], FONT_SIZE, 0, GREEN);
 
     text_show_string(TEXT_X, 150U, TEXT_WIDTH, 24U, (char *)"\xBA\xBA", 24U, 0, MAGENTA);
     text_show_string(TEXT_X, 200U, TEXT_WIDTH, 32U, (char *)"\xD7\xD6", 32U, 0, BLACK);
@@ -125,7 +128,8 @@ int main(void)
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "SD Card Error!", RED);
+        lcd_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+                        "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
     else

@@ -295,7 +295,8 @@ void wav_recorder(void)
                         printf("rec: %s\r\n", pname + 11);
                         recoder_wav_init(wavhead);
 
-                        res = (uint8_t)f_open(f_rec, (const TCHAR *)pname, FA_CREATE_ALWAYS | FA_WRITE);
+                        res = (uint8_t)f_open(f_rec, (const TCHAR *)pname,
+                                              FA_CREATE_ALWAYS | FA_WRITE);
 
                         if (res != 0U)
                         {
@@ -365,7 +366,9 @@ void wav_recorder(void)
                 led_toggle(LED1);
                 recsec = g_wav_size / wavhead->fmt.ByteRate;
                 recoder_msg_show(recsec,
-                                 (uint32_t)wavhead->fmt.SampleRate * wavhead->fmt.NumOfChannels * wavhead->fmt.BitsPerSample);
+                                 (uint32_t)wavhead->fmt.SampleRate *
+                                 wavhead->fmt.NumOfChannels *
+                                 wavhead->fmt.BitsPerSample);
             }
         }
     }
