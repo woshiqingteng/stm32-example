@@ -34,9 +34,6 @@ target_link_libraries(bsp_gtim PUBLIC drv_tim)
 bsp_library(bsp_atim
     atim.c)
 target_link_libraries(bsp_atim PUBLIC drv_tim)
-bsp_library(bsp_ir
-    ir.c)
-target_link_libraries(bsp_ir PUBLIC drv_tim)
 bsp_library(bsp_rtc
     rtc.c)
 target_link_libraries(bsp_rtc PUBLIC drv_rtc)
@@ -77,6 +74,9 @@ target_link_libraries(bsp_rs485 PUBLIC bsp_pcf8574 drv_uart)
 bsp_library(bsp_nrf24l01
     nrf24l01.c)
 target_link_libraries(bsp_nrf24l01 PUBLIC bsp_spi)
+bsp_library(bsp_ir
+    ir.c)
+target_link_libraries(bsp_ir PUBLIC drv_tim)
 
 # analog
 bsp_library(bsp_adc
@@ -162,9 +162,9 @@ target_link_libraries(bsp_iap PUBLIC bsp_usart drv_flash)
 add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
-    bsp_btim bsp_gtim bsp_atim bsp_ir bsp_rtc bsp_wdg
+    bsp_btim bsp_gtim bsp_atim bsp_rtc bsp_wdg
     bsp_i2c bsp_spi bsp_pcf8574 bsp_24cxx
-    bsp_can bsp_dcmi bsp_ov5640 bsp_es8388 bsp_sai bsp_rs485 bsp_nrf24l01
+    bsp_can bsp_dcmi bsp_ov5640 bsp_es8388 bsp_sai bsp_rs485 bsp_nrf24l01 bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
     bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad

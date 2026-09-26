@@ -57,7 +57,7 @@
 | D5 | 大类注释分组 | core/time/comm_*/analog/memory/display/crypto/sensor/misc | ✅ |
 | D6 | 跨类依赖 | `lcd→ltdc`、`pwmdac→dac`、`pwr→exti`、`iap→usart`、`norflash→spi`、`ov5640→pcf8574` 等 | ✅ |
 | D7 | 帧率定时器归入 `bsp_gtim` | 无 `timer.c/h`；TIM14 帧率 API `gtim_frame_*` 在 `gtim.c/h` | ✅ |
-| D8 | `remote→ir` | `ir.c/ir.h`，无 `remote_`/`REMOTE_` | ✅ |
+| D8 | `remote→ir`，归入 `# comm` | `ir.c/ir.h`（无 `remote_`/`REMOTE_`），`bsp_ir` 位于 `# comm` 段，依赖 `drv_tim` | ✅ |
 | D9 | BSP 无 GLOB | 无匹配 | ✅ |
 | D10 | `bsp_drv` 已删 | 无匹配 | ✅ |
 
