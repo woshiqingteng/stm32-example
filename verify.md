@@ -65,11 +65,11 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| E1 | FatFs 端口 | `fatfs_port`（+ 变体 `fatfs_usbmsc_port`）= `<BSP>/fatfs`（exfuns + diskio） | ✅ |
+| E1 | FatFs 端口 | `fatfs_port`（+ 变体 `fatfs_stm32_usb_msc_port`）= `<BSP>/fatfs`（exfuns + diskio） | ✅ |
 | E2 | USB device 端口按类 | conf + cdc + audio + msc | ✅ |
 | E3 | USB host 端口 | conf + msc | ✅ |
 | E4 | port 不写 HAL（USB LL 例外） | 仅 `drv_usb` | ⚠ 见 B4 |
-| E5 | USB MSC 定义路由 | port 变体 `fatfs_usbmsc_port`（`FATFS_USB_MSC`） | ✅ `57` app |
+| E5 | USB MSC 定义路由 | port 变体 `fatfs_stm32_usb_msc_port`（`FATFS_USB_MSC`） | ✅ `57` app |
 
 ## F. lib 层
 

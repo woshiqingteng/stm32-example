@@ -10,18 +10,17 @@ add_library(fatfs_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
 
 target_include_directories(fatfs_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(fatfs_port PRIVATE
-    $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries(fatfs_port PUBLIC bsp_sdio bsp_nor)
+target_link_libraries(fatfs_port PRIVATE fatfs_core_inc)
 
 # Variant that routes FatFs drive 2 to the USB host MSC glue
 # (../stm32_usb_host/usbh_diskio.c). Selected by 57_usb_host_msc.
-add_library(fatfs_usbmsc_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
+add_library(fatfs_stm32_usb_msc_port STATIC EXCLUDE_FROM_ALL ${FATFS_PORT_SRC})
 
-target_include_directories(fatfs_usbmsc_port PUBLIC
+target_include_directories(fatfs_stm32_usb_msc_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(fatfs_usbmsc_port PRIVATE
-    $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>
+target_include_directories(fatfs_stm32_usb_msc_port PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../stm32_usb_host)
-target_link_libraries(fatfs_usbmsc_port PUBLIC bsp_sdio bsp_nor stm32_usb_host_msc_port)
-target_compile_definitions(fatfs_usbmsc_port PRIVATE FATFS_USB_MSC=1)
+target_link_libraries(fatfs_stm32_usb_msc_port PUBLIC bsp_sdio bsp_nor stm32_usb_host_msc_port)
+target_link_libraries(fatfs_stm32_usb_msc_port PRIVATE fatfs_core_inc)
+target_compile_definitions(fatfs_stm32_usb_msc_port PRIVATE FATFS_USB_MSC=1)

@@ -3,7 +3,7 @@
  * @brief   FatFs physical drive glue for the ALIENTEK F429 board.
  *          Drive 0 maps to the SD card (SDIO), drive 1 maps to the on-board SPI
  *          NOR flash (W25Qxx) and, when FATFS_USB_MSC is defined by the
- *          fatfs_usbmsc_port variant, drive 2 maps to a USB mass storage device
+ *          fatfs_stm32_usb_msc_port variant, drive 2 maps to a USB mass storage device
  *          enumerated by
  *          the USB host stack (port/openedv_stm32f4/stm32_usb_host/usbh_diskio.c). The NAND drive is not
  *          wired here because the raw NAND needs the vendor FTL for the

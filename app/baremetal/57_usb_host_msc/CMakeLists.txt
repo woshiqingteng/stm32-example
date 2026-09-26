@@ -3,5 +3,5 @@
 # the board USB port (HCD + conf) and the FatFs USB-MSC port variant.
 add_baremetal_app(57_usb_host_msc
     SOURCES main.c
-    LIB     fatfs_usbmsc stm32_usb_host_msc
+    LIB     fatfs_stm32_usb_msc stm32_usb_host_msc
 )
