@@ -1,8 +1,4 @@
-# Port layer: vendor-stack -> hardware adaptation.
-# Layout groups by nature first, then by feature:
-#   common/      board-independent adapters
-#   ${BSP}/      board-specific adapters
-# The root only descends; each directory declares its own targets.
-
-add_subdirectory(${BSP})
+if(BSP STREQUAL "openedv_stm32f4")
+    add_subdirectory(openedv_stm32f4)
+endif()
 add_subdirectory(common)
