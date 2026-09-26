@@ -1,0 +1,100 @@
+/**
+ * @file    main.c
+ * @brief   50_2_dsp_fft: DSP FFT benchmark (vendor experiment 50_2).
+ *          A 1024-point complex FFT of a multi-tone signal is measured and
+ *          the magnitudes/peak bin are reported over USART1.
+ */
+
+#include <stdio.h>
+#include <math.h>
+#include "bsp.h"
+#include "arm_math.h"
+
+#define FFT_LENGTH      1024U       /* FFT length: 16, 64, 256 or 1024 */
+#define FFT_RUNS        100U        /* FFT repetitions used for the timing */
+#define FFT_SIGNAL_LEN  32U         /* Serial dump of the first N magnitudes */
+
+/* FFT input (complex pairs) and output (magnitudes). */
+static float g_fft_inputbuf[FFT_LENGTH * 2U];
+static float g_fft_outputbuf[FFT_LENGTH];
+
+/* Fill the complex FFT input with a multi tone test signal; the imaginary
+ * part stays zero. */
+static void fft_signal_fill(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FFT_LENGTH; i++)
+    {
+        g_fft_inputbuf[2U * i] =
+            100.0f +
+            10.0f * arm_sin_f32(2.0f * PI * (float)i / (float)FFT_LENGTH) +
+            30.0f * arm_sin_f32(2.0f * PI * (float)i * 4.0f / (float)FFT_LENGTH) +
+            50.0f * arm_cos_f32(2.0f * PI * (float)i * 8.0f / (float)FFT_LENGTH);
+        g_fft_inputbuf[(2U * i) + 1U] = 0.0f;
+    }
+}
+
+int main(void)
+{
+    arm_cfft_radix4_instance_f32 scfft;
+    uint32_t t0;
+    uint32_t elapsed;
+    uint32_t i;
+    uint32_t peak;
+
+    bsp_init();
+
+    printf("50_2_dsp_fft ready\r\n");
+
+    if (arm_cfft_radix4_init_f32(&scfft, (uint16_t)FFT_LENGTH, 0U, 1U) != ARM_MATH_SUCCESS)
+    {
+        printf("FFT init failed\r\n");
+
+        for (;;)
+        {
+            led_toggle(LED0);
+            delay_ms(500U);
+        }
+    }
+
+    t0 = sys_get_tick();
+
+    for (i = 0U; i < FFT_RUNS; i++)
+    {
+        fft_signal_fill();
+        arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
+    }
+
+    elapsed = sys_get_tick() - t0;
+
+    printf("%u point FFT x%u: %lu ms total\r\n", (unsigned)FFT_LENGTH,
+           (unsigned)FFT_RUNS, (unsigned long)elapsed);
+
+    arm_cmplx_mag_f32(g_fft_inputbuf, g_fft_outputbuf, FFT_LENGTH);
+
+    peak = 0U;
+
+    for (i = 1U; i < (FFT_LENGTH / 2U); i++)
+    {
+        if (g_fft_outputbuf[i] > g_fft_outputbuf[peak])
+        {
+            peak = i;
+        }
+    }
+
+    printf("FFT peak bin %lu magnitude %lu\r\n", (unsigned long)peak,
+           (unsigned long)g_fft_outputbuf[peak]);
+
+    for (i = 0U; i < FFT_SIGNAL_LEN; i++)
+    {
+        printf("g_fft_outputbuf[%lu]:%lu\r\n", (unsigned long)i,
+               (unsigned long)g_fft_outputbuf[i]);
+    }
+
+    for (;;)
+    {
+        led_toggle(LED0);
+        delay_ms(500U);
+    }
+}

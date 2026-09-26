@@ -140,9 +140,9 @@ target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
 bsp_library(bsp_qmi8658a
     qmi8658a.c)
 target_link_libraries(bsp_qmi8658a PUBLIC bsp_i2c)
-bsp_library(bsp_spa06
-    spa06.c)
-target_link_libraries(bsp_spa06 PUBLIC bsp_i2c)
+bsp_library(bsp_st480mc
+    st480mc.c)
+target_link_libraries(bsp_st480mc PUBLIC bsp_i2c)
 bsp_library(bsp_ds18b20
     ds18b20.c)
 bsp_library(bsp_dht11
@@ -170,7 +170,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_stmflash bsp_sram bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_rng
-    bsp_ap3216c bsp_qmi8658a bsp_spa06 bsp_ds18b20 bsp_dht11
+    bsp_ap3216c bsp_qmi8658a bsp_st480mc bsp_ds18b20 bsp_dht11
     bsp_exti bsp_pwr bsp_iap)
 
 function(bsp_resolve out)

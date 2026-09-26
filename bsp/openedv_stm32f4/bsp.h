@@ -33,7 +33,7 @@
 #include "pcf8574.h"
 #include "ap3216c.h"
 #include "touch.h"
-#include "spa06.h"
+#include "st480mc.h"
 #include "qmi8658a.h"
 #include "spi.h"
 #include "norflash.h"
