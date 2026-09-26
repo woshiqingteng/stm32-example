@@ -1,9 +1,9 @@
 /**
  * @file    i2c.h
- * @brief   Software (bit-bang) IIC master.
- *
- * Uses the ALIENTEK F429 board IIC pins: SCL = PH4, SDA = PH5. SDA is driven
- * open-drain so the bus is released high and the line can be read back.
+ * @brief   IIC master on the ALIENTEK F429 IIC pins: SCL = PH4, SDA = PH5.
+ *          Two backends are selectable with BSP_I2C_USE_HARDWARE: a software
+ *          bit-bang master (default) or the hardware I2C2 peripheral (PH4/PH5,
+ *          AF4). Both expose the same primitive API.
  */
 
 #ifndef BSP_I2C_H
@@ -11,6 +11,12 @@
 
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
+
+/* 0 = software bit-bang (default), 1 = hardware I2C2 (PH4/PH5, AF4). */
+#define BSP_I2C_USE_HARDWARE    0
+
+/* Hardware backend bus speed (I2C2). 100 kHz standard mode. */
+#define BSP_I2C_SPEED_HZ        100000U
 
 #define I2C_SCL_GPIO_PORT   GPIOH
 #define I2C_SCL_GPIO_PIN    GPIO_PIN_4
