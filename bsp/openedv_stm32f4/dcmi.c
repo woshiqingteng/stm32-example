@@ -226,3 +226,141 @@ void DMA2_Stream1_IRQHandler(void)
         }
     }
 }
+
+/* ---- One-shot JPEG capture ------------------------------------------------- */
+
+#define DCMI_JPEG_LINE_WORDS  512U   /* per-line DMA staging buffer (32-bit words) */
+
+static uint32_t          s_jpeg_line[2][DCMI_JPEG_LINE_WORDS];
+static uint32_t         *s_jpeg_dst;
+static uint32_t          s_jpeg_max_words;
+static volatile uint32_t s_jpeg_len;
+static volatile dcmi_jpeg_state_t s_jpeg_state = DCMI_JPEG_IDLE;
+
+static const uint32_t *dcmi_jpeg_active_line(void)
+{
+    /* The buffer not currently being filled by the DMA. */
+    return ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U) ? s_jpeg_line[0] : s_jpeg_line[1];
+}
+
+static void dcmi_jpeg_rx_cb(void)
+{
+    const uint32_t *src = dcmi_jpeg_active_line();
+    uint32_t       *dst;
+    uint32_t        i;
+
+    if (s_jpeg_state != DCMI_JPEG_CAPTURING)
+    {
+        return;
+    }
+
+    dst = s_jpeg_dst + s_jpeg_len;
+
+    for (i = 0U; i < DCMI_JPEG_LINE_WORDS; i++)
+    {
+        if ((s_jpeg_len + i) >= s_jpeg_max_words)
+        {
+            break;
+        }
+
+        dst[i] = src[i];
+    }
+
+    s_jpeg_len += DCMI_JPEG_LINE_WORDS;
+
+    if (s_jpeg_len >= s_jpeg_max_words)
+    {
+        s_jpeg_state = DCMI_JPEG_READY;
+    }
+}
+
+static void dcmi_jpeg_frame_cb(void)
+{
+    const uint32_t *src;
+    uint32_t       *dst;
+    uint16_t        rlen;
+    uint16_t        i;
+
+    if (s_jpeg_state != DCMI_JPEG_CAPTURING)
+    {
+        return;
+    }
+
+    __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
+
+    rlen = (uint16_t)(DCMI_JPEG_LINE_WORDS - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
+    dst  = s_jpeg_dst + s_jpeg_len;
+    src  = ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U) ? s_jpeg_line[1] : s_jpeg_line[0];
+
+    for (i = 0U; i < rlen; i++)
+    {
+        if ((s_jpeg_len + i) >= s_jpeg_max_words)
+        {
+            break;
+        }
+
+        dst[i] = src[i];
+    }
+
+    s_jpeg_len  += rlen;
+    s_jpeg_state = DCMI_JPEG_READY;
+}
+
+void dcmi_jpeg_init(uint32_t *dst, uint32_t max_words)
+{
+    s_jpeg_dst       = dst;
+    s_jpeg_max_words = max_words;
+    s_jpeg_len       = 0U;
+    s_jpeg_state     = DCMI_JPEG_IDLE;
+}
+
+void dcmi_jpeg_begin(void)
+{
+    s_jpeg_len   = 0U;
+    s_jpeg_state = DCMI_JPEG_CAPTURING;
+
+    dcmi_dma_init((uint32_t)s_jpeg_line[0], (uint32_t)s_jpeg_line[1], DCMI_JPEG_LINE_WORDS,
+                  DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
+    dcmi_rx_callback    = dcmi_jpeg_rx_cb;
+    dcmi_frame_callback = dcmi_jpeg_frame_cb;
+
+    dcmi_start();
+}
+
+void dcmi_jpeg_end(void)
+{
+    dcmi_stop();
+
+    if (s_jpeg_state == DCMI_JPEG_CAPTURING)
+    {
+        s_jpeg_state = DCMI_JPEG_IDLE;
+    }
+}
+
+dcmi_jpeg_state_t dcmi_jpeg_state(void)
+{
+    return s_jpeg_state;
+}
+
+uint32_t dcmi_jpeg_words(void)
+{
+    return s_jpeg_len;
+}
+
+bool dcmi_jpeg_capture(uint32_t timeout_ms)
+{
+    uint32_t t0;
+
+    dcmi_jpeg_begin();
+
+    t0 = HAL_GetTick();
+
+    while ((s_jpeg_state == DCMI_JPEG_CAPTURING) && ((HAL_GetTick() - t0) < timeout_ms))
+    {
+        /* wait for the frame */
+    }
+
+    dcmi_jpeg_end();
+
+    return (s_jpeg_state == DCMI_JPEG_READY);
+}

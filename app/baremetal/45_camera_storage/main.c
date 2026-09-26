@@ -19,7 +19,6 @@
 #include "jpeg_dec.h"
 #include "bmp.h"
 #include "ltdc.h"
-#include "cam_jpeg.h"
 #define CAM_OUT_WIDTH    800U
 #define CAM_OUT_HEIGHT   464U
 #define CAM_TOP          16U
@@ -127,16 +126,16 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
     (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, JPEG_SIZE_W, JPEG_SIZE_H);
 
     dcmi_init();
-    cam_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
-    captured = cam_jpeg_capture(JPEG_CAPTURE_TIMEOUT_MS);
+    dcmi_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
+    captured = dcmi_jpeg_capture(JPEG_CAPTURE_TIMEOUT_MS);
 
     fr = f_open(&f, g_last_path, FA_CREATE_ALWAYS | FA_WRITE);
 
     if (captured && (fr == FR_OK))
     {
-        (void)f_write(&f, (uint8_t *)JPEG_BUF_ADDR, cam_jpeg_words() * 4U, &bw);
+        (void)f_write(&f, (uint8_t *)JPEG_BUF_ADDR, dcmi_jpeg_words() * 4U, &bw);
         (void)f_close(&f);
-        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(cam_jpeg_words() * 4U));
+        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(dcmi_jpeg_words() * 4U));
     }
     else
     {

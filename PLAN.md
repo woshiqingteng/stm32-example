@@ -300,3 +300,31 @@ verify.md：F1/F3 去掉 lib_imu；F4 10/10→9/9；L3 改为 35 app-local。
 
 ## 5. 进度追踪
 - [x] 写 PLAN 章节 [x] imu 下沉 [x] 35 LIB dsp [x] 34 LIB dsp [x] 文档+回归
+
+---
+
+# 重构：cam_jpeg→bsp_dcmi；FTL→BSP + NAND 胶水→port
+
+## 0. 决策
+- lib/cam_jpeg 直接并入 bsp_dcmi（API 改名 dcmi_jpeg_* / DCMI_JPEG_*）。
+- lib/ftl → BSP 叶子 bsp_ftl（memory 类）；NAND 胶水直接进 port；删 weak 钩子与 lib/nand_storage。
+- bsp.h 不加入 ftl.h。
+- ftl_init() 增加 FTL_MAX_BLOCKS 越界保护。
+
+## C1 cam_jpeg → bsp_dcmi
+引擎并入 dcmi.c；dcmi.h 增 dcmi_jpeg_state_t 与 dcmi_jpeg_init/begin/end/state/words/capture；
+超时用 HAL_GetTick()；删 lib/cam_jpeg；38/45 改调用与枚举。
+
+## C2 FTL → BSP；胶水 → port
+lib/ftl → bsp/openedv_stm32f4/ftl.{c,h}（BSP_FTL_H）；bsp_ftl 叶子(PUBLIC bsp_nand)入 bsp_all；
+ftl_init 越界保护；diskio.c/usbd_storage_if.c 删 weak 桩直接调 FTL；port 三目标 +bsp_ftl；
+删 lib/nand_storage、lib/ftl；41 BSP nand ftl + LIB malloc；42/54 去 nand_storage。
+
+## C3 文档
+verify.md：D1 45→46；F1/F3/F4；F5 改；M3 改。PLAN.md 进度。
+
+## 验证
+逐项 38/45/41/42/54；全量 73/73。
+
+## 进度
+- [ ] 写 PLAN 章节 [ ] C1 [ ] C2 [ ] C3 [ ] 全量回归 73/73

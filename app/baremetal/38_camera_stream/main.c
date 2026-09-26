@@ -17,7 +17,6 @@
 
 #include "bsp.h"
 #include "ltdc.h"
-#include "cam_jpeg.h"
 /** @brief  Current camera mode. */
 typedef enum
 {
@@ -122,25 +121,25 @@ static void jpeg_test(void)
     (void)ov5640_focus_constant();
 
     dcmi_init();
-    cam_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
+    dcmi_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
     (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, jpeg_img_size_tbl[size][0],
                              jpeg_img_size_tbl[size][1]);
-    cam_jpeg_begin();
+    dcmi_jpeg_begin();
 
     for (;;)
     {
-        if (cam_jpeg_state() == CAM_JPEG_READY)                         /* a whole frame is ready */
+        if (dcmi_jpeg_state() == DCMI_JPEG_READY)                         /* a whole frame is ready */
         {
-            cam_jpeg_end();
+            dcmi_jpeg_end();
             jpglen = 0U;
 
             p = (uint8_t *)JPEG_BUF_ADDR;
-            printf("g_jpeg_data_len:%u\r\n", (unsigned int)(cam_jpeg_words() * 4U));
+            printf("g_jpeg_data_len:%u\r\n", (unsigned int)(dcmi_jpeg_words() * 4U));
             lcd_show_string(30, 210, 210, 16, LCD_FONT_SIZE_16, "Sending JPEG data...", RED);
 
             headok  = 0U;
 
-            for (i = 0U; i < (cam_jpeg_words() * 4U); i++)
+            for (i = 0U; i < (dcmi_jpeg_words() * 4U); i++)
             {
                 if ((p[i] == 0xFFU) && (p[i + 1U] == 0xD8U))
                 {
@@ -225,7 +224,7 @@ static void jpeg_test(void)
                 lcd_show_string(30, 210, 210, 16, LCD_FONT_SIZE_16, "Send data complete!!", RED);
             }
 
-            cam_jpeg_begin();                            /* allow the next frame */
+            dcmi_jpeg_begin();                            /* allow the next frame */
         }
 
         delay_ms(1);

@@ -19,6 +19,7 @@
 #define BSP_DCMI_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 
 extern DCMI_HandleTypeDef g_dcmi_handle;    /*!< DCMI peripheral handle  */
@@ -66,5 +67,31 @@ void dcmi_cr_set(uint8_t pclk, uint8_t hsync, uint8_t vsync);
 
 /** @brief  Restart capture with a new sensor output window (debug / USMART). */
 void dcmi_set_window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
+
+/** @brief  One-shot JPEG capture phase. */
+typedef enum
+{
+    DCMI_JPEG_IDLE = 0,   /*!< not capturing */
+    DCMI_JPEG_CAPTURING,  /*!< a frame is being received */
+    DCMI_JPEG_READY       /*!< a complete frame is in the buffer */
+} dcmi_jpeg_state_t;
+
+/** @brief  Bind the JPEG destination buffer (word aligned). */
+void dcmi_jpeg_init(uint32_t *dst, uint32_t max_words);
+
+/** @brief  Start a JPEG capture (configures the DCMI DMA and its callbacks). */
+void dcmi_jpeg_begin(void);
+
+/** @brief  Stop the DCMI; a completed frame is left as DCMI_JPEG_READY. */
+void dcmi_jpeg_end(void);
+
+/** @brief  Current JPEG capture phase. */
+dcmi_jpeg_state_t dcmi_jpeg_state(void);
+
+/** @brief  Captured JPEG size in 32-bit words. */
+uint32_t dcmi_jpeg_words(void);
+
+/** @brief  Begin, wait up to timeout_ms, then stop; true if a frame is ready. */
+bool dcmi_jpeg_capture(uint32_t timeout_ms);
 
 #endif /* BSP_DCMI_H */
