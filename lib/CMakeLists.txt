@@ -36,13 +36,9 @@ function(lib_dir name)
     set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
 endfunction()
 
-lib_dir(usmart)
-lib_dir(malloc)
-lib_dir(text)
-lib_dir(picture)
-lib_dir(audio)
-lib_dir(mjpeg)
-lib_dir(ftl)
+foreach(_d usmart malloc text picture audio mjpeg ftl)
+    lib_dir(${_d})
+endforeach()
 
 set(LIB_ALL_TARGET ${LIB_ALL_TARGET} CACHE INTERNAL "" FORCE)
 
