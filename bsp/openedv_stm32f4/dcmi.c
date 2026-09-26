@@ -128,6 +128,30 @@ void dcmi_start(void)
     SET_BIT(DCMI->CR, DCMI_CR_CAPTURE);
 }
 
+void dcmi_switch_ov5640(void)
+{
+    GPIO_InitTypeDef gpio_init = {0};
+
+    gpio_init.Mode      = GPIO_MODE_AF_PP;
+    gpio_init.Pull      = GPIO_PULLUP;
+    gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio_init.Alternate = GPIO_AF13_DCMI;
+    gpio_init.Pin       = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOC, &gpio_init);
+}
+
+void dcmi_switch_sdcard(void)
+{
+    GPIO_InitTypeDef gpio_init = {0};
+
+    gpio_init.Mode      = GPIO_MODE_AF_PP;
+    gpio_init.Pull      = GPIO_PULLUP;
+    gpio_init.Speed     = GPIO_SPEED_FREQ_HIGH;
+    gpio_init.Alternate = GPIO_AF12_SDIO;
+    gpio_init.Pin       = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOC, &gpio_init);
+}
+
 void dcmi_stop(void)
 {
     CLEAR_BIT(DCMI->CR, DCMI_CR_CAPTURE);

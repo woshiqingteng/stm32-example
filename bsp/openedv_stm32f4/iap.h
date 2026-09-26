@@ -22,7 +22,10 @@ typedef enum
     IAP_ERR_FRAME,
 } iap_status_t;
 
-/** @brief  Erase the sectors covering [addr, addr+len) and program the buffer. */
+/** @brief  Erase the sectors covering [addr, addr+len) for an app image. */
+iap_status_t iap_erase_app(uint32_t addr, uint32_t len);
+
+/** @brief  Program the buffer to already-erased flash at addr. */
 iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len);
 
 /** @brief  Jump to the application at addr (never returns on success). */

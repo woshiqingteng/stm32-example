@@ -105,8 +105,10 @@ static uint8_t cam_save_jpeg(bool sd_ok)
     }
 
     dcmi_stop();
+    dcmi_switch_sdcard();
     cam_next_path(g_last_path);
     res = jpg_encode(g_last_path, 0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
+    dcmi_switch_ov5640();
     dcmi_start();
 
     if (res != 0U)
@@ -130,11 +132,13 @@ static void cam_show_jpeg(bool sd_ok)
     }
 
     dcmi_stop();
+    dcmi_switch_sdcard();
     lcd_clear(BLACK);
     (void)piclib_ai_load_picfile(g_last_path, 0U, 0U, lcd_get_width(), lcd_get_height(), true);
     text_show_string(2U, 2U, lcd_get_width(), 16U, g_last_path, 16U, 1U, RED);
     delay_ms(2000U);
     lcd_clear(BLACK);
+    dcmi_switch_ov5640();
     dcmi_start();
 }
 

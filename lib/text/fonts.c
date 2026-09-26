@@ -251,6 +251,8 @@ uint8_t fonts_init(void)
 {
     uint8_t t = 0;
 
+    nor_init();
+
     while (t < 10U)
     {
         t++;

@@ -55,6 +55,12 @@ void dcmi_start(void);
 /** @brief  Stop capture and disable DMA. */
 void dcmi_stop(void);
 
+/** @brief  Mux PC8/PC9/PC11 back to DCMI (AF13) for camera capture. */
+void dcmi_switch_ov5640(void);
+
+/** @brief  Mux PC8/PC9/PC11 to SDIO (AF12) for SD access during capture. */
+void dcmi_switch_sdcard(void);
+
 /** @brief  Re-configure the DCMI sampling polarities (debug / USMART). */
 void dcmi_cr_set(uint8_t pclk, uint8_t hsync, uint8_t vsync);
 

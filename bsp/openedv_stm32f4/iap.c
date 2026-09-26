@@ -21,12 +21,11 @@ static int iap_rx_byte(uint8_t *byte)
     return (HAL_UART_Receive(&g_uart1_handle, byte, 1U, IAP_RX_TIMEOUT_MS) == HAL_OK) ? 0 : -1;
 }
 
-iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
+iap_status_t iap_erase_app(uint32_t addr, uint32_t len)
 {
     FLASH_EraseInitTypeDef erase = {0};
     uint32_t               sector_error = 0U;
     uint32_t               end = addr + len;
-    uint32_t               i;
 
     if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE)))
     {
@@ -45,6 +44,22 @@ iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
         HAL_FLASH_Lock();
         return IAP_ERR_ERASE;
     }
+
+    HAL_FLASH_Lock();
+    return IAP_OK;
+}
+
+iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
+{
+    uint32_t end = addr + len;
+    uint32_t i;
+
+    if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE)))
+    {
+        return IAP_ERR_PARAM;
+    }
+
+    HAL_FLASH_Unlock();
 
     for (i = 0U; i < len; i += 2U)
     {
@@ -115,6 +130,8 @@ iap_status_t iap_receive_usart(void)
     len |= (uint16_t)((uint16_t)byte << 8);
 
     if ((len == 0U) || (len > IAP_MAX_IMAGE_SIZE)) { return IAP_ERR_PARAM; }
+
+    if (iap_erase_app(IAP_APP_ADDR, len) != IAP_OK) { return IAP_ERR_ERASE; }
 
     for (i = 0U; i < len; i += sizeof(g_iap_buf))
     {
