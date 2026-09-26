@@ -75,10 +75,10 @@
 
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
-| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_nand_storage` / `lib_imu` / `lib_cam_jpeg` | ✅ |
+| F1 | 直连组件 | `lib_fatfs` / `lib_fatfs_stm32_usb_msc` / `lib_stm32_usb_device_{cdc,audio,msc}` / `lib_stm32_usb_host_{hid,msc}` / `lib_dsp` / `lib_nand_storage` / `lib_cam_jpeg` | ✅ |
 | F2 | `lib_resolve` | 小写可用 + `ALL` + 未知报错 | ✅ |
-| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl/nand_storage/imu/cam_jpeg |
-| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 10/10 |
+| F3 | bsp/lib 依赖分行 | BSP 与 lib 不同行 | ✅ text/picture/audio/mjpeg/ftl/nand_storage/cam_jpeg |
+| F4 | 中间件库可排除 | 各中间件 STATIC 含 EXCLUDE | ✅ 9/9 |
 | F5 | NAND 分层 | port 不依赖 lib：port 留 weak 钩子，强实现在 `lib_nand_storage` | ✅ `diskio.c`/`usbd_storage_if.c` weak + object override |
 
 ## G. app 声明
@@ -144,7 +144,7 @@
 |---|---|---|---|
 | L1 | P0 缺陷 | IAP 擦除、字体 NOR 初始化、DCMI/SDIO 引脚切换 | ✅ `iap_erase_app`、`fonts_init→nor_init`、`dcmi_switch_*` |
 | L2 | P2 存储 | 13 全容量、42 三卷、54 三 LUN、53 IAP 手控 | ✅ |
-| L3 | P2 传感器 | `lib/imu` 融合 + ANO_TC | ✅ `35_i2c_imu` |
+| L3 | P2 传感器 | 35 app-local 融合 + ANO_TC | ✅ `35_i2c_imu/imu.c` |
 | L4 | P2 显示 | 43 GBK 遍历、11 OLED 12/16/24、30 多点、45 原生 JPEG/BMP、49 LCD | ✅ |
 | L5 | P2 外设/交互 | 16 wakeup、22/23 按键+ADC、29 模式、50 FFT、58 HID、25 BEEP | ✅ |
 | L6 | 全量回归 | 73 镜像 | ✅ 73 |

@@ -2,7 +2,8 @@
  * @file    main.c
  * @brief   35_i2c_imu: QMI8658A six-axis test with attitude fusion. The raw
  *          accelerometer/gyroscope counts are converted to physical units and
- *          fed to the Mahony filter (lib_imu); the roll/pitch/yaw angles are
+ *          fed to the app-local Mahony filter (imu.c); the roll/pitch/yaw
+ *          angles are
  *          printed on USART1 and streamed as ANO_TC frames (0xAA 0xAA ...).
  */
 

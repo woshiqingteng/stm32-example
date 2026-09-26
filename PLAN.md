@@ -275,3 +275,28 @@ rm -rf platform/arch/cmsis_core/6.1.0
 
 ## 5. 进度追踪
 - [x] 写 PLAN 章节 [x] 导出 6.3.0 [x] 版本指针+删 6.1.0 [x] 全量回归 73/73
+
+---
+
+# 归属调整：lib/imu → 35_i2c_imu 局部；统一 app 内 libm 链接
+
+## 0. 决策
+- imu（Mahony 融合）仅 35 使用，下沉到 app 层：app/baremetal/35_i2c_imu/。
+- app CMake 不得出现 target_link_；libm 通过 LIB dsp 透传（cmsis_dsp 已 PUBLIC 链接 m）。
+- 顺带统一 34_i2c_magnet（去掉其 target_link_libraries）。
+
+## 1. imu 下沉
+移动 lib/imu/imu.c、imu.h → app/baremetal/35_i2c_imu/；删除 lib/imu；lib/CMakeLists 去掉 imu。
+35 CMake：SOURCE main.c imu.c / BSP qmi8658a / LIB dsp。
+
+## 2. 34 统一
+34 CMake：SOURCE main.c / BSP st480mc / LIB dsp（移除 target_link_libraries）。
+
+## 3. 文档同步
+verify.md：F1/F3 去掉 lib_imu；F4 10/10→9/9；L3 改为 35 app-local。
+
+## 4. 验证
+构建 34/35；全量 73/73。
+
+## 5. 进度追踪
+- [x] 写 PLAN 章节 [x] imu 下沉 [x] 35 LIB dsp [x] 34 LIB dsp [x] 文档+回归

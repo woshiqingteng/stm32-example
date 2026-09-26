@@ -1,6 +1,5 @@
 add_baremetal_app(34_i2c_magnet
     SOURCE main.c
     BSP     st480mc
+    LIB     dsp
 )
-
-target_link_libraries(app_baremetal_34_i2c_magnet PRIVATE m)
