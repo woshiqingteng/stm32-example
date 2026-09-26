@@ -9,7 +9,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "ov5640.h"
-#include "pcf8574.h"
+#include "io_expand.h"
 #include "delay.h"
 #include "ov5640cfg.h"
 #include "ov5640af.h"
@@ -193,7 +193,7 @@ uint8_t ov5640_write_reg(uint16_t reg, uint8_t data)
 
 void ov5640_pwdn_set(uint8_t sta)
 {
-    pcf8574_write_bit(PCF8574_DCMI_PWDN_IO, sta);
+    io_expand_write_bit(PCF8574_DCMI_PWDN_IO, sta);
 }
 
 uint16_t ov5640_read_id(void)
@@ -224,7 +224,7 @@ uint8_t ov5640_init(void)
     gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(OV5640_RESET_GPIO_PORT, &gpio_init);
 
-    (void)pcf8574_init();
+    (void)io_expand_init();
 
     HAL_GPIO_WritePin(OV5640_RESET_GPIO_PORT, OV5640_RESET_GPIO_PIN, GPIO_PIN_RESET);
     delay_ms(OV5640_RESET_LOW_MS);

@@ -1,6 +1,6 @@
 /**
  * @file    main.c
- * @brief   27_spi_norflash: W25Qxx SPI NOR flash test. The JEDEC ID is read, sector 0 is
+ * @brief   27_spi_nor: W25Qxx SPI NOR flash test. The JEDEC ID is read, sector 0 is
  *          erased, a pattern is written and read back, verified and reported
  *          over USART1.
  */
@@ -9,25 +9,25 @@
 #include <stdio.h>
 #include "bsp.h"
 
-#define NORFLASH_TEST_SECTOR    0U
-#define NORFLASH_TEST_ADDR      (NORFLASH_TEST_SECTOR * NORFLASH_SECTOR_SIZE)
-#define NORFLASH_TEST_LEN       32U
+#define NOR_TEST_SECTOR    0U
+#define NOR_TEST_ADDR      (NOR_TEST_SECTOR * NOR_SECTOR_SIZE)
+#define NOR_TEST_LEN       32U
 
 int main(void)
 {
     char     line[48];
-    uint8_t  pattern[NORFLASH_TEST_LEN];
-    uint8_t  readback[NORFLASH_TEST_LEN];
+    uint8_t  pattern[NOR_TEST_LEN];
+    uint8_t  readback[NOR_TEST_LEN];
     uint16_t id;
     uint8_t  i;
     bool     ok = true;
 
     bsp_init();
-    norflash_init();
+    nor_init();
 
-    printf("27_spi_norflash ready\r\n");
+    printf("27_spi_nor ready\r\n");
 
-    id = norflash_read_id();
+    id = nor_read_id();
     sprintf(line, "Flash ID: 0x%04X", id);
     printf("%s\r\n", line);
 
@@ -37,16 +37,16 @@ int main(void)
     }
     else
     {
-        for (i = 0U; i < NORFLASH_TEST_LEN; i++)
+        for (i = 0U; i < NOR_TEST_LEN; i++)
         {
             pattern[i] = (uint8_t)((i * 3U) + 1U);
         }
 
-        norflash_erase_sector(NORFLASH_TEST_SECTOR);
-        norflash_write(pattern, NORFLASH_TEST_ADDR, NORFLASH_TEST_LEN);
-        norflash_read(readback, NORFLASH_TEST_ADDR, NORFLASH_TEST_LEN);
+        nor_erase_sector(NOR_TEST_SECTOR);
+        nor_write(pattern, NOR_TEST_ADDR, NOR_TEST_LEN);
+        nor_read(readback, NOR_TEST_ADDR, NOR_TEST_LEN);
 
-        for (i = 0U; i < NORFLASH_TEST_LEN; i++)
+        for (i = 0U; i < NOR_TEST_LEN; i++)
         {
             if (readback[i] != pattern[i])
             {

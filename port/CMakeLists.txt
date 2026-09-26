@@ -20,7 +20,7 @@ target_include_directories(fatfs_port PRIVATE
     $<TARGET_PROPERTY:fatfs_core,INTERFACE_INCLUDE_DIRECTORIES>
     # diskio.c may route a USB-MSC drive (guarded by FATFS_USB_MSC).
     ${CMAKE_CURRENT_SOURCE_DIR}/common/stm32_usb_host)
-target_link_libraries(fatfs_port PUBLIC bsp_sdio bsp_norflash)
+target_link_libraries(fatfs_port PUBLIC bsp_sdio bsp_nor)
 
 # ---- USB device port (per class) ------------------------------------------
 add_library(stm32_usb_device_common_port STATIC EXCLUDE_FROM_ALL
@@ -62,7 +62,7 @@ add_library(stm32_usb_host_common_port STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/stm32_usb_host/usbh_conf.c)
 target_include_directories(stm32_usb_host_common_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/stm32_usb_host)
-target_link_libraries(stm32_usb_host_common_port PUBLIC bsp_core bsp_pcf8574 drv_usb)
+target_link_libraries(stm32_usb_host_common_port PUBLIC bsp_core bsp_io_expand drv_usb)
 target_link_libraries(stm32_usb_host_common_port PRIVATE stm32_usb_host_inc)
 # The vendor core headers include usbh_conf.h, provided here.
 target_include_directories(stm32_usb_host PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${BSP}/stm32_usb_host)

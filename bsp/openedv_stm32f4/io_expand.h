@@ -1,13 +1,13 @@
 /**
- * @file    pcf8574.h
+ * @file    io_expand.h
  * @brief   PCF8574 8-bit I2C IO expander driver.
  *
  * The device sits on the shared software IIC bus (PH4/PH5). Its INT output is
  * wired to PB12 and is active low.
  */
 
-#ifndef BSP_PCF8574_H
-#define BSP_PCF8574_H
+#ifndef BSP_IO_EXPAND_H
+#define BSP_IO_EXPAND_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -33,15 +33,15 @@
 
 /** @brief  Initialise the INT input and the IIC bus, then release all outputs.
  *  @return 0 if the expander acknowledged, 1 otherwise. */
-uint8_t pcf8574_init(void);
+uint8_t io_expand_init(void);
 
-uint8_t pcf8574_read_byte(void);
-void    pcf8574_write_byte(uint8_t data);
+uint8_t io_expand_read_byte(void);
+void    io_expand_write_byte(uint8_t data);
 
 /** @brief  True when the active-low INT output is asserted. */
-bool    pcf8574_int_asserted(void);
+bool    io_expand_int_asserted(void);
 
-void    pcf8574_write_bit(uint8_t bit, uint8_t sta);
-uint8_t pcf8574_read_bit(uint8_t bit);
+void    io_expand_write_bit(uint8_t bit, uint8_t sta);
+uint8_t io_expand_read_bit(uint8_t bit);
 
-#endif /* BSP_PCF8574_H */
+#endif /* BSP_IO_EXPAND_H */

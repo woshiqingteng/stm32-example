@@ -13,7 +13,7 @@
 #include "malloc.h"
 #include "ff.h"
 #include "delay.h"
-#include "norflash.h"
+#include "nor.h"
 
 /* 4 fonts + unigbk + descriptor: about 6.01 MB, 1539 4 KB sectors. */
 #define FONTSECSIZE         1539U
@@ -141,7 +141,7 @@ static uint8_t fonts_update_fontx(uint16_t x, uint16_t y, uint8_t size, uint8_t 
                 break;
             }
 
-            norflash_write(tempbuf, offx + flashaddr, (uint16_t)bread);
+            nor_write(tempbuf, offx + flashaddr, (uint16_t)bread);
             offx += bread;
             fonts_progress_show(x, y, size, (uint32_t)fftemp->obj.objsize, offx, color);
 
@@ -206,7 +206,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
         for (i = 0; i < FONTSECSIZE; i++)
         {
             fonts_progress_show((uint16_t)(x + 20 * size / 2), y, size, FONTSECSIZE, i, color);
-            norflash_read(buf, (uint32_t)((FONTINFOADDR / 4096U) + i) * 4096U, 4096U);
+            nor_read(buf, (uint32_t)((FONTINFOADDR / 4096U) + i) * 4096U, 4096U);
 
             for (j = 0; j < 1024U; j++)
             {
@@ -218,7 +218,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
 
             if (j != 1024U)
             {
-                norflash_erase_sector((uint32_t)((FONTINFOADDR / 4096U) + i));
+                nor_erase_sector((uint32_t)((FONTINFOADDR / 4096U) + i));
             }
         }
 
@@ -238,7 +238,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
         }
 
         ftinfo.fontok = 0xAA;
-        norflash_write((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
+        nor_write((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
     }
 
     myfree(SRAMIN, pname);
@@ -254,7 +254,7 @@ uint8_t fonts_init(void)
     while (t < 10U)
     {
         t++;
-        norflash_read((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
+        nor_read((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
 
         if (ftinfo.fontok == 0xAA)
         {

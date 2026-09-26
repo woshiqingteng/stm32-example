@@ -20,7 +20,7 @@ int main(void)
 
     bsp_init();
 
-    if (pcf8574_init() != 0U)
+    if (io_expand_init() != 0U)
     {
         printf("PCF8574 check failed\r\n");
     }
@@ -36,14 +36,14 @@ int main(void)
         uint8_t write_val = g_patterns[idx];
         uint8_t read_val;
 
-        pcf8574_write_byte(write_val);
-        read_val = pcf8574_read_byte();
+        io_expand_write_byte(write_val);
+        read_val = io_expand_read_byte();
 
         sprintf(line, "Write:0x%02X Read:0x%02X", write_val, read_val);
         printf("%s\r\n", line);
 
-        status = (pcf8574_int_asserted()) ? 1U : 0U;
-        sprintf(line, "INT:%u EX_IO:%u", status, (unsigned)pcf8574_read_bit(PCF8574_EX_IO));
+        status = (io_expand_int_asserted()) ? 1U : 0U;
+        sprintf(line, "INT:%u EX_IO:%u", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
         printf("%s\r\n", line);
 
         idx ^= 1U;

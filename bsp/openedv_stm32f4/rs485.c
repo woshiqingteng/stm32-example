@@ -7,7 +7,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "rs485.h"
-#include "pcf8574.h"
+#include "io_expand.h"
 #include "delay.h"
 #include "sys.h"
 
@@ -26,14 +26,14 @@ static uint16_t g_rs485_rx_cnt;
 
 void rs485_tx_set(uint8_t en)
 {
-    pcf8574_write_bit(PCF8574_RS485_RE_IO, en);
+    io_expand_write_bit(PCF8574_RS485_RE_IO, en);
 }
 
 void rs485_init(uint32_t baudrate)
 {
     GPIO_InitTypeDef gpio_init = {0};
 
-    pcf8574_init();
+    io_expand_init();
 
     /* ---- MSP begin: USART2 clock + PA2/PA3 + NVIC ---- */
     __HAL_RCC_USART2_CLK_ENABLE();

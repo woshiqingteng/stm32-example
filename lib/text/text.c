@@ -10,7 +10,7 @@
 #include "text.h"
 #include "lcd.h"
 #include "malloc.h"
-#include "norflash.h"
+#include "nor.h"
 
 /** @brief  Translate the middleware mode (0 overwrite, 1 transparent) to the
  *          RGB panel text mode. */
@@ -56,19 +56,19 @@ static void text_get_hz_mat(uint8_t *code, uint8_t *mat, uint8_t size)
     switch (size)
     {
         case 12:
-            norflash_read(mat, (uint32_t)(foffset + ftinfo.f12addr), csize);
+            nor_read(mat, (uint32_t)(foffset + ftinfo.f12addr), csize);
             break;
 
         case 16:
-            norflash_read(mat, (uint32_t)(foffset + ftinfo.f16addr), csize);
+            nor_read(mat, (uint32_t)(foffset + ftinfo.f16addr), csize);
             break;
 
         case 24:
-            norflash_read(mat, (uint32_t)(foffset + ftinfo.f24addr), csize);
+            nor_read(mat, (uint32_t)(foffset + ftinfo.f24addr), csize);
             break;
 
         case 32:
-            norflash_read(mat, (uint32_t)(foffset + ftinfo.f32addr), csize);
+            nor_read(mat, (uint32_t)(foffset + ftinfo.f32addr), csize);
             break;
 
         default:

@@ -3,7 +3,7 @@
 # middleware (TEXT + LibJPEG) for JPEG encode/decode.
 add_baremetal_app(45_camera_storage
     SOURCES main.c
-    BSP     dcmi lcd ov5640 pcf8574 sdio sdram gtim
+    BSP     dcmi lcd ov5640 io_expand sdio sdram gtim
     LIB     malloc text picture
 )
 

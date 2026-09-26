@@ -48,9 +48,9 @@ target_link_libraries(bsp_i2c PUBLIC drv_i2c)
 bsp_library(bsp_spi
     spi.c)
 target_link_libraries(bsp_spi PUBLIC drv_spi)
-bsp_library(bsp_pcf8574
-    pcf8574.c)
-target_link_libraries(bsp_pcf8574 PUBLIC bsp_i2c)
+bsp_library(bsp_io_expand
+    io_expand.c)
+target_link_libraries(bsp_io_expand PUBLIC bsp_i2c)
 bsp_library(bsp_eeprom
     eeprom.c)
 target_link_libraries(bsp_eeprom PUBLIC bsp_i2c)
@@ -62,7 +62,7 @@ bsp_library(bsp_dcmi
 target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
 bsp_library(bsp_ov5640
     ov5640.c)
-target_link_libraries(bsp_ov5640 PUBLIC bsp_pcf8574)
+target_link_libraries(bsp_ov5640 PUBLIC bsp_io_expand)
 bsp_library(bsp_codec
     codec.c)
 target_link_libraries(bsp_codec PUBLIC bsp_i2c)
@@ -71,7 +71,7 @@ bsp_library(bsp_sai
 target_link_libraries(bsp_sai PUBLIC drv_sai)
 bsp_library(bsp_rs485
     rs485.c)
-target_link_libraries(bsp_rs485 PUBLIC bsp_pcf8574 drv_uart)
+target_link_libraries(bsp_rs485 PUBLIC bsp_io_expand drv_uart)
 bsp_library(bsp_wireless
     wireless.c)
 target_link_libraries(bsp_wireless PUBLIC bsp_spi)
@@ -100,9 +100,9 @@ target_link_libraries(bsp_sdram PUBLIC drv_fmc)
 bsp_library(bsp_nand
     nand.c)
 target_link_libraries(bsp_nand PUBLIC drv_fmc)
-bsp_library(bsp_norflash
-    norflash.c)
-target_link_libraries(bsp_norflash PUBLIC bsp_spi)
+bsp_library(bsp_nor
+    nor.c)
+target_link_libraries(bsp_nor PUBLIC bsp_spi)
 bsp_library(bsp_sdio
     sdio.c)
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
@@ -161,10 +161,10 @@ add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
     bsp_btim bsp_gtim bsp_atim bsp_rtc bsp_wdg
-    bsp_i2c bsp_spi bsp_pcf8574 bsp_eeprom
+    bsp_i2c bsp_spi bsp_io_expand bsp_eeprom
     bsp_can bsp_dcmi bsp_ov5640 bsp_codec bsp_sai bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
-    bsp_stmflash bsp_sdram bsp_nand bsp_norflash bsp_sdio bsp_ftl
+    bsp_stmflash bsp_sdram bsp_nand bsp_nor bsp_sdio bsp_ftl
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_rng
     bsp_ap3216c bsp_qmi8658a bsp_st480mc bsp_ds18b20 bsp_dht11

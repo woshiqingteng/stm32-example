@@ -111,7 +111,7 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    (void)pcf8574_init();
+    (void)io_expand_init();
 
     printf("58_usb_host_hid ready\r\n");
 

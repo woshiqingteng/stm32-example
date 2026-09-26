@@ -12,7 +12,7 @@
 #include "ff.h"
 #include "diskio.h"
 #include "sdio.h"
-#include "norflash.h"
+#include "nor.h"
 
 #define SD_CARD     0   /* SD card (logical drive "0:") */
 #define EX_FLASH    1   /* SPI NOR flash (logical drive "1:") */
@@ -23,9 +23,9 @@
 #endif
 
 /* NOR flash region handed to FatFs: the first 25 MB of the 32 MB part. */
-#define NOR_SECTOR_SIZE   512U
-#define NOR_SECTOR_COUNT  (25U * 1024U * 2U)  /* 25 MB / 512 B */
-#define NOR_BLOCK_SIZE    8U                  /* 8 sectors = one 4 KB erase block */
+#define NOR_FATFS_SECTOR_SIZE   512U
+#define NOR_FATFS_SECTOR_COUNT  (25U * 1024U * 2U)  /* 25 MB / 512 B */
+#define NOR_FATFS_BLOCK_SIZE    8U                  /* 8 sectors = one 4 KB erase block */
 #define NOR_FATFS_BASE    0U
 
 DSTATUS disk_status(BYTE pdrv)
@@ -56,7 +56,7 @@ DSTATUS disk_initialize(BYTE pdrv)
             break;
 
         case EX_FLASH:
-            norflash_init();
+            nor_init();
             break;
 
 #ifdef FATFS_USB_MSC
@@ -91,10 +91,10 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
         case EX_FLASH:
             while (count-- != 0U)
             {
-                norflash_read(buff, NOR_FATFS_BASE + (uint32_t)sector * NOR_SECTOR_SIZE,
-                              (uint16_t)NOR_SECTOR_SIZE);
+                nor_read(buff, NOR_FATFS_BASE + (uint32_t)sector * NOR_FATFS_SECTOR_SIZE,
+                              (uint16_t)NOR_FATFS_SECTOR_SIZE);
                 sector++;
-                buff += NOR_SECTOR_SIZE;
+                buff += NOR_FATFS_SECTOR_SIZE;
             }
             break;
 
@@ -128,11 +128,11 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
         case EX_FLASH:
             while (count-- != 0U)
             {
-                norflash_write((uint8_t *)buff,
-                               NOR_FATFS_BASE + (uint32_t)sector * NOR_SECTOR_SIZE,
-                               (uint16_t)NOR_SECTOR_SIZE);
+                nor_write((uint8_t *)buff,
+                               NOR_FATFS_BASE + (uint32_t)sector * NOR_FATFS_SECTOR_SIZE,
+                               (uint16_t)NOR_FATFS_SECTOR_SIZE);
                 sector++;
-                buff += NOR_SECTOR_SIZE;
+                buff += NOR_FATFS_SECTOR_SIZE;
             }
             break;
 
@@ -189,17 +189,17 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
                 break;
 
             case GET_SECTOR_SIZE:
-                *(DWORD *)buff = NOR_SECTOR_SIZE;
+                *(DWORD *)buff = NOR_FATFS_SECTOR_SIZE;
                 res = RES_OK;
                 break;
 
             case GET_BLOCK_SIZE:
-                *(DWORD *)buff = NOR_BLOCK_SIZE;
+                *(DWORD *)buff = NOR_FATFS_BLOCK_SIZE;
                 res = RES_OK;
                 break;
 
             case GET_SECTOR_COUNT:
-                *(DWORD *)buff = NOR_SECTOR_COUNT;
+                *(DWORD *)buff = NOR_FATFS_SECTOR_COUNT;
                 res = RES_OK;
                 break;
 

@@ -173,7 +173,7 @@ int main(void)
         }
     }
 
-    (void)pcf8574_init();
+    (void)io_expand_init();
 
     while (ov5640_init() != 0U)
     {

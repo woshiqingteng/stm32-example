@@ -8,5 +8,5 @@ add_library(lib_text STATIC EXCLUDE_FROM_ALL ${TEXT_SRC})
 
 target_include_directories(lib_text PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lib_text PUBLIC
-    bsp_lcd bsp_norflash
+    bsp_lcd bsp_nor
     lib_malloc fatfs_core fatfs_port)

@@ -1,6 +1,6 @@
 /**
  * @file    main.c
- * @brief   41_nandflash: NAND FLASH test over the vendor FTL (vendor experiment 41).
+ * @brief   41_nand: NAND FLASH test over the vendor FTL (vendor experiment 41).
  *
  * The FTL (ftl.c) turns the raw NAND into logical sectors with bad-block
  * handling; this app exercises it from the serial console:
@@ -32,7 +32,7 @@ int main(void)
 
     my_mem_init(SRAMIN);
 
-    printf("41_nandflash ready\r\n");
+    printf("41_nand ready\r\n");
 
     while (ftl_init() != 0U)
     {

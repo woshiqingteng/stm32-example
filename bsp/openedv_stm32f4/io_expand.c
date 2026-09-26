@@ -1,18 +1,18 @@
 /**
- * @file    pcf8574.c
+ * @file    io_expand.c
  * @brief   PCF8574 8-bit I2C IO expander driver.
  */
 
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
-#include "pcf8574.h"
+#include "io_expand.h"
 #include "delay.h"
 
 #define PCF8574_READ_ACK    0U
 #define PCF8574_WRITE_DELAY_MS 10U
 #define PCF8574_IDLE_VALUE  0xFFU
 
-uint8_t pcf8574_init(void)
+uint8_t io_expand_init(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
     uint8_t temp;
@@ -32,12 +32,12 @@ uint8_t pcf8574_init(void)
     temp = i2c_wait_ack();
     i2c_stop();
 
-    pcf8574_write_byte(PCF8574_IDLE_VALUE);
+    io_expand_write_byte(PCF8574_IDLE_VALUE);
 
     return temp;
 }
 
-uint8_t pcf8574_read_byte(void)
+uint8_t io_expand_read_byte(void)
 {
     uint8_t temp;
 
@@ -50,12 +50,12 @@ uint8_t pcf8574_read_byte(void)
     return temp;
 }
 
-bool pcf8574_int_asserted(void)
+bool io_expand_int_asserted(void)
 {
     return (PCF8574_INT == GPIO_PIN_RESET) ? true : false;
 }
 
-void pcf8574_write_byte(uint8_t data)
+void io_expand_write_byte(uint8_t data)
 {
     i2c_start();
     i2c_send_byte(PCF8574_ADDR | 0x00U);
@@ -67,9 +67,9 @@ void pcf8574_write_byte(uint8_t data)
     delay_ms(PCF8574_WRITE_DELAY_MS);
 }
 
-void pcf8574_write_bit(uint8_t bit, uint8_t sta)
+void io_expand_write_bit(uint8_t bit, uint8_t sta)
 {
-    uint8_t data = pcf8574_read_byte();
+    uint8_t data = io_expand_read_byte();
 
     if (sta == 0U)
     {
@@ -80,12 +80,12 @@ void pcf8574_write_bit(uint8_t bit, uint8_t sta)
         data |= (uint8_t)(1U << bit);
     }
 
-    pcf8574_write_byte(data);
+    io_expand_write_byte(data);
 }
 
-uint8_t pcf8574_read_bit(uint8_t bit)
+uint8_t io_expand_read_bit(uint8_t bit)
 {
-    uint8_t data = pcf8574_read_byte();
+    uint8_t data = io_expand_read_byte();
 
     return (uint8_t)((data >> bit) & 0x01U);
 }
