@@ -9,23 +9,23 @@ target_link_libraries(lib_fatfs_usbmsc INTERFACE fatfs_core fatfs_usbmsc_port)
 
 add_library(lib_stm32_usb_device_cdc INTERFACE)
 target_link_libraries(lib_stm32_usb_device_cdc INTERFACE
-    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_cdc_port)
+    stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_cdc_port)
 
 add_library(lib_stm32_usb_device_audio INTERFACE)
 target_link_libraries(lib_stm32_usb_device_audio INTERFACE
-    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_audio_port)
+    stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_audio_port)
 
 add_library(lib_stm32_usb_device_msc INTERFACE)
 target_link_libraries(lib_stm32_usb_device_msc INTERFACE
-    stm32_usb_device stm32_usb_device_common_port stm32_usb_device_msc_port)
+    stm32_usb_device stm32_usb_device_conf_port stm32_usb_device_msc_port)
 
 add_library(lib_stm32_usb_host_hid INTERFACE)
 target_link_libraries(lib_stm32_usb_host_hid INTERFACE
-    stm32_usb_host stm32_usb_host_common_port)
+    stm32_usb_host stm32_usb_host_conf_port)
 
 add_library(lib_stm32_usb_host_msc INTERFACE)
 target_link_libraries(lib_stm32_usb_host_msc INTERFACE
-    stm32_usb_host stm32_usb_host_common_port stm32_usb_host_msc_port)
+    stm32_usb_host stm32_usb_host_conf_port stm32_usb_host_msc_port)
 
 add_library(lib_dsp INTERFACE)
 target_link_libraries(lib_dsp INTERFACE cmsis_dsp)

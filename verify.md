@@ -66,8 +66,8 @@
 | ID | 验证项 | 期望 | 结果 |
 |---|---|---|---|
 | E1 | FatFs 端口 | `fatfs_port`（+ 变体 `fatfs_usbmsc_port`）= `<BSP>/fatfs`（exfuns + diskio） | ✅ |
-| E2 | USB device 端口按类 | common + cdc + audio + msc | ✅ |
-| E3 | USB host 端口 | common + msc | ✅ |
+| E2 | USB device 端口按类 | conf + cdc + audio + msc | ✅ |
+| E3 | USB host 端口 | conf + msc | ✅ |
 | E4 | port 不写 HAL（USB LL 例外） | 仅 `drv_usb` | ⚠ 见 B4 |
 | E5 | USB MSC 定义路由 | port 变体 `fatfs_usbmsc_port`（`FATFS_USB_MSC`） | ✅ `57` app |
 
@@ -153,7 +153,7 @@
 | `56_usb_device_cdc` | 94 | 12 | 24416/356/23132 | stm32f4xx_flash.ld |
 | `53_iap_app` | 61 | 8 | 10880/112/4848 | stm32f4xx_iap_app.ld |
 
-`56_usb_device_cdc` 仅编 `stm32_usb_device_common_port` + `stm32_usb_device_cdc_port`（无 audio/msc/host）；镜像差异均 ≤ ±4B，属 HAL 归档分组/段对齐，**无功能回归**。
+`56_usb_device_cdc` 仅编 `stm32_usb_device_conf_port` + `stm32_usb_device_cdc_port`（无 audio/msc/host）；镜像差异均 ≤ ±4B，属 HAL 归档分组/段对齐，**无功能回归**。
 
 ---
 
