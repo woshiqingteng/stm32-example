@@ -19,6 +19,11 @@
 #define USART1_TX_DMA_CHANNEL  DMA_CHANNEL_4
 #define USART1_TX_DMA_IRQn     DMA2_Stream7_IRQn
 
+/* DMA2_Stream2 / channel 4 is USART1_RX. */
+#define USART1_RX_DMA_STREAM   DMA2_Stream2
+#define USART1_RX_DMA_CHANNEL  DMA_CHANNEL_4
+#define USART1_RX_DMA_IRQn     DMA2_Stream2_IRQn
+
 typedef struct
 {
     UART_HandleTypeDef    huart;
@@ -72,9 +77,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     usart_ctx_t *ctx = usart_ctx_of(huart);
 
-    if (ctx == 0)
+    if ((ctx == 0) || (ctx->rx != USART_IO_IT))
     {
-        return;
+        return; /* DMA reception is drained through the IDLE handler */
     }
 
     usart_store_byte(ctx, ctx->rx_byte);
@@ -94,6 +99,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     if (ctx->rx == USART_IO_IT)
     {
         (void)HAL_UART_Receive_IT(huart, &ctx->rx_byte, 1U);
+    }
+    else if (ctx->rx == USART_IO_DMA)
+    {
+        (void)HAL_UART_Receive_DMA(huart, ctx->buf, ctx->size);
     }
 }
 
@@ -119,6 +128,56 @@ static void usart_dma_tx_init(usart_ctx_t *ctx)
 
     HAL_NVIC_SetPriority(USART1_TX_DMA_IRQn, USART_DMA_IRQ_PREEMPT, USART_DMA_IRQ_SUB);
     HAL_NVIC_EnableIRQ(USART1_TX_DMA_IRQn);
+}
+
+/* USART1 RX DMA: circular transfer into ctx->buf; bytes are handed over on the
+ * USART IDLE interrupt (see USART1_IRQHandler). */
+static void usart_dma_rx_init(usart_ctx_t *ctx)
+{
+    __HAL_RCC_DMA2_CLK_ENABLE();
+
+    ctx->hdma_rx.Instance                 = USART1_RX_DMA_STREAM;
+    ctx->hdma_rx.Init.Channel             = USART1_RX_DMA_CHANNEL;
+    ctx->hdma_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
+    ctx->hdma_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
+    ctx->hdma_rx.Init.MemInc              = DMA_MINC_ENABLE;
+    ctx->hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    ctx->hdma_rx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    ctx->hdma_rx.Init.Mode                = DMA_CIRCULAR;
+    ctx->hdma_rx.Init.Priority            = DMA_PRIORITY_MEDIUM;
+    ctx->hdma_rx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
+
+    __HAL_LINKDMA(&ctx->huart, hdmarx, ctx->hdma_rx);
+
+    HAL_DMA_DeInit(&ctx->hdma_rx);
+    (void)HAL_DMA_Init(&ctx->hdma_rx);
+
+    HAL_NVIC_SetPriority(USART1_RX_DMA_IRQn, USART_DMA_IRQ_PREEMPT, USART_DMA_IRQ_SUB);
+    HAL_NVIC_EnableIRQ(USART1_RX_DMA_IRQn);
+
+    __HAL_UART_ENABLE_IT(&ctx->huart, UART_IT_IDLE);
+    (void)HAL_UART_Receive_DMA(&ctx->huart, ctx->buf, ctx->size);
+}
+
+/* Hand the bytes written by the circular DMA since the last IDLE to the callback. */
+static void usart_dma_idle(usart_ctx_t *ctx)
+{
+    uint16_t pos = (uint16_t)(ctx->size - __HAL_DMA_GET_COUNTER(&ctx->hdma_rx));
+
+    while (ctx->head != pos)
+    {
+        uint8_t byte = ctx->buf[ctx->head];
+
+        if (ctx->cb != 0)
+        {
+            ctx->cb(byte);
+        }
+        ctx->head = (uint16_t)((ctx->head + 1U) % ctx->size);
+        if (ctx->head == ctx->tail)
+        {
+            break; /* full: drop the rest until read drains */
+        }
+    }
 }
 
 void usart_init(const usart_cfg_t *cfg)
@@ -196,6 +255,10 @@ void usart_init(const usart_cfg_t *cfg)
     {
         (void)HAL_UART_Receive_IT(&ctx->huart, &ctx->rx_byte, 1U);
     }
+    else if (rx == USART_IO_DMA)
+    {
+        usart_dma_rx_init(ctx);
+    }
 }
 
 void usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb)
@@ -238,7 +301,7 @@ uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout
 
     while (n < len)
     {
-        if (ctx->rx == USART_IO_IT)
+        if ((ctx->rx == USART_IO_IT) || (ctx->rx == USART_IO_DMA))
         {
             if (ctx->tail != ctx->head)
             {
@@ -277,7 +340,16 @@ uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout
 
 void USART1_IRQHandler(void)
 {
-    HAL_UART_IRQHandler(&g_uart[USART_ID_1].huart);
+    usart_ctx_t *ctx = &g_uart[USART_ID_1];
+
+    HAL_UART_IRQHandler(&ctx->huart);
+
+    if ((ctx->rx == USART_IO_DMA) &&
+        (__HAL_UART_GET_FLAG(&ctx->huart, UART_FLAG_IDLE) != RESET))
+    {
+        __HAL_UART_CLEAR_IDLEFLAG(&ctx->huart);
+        usart_dma_idle(ctx);
+    }
 }
 
 void USART2_IRQHandler(void)
@@ -288,6 +360,11 @@ void USART2_IRQHandler(void)
 void DMA2_Stream7_IRQHandler(void)
 {
     HAL_DMA_IRQHandler(&g_uart[USART_ID_1].hdma_tx);
+}
+
+void DMA2_Stream2_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&g_uart[USART_ID_1].hdma_rx);
 }
 
 /**

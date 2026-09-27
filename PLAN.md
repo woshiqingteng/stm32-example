@@ -349,7 +349,8 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 
 ## 执行记录
 - [x] 写入本计划
-- [ ] 阶段 1
-- [ ] 阶段 2
-- [ ] 最后校验
+- [x] 阶段 1（`bd20a67`）：新 API + 全量迁移 + 04 解析入 app + rs485 回调；HIL 35 passed。
+- [x] 阶段 2（本提交）：USART1 RX-DMA（DMA2_Stream2 + IDLE 回填/回调）；HIL 35 passed。
+- [x] 最后校验：全量构建 `all` 通过（70 app，无失败）+ HIL 35 passed。
+- 说明：USART2 DMA 未实现（保留 `USART_IO_DMA` 入口，遇 USART2 DMA 回退 POLL）。
 
