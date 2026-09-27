@@ -14,8 +14,8 @@
 #define INTERNAL_FLASH_BASE        0x08000000U /*!< start of the 1 MB internal flash */
 #define INTERNAL_FLASH_SIZE        0x100000U   /*!< STM32F429IG flash size */
 
-/* Last 128 KB sector (sector 23) reserved for the EEPROM-style demo. */
-#define INTERNAL_FLASH_EEPROM_ADDR 0x081E0000U
+/* Sector 4 (64 KB @ 0x08010000) reserved for the EEPROM-style demo. */
+#define INTERNAL_FLASH_EEPROM_ADDR 0x08010000U
 
 /** @brief  Read one 32-bit word from flash. @param addr Must be 4-byte aligned. */
 uint32_t internal_flash_read_word(uint32_t addr);
