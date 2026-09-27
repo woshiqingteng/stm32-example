@@ -14,6 +14,14 @@
 #define TOUCH_LED_DIV     40U
 #define TOUCH_TEXT_X      10U
 #define TOUCH_TEXT_WIDTH  400U
+#define TOUCH_RST_W       24U
+#define TOUCH_RST_H       20U
+
+static const uint16_t g_touch_point_color[] =
+{
+    RED, GREEN, BLUE, MAGENTA, YELLOW, CYAN, BROWN, GRAY, GRAYBLUE, LGRAY
+};
+#define TOUCH_COLOR_COUNT (sizeof(g_touch_point_color) / sizeof(g_touch_point_color[0]))
 
 static void touch_draw_point(uint16_t x, uint16_t y, uint16_t color)
 {
@@ -103,17 +111,32 @@ int main(void)
 
             for (i = 0U; i < n; i++)
             {
+                uint16_t color = g_touch_point_color[i % TOUCH_COLOR_COUNT];
+                uint8_t  k;
+
                 x = g_touch.x[i];
                 y = g_touch.y[i];
 
                 if ((x < lcd_get_width()) && (y < lcd_get_height()))
                 {
-                    if (have_last[i])
+                    /* Top-right reset area clears the trail. */
+                    if ((x > (uint16_t)(lcd_get_width() - TOUCH_RST_W)) && (y < TOUCH_RST_H))
                     {
-                        touch_draw_line(last_x[i], last_y[i], x, y, BLUE);
+                        lcd_clear(WHITE);
+
+                        for (k = 0U; k < TOUCH_MAX_POINTS; k++)
+                        {
+                            have_last[k] = false;
+                        }
+                        continue;
                     }
 
-                    touch_draw_point(x, y, RED);
+                    if (have_last[i])
+                    {
+                        touch_draw_line(last_x[i], last_y[i], x, y, color);
+                    }
+
+                    touch_draw_point(x, y, color);
                     last_x[i] = x;
                     last_y[i] = y;
                     have_last[i] = true;
