@@ -161,7 +161,7 @@ static void jpeg_test(void)
 
                 for (i = 0U; i < jpglen; i++)
                 {
-                    usart2_write_byte(p[i]);
+                    (void)usart_write(USART_ID_2, &p[i], 1U);
                     key = key_scan(false);
                     if (key != KEY_NONE)
                     {
@@ -342,7 +342,10 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart2_init(921600);
+    usart_init(&(usart_cfg_t){
+        USART_CFG_DEFAULT(USART_ID_2, 921600U),
+        .rx = USART_IO_POLL,
+    });
     sdram_init();
     lcd_init();
 

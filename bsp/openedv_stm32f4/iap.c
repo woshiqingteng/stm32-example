@@ -37,7 +37,7 @@ static uint32_t iap_sector_of(uint32_t addr)
 
 static int iap_rx_byte(uint8_t *byte)
 {
-    return (HAL_UART_Receive(&g_uart1_handle, byte, 1U, IAP_RX_TIMEOUT_MS) == HAL_OK) ? 0 : -1;
+    return (usart_read(USART_ID_1, byte, 1U, IAP_RX_TIMEOUT_MS) == 1U) ? 0 : -1;
 }
 
 iap_status_t iap_erase_app(uint32_t addr, uint32_t len)
@@ -140,8 +140,12 @@ iap_status_t iap_receive_usart(void)
     uint16_t len;
     uint32_t i;
     uint8_t  sum = 0U;
+    uint8_t  drop;
 
-    (void)HAL_UART_AbortReceive(&g_uart1_handle);
+    /* Drop any stale bytes so the frame starts from a clean input. */
+    while (usart_read(USART_ID_1, &drop, 1U, 0U) == 1U)
+    {
+    }
 
     if (iap_rx_byte(&head0) != 0) { return IAP_ERR_TIMEOUT; }
     if (head0 != IAP_FRAME_HEAD0) { return IAP_ERR_FRAME; }

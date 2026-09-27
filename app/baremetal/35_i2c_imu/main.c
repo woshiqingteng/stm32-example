@@ -27,7 +27,7 @@ static void print_temp(int16_t temp_x100)
 
 static void uart1_write(const uint8_t *buf, uint16_t len)
 {
-    (void)HAL_UART_Transmit(&g_uart1_handle, (uint8_t *)buf, len, 100U);
+    (void)usart_write(USART_ID_1, buf, len);
 }
 
 /* ANO_TC frame: AA AA <fun> <len> <data...> <sum8>. */
@@ -69,7 +69,10 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart_init(500000U); /* ANO ground station baud */
+    usart_init(&(usart_cfg_t){
+        USART_CFG_DEFAULT(USART_ID_1, 500000U), /* ANO ground station baud */
+        .rx = USART_IO_POLL,
+    });
 
     if (qmi8658a_init() != 0U)
     {

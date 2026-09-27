@@ -1,6 +1,10 @@
 /**
  * @file    main.c
  * @brief   04_usart: echo USART1 lines received via interrupt.
+ *
+ * Line assembly (CR+LF terminated) lives here in the application; the usart
+ * driver only delivers bytes through the registered callback. A CR not
+ * followed by LF discards the whole line; an overlength line is dropped.
  */
 
 #include <stdio.h>
@@ -11,22 +15,79 @@
 #define USART_BLINK_PERIOD  30U
 #define USART_POLL_MS       10U
 
+#define LINE_MAX 199U
+
+static uint8_t           g_line[LINE_MAX + 1U];
+static volatile uint16_t g_line_len;
+static volatile bool     g_line_ready;
+static bool              g_cr_seen;
+static bool              g_overflow;
+
+static void line_feed(uint8_t byte)
+{
+    if (g_line_ready)
+    {
+        return;
+    }
+
+    if (g_cr_seen)
+    {
+        g_cr_seen = false;
+        if (byte == '\n')
+        {
+            if (!g_overflow)
+            {
+                g_line_ready = true;
+            }
+            g_overflow = false;
+        }
+        else
+        {
+            g_line_len = 0U;
+            g_overflow = false;
+        }
+        return;
+    }
+
+    if (byte == '\r')
+    {
+        g_cr_seen = true;
+        return;
+    }
+
+    if (g_overflow)
+    {
+        return;
+    }
+
+    if (g_line_len < LINE_MAX)
+    {
+        g_line[g_line_len++] = byte;
+    }
+    else
+    {
+        g_overflow = true;
+    }
+}
+
 int main(void)
 {
     uint32_t count = 0;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
+    usart_set_rx_cb(USART_ID_1, line_feed);
 
     for (;;)
     {
-        if (usart_rx_state() == USART_RX_READY)
+        if (g_line_ready)
         {
-            uint16_t len = usart_rx_len();
-            const uint8_t *buf = usart_rx_buf();
+            uint16_t len = g_line_len;
 
-            printf("recv %u bytes: %.*s\r\n", (unsigned)len, (int)len, (const char *)buf);
-            usart_rx_clear();
+            g_line[len] = '\0';
+            printf("recv %u bytes: %s\r\n", (unsigned)len, (const char *)g_line);
+            g_line_len   = 0U;
+            g_line_ready = false;
         }
 
         count++;

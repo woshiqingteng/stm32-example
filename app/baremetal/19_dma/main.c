@@ -45,7 +45,11 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart_tx_dma_init();
+    usart_init(&(usart_cfg_t){
+        USART_CFG_DEFAULT(USART_ID_1, 115200U),
+        .tx = USART_IO_DMA,
+        .rx = USART_IO_POLL,
+    });
     len = dma_fill_buffer();
 
     printf("19_dma ready: %u bytes buffered, press KEY0 to send\r\n", (unsigned)len);
@@ -67,8 +71,8 @@ int main(void)
                     chunk = DMA_TX_CHUNK;
                 }
 
-                (void)usart_tx_dma(&g_tx_buf[offset], chunk);
-                while (usart_tx_dma_busy())
+                (void)usart_write(USART_ID_1, &g_tx_buf[offset], chunk);
+                while (usart_tx_busy(USART_ID_1))
                 {
                     led_toggle(LED0);
                     delay_ms(DMA_TX_POLL_DELAY_MS);

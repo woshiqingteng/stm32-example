@@ -88,7 +88,7 @@ static void usmart_timx_init(uint16_t arr, uint16_t psc)
 
 void usmart_port_init(uint16_t tclk)
 {
-    usart_register_rx_byte_hook(usmart_rx_byte_hook);
+    usart_set_rx_cb(USART_ID_1, usmart_rx_byte_hook);
 
 #if USMART_ENTIMX_SCAN == 1
     {

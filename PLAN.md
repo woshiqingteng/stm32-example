@@ -282,3 +282,74 @@
 ## 提交
 - `test: add pytest HIL checks for apps 01-10`（`test/` 全量 + 根 `PLAN.md` + `.gitignore`）
 
+---
+
+# 计划：USART 统一驱动重构（传输/解析分层 + poll/IT/DMA）
+
+## 目标
+- BSP `usart` 只做**传输**（按 id：`USART_ID_1/2`），统一 `write/read/busy`，并入 poll/IT/DMA；**行解析上移到 app**。
+- 无兼容别名；配置用结构体 + 默认宏 `USART_CFG_DEFAULT`。
+- 每阶段独立提交并可回归。
+
+## API（`bsp/openedv_stm32f4/usart.h`）
+```c
+typedef enum { USART_ID_1 = 0, USART_ID_2 = 1, USART_ID_NUM } usart_id_t;
+typedef enum { USART_IO_POLL = 0, USART_IO_IT, USART_IO_DMA } usart_io_t;
+
+typedef struct {
+    usart_id_t id; uint32_t baudrate;
+    uint32_t word_length, stop_bits, parity, mode, hw_flow_ctl, oversampling;
+    usart_io_t tx, rx;            /* USART_ID_2 的 DMA：reserved，回退 POLL */
+    uint8_t *rx_buf; uint16_t rx_size;   /* M1：外部接收缓冲 */
+    uint32_t irq_preempt, irq_sub;
+} usart_cfg_t;
+
+#define USART_CFG_DEFAULT(id, baud) /* 8N1、无流控、16 过采样、tx=POLL、rx=IT、IRQ 3/3 */
+
+void      usart_init(const usart_cfg_t *cfg);
+bool      usart_write(usart_id_t id, const uint8_t *data, uint32_t len);
+bool      usart_tx_busy(usart_id_t id);
+uint32_t  usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout);
+typedef void (*usart_rx_cb_t)(uint8_t byte);
+void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
+```
+删除：`usart_init(uint32_t)`、`usart2_init`、`usart_register_rx_byte_hook`、`usart_tx_dma*`、`usart_rx_state/len/buf/clear`、`usart_rx_state_t`、`USART_REC_LEN`、`usart_poll`、`usart_read_flush`、`extern g_uart1/2_handle`。保留 `__io_putchar`（固定阻塞）。
+
+## 规则
+- `rx=IT/DMA` 且无 `rx_buf` → RX 不使能（安全）。
+- `id=USART_ID_2` 且 `tx/rx=DMA` → 回退 POLL（reserved）。
+- 排空惯用法（替代 flush）：`while (usart_read(id,&b,1,0)==1) {}`。
+- `__io_putchar` 恒阻塞（printf 安全）。
+
+## 模式语义
+| 方向 | POLL | IT | DMA |
+|---|---|---|---|
+| TX | 阻塞 | `Transmit_IT` | `Transmit_DMA` |
+| RX | `read` 读硬件 | RXNE ISR→`rx_buf` 环形+回调 | 循环 DMA 写 `rx_buf` + `USART_IT_IDLE`→回调 |
+
+## DMA
+- USART1 TX=DMA2_Stream7（现有）；USART1 RX=DMA2_Stream2（阶段 2）。
+- USART2 TX/RX DMA **本轮不做**（保留参数入口，回退 POLL）。
+
+## 迁移清单
+- `bsp/.../usart.[ch]`：新驱动；`USART1/2_IRQHandler`、`DMA2_Stream7_IRQHandler`（+阶段2 `DMA2_Stream2_IRQHandler`）；handles 改 `static`。
+- `bsp/.../bsp.c`：控制台 `rx=IT` + `s_console_rx[]`。
+- `bsp/.../rs485.[ch]`：删自建 MSP 与 `USART2_IRQHandler`；`usart_set_rx_cb(USART_ID_2,…)`；`rs485_send`→`usart_write`。
+- `lib/usmart/usmart_port.c`：`usart_set_rx_cb(USART_ID_1,…)`。
+- `bsp/.../iap.c`：改 `usart_read`；`AbortReceive`→排空循环。
+- `app/04_usart`：app 内 CR/LF 解析 + `usart_set_rx_cb`。
+- `app/19_dma`：cfg tx=DMA + `usart_write` + `usart_tx_busy`。
+- `app/35_i2c_imu`、`app/38_camera_stream`、`app/54–58`：改新 API。
+
+## 阶段与工作流
+1. 写本计划（完成）。
+2. 阶段 1：新 API + 全量迁移 + 04 解析入 app + rs485 回调。校验：构建受影响 app + 04 HIL（35 passed）。
+3. 阶段 2：USART1 RX-DMA（Stream2 + IDLE）。校验：回归。
+4. 最后校验：受影响集合全量构建 + HIL（35 passed）。
+
+## 执行记录
+- [x] 写入本计划
+- [ ] 阶段 1
+- [ ] 阶段 2
+- [ ] 最后校验
+
