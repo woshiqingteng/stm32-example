@@ -61,6 +61,12 @@ HAL_StatusTypeDef sys_clk_init(uint32_t plln, uint32_t pllm, uint32_t pllp, uint
         return status;
     }
 
+    status = HAL_PWREx_EnableOverDrive();
+    if (status != HAL_OK)
+    {
+        return status;
+    }
+
     rcc_clk_init.ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
                                   RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
     rcc_clk_init.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;

@@ -30,6 +30,7 @@ static usart_rx_byte_cb_t g_rx_byte_cb;
 static uint8_t          g_rx_buf[USART_REC_LEN];
 static uint16_t         g_rx_len;
 static usart_rx_state_t g_rx_state;
+static bool             g_rx_cr_seen;
 
 static void usart_rx_byte(uint8_t byte)
 {
@@ -38,25 +39,36 @@ static void usart_rx_byte(uint8_t byte)
         g_rx_byte_cb(byte);
     }
 
-    /* CR and LF are both end-of-line markers, so the terminator handling is
-     * symmetric; a repeated terminator (for example LF after CR) is ignored
-     * while the completed line waits to be consumed. */
-    if ((byte == '\r') || (byte == '\n'))
+    /* A line ends only on CR followed by LF (matching the reference); a lone
+     * LF is data, and a CR not followed by LF discards the whole line. */
+    if (g_rx_state == USART_RX_READY)
     {
-        if (g_rx_state == USART_RX_OVERFLOW)
+        return;
+    }
+
+    if (g_rx_cr_seen)
+    {
+        g_rx_cr_seen = false;
+        if (byte == '\n')
+        {
+            g_rx_state = (g_rx_state == USART_RX_OVERFLOW) ? USART_RX_IDLE : USART_RX_READY;
+        }
+        else
         {
             g_rx_len   = 0U;
             g_rx_state = USART_RX_IDLE;
-        }
-        else if (g_rx_state != USART_RX_READY)
-        {
-            g_rx_state = USART_RX_READY;
         }
 
         return;
     }
 
-    if ((g_rx_state == USART_RX_READY) || (g_rx_state == USART_RX_OVERFLOW))
+    if (byte == '\r')
+    {
+        g_rx_cr_seen = true;
+        return;
+    }
+
+    if (g_rx_state == USART_RX_OVERFLOW)
     {
         return;
     }
@@ -144,8 +156,9 @@ const uint8_t *usart_rx_buf(void)
 
 void usart_rx_clear(void)
 {
-    g_rx_len   = 0;
-    g_rx_state = USART_RX_IDLE;
+    g_rx_len     = 0;
+    g_rx_state   = USART_RX_IDLE;
+    g_rx_cr_seen = false;
 }
 
 /**

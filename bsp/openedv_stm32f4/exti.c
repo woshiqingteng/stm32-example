@@ -7,8 +7,12 @@
 #include "exti.h"
 #include "key.h"
 
-#define EXTI_IRQ_PREEMPT  3U
 #define EXTI_IRQ_SUB      2U
+
+#define EXTI_KEY0_PREEMPT 0U
+#define EXTI_KEY1_PREEMPT 1U
+#define EXTI_KEY2_PREEMPT 2U
+#define EXTI_WKUP_PREEMPT 3U
 
 #define EXTI_KEY0_IRQn    EXTI3_IRQn
 #define EXTI_KEY0_MODE    GPIO_MODE_IT_FALLING
@@ -93,7 +97,8 @@ void exti_register(key_id_t id, exti_cb_t cb)
     }
 }
 
-static void exti_config(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t pull, IRQn_Type irqn)
+static void exti_config(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t pull, IRQn_Type irqn,
+                        uint32_t preempt)
 {
     GPIO_InitTypeDef gpio_init = {0};
 
@@ -102,7 +107,7 @@ static void exti_config(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_
     gpio_init.Pull = pull;
     HAL_GPIO_Init(port, &gpio_init);
 
-    HAL_NVIC_SetPriority(irqn, EXTI_IRQ_PREEMPT, EXTI_IRQ_SUB);
+    HAL_NVIC_SetPriority(irqn, preempt, EXTI_IRQ_SUB);
     HAL_NVIC_EnableIRQ(irqn);
 }
 
@@ -110,9 +115,12 @@ void exti_init(void)
 {
     key_init();
 
-    exti_config(KEY0_GPIO_PORT, KEY0_GPIO_PIN, EXTI_KEY0_MODE, EXTI_KEY0_PULL, EXTI_KEY0_IRQn);
-    exti_config(KEY1_GPIO_PORT, KEY1_GPIO_PIN, EXTI_KEY1_MODE, EXTI_KEY1_PULL, EXTI_KEY1_IRQn);
-    exti_config(KEY2_GPIO_PORT, KEY2_GPIO_PIN, EXTI_KEY2_MODE, EXTI_KEY2_PULL, EXTI_KEY2_IRQn);
+    exti_config(KEY0_GPIO_PORT, KEY0_GPIO_PIN, EXTI_KEY0_MODE, EXTI_KEY0_PULL, EXTI_KEY0_IRQn,
+                EXTI_KEY0_PREEMPT);
+    exti_config(KEY1_GPIO_PORT, KEY1_GPIO_PIN, EXTI_KEY1_MODE, EXTI_KEY1_PULL, EXTI_KEY1_IRQn,
+                EXTI_KEY1_PREEMPT);
+    exti_config(KEY2_GPIO_PORT, KEY2_GPIO_PIN, EXTI_KEY2_MODE, EXTI_KEY2_PULL, EXTI_KEY2_IRQn,
+                EXTI_KEY2_PREEMPT);
     exti_config(KEY_WKUP_GPIO_PORT, KEY_WKUP_GPIO_PIN, EXTI_KEY_WKUP_MODE, EXTI_KEY_WKUP_PULL,
-                EXTI_KEY_WKUP_IRQn);
+                EXTI_KEY_WKUP_IRQn, EXTI_WKUP_PREEMPT);
 }

@@ -35,7 +35,7 @@ int main(void)
         {
             case KEY_WKUP:
                 led1_state = led_state_toggle(led1_state);
-                led0_state = led1_state;
+                led0_state = led_state_toggle(led1_state);
                 break;
             case KEY0:
                 led0_state = led_state_toggle(led0_state);

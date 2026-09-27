@@ -6,8 +6,9 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#define USART_BANNER_PERIOD 5000U
 #define USART_PROMPT_PERIOD 200U
-#define USART_BLINK_PERIOD  20U
+#define USART_BLINK_PERIOD  30U
 #define USART_POLL_MS       10U
 
 int main(void)
@@ -29,6 +30,11 @@ int main(void)
         }
 
         count++;
+        if ((count % USART_BANNER_PERIOD) == 0U)
+        {
+            printf("\r\nALIENTEK STM32F4 04_usart example\r\n");
+            printf("ALIENTEK@STM32F429\r\n\r\n\r\n");
+        }
         if ((count % USART_PROMPT_PERIOD) == 0U)
         {
             printf("please input a line ending with CRLF\r\n");

@@ -34,6 +34,15 @@ static void on_key_wkup(key_id_t id)
     (void)id;
     delay_ms(KEY_EXTI_DEBOUNCE_MS);
     led_toggle(LED1);
+
+    if (led_is_on(LED1))
+    {
+        led_off(LED0);
+    }
+    else
+    {
+        led_on(LED0);
+    }
 }
 
 int main(void)

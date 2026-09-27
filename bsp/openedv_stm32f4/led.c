@@ -76,8 +76,20 @@ void led_toggle(led_id_t id)
     }
 }
 
-void led_set_input(led_id_t id)
+bool led_is_on(led_id_t id)
 {
+    switch (id)
+    {
+        case LED0:
+            return HAL_GPIO_ReadPin(LED0_GPIO_PORT, LED0_GPIO_PIN) == GPIO_PIN_RESET;
+        case LED1:
+            return HAL_GPIO_ReadPin(LED1_GPIO_PORT, LED1_GPIO_PIN) == GPIO_PIN_RESET;
+        default:
+            return false;
+    }
+}
+
+void led_set_input(led_id_t id){
     GPIO_InitTypeDef gpio_init = {0};
 
     gpio_init.Mode = GPIO_MODE_INPUT;

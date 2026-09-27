@@ -106,21 +106,21 @@ key_id_t key_scan(bool continuous)
             delay_ms(KEY_DEBOUNCE_MS);
             scan_state = KEY_SCAN_WAIT_RELEASE;
 
-            if (key_read(KEY0) == KEY_PRESSED)
+            if (key_read(KEY_WKUP) == KEY_PRESSED)
             {
-                id = KEY0;
-            }
-            else if (key_read(KEY1) == KEY_PRESSED)
-            {
-                id = KEY1;
+                id = KEY_WKUP;
             }
             else if (key_read(KEY2) == KEY_PRESSED)
             {
                 id = KEY2;
             }
-            else if (key_read(KEY_WKUP) == KEY_PRESSED)
+            else if (key_read(KEY1) == KEY_PRESSED)
             {
-                id = KEY_WKUP;
+                id = KEY1;
+            }
+            else if (key_read(KEY0) == KEY_PRESSED)
+            {
+                id = KEY0;
             }
         }
     }
