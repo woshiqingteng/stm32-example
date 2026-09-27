@@ -68,6 +68,7 @@ int main(void)
     int16_t  r100[3];
 
     bsp_init();
+    usart_init(500000U); /* ANO ground station baud */
 
     if (qmi8658a_init() != 0U)
     {
@@ -101,20 +102,22 @@ int main(void)
 
         print_temp((int16_t)(qmi8658a_read_temperature() * 100.0f));
 
-        /* 0x01: roll/pitch/yaw (deg*100) + 4 reserved bytes. */
-        for (i = 0U; i < 3U; i++)
-        {
-            tbuf[2U * i]     = (uint8_t)((uint16_t)r100[i] >> 8);
-            tbuf[2U * i + 1] = (uint8_t)((uint16_t)r100[i] & 0xFFU);
-        }
+        /* 0x01: roll=rpy[1], pitch=rpy[0], yaw=rpy[2], prs(4B), fly_mode, armed. */
+        tbuf[0] = (uint8_t)((uint16_t)r100[1] >> 8);
+        tbuf[1] = (uint8_t)((uint16_t)r100[1] & 0xFFU);
+        tbuf[2] = (uint8_t)((uint16_t)r100[0] >> 8);
+        tbuf[3] = (uint8_t)((uint16_t)r100[0] & 0xFFU);
+        tbuf[4] = (uint8_t)((uint16_t)r100[2] >> 8);
+        tbuf[5] = (uint8_t)((uint16_t)r100[2] & 0xFFU);
+        tbuf[6]  = 0U;
+        tbuf[7]  = 0U;
+        tbuf[8]  = 0U;
+        tbuf[9]  = 0U;
+        tbuf[10] = 0U;
+        tbuf[11] = 0U;
+        ano_tc_send(0x01U, tbuf, 12U);
 
-        tbuf[6] = 0U;
-        tbuf[7] = 0U;
-        tbuf[8] = 0U;
-        tbuf[9] = 0U;
-        ano_tc_send(0x01U, tbuf, 10U);
-
-        /* 0x02: raw accelerometer + gyroscope counts. */
+        /* 0x02: raw accelerometer + gyroscope counts + 6 reserved bytes. */
         for (i = 0U; i < 3U; i++)
         {
             tbuf[2U * i]       = (uint8_t)((uint16_t)acc[i] >> 8);
@@ -123,7 +126,12 @@ int main(void)
             tbuf[6U + 2U * i + 1U] = (uint8_t)((uint16_t)gyro[i] & 0xFFU);
         }
 
-        ano_tc_send(0x02U, tbuf, 12U);
+        for (i = 12U; i < 18U; i++)
+        {
+            tbuf[i] = 0U;
+        }
+
+        ano_tc_send(0x02U, tbuf, 18U);
 
         led_toggle(LED0);
         delay_ms(SAMPLE_PERIOD_MS);

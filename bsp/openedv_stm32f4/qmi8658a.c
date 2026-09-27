@@ -221,6 +221,15 @@ uint8_t qmi8658a_init(void)
         return 1U;
     }
 
+    /* On-demand calibration: command mode, wait, then verify COD status. */
+    (void)qmi8658a_write_byte(QMI8658A_REG_CTRL7, 0x00U);
+    (void)qmi8658a_write_byte(QMI8658A_REG_CTRL9, 0xA2U);
+    delay_ms(2000U);
+    if (qmi8658a_read_byte(QMI8658A_REG_COD_STATUS) != 0x00U)
+    {
+        return 1U;
+    }
+
     (void)qmi8658a_write_byte(QMI8658A_REG_CTRL1, QMI8658A_CTRL1_VALUE);
     (void)qmi8658a_write_byte(QMI8658A_REG_CTRL7, 0x00U);
     (void)qmi8658a_write_byte(QMI8658A_REG_CTRL2, QMI8658A_ACC_8G_500HZ_ST);
