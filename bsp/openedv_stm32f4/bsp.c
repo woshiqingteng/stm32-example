@@ -26,7 +26,7 @@ void bsp_init(void)
     usart_init(&(usart_cfg_t){
         USART_CFG_DEFAULT(USART_ID_1, BSP_USART_BAUDRATE),
         .rx_buf = s_console_rx,
-        .rx_size = sizeof s_console_rx,
+        .rx_size = sizeof(s_console_rx),
     });
     led_init();
     key_init();

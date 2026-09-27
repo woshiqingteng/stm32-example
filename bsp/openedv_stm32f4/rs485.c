@@ -36,7 +36,7 @@ void rs485_init(uint32_t baudrate)
     io_expand_init();
 
     cfg.rx_buf  = g_rs485_it_buf;
-    cfg.rx_size = sizeof g_rs485_it_buf;
+    cfg.rx_size = sizeof(g_rs485_it_buf);
     usart_init(&cfg);
 
     g_rs485_rx_cnt = 0U;
