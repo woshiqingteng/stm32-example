@@ -1,10 +1,10 @@
 /**
  * @file    main.c
  * @brief   45_camera_storage: OV5640 RGB565 live view plus photo capture.
- *          KEY0 captures a sensor-native 500W JPEG into 0:/PHOTO, KEY1 shows
- *          the last JPEG, KEY2 saves a BMP of the current frame, WK_UP triggers
- *          a single auto-focus. The DCMI/SDIO shared pins are muxed around each
- *          card access.
+ *          KEY0 saves a BMP of the current frame, KEY1 captures a sensor-native
+ *          500W JPEG (truncated to SOI/EOI) into 0:/PHOTO, KEY2 triggers a
+ *          single auto-focus, WK_UP replays the last JPEG. The DCMI/SDIO shared
+ *          pins are muxed around each card access.
  */
 
 #include <stdbool.h>
@@ -103,6 +103,36 @@ static void cam_next_path(char *path, const char *ext)
     }
 }
 
+/* Locate the native JPEG inside the capture buffer (SOI 0xFFD8 .. EOI 0xFFD9)
+ * and return its length; *start receives the SOI offset. 0 when not found. */
+static uint32_t cam_jpeg_find(uint32_t *start)
+{
+    uint8_t *buf = (uint8_t *)JPEG_BUF_ADDR;
+    uint32_t total = dcmi_jpeg_words() * 4U;
+    uint32_t i;
+    uint32_t s = 0U;
+
+    for (i = 0U; (i + 1U) < total; i++)
+    {
+        if ((buf[i] == 0xFFU) && (buf[i + 1U] == 0xD8U))
+        {
+            s = i;
+            break;
+        }
+    }
+
+    for (i = s + 2U; (i + 1U) < total; i++)
+    {
+        if ((buf[i] == 0xFFU) && (buf[i + 1U] == 0xD9U))
+        {
+            *start = s;
+            return (i + 2U - s);
+        }
+    }
+
+    return 0U;
+}
+
 /* Sensor-native JPEG: switch the sensor to JPEG mode, capture one frame at
  * 500W into SDRAM, store it, then restore the RGB565 live view. */
 static uint8_t cam_save_native_jpeg(bool sd_ok)
@@ -133,9 +163,16 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
 
     if (captured && (fr == FR_OK))
     {
-        (void)f_write(&f, (uint8_t *)JPEG_BUF_ADDR, dcmi_jpeg_words() * 4U, &bw);
+        uint32_t start = 0U;
+        uint32_t len   = cam_jpeg_find(&start);
+
+        if (len != 0U)
+        {
+            (void)f_write(&f, (uint8_t *)(JPEG_BUF_ADDR + start), len, &bw);
+        }
+
         (void)f_close(&f);
-        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)(dcmi_jpeg_words() * 4U));
+        printf("native jpeg %s %u bytes\r\n", g_last_path, (unsigned)bw);
     }
     else
     {
@@ -284,19 +321,19 @@ int main(void)
 
         if (key == KEY0)
         {
-            (void)cam_save_native_jpeg(sd_ok);
+            (void)cam_save_bmp(sd_ok);
         }
         else if (key == KEY1)
         {
-            cam_show_jpeg(sd_ok);
+            (void)cam_save_native_jpeg(sd_ok);
         }
         else if (key == KEY2)
         {
-            (void)cam_save_bmp(sd_ok);
+            (void)ov5640_focus_single();
         }
         else if (key == KEY_WKUP)
         {
-            (void)ov5640_focus_single();
+            cam_show_jpeg(sd_ok);
         }
         fps = gtim_frame_rate();
 
