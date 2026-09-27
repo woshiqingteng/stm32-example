@@ -18,6 +18,13 @@
 static float g_fft_inputbuf[FFT_LENGTH * 2U];
 static float g_fft_outputbuf[FFT_LENGTH];
 
+static volatile uint8_t g_timeout;
+
+static void on_tim6(void)
+{
+    g_timeout++;
+}
+
 /* Fill the complex FFT input with a multi tone test signal; the imaginary
  * part stays zero. */
 static void fft_signal_fill(void)
@@ -39,11 +46,13 @@ int main(void)
 {
     arm_cfft_radix4_instance_f32 scfft;
     uint32_t t0;
-    uint32_t elapsed;
     uint32_t i;
     uint32_t peak;
 
     bsp_init();
+
+    btim_timx_int_init(65535U, 90U - 1U); /* 1 MHz, ~65 ms overflow */
+    btim_timx_int_register(on_tim6);
 
     printf("50_2_dsp_fft ready\r\n");
 
@@ -66,9 +75,10 @@ int main(void)
         {
             fft_signal_fill();
 
-            t0 = sys_get_tick();
+            TIM6->CNT  = 0U;
+            g_timeout  = 0U;
             arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
-            elapsed = sys_get_tick() - t0;
+            t0 = (uint32_t)TIM6->CNT + ((uint32_t)g_timeout * 65536U); /* us */
 
             arm_cmplx_mag_f32(g_fft_inputbuf, g_fft_outputbuf, FFT_LENGTH);
 
@@ -82,14 +92,19 @@ int main(void)
                 }
             }
 
-            printf("%u point FFT: %lu ms\r\n", (unsigned)FFT_LENGTH, (unsigned long)elapsed);
-            printf("FFT peak bin %lu magnitude %lu\r\n", (unsigned long)peak,
-                   (unsigned long)g_fft_outputbuf[peak]);
+            printf("%u point FFT runtime:%lu.%03lu ms\r\n", (unsigned)FFT_LENGTH,
+                   (unsigned long)(t0 / 1000U), (unsigned long)(t0 % 1000U));
+            printf("FFT peak bin %lu magnitude %lu.%03lu\r\n", (unsigned long)peak,
+                   (unsigned long)g_fft_outputbuf[peak],
+                   (unsigned long)((g_fft_outputbuf[peak] -
+                                    (float)(unsigned long)g_fft_outputbuf[peak]) * 1000.0f));
 
             for (i = 0U; i < FFT_LENGTH; i++)
             {
-                printf("g_fft_outputbuf[%lu]:%lu\r\n", (unsigned long)i,
-                       (unsigned long)g_fft_outputbuf[i]);
+                unsigned long mi = (unsigned long)g_fft_outputbuf[i];
+                unsigned long mf = (unsigned long)((g_fft_outputbuf[i] - (float)mi) * 1000.0f);
+
+                printf("g_fft_outputbuf[%lu]:%lu.%03lu\r\n", (unsigned long)i, mi, mf);
             }
         }
 
