@@ -205,3 +205,80 @@
 - `409eb54` 44_image：新增 **快模式**（按 MCU 目标矩形用 DMA2D `pic_phy.fillcolor` 块填充）与 **慢模式定点缩放**（`picinfo.Div_Fac` 移位，取代逐像素除法）。
 - `48_video`：经核查已通过 `lcd_color_fill`（DMA2D M2M）逐行搬运，**已达 DMA2D 路径**，无需改动（且行缓冲位于 SRAMIN，DMA 可访问；参考的 CCM 缓冲不宜作 DMA 源）。
 - **全量回归 73/73 通过**；`PLAN.md` 全部 P 项处理完毕。
+
+---
+
+# 计划：`test/` pytest 硬件在环全自动验证（01–10）
+
+## 目标
+- 对 app `01_led` … `10_tpad` 共 **16 个**做**烧录后自动验证**；**全自动、无人操作**（不按键/不触摸）。
+- 以 pytest + OpenOCD(CMSIS-DAP, 按序列号指定) + pyserial 实现。
+
+## 目录（`PLAN.md` 在仓库根；其余测试相关在 `<root>/test/` 下）
+```
+<root>/PLAN.md
+<root>/test/
+  requirements.txt          # pytest, pyserial
+  run.py                    # 读 config + 传入测试文件 → 连接检测 → -m hw 运行
+  conftest.py               # -m hw 门控 + 自动连接检测(autouse) + flash fixture + 日志
+  pytest.ini                # markers: hw
+  config/
+    setting.py              # 硬件参数：ADAPTER_SERIAL="ATK_20210914" / SERIAL_PORT="COM4" / 115200 / FLASH_ADDR
+    stm32f429.py            # 设备文件：仅地址/偏移参考（CMSIS 风格）
+  page/
+    __init__.py
+    base.py                 # class BasePage：连接/OpenOCD/串口等通用
+    openedv_stm32f429.py    # class OpenEdvSTM32F429Page(BasePage)：pins/odr 板级特异
+  log/                      # 测试日志（与 page/ 同级）
+  test/                     # 具体测试用例（每 app 一个文件，文件内可多项）
+    test_01_led.py … test_10_tpad.py
+```
+
+## 类职责
+- **BasePage**：`connect()`（`openocd -f interface/cmsis-dap.cfg -c "adapter serial <sn>" -f target/stm32f4x.cfg -c "init" -c "shutdown"`，判 `Interface ready/DPIDR`）；常驻会话 telnet:4444；`program/reset_run/halt/resume/sleep/peek/poke`；串口读写。
+- **OpenEdvSTM32F429Page**：绑定 `config/*`；`press()/release()` 引脚注入（MODER/PUPDR/BSRR + 复原）；`led_odr()`；`reset_flags()`。
+
+## 逐 app 验证矩阵（16）
+| App | 方法 | 类型 | 状态 |
+|---|---|---|---|
+| 01_led | 采样 ODR，两灯交替 | 真功能 | [ ] |
+| 02_key | 注入 4 键，读 ODR 序列 | 真功能 | [ ] |
+| 03_exti | 注入 4 键（EXTI 边沿） | 真功能 | [ ] |
+| 04_usart | COM4 发 `abc\r\n` 读回显 | 真功能 | [ ] |
+| 05_iwdg | 周期喂狗不复位 / 停喂触发 IWDGRSTF | 真功能 | [ ] |
+| 06_wwdg | 采样 LED1 + WWDGRSTF | 真功能 | [ ] |
+| 07_btim | 采样 ODR（500/200ms） | 真功能 | [ ] |
+| 08_1_gtim_int | 采样 ODR | 真功能 | [ ] |
+| 08_2_gtim_pwm | 采样 TIM3->CCR4 呼吸 | 真功能 | [ ] |
+| 08_3_gtim_cap | 注入 TIM5 捕获（CCR1+CC1IF）→ 断言 HIGH:…us | 寄存器注入 | [ ] |
+| 08_4_gtim_cnt | 注入 TIM2 CNT → 断言 CNT:；KEY0 清零 | 寄存器注入 | [ ] |
+| 09_1_atim_npwm | 采样 PC6（≈0.5s）数 5 脉冲后停 + KEY0 重触发 | 真功能 | [ ] |
+| 09_2_atim_oc | 读 CCMR/CCR1..4 + 采样 PC6..9 | 真功能 | [ ] |
+| 09_3_atim_cplm | 读 TIM1/BDTR + 采样 PE8/PE9 互补 | 真功能 | [ ] |
+| 09_4_atim_pwmin | 读 COM4 freq: 行 | 真功能 | [ ] |
+| 10_tpad | 注入阈值/基准模拟触摸 → 断言 LED1 翻转 | 寄存器注入 | [ ] |
+
+## 运行
+- `python run.py test/test_02_key.py [-k …]`（内部 `-m hw`；先自动连接检测）。
+- 无连接/无板自动 skip；IWDG/WWDG 用例期间不 halt。
+
+## 执行记录
+- [x] 写 PLAN.md
+- [x] 冒烟：烧录 02_key + pyserial 读 COM4
+- [x] 实现 config/page/conftest/run.py/requirements.txt
+- [x] 16 个 test/test_*.py
+- [x] 预构建 16 app 并运行
+- [x] 对照本表核验 + 提交
+
+## 结果与说明
+- **35 passed**（连续两次全绿，单次 ~95s）；`python test/run.py`（内部 `-m openedv_stm32f429`）。
+- 板级 marker `openedv_stm32f429`；`run.py --board <id>` 选择板子跑对应用例；hw 检测在 conftest（autouse，无 hw marker）。
+- 超时兜底：pytest `--test-timeout`（默认 90s，watchdog 线程注入异常）+ 命令级超时。
+- 烧录健壮性：`reset halt`→`program verify`，失败则 `reset halt/init/run` 复位芯片并重试（最多 5 次）。
+- 说明：本机 ATK 板载 CMSIS-DAP（VID_04D8/PID_00DF，复合 S/N `ATK_20210914`）不向 OpenOCD 暴露可匹配序列号，`adapter serial` 会 “no matching device”；故 `ADAPTER_SERIAL` 默认留空=自动选择（`config/setting.py` 内已注明）；当前探针为 CMSIS-DAP **v2**，未降速。
+- 一个实测坑：反复强杀 openocd 会让 DAP 进入 “CMSIS-DAP command mismatch”，需重启该 USB 设备；框架已在会话开始前清理残留 openocd。
+- 三个物理不可达用例的注入策略：08_3（TIM5 捕获）、08_4（TIM2 计数）、10（tpad 基线）经 `nm` 解析符号地址后注入；09_4 注入前先关 TIM8 中断。
+
+## 提交
+- `test: add pytest HIL checks for apps 01-10`（`test/` 全量 + 根 `PLAN.md` + `.gitignore`）
+

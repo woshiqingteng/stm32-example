@@ -11,3 +11,10 @@ CMakeUserPresets.json
 .DS_Store
 Thumbs.db
 .ruff_cache/
+
+# HIL test logs
+test/log/*.log
+
+# python bytecode
+__pycache__/
+*.pyc
