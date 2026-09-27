@@ -78,6 +78,7 @@ int main(void)
     uint32_t tick = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     sdram_init();
     lcd_init();
     lcd_display_dir(LTDC_DIR_LANDSCAPE);

@@ -12,6 +12,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     sys_set_vector_table(IAP_APP_ADDR);
 
     printf("53_iap_app running @ 0x%08X\r\n", (unsigned)IAP_APP_ADDR);

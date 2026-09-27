@@ -3,6 +3,7 @@
  * @brief   07_btim: TIM6 500 ms interrupt toggles LED1.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define BTIM_ARR_500MS 5000U
 #define BTIM_PSC_500MS 9000U
@@ -16,6 +17,7 @@ static void on_tim6(void)
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     btim_timx_int_register(on_tim6);
     btim_timx_int_init(BTIM_ARR_500MS - 1U, BTIM_PSC_500MS - 1U);

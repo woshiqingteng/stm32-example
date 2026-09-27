@@ -30,6 +30,7 @@ int main(void)
     uint16_t vol = PWMDAC_VREF_MV / 2U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     pwmdac_init(PWMDAC_ARR, PWMDAC_PSC);
     adc_init();
     pwmdac_set(vol);

@@ -44,7 +44,7 @@ static void print_task(void *argument)
 int main(void)
 {
     bsp_init();
-    printf("01_led (FreeRTOS) ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     (void)xTaskCreate(led_task, "led", LED_TASK_STACK, NULL, LED_TASK_PRIO, NULL);
     (void)xTaskCreate(print_task, "print", PRINT_TASK_STACK, NULL, PRINT_TASK_PRIO, NULL);

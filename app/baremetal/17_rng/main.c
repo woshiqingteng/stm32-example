@@ -14,6 +14,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     rng_init();
     while (rng_is_ready() != RNG_READY)

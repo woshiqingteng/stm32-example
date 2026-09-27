@@ -121,6 +121,7 @@ int main(void)
     uint8_t i;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
 
     printf("42_fatfs ready (0:SD 1:NOR 2:NAND)\r\n");

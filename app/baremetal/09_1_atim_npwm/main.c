@@ -4,6 +4,7 @@
  *          PB0 is set to input so PC6 can be jumpered to LED1 (PB0).
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define ATIM_NPWM_ARR     10000U
 #define ATIM_NPWM_PSC     9000U
@@ -13,6 +14,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     /* Free PB0 (LED1) and use it as the pulse observation input. */
     led_set_input(LED1);

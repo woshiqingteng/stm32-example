@@ -30,7 +30,7 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    printf("54_usb_device_msc ready\r\n");
+    printf(APP_BANNER "\r\n");
 
 
     if (sdio_init() != 0U)

@@ -16,6 +16,7 @@ int main(void)
     uint32_t blink = 0;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     gtim_timx_cnt_chy_init(GTIM_CNT_PSC);
     gtim_timx_cnt_chy_restart();
 

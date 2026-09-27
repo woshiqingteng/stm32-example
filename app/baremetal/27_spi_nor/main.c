@@ -25,7 +25,7 @@ int main(void)
     bsp_init();
     nor_init();
 
-    printf("27_spi_nor ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     id = nor_read_id();
     sprintf(line, "Flash ID: 0x%04X", id);

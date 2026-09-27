@@ -3,6 +3,7 @@
  * @brief   03_exti: toggle LEDs from key external interrupts.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define KEY_EXTI_DEBOUNCE_MS 20U
 #define IDLE_DELAY_MS        1000U
@@ -48,6 +49,7 @@ static void on_key_wkup(key_id_t id)
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     led_on(LED0);
 
     exti_init();

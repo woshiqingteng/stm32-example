@@ -37,6 +37,7 @@ int main(void)
     rtc_ampm_t ampm;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (rtc_init() != RTC_OK)
     {

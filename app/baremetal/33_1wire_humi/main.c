@@ -27,7 +27,7 @@ int main(void)
         }
     }
 
-    printf("33_1wire_humi ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

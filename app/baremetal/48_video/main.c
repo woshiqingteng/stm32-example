@@ -49,6 +49,7 @@ int main(void)
     FRESULT res;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     sdram_init();
     lcd_init();
     lcd_clear(BLACK);

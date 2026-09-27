@@ -14,7 +14,7 @@ int main(void)
     bsp_init();
     adc_temp_init();
 
-    printf("21_internal_temp ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

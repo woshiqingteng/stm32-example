@@ -89,7 +89,7 @@ int main(void)
         delay_ms(200U);
     }
 
-    printf("36_spi_wireless ready\r\n");
+    printf(APP_BANNER "\r\n");
     printf("KEY0:RX  KEY1:TX\r\n");
 
     while (waited < NRF_MODE_SELECT_MS)

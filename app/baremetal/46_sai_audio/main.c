@@ -26,7 +26,7 @@ int main(void)
     my_mem_init(SRAMEX);
     my_mem_init(SRAMCCM);
 
-    printf("46_sai_audio ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     if (sdio_init() != 0U)
     {

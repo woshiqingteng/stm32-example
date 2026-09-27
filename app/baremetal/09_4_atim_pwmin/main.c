@@ -20,6 +20,7 @@ int main(void)
     uint32_t blink = 0;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     gtim_timx_pwm_chy_init(ATIM_PWMIN_TEST_ARR - 1U, ATIM_PWMIN_TEST_PSC - 1U);
     gtim_timx_pwm_chy_set(ATIM_PWMIN_TEST_CCR);

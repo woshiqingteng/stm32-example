@@ -35,7 +35,7 @@ int main(void)
     bsp_init();
     eeprom_init();
 
-    printf("24_i2c_eeprom ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     if (eeprom_check() != 0U)
     {

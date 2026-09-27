@@ -3,6 +3,7 @@
  * @brief   06_wwdg: window watchdog refreshed from its early-wakeup interrupt.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define WWDG_COUNTER        0x7FU
 #define WWDG_WINDOW         0x5FU
@@ -16,6 +17,7 @@ static void on_early_wakeup(void)
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     led_on(LED0);
     delay_ms(WWDG_START_DELAY_MS);
 

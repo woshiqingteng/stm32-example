@@ -45,6 +45,7 @@ int main(void)
     uint8_t i;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     sdram_init();
     lcd_init();
 

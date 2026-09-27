@@ -46,7 +46,7 @@ int main(void)
     bsp_init();
     ir_init();
 
-    printf("31_ir ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

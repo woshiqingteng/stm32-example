@@ -27,6 +27,7 @@ int main(void)
     uint32_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     pwr_register_wkup_hook(wkup_hook);
     pwr_wkup_key_init();

@@ -44,6 +44,7 @@ int main(void)
     uint16_t len;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     usart_tx_dma_init();
     len = dma_fill_buffer();
 

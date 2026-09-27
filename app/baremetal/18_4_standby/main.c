@@ -31,6 +31,7 @@ int main(void)
     uint32_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (rtc_init() != RTC_OK)
     {

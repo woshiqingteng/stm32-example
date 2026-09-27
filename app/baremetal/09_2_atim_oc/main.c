@@ -3,6 +3,7 @@
  * @brief   09_2_atim_oc: TIM8 CH1..4 (PC6..PC9) output-compare toggle.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define ATIM_OC_ARR     1000U
 #define ATIM_OC_PSC     180U
@@ -15,6 +16,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     atim_timx_comp_pwm_init(ATIM_OC_ARR - 1U, ATIM_OC_PSC - 1U);
 
     atim_timx_comp_pwm_set(ATIM_CH1, ATIM_OC_CCR_CH1 - 1U);

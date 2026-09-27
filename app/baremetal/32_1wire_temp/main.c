@@ -28,7 +28,7 @@ int main(void)
         }
     }
 
-    printf("32_1wire_temp ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

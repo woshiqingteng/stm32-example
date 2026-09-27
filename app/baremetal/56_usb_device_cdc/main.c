@@ -28,7 +28,7 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    printf("56_usb_device_cdc ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     (void)USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_FS);
     (void)USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);

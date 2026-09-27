@@ -32,7 +32,7 @@ int main(void)
     oled_show_string(OLED_CODE_LABEL_X, OLED_INFO_Y, "CODE:", OLED_FONT_12X6);
     oled_refresh();
 
-    printf("11_oled ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

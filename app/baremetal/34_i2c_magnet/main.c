@@ -126,6 +126,7 @@ int main(void)
     uint8_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (st480mc_init() != 0U)
     {

@@ -18,6 +18,7 @@ int main(void)
     uint8_t status;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (io_expand_init() != 0U)
     {

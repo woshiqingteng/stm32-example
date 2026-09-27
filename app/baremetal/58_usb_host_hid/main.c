@@ -135,7 +135,7 @@ int main(void)
 
     (void)io_expand_init();
 
-    printf("58_usb_host_hid ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     (void)USBH_Init(&g_hUSBHost, USBH_UserProcess, HOST_FS);
     (void)USBH_RegisterClass(&g_hUSBHost, USBH_HID_CLASS);

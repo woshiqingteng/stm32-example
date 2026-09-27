@@ -3,6 +3,7 @@
  * @brief   08_2_gtim_pwm: TIM3_CH4 (PB1) PWM breathing LED.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U
@@ -23,6 +24,7 @@ int main(void)
     gtim_pwm_ramp_t ramp = GTIM_PWM_RAMP_UP;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     gtim_timx_pwm_chy_init(GTIM_PWM_ARR - 1U, GTIM_PWM_PSC - 1U);
 
     for (;;)

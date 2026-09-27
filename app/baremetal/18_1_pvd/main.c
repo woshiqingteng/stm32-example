@@ -26,6 +26,7 @@ int main(void)
     uint32_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     pwr_register_pvd_hook(pvd_hook);
     pwr_pvd_init(PVD_LEVEL);

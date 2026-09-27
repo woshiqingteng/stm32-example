@@ -13,6 +13,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     dac_triangle_init(TRI_TIMER_ARR, TRI_TIMER_PSC);
     dac_triangle_start();

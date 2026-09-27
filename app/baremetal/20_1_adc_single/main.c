@@ -21,7 +21,7 @@ int main(void)
 
     bsp_init();
     adc_init();
-    printf("20_1_adc_single ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

@@ -14,6 +14,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     printf("53_iap bootloader ready, app @ 0x%08X\r\n", (unsigned)IAP_APP_ADDR);
     printf("WKUP: receive+program   frame 5A A5 <len_lo> <len_hi> <data> <sum8>\r\n");

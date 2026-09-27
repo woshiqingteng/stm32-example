@@ -58,7 +58,7 @@ int main(void)
 
     bsp_init();
 
-    printf("50_1_dsp_math ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

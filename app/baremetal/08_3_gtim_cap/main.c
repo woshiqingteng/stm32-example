@@ -13,6 +13,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     gtim_timx_cap_chy_init(GTIM_CAP_ARR, GTIM_CAP_PSC - 1U);
 
     for (;;)

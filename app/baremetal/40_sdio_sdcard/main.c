@@ -25,7 +25,7 @@ int main(void)
 
     bsp_init();
 
-    printf("40_sdio_sdcard ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     if (sdio_init() != 0U)
     {

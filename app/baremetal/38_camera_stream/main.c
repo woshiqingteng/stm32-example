@@ -341,6 +341,7 @@ int main(void)
     uint16_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     usart2_init(921600);
     sdram_init();
     lcd_init();

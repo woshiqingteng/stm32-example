@@ -54,7 +54,7 @@ int main(void)
     btim_timx_int_init(65535U, 90U - 1U); /* 1 MHz, ~65 ms overflow */
     btim_timx_int_register(on_tim6);
 
-    printf("50_2_dsp_fft ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     if (arm_cfft_radix4_init_f32(&scfft, (uint16_t)FFT_LENGTH, 0U, 1U) != ARM_MATH_SUCCESS)
     {

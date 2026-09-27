@@ -118,6 +118,7 @@ int main(void)
     uint8_t page = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     sdram_init();
     lcd_init();
     lcd_clear(WHITE);

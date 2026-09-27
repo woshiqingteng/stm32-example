@@ -16,7 +16,7 @@ int main(void)
     uint32_t count = 0;
 
     bsp_init();
-    printf("04_usart ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

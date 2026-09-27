@@ -31,7 +31,7 @@ int main(void)
 
     my_mem_init(SRAMIN);
 
-    printf("41_nand ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     while (ftl_init() != 0U)
     {

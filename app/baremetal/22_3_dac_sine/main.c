@@ -25,6 +25,7 @@ int main(void)
     uint8_t idx = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     adc_init();
 
     dac_sine_init(SIN_TIMER_ARR, g_sin_psc[idx]);

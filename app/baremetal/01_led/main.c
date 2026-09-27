@@ -6,13 +6,13 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define LED_BLINK_INTERVAL_MS 500U
+#define LED_BLINK_INTERVAL_MS 1000U
 
 int main(void)
 {
     bsp_init();
 
-    printf("01_led ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

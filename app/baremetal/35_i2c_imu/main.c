@@ -68,6 +68,7 @@ int main(void)
     int16_t  r100[3];
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     usart_init(500000U); /* ANO ground station baud */
 
     if (qmi8658a_init() != 0U)

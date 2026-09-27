@@ -13,6 +13,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     usmart_init((uint16_t)(sys_clk_get_hz() / USMART_APP_HZ_PER_MHZ));
 
     printf("\r\n15_usmart ready. Type 'help' for commands.\r\n");

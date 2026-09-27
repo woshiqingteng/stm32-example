@@ -104,7 +104,7 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    printf("57_usb_host_msc ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     (void)exfuns_init();
 

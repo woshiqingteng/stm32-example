@@ -27,7 +27,7 @@ int main(void)
     delay_init(168U);
     usart_init(115200U);
 
-    printf("55_usb_device_audio ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     (void)USBD_Init(&USBD_Device, &AUDIO_Desc, DEVICE_FS);
     (void)USBD_RegisterClass(&USBD_Device, USBD_AUDIO_CLASS);

@@ -25,6 +25,7 @@ int main(void)
     led_state_t led1_state = LED_STATE_OFF;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     led_on(LED0);
 
     for (;;)

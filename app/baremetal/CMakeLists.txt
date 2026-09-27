@@ -11,6 +11,7 @@ function(add_baremetal_app name)
 
     set(_target app_baremetal_${name})
     add_executable(${_target} ${APP_SOURCE})
+    target_compile_definitions(${_target} PRIVATE APP_BANNER="${_target}")
 
     # parse lib
     lib_resolve(_libs ${APP_LIB})

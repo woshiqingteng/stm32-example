@@ -28,7 +28,7 @@ int main(void)
     my_mem_init(SRAMEX);
     my_mem_init(SRAMCCM);
 
-    printf("47_sai_record ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     audio_hw_init();
 

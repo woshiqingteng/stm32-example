@@ -25,7 +25,7 @@ int main(void)
     bsp_init();
     rs485_init(RS485_BAUDRATE);
 
-    printf("28_rs485 ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

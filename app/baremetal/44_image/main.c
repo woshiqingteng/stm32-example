@@ -107,7 +107,7 @@ int main(void)
     (void)fonts_init();
 
     lcd_show_string(20U, 20U, 400U, 16U, LCD_FONT_SIZE_16, "STM32 PICTURE", RED);
-    printf("44_image ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     if (sdio_init() != 0U)
     {

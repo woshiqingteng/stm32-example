@@ -37,7 +37,7 @@ int main(void)
     adc_dma_init(g_adc_buf, ADC_DMA_BUF_LEN);
     adc_register_dma_hook(on_adc_dma_complete);
     adc_dma_start(ADC_DMA_BUF_LEN);
-    printf("20_2_adc_dma ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

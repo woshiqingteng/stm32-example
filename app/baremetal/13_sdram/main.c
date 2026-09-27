@@ -90,7 +90,7 @@ int main(void)
 
     sdram_prefill();
 
-    printf("13_sdram ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (;;)
     {

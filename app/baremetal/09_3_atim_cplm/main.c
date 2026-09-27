@@ -3,6 +3,7 @@
  * @brief   09_3_atim_cplm: TIM1 complementary PWM with dead time (PE9/PE8).
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define ATIM_CPLM_ARR     1000U
 #define ATIM_CPLM_PSC     180U
@@ -13,6 +14,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     atim_timx_cplm_pwm_init(ATIM_CPLM_ARR - 1U, ATIM_CPLM_PSC - 1U);
     atim_timx_cplm_pwm_set(ATIM_CPLM_CCR, ATIM_CPLM_DTG);
 

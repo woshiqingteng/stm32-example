@@ -60,7 +60,7 @@ int main(void)
     my_mem_init(SRAMEX);
 
 
-    printf("39_malloc ready\r\n");
+    printf(APP_BANNER "\r\n");
 
     for (bank = 0U; bank < SRAMBANK; bank++)
     {

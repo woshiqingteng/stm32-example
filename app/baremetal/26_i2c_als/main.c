@@ -16,6 +16,7 @@ int main(void)
     uint16_t als;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (ap3216c_init() != 0U)
     {

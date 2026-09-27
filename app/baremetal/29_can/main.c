@@ -28,6 +28,7 @@ int main(void)
     uint8_t rxlen;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (can_reinit() != 0U)
     {

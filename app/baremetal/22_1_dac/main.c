@@ -28,6 +28,7 @@ int main(void)
     uint16_t code = DAC_FULL_SCALE / 2U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
     dac_init();
     adc_init();
     dac_set(DAC_CH1, code);

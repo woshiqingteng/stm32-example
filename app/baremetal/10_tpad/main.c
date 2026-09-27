@@ -13,6 +13,7 @@ int main(void)
     uint32_t blink = 0;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     if (tpad_init(2) != TPAD_OK)
     {

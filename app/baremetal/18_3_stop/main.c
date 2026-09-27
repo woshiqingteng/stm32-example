@@ -13,6 +13,7 @@ int main(void)
     uint32_t t = 0U;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     pwr_wkup_key_init();
     printf("KEY0: enter stop mode, WK_UP: wake\r\n");

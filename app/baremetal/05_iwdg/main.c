@@ -3,6 +3,7 @@
  * @brief   05_iwdg: feed the independent watchdog with WK_UP.
  */
 
+#include <stdio.h>
 #include "bsp.h"
 #define IWDG_RELOAD          500U
 #define IWDG_START_DELAY_MS  100U
@@ -11,6 +12,7 @@
 int main(void)
 {
     bsp_init();
+    printf(APP_BANNER "\r\n");
     delay_ms(IWDG_START_DELAY_MS);
     iwdg_init(IWDG_PRESCALER_64, IWDG_RELOAD);
     led_on(LED0);

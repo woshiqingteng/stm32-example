@@ -21,6 +21,7 @@ int main(void)
     bool              verified;
 
     bsp_init();
+    printf(APP_BANNER "\r\n");
 
     memset(write_buf, 0, sizeof(write_buf));
     memcpy(write_buf, g_text, FLASH_TEXT_SIZE);
