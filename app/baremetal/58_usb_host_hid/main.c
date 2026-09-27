@@ -131,7 +131,7 @@ int main(void)
      * keeping the core at 168 MHz. */
     (void)sys_clk_reconfig(336U, 25U, 2U, 7U);
     delay_init(168U);
-    usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1, 115200U) });
+    usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1) });
 
     (void)io_expand_init();
 

@@ -304,7 +304,7 @@ typedef struct {
     uint32_t irq_preempt, irq_sub;
 } usart_cfg_t;
 
-#define USART_CFG_DEFAULT(id, baud) /* 8N1、无流控、16 过采样、tx=POLL、rx=IT、IRQ 3/3 */
+#define USART_CFG_DEFAULT(inst) /* 8N1@115200、无流控、16 过采样、tx=POLL、rx=IT、IRQ 3/3 */
 
 void      usart_init(const usart_cfg_t *cfg);
 bool      usart_write(usart_id_t id, const uint8_t *data, uint32_t len);

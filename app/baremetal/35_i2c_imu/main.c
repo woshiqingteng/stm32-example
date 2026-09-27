@@ -70,9 +70,10 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     {
-        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1, 500000U) }; /* ANO ground station baud */
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
 
-        cfg.rx = USART_IO_POLL;
+        cfg.baudrate = 500000U; /* ANO ground station baud */
+        cfg.rx       = USART_IO_POLL;
         usart_init(&cfg);
     }
 

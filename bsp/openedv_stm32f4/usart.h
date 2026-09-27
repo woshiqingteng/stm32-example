@@ -50,9 +50,9 @@ typedef struct
     uint32_t   irq_sub;       /*!< NVIC subpriority */
 } usart_cfg_t;
 
-/** @brief 8N1 defaults: no flow control, 16x oversampling, tx=POLL, rx=IT, IRQ (3,3). */
-#define USART_CFG_DEFAULT(inst, baud) \
-    .id = (inst), .baudrate = (baud), \
+/** @brief 8N1 defaults at 115200: no flow control, 16x oversampling, tx=POLL, rx=IT, IRQ (3,3). */
+#define USART_CFG_DEFAULT(inst) \
+    .id = (inst), .baudrate = 115200U, \
     .word_length = UART_WORDLENGTH_8B, .stop_bits = UART_STOPBITS_1, \
     .parity = UART_PARITY_NONE, .mode = UART_MODE_TX_RX, \
     .hw_flow_ctl = UART_HWCONTROL_NONE, .oversampling = UART_OVERSAMPLING_16, \

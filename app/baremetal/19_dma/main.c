@@ -46,7 +46,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     {
-        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1, 115200U) };
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
 
         cfg.tx = USART_IO_DMA;
         cfg.rx = USART_IO_POLL;
