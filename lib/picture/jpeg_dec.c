@@ -32,6 +32,7 @@ typedef struct
     uint16_t dest_h;
     uint16_t xoff;
     uint16_t yoff;
+    uint8_t  fast;
 } jpeg_out_ctx_t;
 
 static jpeg_out_ctx_t s_out;
@@ -61,22 +62,46 @@ static size_t jpeg_in_func(JDEC *jd, uint8_t *buff, size_t nbyte)
 static int jpeg_out_func(JDEC *jd, void *bitmap, JRECT *rect)
 {
     uint16_t *src = (uint16_t *)bitmap;
-    uint16_t y;
 
     (void)jd;
 
-    for (y = rect->top; y <= rect->bottom; y++)
+    if (s_out.fast != 0U)
     {
-        uint32_t dy = ((uint32_t)y * s_out.dest_h) / s_out.src_h;
+        /* Fast mode: fill each MCU's destination rectangle with one colour
+         * through the DMA2D colour fill (blocky but far faster). */
+        uint32_t x0 = (picinfo.Div_Fac * (uint32_t)rect->left) >> 13;
+        uint32_t y0 = (picinfo.Div_Fac * (uint32_t)rect->top) >> 13;
+        uint32_t x1 = (picinfo.Div_Fac * (uint32_t)rect->right) >> 13;
+        uint32_t y1 = (picinfo.Div_Fac * (uint32_t)rect->bottom) >> 13;
+        uint16_t color = src[0];
+
+        if ((x0 < s_out.dest_w) && (y0 < s_out.dest_h))
+        {
+            if (x1 >= s_out.dest_w) { x1 = (uint32_t)(s_out.dest_w - 1U); }
+            if (y1 >= s_out.dest_h) { y1 = (uint32_t)(s_out.dest_h - 1U); }
+
+            pic_phy.fillcolor((uint16_t)(s_out.xoff + x0), (uint16_t)(s_out.yoff + y0),
+                              (uint16_t)(x1 - x0 + 1U), (uint16_t)(y1 - y0 + 1U), &color);
+        }
+
+        return 1;
+    }
+
+    for (uint16_t y = rect->top; y <= rect->bottom; y++)
+    {
+        uint32_t dy = (picinfo.Div_Fac * (uint32_t)y) >> 13;
         uint16_t x;
 
         for (x = rect->left; x <= rect->right; x++)
         {
-            uint32_t dx = ((uint32_t)x * s_out.dest_w) / s_out.src_w;
+            uint32_t dx = (picinfo.Div_Fac * (uint32_t)x) >> 13;
             uint16_t color = *src++;
 
-            pic_phy.draw_point((uint16_t)(s_out.xoff + dx),
-                               (uint16_t)(s_out.yoff + dy), color);
+            if ((dx < s_out.dest_w) && (dy < s_out.dest_h))
+            {
+                pic_phy.draw_point((uint16_t)(s_out.xoff + dx),
+                                   (uint16_t)(s_out.yoff + dy), color);
+            }
         }
     }
 
@@ -153,8 +178,6 @@ uint8_t jpg_decode(const char *filename, uint8_t fast)
     float scale;
     JRESULT jr;
 
-    (void)fast;
-
     if (f_open(&file, (const TCHAR *)filename, FA_READ) != FR_OK)
     {
         return PIC_FORMAT_ERR;
@@ -220,6 +243,7 @@ uint8_t jpg_decode(const char *filename, uint8_t fast)
     s_out.dest_h = (uint16_t)dest_h;
     s_out.xoff   = (uint16_t)xoff;
     s_out.yoff   = (uint16_t)yoff;
+    s_out.fast   = fast;
 
     jr = jd_decomp(&jd, jpeg_out_func, 0U);
 
