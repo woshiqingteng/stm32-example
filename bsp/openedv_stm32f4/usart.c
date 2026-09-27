@@ -13,7 +13,6 @@
 
 /* ===== constants / DMA streams ===== */
 
-#define USART_DATA_MASK       0xFFU
 #define USART_TX_TIMEOUT_MS   1000U
 #define USART_DMA_IRQ_PREEMPT 3U
 #define USART_DMA_IRQ_SUB     3U
@@ -352,7 +351,7 @@ uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout
         {
             if (__HAL_UART_GET_FLAG(&handle->huart, UART_FLAG_RXNE) != RESET)
             {
-                data[n++] = (uint8_t)(handle->huart.Instance->DR & USART_DATA_MASK);
+                data[n++] = (uint8_t)handle->huart.Instance->DR;
                 start = HAL_GetTick();
                 continue;
             }
