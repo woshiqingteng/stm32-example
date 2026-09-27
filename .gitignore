@@ -13,7 +13,7 @@ Thumbs.db
 .ruff_cache/
 
 # HIL test logs
-test/log/*.log
+test/log/
 
 # python bytecode
 __pycache__/
