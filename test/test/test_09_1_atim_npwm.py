@@ -2,37 +2,29 @@
 
 import pytest
 
+APP = "09_1_atim_npwm"
 pytestmark = pytest.mark.openedv_stm32f429
 
 
-from config import stm32f429 as R
+class Test09_1AtimNpwm:
+    @pytest.fixture(autouse=True)
+    def setup_board(self, board):
+        self.board = board
+        self.board.flash_app(APP)
+        yield board
+        self.board.serial_close()
 
-APP = "09_1_atim_npwm"
+    def test_emits_pulses(self):
+        # 前提：09_1 运行，TIM8_CH1 输出 N 个脉冲到 PC6
+        # 动作：在 PC6 上采样 3.2 s 统计上升沿
+        # 期望：至少 4 个脉冲
+        edges = self.board.count_pc6_rising(3.2)
+        assert edges >= 4, "expected ~5 PWM pulses, saw {} edges".format(edges)
 
-PC6 = 6
-
-
-def _count_rising(flashed, seconds, interval_ms=30):
-    prev = None
-    edges = 0
-    n = int(seconds * 1000 / interval_ms)
-    for _ in range(n):
-        bit = (flashed.peek(R.GPIOC_BASE + R.GPIO_IDR) >> PC6) & 1
-        if prev == 0 and bit == 1:
-            edges += 1
-        prev = bit
-        flashed.sleep(interval_ms)
-    return edges
-
-
-def test_emits_five_pulses(flashed):
-    edges = _count_rising(flashed, 3.2)
-    assert edges >= 4, "expected ~5 PWM pulses, saw {} edges".format(edges)
-
-
-def test_key0_retriggers(flashed):
-    flashed.tap("KEY0")
-    edges = _count_rising(flashed, 3.2)
-    assert edges >= 4, "KEY0 should (re)start the pulse burst, saw {} edges".format(
-        edges
-    )
+    def test_key0_retriggers(self):
+        # 前提：09_1 运行
+        # 动作：注入 KEY0 触发一轮脉冲，再采样 3.2 s
+        self.board.tap("KEY0")
+        edges = self.board.count_pc6_rising(3.2)
+        # 期望：再次出现至少 4 个脉冲
+        assert edges >= 4, "KEY0 should (re)start the burst, saw {} edges".format(edges)

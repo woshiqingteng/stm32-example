@@ -3,10 +3,9 @@ pytest fixtures for the HIL test suite.
 
 - Adds the test dir to sys.path so `config`/`page` import.
 - Sets up logging into <test>/log/.
-- `hw` (session) opens the OpenOCD session; the autouse `_require_hw` skips
-  every test when the probe/target is not reachable (no marker needed).
+- `board` (session) opens the OpenOCD session; the autouse `_require_board`
+  skips every test when the probe/target is not reachable (no marker needed).
 - `_watchdog` enforces a per-test timeout (``--test-timeout``).
-- `flashed` (function) flashes the module's ``APP`` before the test.
 """
 
 from __future__ import annotations
@@ -119,7 +118,7 @@ def _watchdog(request):
 
 
 @pytest.fixture(scope="session")
-def hw():
+def board():
     _clear_stray_openocd()
     page = OpenEdvSTM32F429Page(setting)
     log.info("session log file: %s", RUN_LOG)
@@ -150,31 +149,11 @@ def hw():
 
 
 @pytest.fixture(autouse=True)
-def _require_hw(hw):
+def _require_board(board):
     """Skip every test when the hardware is not connected (no marker)."""
-    if not getattr(hw, "connected", False):
+    if not getattr(board, "connected", False):
         pytest.skip(
             "no CMSIS-DAP/target connection (adapter serial {!r})".format(
                 setting.ADAPTER_SERIAL
             )
         )
-
-
-@pytest.fixture(scope="function")
-def flashed(hw, request):
-    app = getattr(request.module, "APP", None)
-    if not app:
-        pytest.fail('test module must define APP = "<app>"')
-    binpath = BIN_DIR / app / (app + ".bin")
-    if not binpath.exists():
-        pytest.fail("missing firmware {} (build it first)".format(binpath))
-    log.info("=== flash %s ===", app)
-    hw.elf = str(binpath.with_suffix(".elf"))
-    hw.program(binpath.as_posix())
-    hw.sleep(300)
-    try:
-        hw.clear_reset_flags()
-    except Exception:  # noqa: BLE001
-        hw.log.warning("clear_reset_flags failed")
-    yield hw
-    hw.serial_close()
