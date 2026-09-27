@@ -138,6 +138,115 @@ void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t
     }
 }
 
+void lcd_draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+{
+    int32_t  dx = (int32_t)x2 - (int32_t)x1;
+    int32_t  dy = (int32_t)y2 - (int32_t)y1;
+    int32_t  xerr = 0;
+    int32_t  yerr = 0;
+    int32_t  incx;
+    int32_t  incy;
+    int32_t  distance;
+    int32_t  t;
+    uint16_t row = x1;
+    uint16_t col = y1;
+
+    incx = (dx > 0) ? 1 : ((dx == 0) ? 0 : -1);
+    incy = (dy > 0) ? 1 : ((dy == 0) ? 0 : -1);
+
+    if (dx < 0) { dx = -dx; }
+    if (dy < 0) { dy = -dy; }
+
+    distance = (dx > dy) ? dx : dy;
+
+    for (t = 0; t <= (distance + 1); t++)
+    {
+        lcd_draw_point(row, col, color);
+        xerr += dx;
+        yerr += dy;
+
+        if (xerr > distance)
+        {
+            xerr -= distance;
+            row = (uint16_t)(row + incx);
+        }
+        if (yerr > distance)
+        {
+            yerr -= distance;
+            col = (uint16_t)(col + incy);
+        }
+    }
+}
+
+void lcd_draw_circle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color)
+{
+    int32_t a  = 0;
+    int32_t b  = r;
+    int32_t di = 3 - ((int32_t)r << 1);
+
+    while (a <= b)
+    {
+        lcd_draw_point((uint16_t)(x0 - b), (uint16_t)(y0 - a), color);
+        lcd_draw_point((uint16_t)(x0 + b), (uint16_t)(y0 - a), color);
+        lcd_draw_point((uint16_t)(x0 - a), (uint16_t)(y0 + b), color);
+        lcd_draw_point((uint16_t)(x0 + a), (uint16_t)(y0 + b), color);
+        lcd_draw_point((uint16_t)(x0 - a), (uint16_t)(y0 - b), color);
+        lcd_draw_point((uint16_t)(x0 + a), (uint16_t)(y0 - b), color);
+        lcd_draw_point((uint16_t)(x0 - b), (uint16_t)(y0 + a), color);
+        lcd_draw_point((uint16_t)(x0 + b), (uint16_t)(y0 + a), color);
+
+        a++;
+
+        if (di < 0)
+        {
+            di += (4 * a) + 6;
+        }
+        else
+        {
+            di += 10 + (4 * (a - b));
+            b--;
+        }
+    }
+}
+
+void lcd_fill_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
+{
+    uint32_t i;
+    uint32_t imax  = (((uint32_t)r * 707U) / 1000U) + 1U;
+    uint32_t sqmax = ((uint32_t)r * (uint32_t)r) + ((uint32_t)r / 2U);
+    uint32_t x     = r;
+
+    lcd_fill((uint16_t)(x0 - r), y0, (uint16_t)(x0 + r), y0, color);
+
+    for (i = 1U; i <= imax; i++)
+    {
+        if (((i * i) + (x * x)) > sqmax)
+        {
+            if (x > 0U)
+            {
+                x--;
+            }
+        }
+
+        lcd_fill((uint16_t)(x0 - x), (uint16_t)(y0 + i), (uint16_t)(x0 + x), (uint16_t)(y0 + i), color);
+        lcd_fill((uint16_t)(x0 - x), (uint16_t)(y0 - i), (uint16_t)(x0 + x), (uint16_t)(y0 - i), color);
+    }
+}
+
+void lcd_set_window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
+{
+    if (lcdltdc.pwidth != 0U)
+    {
+        ltdc_layer_window_config(lcdltdc.activelayer, sx, sy, width, height);
+    }
+}
+
+void lcd_write_ram_prepare(void)
+{
+    /* The RGB panel has no external GRAM: pixels are written straight into the
+     * frame buffer / via DMA2D, so there is no "prepare RAM write" step. */
+}
+
 void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)
 {
     uint8_t t1;
