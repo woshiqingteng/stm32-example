@@ -21,7 +21,7 @@
 typedef enum
 {
     CAM_MODE_RGB565 = 0,
-    CAM_MODE_JPEG
+    CAM_MODE_JPEG = 1
 } cam_mode_t;
 
 cam_mode_t g_cam_mode = CAM_MODE_RGB565;

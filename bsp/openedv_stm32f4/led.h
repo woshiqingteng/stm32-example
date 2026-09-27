@@ -12,7 +12,7 @@
 typedef enum
 {
     LED0 = 0,
-    LED1,
+    LED1 = 1,
 } led_id_t;
 
 /** @brief  Initialise the LED GPIOs (both off). */

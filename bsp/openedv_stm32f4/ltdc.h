@@ -136,7 +136,7 @@ typedef enum
 typedef enum
 {
     LTDC_OFF = 0,
-    LTDC_ON
+    LTDC_ON = 1
 } ltdc_power_t;
 
 /** @brief  LTDC screen configuration. */

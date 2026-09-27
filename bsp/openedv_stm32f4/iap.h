@@ -15,11 +15,11 @@
 typedef enum
 {
     IAP_OK = 0,
-    IAP_ERR_PARAM,
-    IAP_ERR_ERASE,
-    IAP_ERR_WRITE,
-    IAP_ERR_TIMEOUT,
-    IAP_ERR_FRAME,
+    IAP_ERR_PARAM = 1,
+    IAP_ERR_ERASE = 2,
+    IAP_ERR_WRITE = 3,
+    IAP_ERR_TIMEOUT = 4,
+    IAP_ERR_FRAME = 5,
 } iap_status_t;
 
 /** @brief  Erase the sectors covering [addr, addr+len) for an app image. */

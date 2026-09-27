@@ -37,10 +37,10 @@
  *          lcd_show_xnum(). */
 typedef enum
 {
-    LCD_TEXT_BG_OVERWRITE        = 0, /* fill glyph cells, pad with ' '  */
-    LCD_TEXT_BG_OVERWRITE_PAD_ZERO,   /* fill glyph cells, pad with '0'  */
-    LCD_TEXT_TRANSPARENT,             /* keep background, pad with ' '   */
-    LCD_TEXT_TRANSPARENT_PAD_ZERO     /* keep background, pad with '0'   */
+    LCD_TEXT_BG_OVERWRITE          = 0, /* fill glyph cells, pad with ' '  */
+    LCD_TEXT_BG_OVERWRITE_PAD_ZERO = 1, /* fill glyph cells, pad with '0'  */
+    LCD_TEXT_TRANSPARENT           = 2, /* keep background, pad with ' '   */
+    LCD_TEXT_TRANSPARENT_PAD_ZERO  = 3  /* keep background, pad with '0'   */
 } lcd_text_mode_t;
 
 /** @brief  Selectable ASCII font heights (pixels). */

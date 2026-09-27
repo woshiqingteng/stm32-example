@@ -46,6 +46,8 @@ int main(void)
 
     for (;;)
     {
+        exti_poll();
+
         if (key_scan(false) == KEY0)
         {
             printf("Entering standby mode...\r\n");

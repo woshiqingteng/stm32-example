@@ -30,63 +30,42 @@
 #define EXTI_KEY_WKUP_MODE GPIO_MODE_IT_RISING
 #define EXTI_KEY_WKUP_PULL GPIO_PULLDOWN
 
+#define EXTI_DEBOUNCE_MS   20U
+
 static exti_cb_t g_exti_cb[KEY_NUM];
 
-static void exti_dispatch(uint16_t pin)
+static volatile key_id_t g_pending_id   = KEY_NONE;
+static volatile uint32_t g_pending_tick = 0U;
+
+/* ISR side: latch the edge and (re)start the debounce window. Non-blocking. */
+static void exti_latch(key_id_t id)
 {
-    switch (pin)
-    {
-        case KEY0_GPIO_PIN:
-            if (g_exti_cb[KEY0] != 0)
-            {
-                g_exti_cb[KEY0](KEY0);
-            }
-            break;
-        case KEY1_GPIO_PIN:
-            if (g_exti_cb[KEY1] != 0)
-            {
-                g_exti_cb[KEY1](KEY1);
-            }
-            break;
-        case KEY2_GPIO_PIN:
-            if (g_exti_cb[KEY2] != 0)
-            {
-                g_exti_cb[KEY2](KEY2);
-            }
-            break;
-        case KEY_WKUP_GPIO_PIN:
-            if (g_exti_cb[KEY_WKUP] != 0)
-            {
-                g_exti_cb[KEY_WKUP](KEY_WKUP);
-            }
-            break;
-        default:
-            break;
-    }
+    g_pending_tick = HAL_GetTick();
+    g_pending_id   = id;
 }
 
 void EXTI0_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(KEY_WKUP_GPIO_PIN);
-    exti_dispatch(KEY_WKUP_GPIO_PIN);
+    __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY_WKUP));
+    exti_latch(KEY_WKUP);
 }
 
 void EXTI2_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(KEY1_GPIO_PIN);
-    exti_dispatch(KEY1_GPIO_PIN);
+    __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY1));
+    exti_latch(KEY1);
 }
 
 void EXTI3_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(KEY0_GPIO_PIN);
-    exti_dispatch(KEY0_GPIO_PIN);
+    __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY0));
+    exti_latch(KEY0);
 }
 
 void EXTI15_10_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(KEY2_GPIO_PIN);
-    exti_dispatch(KEY2_GPIO_PIN);
+    __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY2));
+    exti_latch(KEY2);
 }
 
 void exti_register(key_id_t id, exti_cb_t cb)
@@ -94,6 +73,27 @@ void exti_register(key_id_t id, exti_cb_t cb)
     if (id < KEY_NUM)
     {
         g_exti_cb[id] = cb;
+    }
+}
+
+/* Main-loop side: report once the edge has settled and the key is still held. */
+void exti_poll(void)
+{
+    key_id_t id = g_pending_id;
+
+    if (id == KEY_NONE)
+    {
+        return;
+    }
+    if ((HAL_GetTick() - g_pending_tick) < EXTI_DEBOUNCE_MS)
+    {
+        return;
+    }
+
+    g_pending_id = KEY_NONE;
+    if (g_exti_cb[id] != 0 && key_is_pressed(id))
+    {
+        g_exti_cb[id](id);
     }
 }
 
@@ -115,12 +115,12 @@ void exti_init(void)
 {
     key_init();
 
-    exti_config(KEY0_GPIO_PORT, KEY0_GPIO_PIN, EXTI_KEY0_MODE, EXTI_KEY0_PULL, EXTI_KEY0_IRQn,
+    exti_config(key_port(KEY0), key_pin(KEY0), EXTI_KEY0_MODE, EXTI_KEY0_PULL, EXTI_KEY0_IRQn,
                 EXTI_KEY0_PREEMPT);
-    exti_config(KEY1_GPIO_PORT, KEY1_GPIO_PIN, EXTI_KEY1_MODE, EXTI_KEY1_PULL, EXTI_KEY1_IRQn,
+    exti_config(key_port(KEY1), key_pin(KEY1), EXTI_KEY1_MODE, EXTI_KEY1_PULL, EXTI_KEY1_IRQn,
                 EXTI_KEY1_PREEMPT);
-    exti_config(KEY2_GPIO_PORT, KEY2_GPIO_PIN, EXTI_KEY2_MODE, EXTI_KEY2_PULL, EXTI_KEY2_IRQn,
+    exti_config(key_port(KEY2), key_pin(KEY2), EXTI_KEY2_MODE, EXTI_KEY2_PULL, EXTI_KEY2_IRQn,
                 EXTI_KEY2_PREEMPT);
-    exti_config(KEY_WKUP_GPIO_PORT, KEY_WKUP_GPIO_PIN, EXTI_KEY_WKUP_MODE, EXTI_KEY_WKUP_PULL,
+    exti_config(key_port(KEY_WKUP), key_pin(KEY_WKUP), EXTI_KEY_WKUP_MODE, EXTI_KEY_WKUP_PULL,
                 EXTI_KEY_WKUP_IRQn, EXTI_WKUP_PREEMPT);
 }

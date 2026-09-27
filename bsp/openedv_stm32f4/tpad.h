@@ -13,7 +13,7 @@
 typedef enum
 {
     TPAD_OK = 0,
-    TPAD_ERROR
+    TPAD_ERROR = 1
 } tpad_status_t;
 
 /** @brief  Calibrate the touch key. @param psc Prescaler. */

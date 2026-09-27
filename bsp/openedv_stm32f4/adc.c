@@ -39,8 +39,8 @@
 typedef enum
 {
     ADC_DMA_MODE_NONE = 0,
-    ADC_DMA_MODE_SINGLE,
-    ADC_DMA_MODE_SCAN,
+    ADC_DMA_MODE_SINGLE = 1,
+    ADC_DMA_MODE_SCAN = 2,
 } adc_dma_mode_t;
 
 /** @brief Per-mode DMA acquisition description selected at init time. */

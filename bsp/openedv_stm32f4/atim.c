@@ -275,9 +275,9 @@ void atim_timx_cplm_pwm_set(uint16_t ccr, uint8_t dtg)
 
 typedef enum
 {
-    ATIM_PWMIN_SM_IDLE = 0, /*!< waiting for the first capture */
-    ATIM_PWMIN_SM_ARMED,    /*!< first capture discarded, measuring */
-    ATIM_PWMIN_SM_DONE,     /*!< high and cycle times available */
+    ATIM_PWMIN_SM_IDLE = 0,  /*!< waiting for the first capture */
+    ATIM_PWMIN_SM_ARMED = 1, /*!< first capture discarded, measuring */
+    ATIM_PWMIN_SM_DONE = 2,  /*!< high and cycle times available */
 } atim_pwmin_sm_t;
 
 static TIM_HandleTypeDef g_atim_pwmin_handle;

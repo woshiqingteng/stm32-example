@@ -15,7 +15,7 @@
 typedef enum
 {
     GTIM_PWM_RAMP_UP = 0,
-    GTIM_PWM_RAMP_DOWN
+    GTIM_PWM_RAMP_DOWN = 1
 } gtim_pwm_ramp_t;
 
 int main(void)

@@ -71,9 +71,9 @@ void dcmi_set_window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
 /** @brief  One-shot JPEG capture phase. */
 typedef enum
 {
-    DCMI_JPEG_IDLE = 0,   /*!< not capturing */
-    DCMI_JPEG_CAPTURING,  /*!< a frame is being received */
-    DCMI_JPEG_READY       /*!< a complete frame is in the buffer */
+    DCMI_JPEG_IDLE = 0,      /*!< not capturing */
+    DCMI_JPEG_CAPTURING = 1, /*!< a frame is being received */
+    DCMI_JPEG_READY = 2      /*!< a complete frame is in the buffer */
 } dcmi_jpeg_state_t;
 
 /** @brief  Bind the JPEG destination buffer (word aligned). */

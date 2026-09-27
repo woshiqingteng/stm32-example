@@ -22,7 +22,7 @@
 typedef enum
 {
     IR_STATE_IDLE = 0,   /*!< waiting for a leader */
-    IR_STATE_FRAME       /*!< leader seen, decoding the 32 bits */
+    IR_STATE_FRAME = 1   /*!< leader seen, decoding the 32 bits */
 } ir_state_t;
 
 #define IR_BIT0_MIN         300U

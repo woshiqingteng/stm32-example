@@ -14,9 +14,9 @@ typedef void (*gtim_cb_t)(void);
 
 typedef enum
 {
-    GTIM_CAP_IDLE = 0, /*!< waiting for the rising edge */
-    GTIM_CAP_RISING,   /*!< rising edge captured, waiting for falling */
-    GTIM_CAP_DONE,     /*!< high-level width available */
+    GTIM_CAP_IDLE = 0,   /*!< waiting for the rising edge */
+    GTIM_CAP_RISING = 1, /*!< rising edge captured, waiting for falling */
+    GTIM_CAP_DONE = 2,   /*!< high-level width available */
 } gtim_cap_state_t;
 
 /* ---- TIM3 update interrupt ---- */

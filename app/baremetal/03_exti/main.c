@@ -5,13 +5,11 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define KEY_EXTI_DEBOUNCE_MS 20U
-#define IDLE_DELAY_MS        1000U
+#define POLL_DELAY_MS 1U
 
 static void on_key0(key_id_t id)
 {
     (void)id;
-    delay_ms(KEY_EXTI_DEBOUNCE_MS);
     led_toggle(LED0);
     led_toggle(LED1);
 }
@@ -19,21 +17,18 @@ static void on_key0(key_id_t id)
 static void on_key1(key_id_t id)
 {
     (void)id;
-    delay_ms(KEY_EXTI_DEBOUNCE_MS);
     led_toggle(LED1);
 }
 
 static void on_key2(key_id_t id)
 {
     (void)id;
-    delay_ms(KEY_EXTI_DEBOUNCE_MS);
     led_toggle(LED0);
 }
 
 static void on_key_wkup(key_id_t id)
 {
     (void)id;
-    delay_ms(KEY_EXTI_DEBOUNCE_MS);
     led_toggle(LED1);
 
     if (led_is_on(LED1))
@@ -52,14 +47,17 @@ int main(void)
     printf(APP_BANNER "\r\n");
     led_on(LED0);
 
+    /* Edge -> EXTIx_IRQHandler (latch only) -> main-loop exti_poll()
+       (20 ms debounce + level re-check) -> matching on_keyN() action. */
     exti_init();
-    exti_register(KEY0, on_key0);
-    exti_register(KEY1, on_key1);
-    exti_register(KEY2, on_key2);
-    exti_register(KEY_WKUP, on_key_wkup);
+    exti_register(KEY0, &on_key0);
+    exti_register(KEY1, &on_key1);
+    exti_register(KEY2, &on_key2);
+    exti_register(KEY_WKUP, &on_key_wkup);
 
     for (;;)
     {
-        delay_ms(IDLE_DELAY_MS);
+        exti_poll();
+        delay_ms(POLL_DELAY_MS);
     }
 }

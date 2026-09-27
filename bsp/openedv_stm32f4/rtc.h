@@ -19,14 +19,14 @@ typedef void (*rtc_wakeup_cb_t)(void);
 typedef enum
 {
     RTC_OK = 0,
-    RTC_ERROR
+    RTC_ERROR = 1
 } rtc_status_t;
 
 /** @brief RTC hour format flag (also the HAL 12/24-hour TimeFormat value). */
 typedef enum
 {
     RTC_AM_24H = 0, /*!< 24-hour format / AM */
-    RTC_PM          /*!< PM (12-hour format) */
+    RTC_PM = 1      /*!< PM (12-hour format) */
 } rtc_ampm_t;
 
 /**

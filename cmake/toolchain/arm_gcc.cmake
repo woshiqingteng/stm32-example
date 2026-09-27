@@ -36,7 +36,7 @@ if(ENABLE_LTO)
     set(OPT_RELEASE_LINK "${OPT_RELEASE_LINK} -flto=auto")
     message(STATUS "LTO : ENABLED (release)")
 else()
-    message(STATUS "LTO : disabled (use -DENABLE_LTO=ON to enable)")
+    message(STATUS "LTO : disabled")
 endif()
 
 # compile

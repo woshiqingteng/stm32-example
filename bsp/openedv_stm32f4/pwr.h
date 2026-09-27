@@ -13,7 +13,7 @@
 typedef enum
 {
     PWR_PVD_ABOVE = 0, /*!< VDD is above the configured level */
-    PWR_PVD_BELOW      /*!< VDD is below the configured level */
+    PWR_PVD_BELOW = 1  /*!< VDD is below the configured level */
 } pwr_pvd_state_t;
 
 /** @brief Callback invoked from the PVD interrupt. */

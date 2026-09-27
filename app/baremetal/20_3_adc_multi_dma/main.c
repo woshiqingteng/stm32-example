@@ -19,7 +19,7 @@
 typedef enum
 {
     ADC_SCAN_IDLE = 0,
-    ADC_SCAN_DONE,
+    ADC_SCAN_DONE = 1,
 } adc_scan_state_t;
 
 static uint16_t                  g_adc_buf[ADC_DMA_BUF_LEN];

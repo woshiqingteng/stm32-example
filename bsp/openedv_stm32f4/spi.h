@@ -17,7 +17,7 @@
 typedef enum
 {
     SPI_BUS_NORFLASH = 0, /*!< SPI5: SCK=PF7, MISO=PF8, MOSI=PF9, CS=PF6  */
-    SPI_BUS_NRF24L01,     /*!< SPI2: SCK=PB13, MISO=PB14, MOSI=PB15       */
+    SPI_BUS_NRF24L01 = 1, /*!< SPI2: SCK=PB13, MISO=PB14, MOSI=PB15       */
 } spi_bus_t;
 
 /** @brief  Configure @p bus as an 8-bit master with the mode the device needs. */

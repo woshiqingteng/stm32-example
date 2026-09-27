@@ -7,12 +7,13 @@
 
 #include "bsp.h"
 #define LOOP_DELAY_MS 10U
+#define WKUP_DEBOUNCE_WAIT_MS 30U
 
 /** @brief Cause recorded when the MCU wakes from sleep. */
 typedef enum
 {
     SLEEP_WAKE_NONE = 0,
-    SLEEP_WAKE_WKUP
+    SLEEP_WAKE_WKUP = 1
 } sleep_wake_cause_t;
 
 static volatile sleep_wake_cause_t g_wake_cause = SLEEP_WAKE_NONE;
@@ -35,12 +36,18 @@ int main(void)
 
     for (;;)
     {
+        exti_poll();
+
         if (key_scan(false) == KEY0)
         {
             printf("Entering sleep mode...\r\n");
             led_on(LED1);
 
             pwr_enter_sleep();
+
+            /* let the latched WK_UP edge settle past the 20 ms debounce */
+            delay_ms(WKUP_DEBOUNCE_WAIT_MS);
+            exti_poll();
 
             led_off(LED1);
             if (g_wake_cause == SLEEP_WAKE_WKUP)

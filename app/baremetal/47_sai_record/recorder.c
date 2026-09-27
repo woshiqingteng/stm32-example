@@ -30,8 +30,8 @@ static uint32_t g_wav_size;         /* recorded PCM size, excluding the header *
 typedef enum
 {
     REC_STATE_IDLE = 0,
-    REC_STATE_RECORDING,
-    REC_STATE_PAUSED
+    REC_STATE_RECORDING = 1,
+    REC_STATE_PAUSED = 2
 } rec_state_t;
 
 static rec_state_t g_rec_state = REC_STATE_IDLE;

@@ -12,16 +12,16 @@
 typedef enum
 {
     ATIM_PWMIN_IDLE = 0, /*!< no valid PWM input capture yet */
-    ATIM_PWMIN_DONE,     /*!< high and cycle times available */
+    ATIM_PWMIN_DONE = 1, /*!< high and cycle times available */
 } atim_pwmin_state_t;
 
 /** @brief TIM8 output-compare channels CH1..CH4 (PC6..PC9). */
 typedef enum
 {
     ATIM_CH1 = 0,
-    ATIM_CH2,
-    ATIM_CH3,
-    ATIM_CH4,
+    ATIM_CH2 = 1,
+    ATIM_CH3 = 2,
+    ATIM_CH4 = 3,
 } atim_channel_t;
 
 /* ---- TIM8_CH1 (PC6): emit a given number of PWM pulses ---- */

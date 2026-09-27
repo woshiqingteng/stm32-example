@@ -21,7 +21,7 @@
 typedef enum
 {
     ADC_OVS_IDLE = 0,
-    ADC_OVS_DONE,
+    ADC_OVS_DONE = 1,
 } adc_ovs_state_t;
 
 static uint16_t                 g_adc_buf[ADC_DMA_BUF_LEN];

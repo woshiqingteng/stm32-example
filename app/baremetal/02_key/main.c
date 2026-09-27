@@ -11,7 +11,7 @@
 typedef enum
 {
     LED_STATE_OFF = 0,
-    LED_STATE_ON,
+    LED_STATE_ON = 1,
 } led_state_t;
 
 static led_state_t led_state_toggle(led_state_t state)
