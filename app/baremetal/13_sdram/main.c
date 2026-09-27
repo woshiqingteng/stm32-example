@@ -1,91 +1,119 @@
 /**
  * @file    main.c
- * @brief   13_sdram: full-capacity SDRAM test. KEY0 walks every 16 KB block to
- *          exercise the address lines across the whole 32 MB part; KEY1 checks a
- *          512 KB data pattern. Results are reported on USART1.
+ * @brief   13_sdram: SDRAM capacity test. KEY0 walks every 16 KB block to
+ *          measure the capacity across the whole part; KEY1 dumps a preloaded
+ *          pattern. Results are shown on the RGB panel and USART1.
  */
 
 #include <stdio.h>
 
 #include "bsp.h"
-#define SDRAM_TEST_BLOCKS   2048U                 /* 2048 * 16 KB = 32 MB */
+#define SDRAM_SIZE_BYTES    (32U * 1024U * 1024U)
 #define SDRAM_BLOCK_STEP    (16U * 1024U)
-#define SDRAM_PATTERN_WORDS (512U * 1024U / 4U)   /* 512 KB of words */
-#define SDRAM_PATTERN_MUL   7U
-#define SDRAM_PATTERN_ADD   3U
-#define SDRAM_BLINK_MS      500U
+#define SDRAM_DATA_WORDS    250000U
+#define SDRAM_LOOP_MS       10U
+#define SDRAM_LED_TICKS     20U
 
-static uint32_t sdram_capacity_test(void)
+static uint16_t *const g_sdram = (uint16_t *)SDRAM_BASE_ADDR;
+
+static void sdram_prefill(void)
 {
-    volatile uint32_t *base = (volatile uint32_t *)SDRAM_BASE_ADDR;
-    uint32_t           i;
-    uint32_t           errors = 0U;
+    uint32_t t;
 
-    for (i = 0U; i < SDRAM_TEST_BLOCKS; i++)
+    for (t = 0U; t < SDRAM_DATA_WORDS; t++)
     {
-        base[i * (SDRAM_BLOCK_STEP / 4U)] = i;
+        g_sdram[t] = (uint16_t)t;
     }
-
-    for (i = 0U; i < SDRAM_TEST_BLOCKS; i++)
-    {
-        if (base[i * (SDRAM_BLOCK_STEP / 4U)] != i)
-        {
-            errors++;
-        }
-    }
-
-    return errors;
 }
 
-static uint32_t sdram_pattern_test(void)
+static void sdram_capacity_test(void)
 {
     volatile uint32_t *base = (volatile uint32_t *)SDRAM_BASE_ADDR;
     uint32_t           i;
-    uint32_t           errors = 0U;
+    uint32_t           temp = 0U;
+    uint32_t           sval = 0U;
+    uint32_t           cap_kb = 0U;
+    char               buf[32];
 
-    for (i = 0U; i < SDRAM_PATTERN_WORDS; i++)
+    for (i = 0U; i < SDRAM_SIZE_BYTES; i += SDRAM_BLOCK_STEP)
     {
-        base[i] = (i * SDRAM_PATTERN_MUL) + SDRAM_PATTERN_ADD;
+        base[i / 4U] = temp;
+        temp++;
     }
 
-    for (i = 0U; i < SDRAM_PATTERN_WORDS; i++)
+    for (i = 0U; i < SDRAM_SIZE_BYTES; i += SDRAM_BLOCK_STEP)
     {
-        if (base[i] != ((i * SDRAM_PATTERN_MUL) + SDRAM_PATTERN_ADD))
+        temp = base[i / 4U];
+
+        if (i == 0U)
         {
-            errors++;
+            sval = temp;
         }
+        else if (temp <= sval)
+        {
+            break;
+        }
+
+        cap_kb = (temp - sval + 1U) * (SDRAM_BLOCK_STEP / 1024U);
     }
 
-    return errors;
+    (void)sprintf(buf, "Ex Memory Test:%5luKB", (unsigned long)cap_kb);
+    lcd_show_string(30U, 170U, 240U, 16U, LCD_FONT_SIZE_16, buf, RED);
+    printf("SDRAM Capacity:%luKB\r\n", (unsigned long)cap_kb);
+}
+
+static void sdram_data_dump(void)
+{
+    uint32_t t;
+
+    for (t = 0U; t < SDRAM_DATA_WORDS; t++)
+    {
+        printf("testsdram[%lu]:%u\r\n", (unsigned long)t, (unsigned)g_sdram[t]);
+    }
 }
 
 int main(void)
 {
+    uint8_t  key;
+    uint8_t  blink = 0U;
+
     bsp_init();
     sdram_init();
+    lcd_init();
+    lcd_clear(WHITE);
 
-    printf("13_sdram ready: KEY0=capacity 32MB, KEY1=pattern 512KB\r\n");
+    lcd_show_string(30U, 50U, 200U, 16U, LCD_FONT_SIZE_16, "STM32", RED);
+    lcd_show_string(30U, 70U, 200U, 16U, LCD_FONT_SIZE_16, "SDRAM TEST", RED);
+    lcd_show_string(30U, 90U, 200U, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
+    lcd_show_string(30U, 110U, 200U, 16U, LCD_FONT_SIZE_16, "KEY0:Test SDRAM", RED);
+    lcd_show_string(30U, 130U, 200U, 16U, LCD_FONT_SIZE_16, "KEY1:Test DATA", RED);
+
+    sdram_prefill();
+
+    printf("13_sdram ready\r\n");
 
     for (;;)
     {
-        key_id_t key = key_scan(false);
+        key = (uint8_t)key_scan(false);
 
         if (key == KEY0)
         {
-            uint32_t errors = sdram_capacity_test();
-
-            printf("capacity test: %u blocks, %lu error(s)\r\n",
-                   (unsigned)SDRAM_TEST_BLOCKS, (unsigned long)errors);
+            sdram_capacity_test();
         }
         else if (key == KEY1)
         {
-            uint32_t errors = sdram_pattern_test();
-
-            printf("pattern test: %u bytes, %lu error(s)\r\n",
-                   (unsigned)(SDRAM_PATTERN_WORDS * 4U), (unsigned long)errors);
+            sdram_data_dump();
+        }
+        else
+        {
+            delay_ms(SDRAM_LOOP_MS);
         }
 
-        led_toggle(LED0);
-        delay_ms(SDRAM_BLINK_MS);
+        blink++;
+        if (blink >= SDRAM_LED_TICKS)
+        {
+            blink = 0U;
+            led_toggle(LED0);
+        }
     }
 }
