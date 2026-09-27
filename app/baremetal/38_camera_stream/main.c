@@ -346,7 +346,6 @@ int main(void)
         usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_2) };
 
         cfg.baudrate = 921600U;
-        cfg.rx       = USART_IO_POLL;
         usart_init(&cfg);
     }
     sdram_init();

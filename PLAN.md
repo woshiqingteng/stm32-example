@@ -304,7 +304,7 @@ typedef struct {
     uint32_t irq_preempt, irq_sub;
 } usart_cfg_t;
 
-#define USART_CFG_DEFAULT(inst) /* 8N1@115200、无流控、16 过采样、tx=POLL、rx=IT、IRQ 3/3 */
+#define USART_CFG_DEFAULT(inst) /* 8N1@115200、无流控、16 过采样、tx=POLL、rx=POLL、IRQ 3/3 */
 
 void      usart_init(const usart_cfg_t *cfg);
 bool      usart_write(usart_id_t id, const uint8_t *data, uint32_t len);
@@ -333,7 +333,7 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 
 ## 迁移清单
 - `bsp/.../usart.[ch]`：新驱动；`USART1/2_IRQHandler`、`DMA2_Stream7_IRQHandler`（+阶段2 `DMA2_Stream2_IRQHandler`）；handles 改 `static`。
-- `bsp/.../bsp.c`：控制台 `rx=IT` + `s_console_rx[]`。
+- `bsp/.../bsp.c`：控制台 `rx=POLL`（只发，无缓冲）；接收类 app（04/15_usmart/rs485）自设 `rx=IT`+缓冲。
 - `bsp/.../rs485.[ch]`：删自建 MSP 与 `USART2_IRQHandler`；`usart_set_rx_cb(USART_ID_2,…)`；`rs485_send`→`usart_write`。
 - `lib/usmart/usmart_port.c`：`usart_set_rx_cb(USART_ID_1,…)`。
 - `bsp/.../iap.c`：改 `usart_read`；`AbortReceive`→排空循环。

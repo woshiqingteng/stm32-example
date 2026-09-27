@@ -49,7 +49,6 @@ int main(void)
         usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
 
         cfg.tx = USART_IO_DMA;
-        cfg.rx = USART_IO_POLL;
         usart_init(&cfg);
     }
     len = dma_fill_buffer();

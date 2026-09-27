@@ -13,20 +13,12 @@
 #define BSP_PLLP           2U
 #define BSP_PLLQ           8U
 
-#define BSP_USART_RX_BUF_SIZE 128U
-
-static uint8_t s_console_rx[BSP_USART_RX_BUF_SIZE];
-
 void bsp_init(void)
 {
     HAL_Init();
     (void)sys_clk_init(BSP_PLLN, BSP_PLLM, BSP_PLLP, BSP_PLLQ);
     delay_init(BSP_SYSCLK_MHZ);
-    usart_init(&(usart_cfg_t){
-        USART_CFG_DEFAULT(USART_ID_1),
-        .rx_buf = s_console_rx,
-        .rx_size = sizeof(s_console_rx),
-    });
+    usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1) });
     led_init();
     key_init();
 }

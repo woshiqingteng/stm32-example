@@ -10,10 +10,22 @@
 #define USMART_APP_BLINK_MS   200U
 #define USMART_APP_HZ_PER_MHZ 1000000U
 
+static uint8_t s_rx_buf[128];
+
 int main(void)
 {
     bsp_init();
     printf(APP_BANNER "\r\n");
+
+    {
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
+
+        cfg.rx      = USART_IO_IT;
+        cfg.rx_buf  = s_rx_buf;
+        cfg.rx_size = sizeof(s_rx_buf);
+        usart_init(&cfg);
+    }
+
     usmart_init((uint16_t)(sys_clk_get_hz() / USMART_APP_HZ_PER_MHZ));
 
     printf("\r\n15_usmart ready. Type 'help' for commands.\r\n");

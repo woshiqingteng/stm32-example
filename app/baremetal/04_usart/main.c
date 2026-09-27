@@ -18,6 +18,7 @@
 
 #define LINE_MAX 199U
 
+static uint8_t           s_rx_buf[128];
 static uint8_t           g_line[LINE_MAX + 1U];
 static volatile uint16_t g_line_len;
 static volatile bool     g_line_ready;
@@ -87,6 +88,16 @@ int main(void)
     uint32_t next_blink;
 
     bsp_init();
+
+    {
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
+
+        cfg.rx      = USART_IO_IT;
+        cfg.rx_buf  = s_rx_buf;
+        cfg.rx_size = sizeof(s_rx_buf);
+        usart_init(&cfg);
+    }
+
     printf(APP_BANNER "\r\n");
     usart_set_rx_cb(USART_ID_1, &line_feed);
 
