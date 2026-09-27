@@ -31,15 +31,13 @@ void rs485_tx_set(uint8_t en)
 
 void rs485_init(uint32_t baudrate)
 {
+    usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_2, baudrate) };
+
     io_expand_init();
 
-    usart_init(&(usart_cfg_t){
-        USART_CFG_DEFAULT(USART_ID_2, baudrate),
-        .tx = USART_IO_POLL,
-        .rx = USART_IO_IT,
-        .rx_buf = g_rs485_it_buf,
-        .rx_size = sizeof g_rs485_it_buf,
-    });
+    cfg.rx_buf  = g_rs485_it_buf;
+    cfg.rx_size = sizeof g_rs485_it_buf;
+    usart_init(&cfg);
 
     g_rs485_rx_cnt = 0U;
     usart_set_rx_cb(USART_ID_2, rs485_rx_byte_hook);

@@ -352,5 +352,31 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 - [x] 阶段 1（`bd20a67`）：新 API + 全量迁移 + 04 解析入 app + rs485 回调；HIL 35 passed。
 - [x] 阶段 2（本提交）：USART1 RX-DMA（DMA2_Stream2 + IDLE 回填/回调）；HIL 35 passed。
 - [x] 最后校验：全量构建 `all` 通过（70 app，无失败）+ HIL 35 passed。
-- 说明：USART2 DMA 未实现（保留 `USART_IO_DMA` 入口，遇 USART2 DMA 回退 POLL）。
+
+---
+
+# 计划：USART DMA 补全 + 驱动修正（Option S）
+
+## 决策
+- **RX-DMA 用 `USART_IT_IDLE` 驱动，不使用任何 RX 流 IRQ**（循环 DMA 硬件搬运 + `NDTR` 计算）；IDLE 分支顺带清一次 RX 流 TE 标志。
+- **TX-DMA 需要流 IRQ**（完成置 `gState=READY`）：USART1 `DMA2_Stream7`、USART2 `DMA1_Stream6`（均不与其它驱动共享）。
+- RX 流：USART1 `DMA2_Stream2`、USART2 `DMA1_Stream5`（后者与 DAC 共用同一流，不同时启用 → 无链接冲突，`dac.c` 保留其 handler）。
+- `usart_write` 不加 timeout 参数；POLL 内部改 1000ms。
+- 内部类型重命名 `usart_ctx_t → usart_handle_t`。
+- P1：`usart_init()` 重初始化前 `HAL_UART_AbortReceive()` + 关 `RXNE/IDLE` IT。
+- P3：更新注释（`hdma_rx`、`usart_read` 字节间超时、DMA-RX 覆盖风险）。
+
+## 改动
+- `bsp/openedv_stm32f4/usart.c`：重命名；P1；`usart_dma_tx_init/rx_init` 按 id 参数化；USART1/2 的 IDLE 分支（+TE 清标志）；删 `DMA2_Stream2_IRQHandler`、增 `DMA1_Stream6_IRQHandler`；POLL 写超时 1000ms。
+- `bsp/openedv_stm32f4/usart.h`：去 “USART2 DMA reserved”，注明字节间超时。
+- `dac.c` 不改（无冲突）。
+
+## 验证（只验对应文件）
+- 构建 `04_usart`、`28_rs485`、`19_dma`、`22_1_dac`（无重复符号）。
+- HIL `test/test/test_04_usart.py`（预期 2 passed）。
+
+## 执行记录
+- [x] 写入本计划
+- [x] 修改 `usart.c/.h`（重命名、P1、USART2 TX/RX DMA、IDLE+TE 清标志）
+- [x] 构建对应文件（`04_usart`/`28_rs485`/`19_dma`/`22_1_dac`/`35`/`38`，无告警）+ 04 HIL（2 passed）
 

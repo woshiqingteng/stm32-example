@@ -45,11 +45,13 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart_init(&(usart_cfg_t){
-        USART_CFG_DEFAULT(USART_ID_1, 115200U),
-        .tx = USART_IO_DMA,
-        .rx = USART_IO_POLL,
-    });
+    {
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1, 115200U) };
+
+        cfg.tx = USART_IO_DMA;
+        cfg.rx = USART_IO_POLL;
+        usart_init(&cfg);
+    }
     len = dma_fill_buffer();
 
     printf("19_dma ready: %u bytes buffered, press KEY0 to send\r\n", (unsigned)len);

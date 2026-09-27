@@ -342,10 +342,12 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart_init(&(usart_cfg_t){
-        USART_CFG_DEFAULT(USART_ID_2, 921600U),
-        .rx = USART_IO_POLL,
-    });
+    {
+        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_2, 921600U) };
+
+        cfg.rx = USART_IO_POLL;
+        usart_init(&cfg);
+    }
     sdram_init();
     lcd_init();
 

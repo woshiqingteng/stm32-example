@@ -25,7 +25,7 @@ typedef enum
 {
     USART_IO_POLL = 0, /*!< blocking (TX) / direct register reads (RX) */
     USART_IO_IT,       /*!< interrupt driven */
-    USART_IO_DMA       /*!< DMA driven (USART_ID_2 DMA is reserved) */
+    USART_IO_DMA       /*!< DMA driven (RX is IDLE-drained, no stream IRQ) */
 } usart_io_t;
 
 /** @brief USART configuration (all 8N1 frame options are adjustable). */
@@ -73,7 +73,7 @@ bool usart_tx_busy(usart_id_t id);
 
 /**
  * @brief  Receive up to @p len bytes.
- * @param  timeout timeout in ms; 0 = non-blocking.
+ * @param  timeout inter-byte timeout in ms (reset after each byte); 0 = non-blocking.
  * @return number of bytes actually read.
  */
 uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout);
