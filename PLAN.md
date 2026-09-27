@@ -199,3 +199,9 @@
 - `14_ltdc`：补 `lcd_draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum`（当前无 app 使用，属 API 完整性，非功能 parity）。
 - `44_image` 快/慢模式 DMA2D 与定点缩放、`48_video` DMA2D 直写帧缓冲：大改动、性能 parity，无功能缺陷风险。
 - 其余 R/S 项按约定仅列不改。
+
+## 执行记录（Phase 2，第三批：14/44/48）
+- `7a4ebd0` lcd：新增 `lcd_draw_line/lcd_draw_circle/lcd_fill_circle/lcd_set_window/lcd_write_ram_prepare`（`show_xnum` 原已存在）。
+- `409eb54` 44_image：新增 **快模式**（按 MCU 目标矩形用 DMA2D `pic_phy.fillcolor` 块填充）与 **慢模式定点缩放**（`picinfo.Div_Fac` 移位，取代逐像素除法）。
+- `48_video`：经核查已通过 `lcd_color_fill`（DMA2D M2M）逐行搬运，**已达 DMA2D 路径**，无需改动（且行缓冲位于 SRAMIN，DMA 可访问；参考的 CCM 缓冲不宜作 DMA 源）。
+- **全量回归 73/73 通过**；`PLAN.md` 全部 P 项处理完毕。
