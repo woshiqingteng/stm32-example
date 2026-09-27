@@ -185,3 +185,17 @@
 ### 状态标记
 - 已完成 [x]：全局 OverDrive；02_key（WK_UP/优先级）；03_exti（WK_UP/NVIC）；04_usart（CRLF/横幅）；37；41（ECC）；53（扇区/跳转）；54（包大小）；56（缓冲）；57/58（轮询）；11（版式）；30（竖屏映射）；34（温度/方位）；43（扇区校验）；45（DCMI 寄存器）；50_1（循环）。
 - 仍待处理（较大改动，P）：11 驱动公开 API；13 SDRAM 参考算法/显示；14 绘图层 API；30 RST 清除区/按触点取色/抽帧；35 IMU 校准/ANO 帧/波特率；43 扫描范围与强制刷字库；44 JPEG 快慢模式/定点缩放；45 JPEG SOI/EOI 截取与按键重排；48 DMA2D 搬运；49 FPU 缩放表/镜像/标题/计时；50_2 计时与浮点幅值。
+
+## 执行记录（Phase 2，第二批：35/49/45/50_2/13/30）
+- `bc07121` 35_i2c_imu：片上校准(Ctrl9=0xA2,校验0x46)、ANO 0x01=12B/0x02=18B、500000 波特率
+- `47cd7cd` 49_fpu：26 档缩放表、水平镜像、标题、TIM6 10kHz 0.1ms 计时、auto 默认关
+- `c680db0` 45_camera_storage：按键 KEY0=BMP/KEY1=JPG/KEY2=对焦、JPEG 按 FFD8..FFD9 截取
+- `a70d018` 50_2_dsp_fft：1MHz BTIM 计时 + 3 位小数幅值
+- `091d03d` 13_sdram：参考容量算法 + LCD 显示 + 按键/数据回显
+- `7c2a8ee` 30_touch_screen：按触点取色 + 右上角 RST 清除区
+- **全量回归 73/73 通过**。
+
+## 未执行（已评估，属“可选/性能”）
+- `14_ltdc`：补 `lcd_draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum`（当前无 app 使用，属 API 完整性，非功能 parity）。
+- `44_image` 快/慢模式 DMA2D 与定点缩放、`48_video` DMA2D 直写帧缓冲：大改动、性能 parity，无功能缺陷风险。
+- 其余 R/S 项按约定仅列不改。
