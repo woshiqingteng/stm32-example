@@ -14,8 +14,6 @@
 /* ===== constants / DMA streams ===== */
 
 #define USART_TX_TIMEOUT_MS   1000U
-#define USART_DMA_IRQ_PREEMPT 3U
-#define USART_DMA_IRQ_SUB     3U
 
 /* USART1: TX = DMA2_Stream7/ch4, RX = DMA2_Stream2/ch4. */
 #define USART1_TX_DMA_STREAM   DMA2_Stream7
@@ -64,9 +62,9 @@ static usart_handle_t *usart_handle_of(UART_HandleTypeDef *huart)
 
 /* ===== DMA setup ===== */
 
-static void usart_dma_tx_init(usart_handle_t *handle, usart_id_t id)
+static void usart_dma_tx_init(usart_handle_t *handle, const usart_cfg_t *cfg)
 {
-    if (id == USART_ID_1)
+    if (cfg->id == USART_ID_1)
     {
         __HAL_RCC_DMA2_CLK_ENABLE();
         handle->hdma_tx.Instance = USART1_TX_DMA_STREAM;
@@ -92,16 +90,16 @@ static void usart_dma_tx_init(usart_handle_t *handle, usart_id_t id)
     HAL_DMA_DeInit(&handle->hdma_tx);
     (void)HAL_DMA_Init(&handle->hdma_tx);
 
-    HAL_NVIC_SetPriority((id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn,
-                         USART_DMA_IRQ_PREEMPT, USART_DMA_IRQ_SUB);
-    HAL_NVIC_EnableIRQ((id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn);
+    HAL_NVIC_SetPriority((cfg->id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn,
+                         cfg->irq_preempt, cfg->irq_sub);
+    HAL_NVIC_EnableIRQ((cfg->id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn);
 }
 
 /* RX DMA: circular transfer into handle->buf; bytes are handed over on the
  * USART IDLE interrupt. The DMA stream IRQ is intentionally not enabled. */
-static void usart_dma_rx_init(usart_handle_t *handle, usart_id_t id)
+static void usart_dma_rx_init(usart_handle_t *handle, const usart_cfg_t *cfg)
 {
-    if (id == USART_ID_1)
+    if (cfg->id == USART_ID_1)
     {
         __HAL_RCC_DMA2_CLK_ENABLE();
         handle->hdma_rx.Instance = USART1_RX_DMA_STREAM;
@@ -225,6 +223,7 @@ void usart_init(const usart_cfg_t *cfg)
     if (handle->huart.Instance != 0)
     {
         (void)HAL_UART_AbortReceive(&handle->huart);
+        (void)HAL_UART_AbortTransmit(&handle->huart);
         __HAL_UART_DISABLE_IT(&handle->huart, UART_IT_RXNE | UART_IT_IDLE);
     }
 
@@ -284,7 +283,7 @@ void usart_init(const usart_cfg_t *cfg)
 
     if (tx == USART_IO_DMA)
     {
-        usart_dma_tx_init(handle, cfg->id);
+        usart_dma_tx_init(handle, cfg);
     }
 
     if (rx == USART_IO_IT)
@@ -293,29 +292,38 @@ void usart_init(const usart_cfg_t *cfg)
     }
     else if (rx == USART_IO_DMA)
     {
-        usart_dma_rx_init(handle, cfg->id);
+        usart_dma_rx_init(handle, cfg);
     }
 }
 
 void usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb)
 {
+    if (id >= USART_ID_NUM)
+    {
+        return;
+    }
     g_uart[id].cb = cb;
 }
 
 bool usart_tx_busy(usart_id_t id)
 {
+    if (id >= USART_ID_NUM)
+    {
+        return true;
+    }
     return (g_uart[id].huart.gState != HAL_UART_STATE_READY);
 }
 
 bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
 {
-    usart_handle_t *handle = &g_uart[id];
+    usart_handle_t *handle;
     uint16_t        n;
 
-    if ((data == 0) || (len == 0U) || usart_tx_busy(id))
+    if ((id >= USART_ID_NUM) || (data == 0) || (len == 0U) || usart_tx_busy(id))
     {
         return false;
     }
+    handle = &g_uart[id];
     n = (len > 0xFFFFU) ? 0xFFFFU : (uint16_t)len;
 
     if (handle->tx == USART_IO_IT)
@@ -331,9 +339,16 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
 
 uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout)
 {
-    usart_handle_t *handle = &g_uart[id];
+    usart_handle_t *handle;
     uint32_t        n = 0U;
-    uint32_t        start = HAL_GetTick();
+    uint32_t        start;
+
+    if (id >= USART_ID_NUM)
+    {
+        return 0U;
+    }
+    handle = &g_uart[id];
+    start = HAL_GetTick();
 
     while (n < len)
     {
