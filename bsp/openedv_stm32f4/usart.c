@@ -11,6 +11,8 @@
 #include "stm32f4xx_hal.h"
 #include "usart.h"
 
+/* ===== constants / DMA streams ===== */
+
 #define USART_DATA_MASK       0xFFU
 #define USART_TX_TIMEOUT_MS   1000U
 #define USART_DMA_IRQ_PREEMPT 3U
@@ -28,6 +30,8 @@
 #define USART2_TX_DMA_STREAM   DMA1_Stream6
 #define USART2_RX_DMA_STREAM   DMA1_Stream5
 #define USART2_TX_DMA_IRQn     DMA1_Stream6_IRQn
+
+/* ===== context ===== */
 
 typedef struct
 {
@@ -59,57 +63,7 @@ static usart_handle_t *usart_handle_of(UART_HandleTypeDef *huart)
     return 0;
 }
 
-static void usart_store_byte(usart_handle_t *handle, uint8_t byte)
-{
-    if (handle->cb != 0)
-    {
-        handle->cb(byte);
-    }
-
-    if ((handle->buf != 0) && (handle->size != 0U))
-    {
-        uint16_t next = (uint16_t)((handle->head + 1U) % handle->size);
-
-        if (next != handle->tail)
-        {
-            handle->buf[handle->head] = byte;
-            handle->head = next;
-        }
-    }
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    usart_handle_t *handle = usart_handle_of(huart);
-
-    if ((handle == 0) || (handle->rx != USART_IO_IT))
-    {
-        return; /* DMA reception is drained through the IDLE handler */
-    }
-
-    usart_store_byte(handle, handle->rx_byte);
-    (void)HAL_UART_Receive_IT(huart, &handle->rx_byte, 1U);
-}
-
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-{
-    usart_handle_t *handle = usart_handle_of(huart);
-
-    if (handle == 0)
-    {
-        return;
-    }
-
-    __HAL_UART_CLEAR_OREFLAG(huart);
-    if (handle->rx == USART_IO_IT)
-    {
-        (void)HAL_UART_Receive_IT(huart, &handle->rx_byte, 1U);
-    }
-    else if (handle->rx == USART_IO_DMA)
-    {
-        (void)HAL_UART_Receive_DMA(huart, handle->buf, handle->size);
-    }
-}
+/* ===== DMA setup ===== */
 
 static void usart_dma_tx_init(usart_handle_t *handle, usart_id_t id)
 {
@@ -178,6 +132,8 @@ static void usart_dma_rx_init(usart_handle_t *handle, usart_id_t id)
     (void)HAL_UART_Receive_DMA(&handle->huart, handle->buf, handle->size);
 }
 
+/* ===== receive paths ===== */
+
 /* Hand the bytes written by the circular DMA since the last IDLE to the callback. */
 static void usart_dma_idle(usart_handle_t *handle)
 {
@@ -199,19 +155,56 @@ static void usart_dma_idle(usart_handle_t *handle)
     }
 }
 
-static void usart_irq(usart_handle_t *handle)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    HAL_UART_IRQHandler(&handle->huart);
+    usart_handle_t *handle = usart_handle_of(huart);
+    uint8_t         byte;
 
-    if ((handle->rx == USART_IO_DMA) &&
-        (__HAL_UART_GET_FLAG(&handle->huart, UART_FLAG_IDLE) != RESET))
+    if ((handle == 0) || (handle->rx != USART_IO_IT))
     {
-        __HAL_UART_CLEAR_IDLEFLAG(&handle->huart);
-        usart_dma_idle(handle);
-        /* Drop any latched DMA transfer-error flag (no stream IRQ is used). */
-        __HAL_DMA_CLEAR_FLAG(&handle->hdma_rx, __HAL_DMA_GET_TE_FLAG_INDEX(&handle->hdma_rx));
+        return; /* DMA reception is drained through the IDLE handler */
+    }
+
+    byte = handle->rx_byte;
+    if (handle->cb != 0)
+    {
+        handle->cb(byte);
+    }
+    if ((handle->buf != 0) && (handle->size != 0U))
+    {
+        uint16_t next = (uint16_t)((handle->head + 1U) % handle->size);
+
+        if (next != handle->tail)
+        {
+            handle->buf[handle->head] = byte;
+            handle->head = next;
+        }
+    }
+
+    (void)HAL_UART_Receive_IT(huart, &handle->rx_byte, 1U);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    usart_handle_t *handle = usart_handle_of(huart);
+
+    if (handle == 0)
+    {
+        return;
+    }
+
+    __HAL_UART_CLEAR_OREFLAG(huart);
+    if (handle->rx == USART_IO_IT)
+    {
+        (void)HAL_UART_Receive_IT(huart, &handle->rx_byte, 1U);
+    }
+    else if (handle->rx == USART_IO_DMA)
+    {
+        (void)HAL_UART_Receive_DMA(huart, handle->buf, handle->size);
     }
 }
+
+/* ===== public API ===== */
 
 void usart_init(const usart_cfg_t *cfg)
 {
@@ -250,6 +243,7 @@ void usart_init(const usart_cfg_t *cfg)
     handle->head = 0U;
     handle->tail = 0U;
 
+    /* ---- MSP begin: clocks + GPIO AF + NVIC ---- */
     if (cfg->id == USART_ID_1)
     {
         __HAL_RCC_USART1_CLK_ENABLE();
@@ -273,6 +267,13 @@ void usart_init(const usart_cfg_t *cfg)
     gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     HAL_GPIO_Init(GPIOA, &gpio_init);
 
+    if ((tx != USART_IO_POLL) || (rx != USART_IO_POLL))
+    {
+        HAL_NVIC_SetPriority(irqn, cfg->irq_preempt, cfg->irq_sub);
+        HAL_NVIC_EnableIRQ(irqn);
+    }
+    /* ---- MSP end ---- */
+
     handle->huart.Init.BaudRate     = cfg->baudrate;
     handle->huart.Init.WordLength   = cfg->word_length;
     handle->huart.Init.StopBits     = cfg->stop_bits;
@@ -281,12 +282,6 @@ void usart_init(const usart_cfg_t *cfg)
     handle->huart.Init.HwFlowCtl    = cfg->hw_flow_ctl;
     handle->huart.Init.OverSampling = cfg->oversampling;
     (void)HAL_UART_Init(&handle->huart);
-
-    if ((tx != USART_IO_POLL) || (rx != USART_IO_POLL))
-    {
-        HAL_NVIC_SetPriority(irqn, cfg->irq_preempt, cfg->irq_sub);
-        HAL_NVIC_EnableIRQ(irqn);
-    }
 
     if (tx == USART_IO_DMA)
     {
@@ -380,6 +375,22 @@ uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout
     return n;
 }
 
+/* ===== interrupts ===== */
+
+static void usart_irq(usart_handle_t *handle)
+{
+    HAL_UART_IRQHandler(&handle->huart);
+
+    if ((handle->rx == USART_IO_DMA) &&
+        (__HAL_UART_GET_FLAG(&handle->huart, UART_FLAG_IDLE) != RESET))
+    {
+        __HAL_UART_CLEAR_IDLEFLAG(&handle->huart);
+        usart_dma_idle(handle);
+        /* Drop any latched DMA transfer-error flag (no stream IRQ is used). */
+        __HAL_DMA_CLEAR_FLAG(&handle->hdma_rx, __HAL_DMA_GET_TE_FLAG_INDEX(&handle->hdma_rx));
+    }
+}
+
 void USART1_IRQHandler(void)
 {
     usart_irq(&g_uart[USART_ID_1]);
@@ -399,6 +410,8 @@ void DMA1_Stream6_IRQHandler(void)
 {
     HAL_DMA_IRQHandler(&g_uart[USART_ID_2].hdma_tx);
 }
+
+/* ===== stdio ===== */
 
 /**
  * @brief  newlib-nano stdout sink: send one byte over USART1 (blocking).

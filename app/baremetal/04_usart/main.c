@@ -88,7 +88,7 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    usart_set_rx_cb(USART_ID_1, line_feed);
+    usart_set_rx_cb(USART_ID_1, &line_feed);
 
     next_prompt = HAL_GetTick() + USART_PROMPT_PERIOD_MS;
     next_blink  = HAL_GetTick() + USART_BLINK_PERIOD_MS;

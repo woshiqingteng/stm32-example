@@ -40,7 +40,7 @@ void rs485_init(uint32_t baudrate)
     usart_init(&cfg);
 
     g_rs485_rx_cnt = 0U;
-    usart_set_rx_cb(USART_ID_2, rs485_rx_byte_hook);
+    usart_set_rx_cb(USART_ID_2, &rs485_rx_byte_hook);
 
     rs485_tx_set(0U); /* default to receive */
 }
