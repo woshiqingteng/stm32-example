@@ -170,3 +170,18 @@
 - Phase 1 写入本文件：完成。
 - Phase 2 P 修复（按类别分组提交）：待执行。
 - Phase 3 全量 73/73 + 按本表核验：待执行。
+
+---
+
+## 执行记录（Phase 2，按类别提交）
+- 2c/之后提交：
+  - `fix(core)`：sys OverDrive；key 扫描优先级；02_key/03_exti WK_UP 反向联动；exti 分键优先级；usart CR+LF；04_usart 横幅/闪烁。
+  - `fix(storage)`：37 EEPROM 地址 0x08010000；41 NAND 写 spare ECC + 单 bit 判据 0xFFF。
+  - `fix(usb/iap)`：53 扇区表/跳转校验；54 MSC_MEDIA_PACKET=32K；56 行缓冲；57/58 USBH 轮询 10ms。
+  - `fix(display/sensor/media)`：11 OLED 版式；30 触摸竖屏映射；34 温度 uint16/方位 360-angle；43 字库整扇区校验；45 DCMI 0x3017/0x3018；syscalls 补 `_kill/_getpid`。
+  - `fix(dsp)`：50_1 循环反复测试。
+- **全量回归：73/73 通过**（debug）。
+
+### 状态标记
+- 已完成 [x]：全局 OverDrive；02_key（WK_UP/优先级）；03_exti（WK_UP/NVIC）；04_usart（CRLF/横幅）；37；41（ECC）；53（扇区/跳转）；54（包大小）；56（缓冲）；57/58（轮询）；11（版式）；30（竖屏映射）；34（温度/方位）；43（扇区校验）；45（DCMI 寄存器）；50_1（循环）。
+- 仍待处理（较大改动，P）：11 驱动公开 API；13 SDRAM 参考算法/显示；14 绘图层 API；30 RST 清除区/按触点取色/抽帧；35 IMU 校准/ANO 帧/波特率；43 扫描范围与强制刷字库；44 JPEG 快慢模式/定点缩放；45 JPEG SOI/EOI 截取与按键重排；48 DMA2D 搬运；49 FPU 缩放表/镜像/标题/计时；50_2 计时与浮点幅值。

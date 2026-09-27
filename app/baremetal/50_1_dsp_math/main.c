@@ -60,20 +60,20 @@ int main(void)
 
     printf("50_1_dsp_math ready\r\n");
 
-    t0      = sys_get_tick();
-    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
-    elapsed = sys_get_tick() - t0;
-    printf("sin/cos noDSP : %lu ms (%s)\r\n",
-           (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
-
-    t0      = sys_get_tick();
-    res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
-    elapsed = sys_get_tick() - t0;
-    printf("sin/cos DSP   : %lu ms (%s)\r\n",
-           (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
-
     for (;;)
     {
+        t0      = sys_get_tick();
+        res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
+        elapsed = sys_get_tick() - t0;
+        printf("sin/cos noDSP : %lu ms (%s)\r\n",
+               (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
+
+        t0      = sys_get_tick();
+        res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
+        elapsed = sys_get_tick() - t0;
+        printf("sin/cos DSP   : %lu ms (%s)\r\n\r\n",
+               (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
+
         led_toggle(LED0);
         delay_ms(500U);
     }
