@@ -152,7 +152,7 @@ int main(void)
             t = 0U;
 
             angle = compass_get_angle();
-            print_fixed1("Angle: ", "", angle);
+            print_fixed1("Angle: ", "", 360.0f - angle);
 
             if (st480mc_read_temperature(&temperature) == 0U)
             {

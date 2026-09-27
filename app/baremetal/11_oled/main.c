@@ -9,10 +9,10 @@
 #include "bsp.h"
 #define OLED_TITLE_Y       0U
 #define OLED_SUBTITLE_Y    24U
-#define OLED_INFO_Y        48U
+#define OLED_INFO_Y        52U
 #define OLED_ASCII_X       36U
 #define OLED_CODE_LABEL_X  64U
-#define OLED_CODE_X        88U
+#define OLED_CODE_X        94U
 #define OLED_CODE_DIGITS   3U
 #define OLED_REFRESH_MS    500U
 #define OLED_CHAR_FIRST    ((uint8_t)' ')

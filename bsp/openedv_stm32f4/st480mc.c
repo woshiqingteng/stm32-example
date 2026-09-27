@@ -140,7 +140,7 @@ uint8_t st480mc_read_magdata(int16_t *pmagx, int16_t *pmagy, int16_t *pmagz)
 uint8_t st480mc_read_temperature(float *ptemp)
 {
     uint8_t buf[9];
-    int16_t raw;
+    uint16_t raw;
 
     (void)st480mc_read_nbytes(ST480MC_SINGLE_MODE, 1U, buf);   /* single-shot, with temp */
     delay_ms(15U);
@@ -151,7 +151,7 @@ uint8_t st480mc_read_temperature(float *ptemp)
         return buf[0];
     }
 
-    raw   = (int16_t)(((uint16_t)buf[1] << 8) | buf[2]);
+    raw   = (uint16_t)(((uint16_t)buf[1] << 8) | buf[2]);
     *ptemp = ((float)raw - 46244.0f) / 45.2f + 25.0f;          /* vendor formula */
 
     return 0U;

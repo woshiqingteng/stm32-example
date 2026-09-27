@@ -286,7 +286,7 @@ static void touch_map_raw(uint8_t idx, uint16_t raw_x, uint16_t raw_y)
     }
     else
     {
-        g_touch.x[idx] = raw_y;
+        g_touch.x[idx] = (uint16_t)(lcd_get_width() - raw_y);
         g_touch.y[idx] = raw_x;
     }
 }

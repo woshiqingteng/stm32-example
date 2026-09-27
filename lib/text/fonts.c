@@ -208,7 +208,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
             fonts_progress_show((uint16_t)(x + 20 * size / 2), y, size, FONTSECSIZE, i, color);
             nor_read(buf, (uint32_t)((FONTINFOADDR / 4096U) + i) * 4096U, 4096U);
 
-            for (j = 0; j < 1024U; j++)
+            for (j = 0; j < 4096U; j++)
             {
                 if (buf[j] != 0xFFU)
                 {
@@ -216,7 +216,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
                 }
             }
 
-            if (j != 1024U)
+            if (j != 4096U)
             {
                 nor_erase_sector((uint32_t)((FONTINFOADDR / 4096U) + i));
             }

@@ -132,6 +132,9 @@ void dcmi_switch_ov5640(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
 
+    ov5640_write_reg(0x3017, 0xFF);
+    ov5640_write_reg(0x3018, 0xFF);
+
     gpio_init.Mode      = GPIO_MODE_AF_PP;
     gpio_init.Pull      = GPIO_PULLUP;
     gpio_init.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -143,6 +146,9 @@ void dcmi_switch_ov5640(void)
 void dcmi_switch_sdcard(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
+
+    ov5640_write_reg(0x3017, 0x00);
+    ov5640_write_reg(0x3018, 0x00);
 
     gpio_init.Mode      = GPIO_MODE_AF_PP;
     gpio_init.Pull      = GPIO_PULLUP;
