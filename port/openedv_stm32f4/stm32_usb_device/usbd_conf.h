@@ -34,7 +34,7 @@ extern "C" {
 #define USBD_SUPPORT_USER_STRING_DESC   0U
 
 /* Class configuration. */
-#define MSC_MEDIA_PACKET                512U
+#define MSC_MEDIA_PACKET                (32U * 1024U)
 #define USBD_CDC_INTERVAL               2000U
 
 /* OTG instance selector used by USBD_Init(). */

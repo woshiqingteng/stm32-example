@@ -15,6 +15,7 @@
 #include "usbh_msc.h"
 #define USB_DRIVE       "2:"
 #define BLINK_PERIOD_MS 500U
+#define LOOP_DELAY_MS   10U
 
 static void usbh_list_root(void)
 {
@@ -94,6 +95,8 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 
 int main(void)
 {
+    uint32_t blink = 0U;
+
     bsp_init();
     /* USB OTG FS needs an exact 48 MHz kernel clock: 336 / 7 = 48 MHz while
      * keeping the core at 168 MHz. */
@@ -112,7 +115,13 @@ int main(void)
     for (;;)
     {
         (void)USBH_Process(&g_hUSBHost);
-        led_toggle(LED0);
-        delay_ms(BLINK_PERIOD_MS);
+
+        if (++blink >= (BLINK_PERIOD_MS / LOOP_DELAY_MS))
+        {
+            blink = 0U;
+            led_toggle(LED0);
+        }
+
+        delay_ms(LOOP_DELAY_MS);
     }
 }

@@ -56,7 +56,7 @@ int main(void)
         if (g_usb_usart_rx_state == CDC_RX_STATE_DONE)
         {
             uint16_t len = g_usb_usart_rx_len;
-            char     line[48];
+            char     line[USB_USART_REC_LEN + 1U];
 
             /* Echo the line to USART1, then back to the host. */
             (void)memcpy(line, g_usb_usart_rx_buffer, len);

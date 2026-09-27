@@ -8,13 +8,32 @@
 #include "usart.h"
 #include "sys.h"
 
-#define IAP_FLASH_SECTOR_SIZE  (128U * 1024U) /* 0x08010000..0x080FFFFF: 128K sectors */
 #define IAP_FRAME_HEAD0        0x5AU
 #define IAP_FRAME_HEAD1        0xA5U
 #define IAP_RX_TIMEOUT_MS      5000U
 #define IAP_MAX_IMAGE_SIZE     (960U * 1024U)
 
+/* STM32F429IG sector layout (1 MB): 0-3 = 16K, 4 = 64K, 5-11 = 128K. */
+#define IAP_SECTOR_16K         0x4000U
+#define IAP_SECTOR_64K         0x10000U
+#define IAP_SECTOR_128K        0x20000U
+
 static uint8_t g_iap_buf[2048];
+
+static uint32_t iap_sector_of(uint32_t addr)
+{
+    uint32_t off = addr - FLASH_BASE;
+
+    if (off < (4U * IAP_SECTOR_16K))
+    {
+        return off / IAP_SECTOR_16K;
+    }
+    if (off < (4U * IAP_SECTOR_16K) + IAP_SECTOR_64K)
+    {
+        return 4U;
+    }
+    return 5U + ((off - (4U * IAP_SECTOR_16K) - IAP_SECTOR_64K) / IAP_SECTOR_128K);
+}
 
 static int iap_rx_byte(uint8_t *byte)
 {
@@ -36,8 +55,8 @@ iap_status_t iap_erase_app(uint32_t addr, uint32_t len)
 
     erase.TypeErase = FLASH_TYPEERASE_SECTORS;
     erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-    erase.NbSectors = (end - addr + IAP_FLASH_SECTOR_SIZE - 1U) / IAP_FLASH_SECTOR_SIZE;
-    erase.Sector = (addr - FLASH_BASE) / IAP_FLASH_SECTOR_SIZE;
+    erase.Sector = iap_sector_of(addr);
+    erase.NbSectors = iap_sector_of(end - 1U) - erase.Sector + 1U;
 
     if (HAL_FLASHEx_Erase(&erase, &sector_error) != HAL_OK)
     {
@@ -89,10 +108,16 @@ static void iap_stop_systick(void)
 
 void iap_jump(uint32_t addr)
 {
-    uint32_t jump_addr;
+    uint32_t stack_top;
+    uint32_t reset_vec;
     void (*app_reset)(void);
 
-    if (((*(volatile uint32_t *)addr) & 0xFF000000U) != 0x08000000U)
+    stack_top = *(volatile uint32_t *)addr;
+    reset_vec = *(volatile uint32_t *)(addr + 4U);
+
+    /* Valid image: stack top inside SRAM, reset vector inside flash. */
+    if ((stack_top < 0x20000000U) || (stack_top > 0x20030000U) ||
+        ((reset_vec & 0xFF000000U) != 0x08000000U))
     {
         return;
     }
@@ -100,10 +125,9 @@ void iap_jump(uint32_t addr)
     sys_intx_disable();
     iap_stop_systick();
     sys_set_vector_table(addr);
-    __set_MSP(*(volatile uint32_t *)addr);
+    __set_MSP(stack_top);
 
-    jump_addr = *(volatile uint32_t *)(addr + 4U);
-    app_reset = (void (*)(void))jump_addr;
+    app_reset = (void (*)(void))reset_vec;
     sys_intx_enable();
     app_reset();
 }

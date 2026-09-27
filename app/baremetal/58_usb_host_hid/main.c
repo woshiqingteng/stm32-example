@@ -17,6 +17,7 @@
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_mouse.h"
 #define BLINK_PERIOD_MS     500U
+#define LOOP_DELAY_MS       10U
 #define MOUSE_MAX_X         799
 #define MOUSE_MAX_Y         479
 #define KBD_LINE_MAX        64U
@@ -123,6 +124,8 @@ static void usbh_hid_demo(void)
 
 int main(void)
 {
+    uint32_t blink = 0U;
+
     bsp_init();
     /* USB OTG FS needs an exact 48 MHz kernel clock: 336 / 7 = 48 MHz while
      * keeping the core at 168 MHz. */
@@ -156,7 +159,12 @@ int main(void)
             g_lost_tick = sys_get_tick();
         }
 
-        led_toggle(LED0);
-        delay_ms(BLINK_PERIOD_MS);
+        if (++blink >= (BLINK_PERIOD_MS / LOOP_DELAY_MS))
+        {
+            blink = 0U;
+            led_toggle(LED0);
+        }
+
+        delay_ms(LOOP_DELAY_MS);
     }
 }
