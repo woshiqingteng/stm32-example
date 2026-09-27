@@ -1,8 +1,9 @@
 /**
  * @file    main.c
  * @brief   49_fpu: Julia fractal rendered to the RGB panel. The per-frame time
- *          is measured with sys_get_tick() and reported on the screen and over
- *          USART1. KEY0/KEY2 step the zoom, WK_UP toggles auto-zoom.
+ *          is measured with a 10 kHz basic timer (0.1 ms) and reported on the
+ *          screen and over USART1. KEY0/KEY2 step the zoom, WK_UP toggles
+ *          auto-zoom.
  */
 
 #include <stdio.h>
@@ -12,6 +13,7 @@
 #define FPU_REAL_CONST  0.285f
 #define FPU_IMG_CONST   0.01f
 #define FPU_ROW_MAX     800U
+#define FPU_TIMER_PSC   (9000U - 1U) /* 90 MHz / 9000 = 10 kHz (0.1 ms) */
 
 #if defined(__FPU_USED) && (__FPU_USED == 1)
 #define FPU_MODE_TEXT "FPU On"
@@ -21,12 +23,21 @@
 
 static const uint16_t g_zoom_tbl[] =
 {
-    20U, 40U, 60U, 80U, 100U, 120U, 150U, 200U, 300U, 400U, 600U, 800U, 1200U, 1600U
+    120U, 110U, 100U, 150U, 200U, 275U, 350U, 450U,
+    600U, 800U, 1000U, 1200U, 1500U, 2000U, 1500U,
+    1200U, 1000U, 800U, 600U, 450U, 350U, 275U, 200U,
+    150U, 100U, 110U,
 };
 #define FPU_ZOOM_COUNT (sizeof(g_zoom_tbl) / sizeof(g_zoom_tbl[0]))
 
 static uint16_t g_color_map[FPU_ITERATION];
 static uint16_t g_row[FPU_ROW_MAX];
+static volatile uint8_t g_timeout;
+
+static void on_tim6(void)
+{
+    g_timeout++;
+}
 
 static void julia_clut_init(void)
 {
@@ -73,7 +84,7 @@ static void julia_row(uint16_t y, uint16_t size_x, uint16_t offset_x,
             i++;
         }
 
-        g_row[x] = g_color_map[i];
+        g_row[size_x - x - 1U] = g_color_map[i];
     }
 }
 
@@ -92,10 +103,9 @@ int main(void)
 {
     uint16_t width;
     uint16_t height;
-    uint8_t  zoom_idx = 5U;      /* 120 */
-    bool     auto_zoom = true;
-    uint32_t start;
-    uint32_t elapsed;
+    uint8_t  zoom_idx = 0U;      /* 120 */
+    bool     auto_zoom = false;
+    uint32_t ticks;
     char     buf[48];
 
     bsp_init();
@@ -104,6 +114,9 @@ int main(void)
     lcd_clear(BLACK);
     julia_clut_init();
 
+    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
+    btim_timx_int_register(on_tim6);
+
     width  = lcd_get_width();
     height = lcd_get_height();
 
@@ -111,6 +124,13 @@ int main(void)
     {
         width = FPU_ROW_MAX;
     }
+
+    lcd_show_string(30U, 50U, 200U, 16U, LCD_FONT_SIZE_16, "STM32", RED);
+    lcd_show_string(30U, 70U, 200U, 16U, LCD_FONT_SIZE_16, "FPU TEST", RED);
+    lcd_show_string(30U, 90U, 200U, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
+    lcd_show_string(30U, 110U, 200U, 16U, LCD_FONT_SIZE_16, "KEY0:+    KEY1:-", RED);
+    lcd_show_string(30U, 130U, 200U, 16U, LCD_FONT_SIZE_16, "KEY_UP:AUTO/MANUL", RED);
+    delay_ms(500U);
 
     printf("49_fpu ready (%s) %ux%u\r\n", FPU_MODE_TEXT, (unsigned)width, (unsigned)height);
 
@@ -132,21 +152,29 @@ int main(void)
         {
             auto_zoom = !auto_zoom;
         }
-        start = sys_get_tick();
-        julia_draw(width, height, g_zoom_tbl[zoom_idx]);
-        elapsed = sys_get_tick() - start;
-
-        sprintf(buf, "%s zoom:%u runtime:%lums%s", FPU_MODE_TEXT,
-                (unsigned)g_zoom_tbl[zoom_idx], (unsigned long)elapsed,
-                auto_zoom ? " AUTO" : "");
-        lcd_fill(0U, 0U, (uint16_t)(width - 1U), 15U, BLACK);
-        lcd_show_string(2U, 0U, width, 16U, LCD_FONT_SIZE_16, buf, GREEN);
-        printf("%s\r\n", buf);
 
         if (auto_zoom)
         {
             zoom_idx = (uint8_t)((zoom_idx + 1U) % FPU_ZOOM_COUNT);
+            led_on(LED1);
         }
+        else
+        {
+            led_off(LED1);
+        }
+
+        TIM6->CNT = 0U;
+        g_timeout = 0U;
+        julia_draw(width, height, g_zoom_tbl[zoom_idx]);
+        ticks = (uint32_t)TIM6->CNT + ((uint32_t)g_timeout * 65536U);
+
+        sprintf(buf, "%s zoom:%u runtime:%lu.%lums", FPU_MODE_TEXT,
+                (unsigned)g_zoom_tbl[zoom_idx],
+                (unsigned long)(ticks / 10U), (unsigned long)(ticks % 10U));
+        lcd_fill(0U, (uint16_t)(height - 17U), (uint16_t)(width - 1U), (uint16_t)(height - 5U), BLACK);
+        lcd_show_string(5U, (uint16_t)(height - 17U), (uint16_t)(width - 5U), 12U,
+                        LCD_FONT_SIZE_12, buf, RED);
+        printf("%s\r\n", buf);
 
         led_toggle(LED0);
         delay_ms(50U);
