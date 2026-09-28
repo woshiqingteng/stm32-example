@@ -34,7 +34,7 @@
 #include "ap3216c.h"
 #include "touch.h"
 #include "st480mc.h"
-#include "qmi8658a.h"
+#include "imu.h"
 #include "spi.h"
 #include "nor.h"
 #include "rs485.h"

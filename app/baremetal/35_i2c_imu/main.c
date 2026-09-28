@@ -1,60 +1,49 @@
 /**
  * @file    main.c
- * @brief   35_i2c_imu: QMI8658A six-axis test with attitude fusion. The raw
- *          accelerometer/gyroscope counts are converted to physical units and
- *          fed to the app-local Mahony filter (imu.c); the roll/pitch/yaw
- *          angles are
- *          printed on USART1 and streamed as ANO_TC frames (0xAA 0xAA ...).
+ * @brief   35_i2c_imu: SH3001 six-axis test with attitude fusion (Mahony).
+ *          Accelerometer/gyroscope counts are converted to physical units and
+ *          fused into Euler angles; temperature, angles (x100), acc (g) and
+ *          gyro (dps) are printed on USART1 (115200) every 500 ms.
  */
 
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "bsp.h"
-#include "imu.h"
+#include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U
+#define REPORT_PERIOD_MS    500U
 #define PI_F                3.14159265f
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
-#define GYRO_LSB_PER_DPS    64.0f      /* gyroscope configured for +/-512dps  */
+#define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
 
-static void print_temp(int16_t temp_x100)
+/* Print a signed value scaled by 100 as "<int>.<frac>" (e.g. -123 -> -1.23). */
+static void print_x100(int32_t v)
 {
-    int16_t mag = (temp_x100 < 0) ? (int16_t)(-temp_x100) : temp_x100;
-
-    printf("TEMP: %s%d.%02d C\r\n", (temp_x100 < 0) ? "-" : "",
-           (int)(mag / 100), (int)(mag % 100));
+    if (v < 0)
+    {
+        printf("-");
+        v = -v;
+    }
+    printf("%d.%02d", (int)(v / 100), (int)(v % 100));
 }
 
-static void uart1_write(const uint8_t *buf, uint16_t len)
+/* Scale a float to a signed x100 integer, rounded to nearest. */
+static int32_t scale100(float v)
 {
-    (void)usart_write(USART_ID_1, buf, len);
+    return (int32_t)((v < 0.0f) ? (v * 100.0f - 0.5f) : (v * 100.0f + 0.5f));
 }
 
-/* ANO_TC frame: AA AA <fun> <len> <data...> <sum8>. */
-static void ano_tc_send(uint8_t fun, const uint8_t *data, uint8_t len)
+static bool time_due(uint32_t *next, uint32_t period)
 {
-    uint8_t buf[32];
-    uint8_t i;
-    uint8_t sum = 0U;
-
-    buf[0] = 0xAAU;
-    buf[1] = 0xAAU;
-    buf[2] = fun;
-    buf[3] = len;
-
-    for (i = 0U; i < len; i++)
+    if ((int32_t)(HAL_GetTick() - *next) >= 0)
     {
-        buf[4U + i] = data[i];
+        *next += period;
+        return true;
     }
-
-    for (i = 0U; i < (uint8_t)(len + 4U); i++)
-    {
-        sum = (uint8_t)(sum + buf[i]);
-    }
-
-    buf[len + 4U] = sum;
-    uart1_write(buf, (uint16_t)(len + 5U));
+    return false;
 }
 
 int main(void)
@@ -64,33 +53,29 @@ int main(void)
     float    af[3];
     float    gf[3];
     float    rpy[3] = { 0.0f, 0.0f, 0.0f };
-    uint8_t  tbuf[18];
-    uint16_t i;
     int16_t  r100[3];
+    uint32_t next_report;
+    uint16_t i;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    {
-        usart_cfg_t cfg = { USART_CFG_DEFAULT(USART_ID_1) };
 
-        cfg.baudrate = 500000U; /* ANO ground station baud */
-        usart_init(&cfg);
-    }
-
-    if (qmi8658a_init() != 0U)
+    if (imu_init() != 0U)
     {
-        printf("QMI8658A check failed\r\n");
+        printf("SH3001 check failed\r\n");
     }
     else
     {
-        printf("QMI8658A ready\r\n");
+        printf("SH3001 ready\r\n");
     }
 
-    printf("35_i2c_imu ready (RPY fusion + ANO_TC)\r\n");
+    printf("35_i2c_imu ready (RPY fusion)\r\n");
+
+    next_report = HAL_GetTick() + REPORT_PERIOD_MS;
 
     for (;;)
     {
-        qmi8658a_read_xyz(acc, gyro);
+        imu_read_xyz(acc, gyro);
 
         for (i = 0U; i < 3U; i++)
         {
@@ -98,49 +83,39 @@ int main(void)
             gf[i] = ((float)gyro[i] * PI_F) / (GYRO_LSB_PER_DPS * 180.0f);
         }
 
-        imu_get_eulerian_angles(af, gf, rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
+        fusion_get_eulerian_angles(af, gf, rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
 
         for (i = 0U; i < 3U; i++)
         {
             r100[i] = (int16_t)(rpy[i] * 100.0f);
         }
 
-        printf("RPY(x100): %d %d %d\r\n", (int)r100[0], (int)r100[1], (int)r100[2]);
-
-        print_temp((int16_t)(qmi8658a_read_temperature() * 100.0f));
-
-        /* 0x01: roll=rpy[1], pitch=rpy[0], yaw=rpy[2], prs(4B), fly_mode, armed. */
-        tbuf[0] = (uint8_t)((uint16_t)r100[1] >> 8);
-        tbuf[1] = (uint8_t)((uint16_t)r100[1] & 0xFFU);
-        tbuf[2] = (uint8_t)((uint16_t)r100[0] >> 8);
-        tbuf[3] = (uint8_t)((uint16_t)r100[0] & 0xFFU);
-        tbuf[4] = (uint8_t)((uint16_t)r100[2] >> 8);
-        tbuf[5] = (uint8_t)((uint16_t)r100[2] & 0xFFU);
-        tbuf[6]  = 0U;
-        tbuf[7]  = 0U;
-        tbuf[8]  = 0U;
-        tbuf[9]  = 0U;
-        tbuf[10] = 0U;
-        tbuf[11] = 0U;
-        ano_tc_send(0x01U, tbuf, 12U);
-
-        /* 0x02: raw accelerometer + gyroscope counts + 6 reserved bytes. */
-        for (i = 0U; i < 3U; i++)
+        if (time_due(&next_report, REPORT_PERIOD_MS))
         {
-            tbuf[2U * i]       = (uint8_t)((uint16_t)acc[i] >> 8);
-            tbuf[2U * i + 1U]  = (uint8_t)((uint16_t)acc[i] & 0xFFU);
-            tbuf[6U + 2U * i]     = (uint8_t)((uint16_t)gyro[i] >> 8);
-            tbuf[6U + 2U * i + 1U] = (uint8_t)((uint16_t)gyro[i] & 0xFFU);
+            printf("Temp : ");
+            print_x100((int32_t)(imu_read_temperature() * 100.0f));
+            printf(" C\r\n");
+
+            printf("Pitch: %d  Roll: %d  Yaw: %d\r\n",
+                   (int)r100[0], (int)r100[1], (int)r100[2]);
+
+            printf("acc(g): ");
+            print_x100(scale100(af[0]));
+            printf(" ");
+            print_x100(scale100(af[1]));
+            printf(" ");
+            print_x100(scale100(af[2]));
+            printf("   gyro(dps): ");
+            print_x100(scale100((float)gyro[0] / GYRO_LSB_PER_DPS));
+            printf(" ");
+            print_x100(scale100((float)gyro[1] / GYRO_LSB_PER_DPS));
+            printf(" ");
+            print_x100(scale100((float)gyro[2] / GYRO_LSB_PER_DPS));
+            printf("\r\n");
+
+            led_toggle(LED0);
         }
 
-        for (i = 12U; i < 18U; i++)
-        {
-            tbuf[i] = 0U;
-        }
-
-        ano_tc_send(0x02U, tbuf, 18U);
-
-        led_toggle(LED0);
         delay_ms(SAMPLE_PERIOD_MS);
     }
 }

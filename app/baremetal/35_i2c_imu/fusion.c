@@ -1,5 +1,5 @@
 /**
- * @file    imu.c
+ * @file    fusion.c
  * @brief   Attitude fusion for a 6-axis IMU, ported from the ALIENTEK
  *          QMI8658A experiment (imu.c). A Mahony-style complementary filter
  *          integrates the gyroscope and corrects with the accelerometer.
@@ -7,12 +7,12 @@
 
 #include <math.h>
 
-#include "imu.h"
+#include "fusion.h"
 
-#define IMU_KP_INIT     20.0f   /* high gain while settling */
-#define IMU_KP_NORMAL   1.0f
-#define IMU_KI          0.01f
-#define IMU_SETTLE_SAMPLE    200U    /* samples with the high gain */
+#define FUSION_KP_INIT      20.0f   /* high gain while settling */
+#define FUSION_KP_NORMAL    1.0f
+#define FUSION_KI           0.01f
+#define FUSION_SETTLE_SAMPLE 200U   /* samples with the high gain */
 
 static float q0 = 1.0f;
 static float q1 = 0.0f;
@@ -24,7 +24,7 @@ static float exInt = 0.0f;
 static float eyInt = 0.0f;
 static float ezInt = 0.0f;
 
-static float imu_inv_sqrt(float x)
+static float fusion_inv_sqrt(float x)
 {
     float halfx = 0.5f * x;
     float y = x;
@@ -37,7 +37,7 @@ static float imu_inv_sqrt(float x)
     return y;
 }
 
-static void imu_computerotationmatrix(void)
+static void fusion_computerotationmatrix(void)
 {
     float q1q1 = q1 * q1;
     float q2q2 = q2 * q2;
@@ -63,9 +63,9 @@ static void imu_computerotationmatrix(void)
     rMat[2][2] = 1.0f - 2.0f * q1q1 - 2.0f * q2q2;
 }
 
-void imu_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
+void fusion_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
 {
-    static unsigned short settle = IMU_SETTLE_SAMPLE;
+    static unsigned short settle = FUSION_SETTLE_SAMPLE;
 
     float normalise;
     float ex, ey, ez;
@@ -73,11 +73,11 @@ void imu_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
     float q0Last, q1Last, q2Last, q3Last;
     float kp;
 
-    kp = (settle > 0U) ? (settle--, IMU_KP_INIT) : IMU_KP_NORMAL;
+    kp = (settle > 0U) ? (settle--, FUSION_KP_INIT) : FUSION_KP_NORMAL;
 
     if ((acc[0] != 0.0f) || (acc[1] != 0.0f) || (acc[2] != 0.0f))
     {
-        normalise = imu_inv_sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
+        normalise = fusion_inv_sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
         acc[0] *= normalise;
         acc[1] *= normalise;
         acc[2] *= normalise;
@@ -86,9 +86,9 @@ void imu_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
         ey = (acc[2] * rMat[2][0] - acc[0] * rMat[2][2]);
         ez = (acc[0] * rMat[2][1] - acc[1] * rMat[2][0]);
 
-        exInt += IMU_KI * ex * dt;
-        eyInt += IMU_KI * ey * dt;
-        ezInt += IMU_KI * ez * dt;
+        exInt += FUSION_KI * ex * dt;
+        eyInt += FUSION_KI * ey * dt;
+        ezInt += FUSION_KI * ez * dt;
 
         gyro[0] += kp * ex + exInt;
         gyro[1] += kp * ey + eyInt;
@@ -104,13 +104,13 @@ void imu_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
     q2 += (q0Last * gyro[1] - q1Last * gyro[2] + q3Last * gyro[0]) * halfT;
     q3 += (q0Last * gyro[2] + q1Last * gyro[1] - q2Last * gyro[0]) * halfT;
 
-    normalise = imu_inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+    normalise = fusion_inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
     q0 *= normalise;
     q1 *= normalise;
     q2 *= normalise;
     q3 *= normalise;
 
-    imu_computerotationmatrix();
+    fusion_computerotationmatrix();
 
     rpy[0] = asinf(rMat[2][0]) * RAD2DEG;
     rpy[1] = atan2f(rMat[2][1], rMat[2][2]) * RAD2DEG;

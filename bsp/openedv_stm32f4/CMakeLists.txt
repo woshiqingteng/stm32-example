@@ -137,9 +137,9 @@ target_link_libraries(bsp_rng PUBLIC drv_rng)
 bsp_library(bsp_ap3216c
     ap3216c.c)
 target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
-bsp_library(bsp_qmi8658a
-    qmi8658a.c)
-target_link_libraries(bsp_qmi8658a PUBLIC bsp_i2c)
+bsp_library(bsp_imu
+    imu.c)
+target_link_libraries(bsp_imu PUBLIC bsp_i2c)
 bsp_library(bsp_st480mc
     st480mc.c)
 target_link_libraries(bsp_st480mc PUBLIC bsp_i2c)
@@ -171,7 +171,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
-    bsp_ap3216c bsp_qmi8658a bsp_st480mc bsp_ds18b20 bsp_dht11
+    bsp_ap3216c bsp_imu bsp_st480mc bsp_ds18b20 bsp_dht11
     bsp_exti bsp_pwr bsp_iap)
 
 function(bsp_resolve out)
