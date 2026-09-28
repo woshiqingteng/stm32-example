@@ -27,8 +27,8 @@ static const uint32_t memsize[SRAMBANK] =
  * the CCM/SDRAM pool and table addresses can be initialised statically. */
 struct _m_mallco_dev mallco_dev =
 {
-    my_mem_init,
-    my_mem_perused,
+    &my_mem_init,
+    &my_mem_perused,
     {mem1base, (uint8_t *)MEM2_BASE_ADDR, (uint8_t *)MEM3_BASE_ADDR},
     {mem1mapbase, (uint32_t *)MEM2_MAP_ADDR,
      (uint32_t *)(MEM3_BASE_ADDR + MEM3_MAX_SIZE)},

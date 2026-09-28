@@ -322,8 +322,8 @@ void dcmi_jpeg_begin(void)
 
     dcmi_dma_init((uint32_t)s_jpeg_line[0], (uint32_t)s_jpeg_line[1], DCMI_JPEG_LINE_WORD_COUNT,
                   DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
-    dcmi_rx_callback    = dcmi_jpeg_rx_cb;
-    dcmi_frame_callback = dcmi_jpeg_frame_cb;
+    dcmi_rx_callback    = &dcmi_jpeg_rx_cb;
+    dcmi_frame_callback = &dcmi_jpeg_frame_cb;
 
     dcmi_start();
 }

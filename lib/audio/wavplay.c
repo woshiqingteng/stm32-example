@@ -284,7 +284,7 @@ audio_nav_t wav_play_song(char *fname)
     if (res == AUDIO_STOP)
     {
         (void)sai1_samplerate_set(wavctrl.samplerate);
-        sai_tx_callback = audio_sai_tx_callback;
+        sai_tx_callback = &audio_sai_tx_callback;
         audio_stop();
 
         fres = f_open(s_dev.file, (TCHAR *)fname, FA_READ);

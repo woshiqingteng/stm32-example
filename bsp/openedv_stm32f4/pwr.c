@@ -36,7 +36,7 @@ static void pwr_wkup_handler(key_id_t id)
 void pwr_wkup_key_init(void)
 {
     exti_init();
-    exti_register(KEY_WKUP, pwr_wkup_handler);
+    exti_register(KEY_WKUP, &pwr_wkup_handler);
 }
 
 void pwr_pvd_init(uint32_t level)

@@ -124,8 +124,8 @@ static void adc_dma_channels_scan(ADC_HandleTypeDef *hadc)
 static const adc_dma_ops_t g_adc_dma_ops[3] =
 {
     { 0,                  DISABLE, 0U,                    0U,                0 },
-    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_COUNT,   ADC_SINGLE_GPIO_PIN, adc_dma_channels_single },
-    { &g_adc_scan_handle, ENABLE,  (uint32_t)ADC_SCAN_CH_NUM, ADC_SCAN_GPIO_PINS, adc_dma_channels_scan },
+    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_COUNT,   ADC_SINGLE_GPIO_PIN, &adc_dma_channels_single },
+    { &g_adc_scan_handle, ENABLE,  (uint32_t)ADC_SCAN_CH_NUM, ADC_SCAN_GPIO_PINS, &adc_dma_channels_scan },
 };
 
 void adc_init(void)

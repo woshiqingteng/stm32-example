@@ -308,7 +308,7 @@ uint8_t video_play_mjpeg(char *pname)
                     sai1_saia_init(SAI_MODEMASTER_TX, SAI_CLOCKSTROBING_RISINGEDGE, SAI_DATASIZE_16);
                     (void)sai1_samplerate_set(g_avix.SampleRate);
                     sai1_tx_dma_init(p_avi_sai_buf[0], p_avi_sai_buf[1], g_avix.AudioBufSize / 2U, 1);
-                    sai_tx_callback = audio_sai_dma_callback;
+                    sai_tx_callback = &audio_sai_dma_callback;
                     g_avi_sai_playbuf = 0;
                     saisavebuf = 0;
                     sai1_play_start();

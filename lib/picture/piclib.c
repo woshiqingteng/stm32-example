@@ -53,11 +53,11 @@ static void piclib_fill_color(uint16_t x, uint16_t y, uint16_t width, uint16_t h
 
 void piclib_init(void)
 {
-    pic_phy.read_point  = ltdc_read_point;
-    pic_phy.draw_point  = lcd_draw_point;
-    pic_phy.fill        = lcd_fill;
-    pic_phy.draw_hline  = piclib_draw_hline;
-    pic_phy.fillcolor   = piclib_fill_color;
+    pic_phy.read_point  = &ltdc_read_point;
+    pic_phy.draw_point  = &lcd_draw_point;
+    pic_phy.fill        = &lcd_fill;
+    pic_phy.draw_hline  = &piclib_draw_hline;
+    pic_phy.fillcolor   = &piclib_fill_color;
 
     picinfo.lcdwidth  = lcd_get_width();
     picinfo.lcdheight = lcd_get_height();

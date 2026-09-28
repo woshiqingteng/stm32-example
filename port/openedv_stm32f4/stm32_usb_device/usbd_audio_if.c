@@ -160,8 +160,8 @@ uint8_t BSP_AUDIO_OUT_Init(uint16_t output_device, uint8_t volume, uint32_t audi
     sai1_rx_dma_init(g_audio_mic_buf[0], g_audio_mic_buf[1],
                      AUDIO_MIC_BUF_SIZE / 2U, 1U);
 
-    sai_tx_callback = audio_sai_tx_callback;
-    sai_rx_callback = audio_sai_rx_callback;
+    sai_tx_callback = &audio_sai_tx_callback;
+    sai_rx_callback = &audio_sai_rx_callback;
 
     sai1_rec_start();
 

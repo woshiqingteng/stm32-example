@@ -138,10 +138,10 @@ struct _m_usmart_nametab usmart_nametab[] =
 struct _m_usmart_dev usmart_dev =
 {
     .funs        = usmart_nametab,
-    .init        = usmart_init,
-    .cmd_rec     = usmart_cmd_rec,
-    .exe         = usmart_exe,
-    .scan        = usmart_scan,
+    .init        = &usmart_init,
+    .cmd_rec     = &usmart_cmd_rec,
+    .exe         = &usmart_exe,
+    .scan        = &usmart_scan,
     .fnum        = (uint8_t)(sizeof(usmart_nametab) / sizeof(usmart_nametab[0])),
     .pnum        = 0U,
     .id          = 0U,
