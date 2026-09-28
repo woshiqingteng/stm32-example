@@ -52,6 +52,7 @@ int main(void)
     uint16_t ticks = 0U;
     bool     imu_ok;
     bool     mag_ok;
+    bool     fifo_on = false;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
@@ -87,6 +88,7 @@ int main(void)
     if (imu_ok)
     {
         imu_motion_int_enable();
+        imu_fifo_init();
     }
 
     printf("35_i2c_imu ready (SH3001+ST480MC, KEY0: recalibrate)\r\n");
@@ -141,14 +143,23 @@ int main(void)
             r100[i] = (int16_t)(rpy[i] * 100.0f);
         }
 
-        if (key_scan(false) == KEY0)
         {
-            if (imu_ok)
+            key_id_t key = key_scan(false);
+
+            if (key == KEY0)
             {
-                printf("Recalibrating: keep the board still...\r\n");
-                delay_ms(100);
-                imu_calibrate();
-                printf("Calibration done\r\n");
+                if (imu_ok)
+                {
+                    printf("Recalibrating: keep the board still...\r\n");
+                    delay_ms(100);
+                    imu_calibrate();
+                    printf("Calibration done\r\n");
+                }
+            }
+            else if (key == KEY2)
+            {
+                fifo_on = !fifo_on;
+                printf("FIFO %s\r\n", fifo_on ? "on" : "off");
             }
         }
 
@@ -211,6 +222,46 @@ int main(void)
                 printf("Heading: ");
                 print_x100(scale100(heading));
                 printf("\r\n");
+            }
+
+            if (fifo_on)
+            {
+                uint8_t  n;
+                uint8_t  buf[20U * IMU_FIFO_SAMPLE_LEN];
+                uint16_t lvl;
+
+                imu_fifo_init();          /* reset + stream: read frame-aligned data */
+                delay_ms(50);
+
+                lvl = imu_fifo_level();
+                printf("FIFO level: %u\r\n", (unsigned)lvl);
+
+                n = (lvl > 20U) ? 20U : (uint8_t)lvl;
+
+                if ((n > 0U) && (imu_fifo_read(buf, (uint16_t)n * IMU_FIFO_SAMPLE_LEN) == 0U))
+                {
+                    uint8_t *p = buf;     /* first (frame-aligned) sample */
+                    int16_t fax = (int16_t)(((uint16_t)p[1] << 8) | p[0]);
+                    int16_t fay = (int16_t)(((uint16_t)p[3] << 8) | p[2]);
+                    int16_t faz = (int16_t)(((uint16_t)p[5] << 8) | p[4]);
+                    int16_t fgx = (int16_t)(((uint16_t)p[7] << 8) | p[6]);
+                    int16_t fgy = (int16_t)(((uint16_t)p[9] << 8) | p[8]);
+                    int16_t fgz = (int16_t)(((uint16_t)p[11] << 8) | p[10]);
+
+                    printf("FIFO acc(g): ");
+                    print_x100(scale100((float)fax / ACC_LSB_PER_G));
+                    printf(" ");
+                    print_x100(scale100((float)fay / ACC_LSB_PER_G));
+                    printf(" ");
+                    print_x100(scale100((float)faz / ACC_LSB_PER_G));
+                    printf("   gyro(dps): ");
+                    print_x100(scale100((float)fgx / GYRO_LSB_PER_DPS));
+                    printf(" ");
+                    print_x100(scale100((float)fgy / GYRO_LSB_PER_DPS));
+                    printf(" ");
+                    print_x100(scale100((float)fgz / GYRO_LSB_PER_DPS));
+                    printf("\r\n");
+                }
             }
 
             led_toggle(LED0);

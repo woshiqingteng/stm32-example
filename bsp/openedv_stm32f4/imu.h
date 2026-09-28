@@ -45,6 +45,15 @@
 #define IMU_REG_FREEFALL_THR     0x5EU
 #define IMU_REG_FREEFALL_TIME    0x5FU
 
+/* FIFO registers. */
+#define IMU_REG_FIFO_STATUS0     0x16U
+#define IMU_REG_FIFO_STATUS1     0x17U
+#define IMU_REG_FIFO_DATA        0x18U
+#define IMU_REG_FIFO_CFG_MODE    0x35U
+#define IMU_REG_FIFO_CFG_WM_L    0x36U
+#define IMU_REG_FIFO_CFG_WM_H    0x37U
+#define IMU_REG_FIFO_CFG_DATA    0x38U
+
 /* Register field values. */
 #define IMU_TEMP_ENABLE          0x80U   /*!< TEMP_CONFIG0[7]: digital sensor enable */
 #define IMU_TEMP_ANALOG_MASK     0x04U   /*!< TEMP_CONFIG2[2]: 0 = analog sensor enable */
@@ -62,6 +71,11 @@
 #define IMU_STATUS_TAP           0x10U   /*!< [4] tap (single or double) */
 #define IMU_STATUS_ACTIVITY      0x02U   /*!< [1] */
 #define IMU_STATUS_FREEFALL      0x80U   /*!< [7] */
+
+/* FIFO configuration. */
+#define IMU_FIFO_DATA_ACC_GYRO   0x3FU   /*!< acc X/Y/Z + gyro X/Y/Z into FIFO */
+#define IMU_FIFO_SAMPLE_LEN      12U     /*!< 6 axes * 2 bytes */
+#define IMU_FIFO_WATERMARK       16U
 
 #define IMU_DATA_LEN_BYTE        12U     /*!< ACC (6) + GYRO (6) burst size */
 #define IMU_TEMP_LEN_BYTE        2U
@@ -98,6 +112,15 @@ void imu_motion_int_enable(void);
 
 /** @brief  Read and clear the motion interrupt status (INTERRUPT_STATUS0). */
 uint8_t imu_motion_int_status(void);
+
+/** @brief  Configure the FIFO (stream mode, acc + gyro) and enable it. */
+void imu_fifo_init(void);
+
+/** @brief  Number of samples currently in the FIFO. */
+uint16_t imu_fifo_level(void);
+
+/** @brief  Read @p len raw bytes from the FIFO data port. */
+uint8_t imu_fifo_read(uint8_t *buf, uint16_t len);
 
 /** @brief  Read the die temperature in degrees Celsius. */
 float imu_read_temperature(void);

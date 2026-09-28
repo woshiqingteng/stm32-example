@@ -330,3 +330,25 @@ uint8_t imu_motion_int_status(void)
 {
     return imu_read_byte(IMU_REG_INT_STATUS0);
 }
+
+void imu_fifo_init(void)
+{
+    (void)imu_write_byte(IMU_REG_FIFO_CFG_MODE, 0x80U);                 /* reset FIFO */
+    (void)imu_write_byte(IMU_REG_FIFO_CFG_WM_L, (uint8_t)(IMU_FIFO_WATERMARK & 0xFFU));
+    (void)imu_write_byte(IMU_REG_FIFO_CFG_WM_H, (uint8_t)((IMU_FIFO_WATERMARK >> 8) & 0x07U));
+    (void)imu_write_byte(IMU_REG_FIFO_CFG_DATA, IMU_FIFO_DATA_ACC_GYRO);
+    (void)imu_write_byte(IMU_REG_FIFO_CFG_MODE, 0x02U);                 /* stream mode */
+}
+
+uint16_t imu_fifo_level(void)
+{
+    uint8_t lo = imu_read_byte(IMU_REG_FIFO_STATUS0);
+    uint8_t hi = imu_read_byte(IMU_REG_FIFO_STATUS1);
+
+    return (uint16_t)(((uint16_t)(hi & 0x07U) << 8) | lo);
+}
+
+uint8_t imu_fifo_read(uint8_t *buf, uint16_t len)
+{
+    return imu_read_nbytes(IMU_REG_FIFO_DATA, buf, (uint8_t)len);
+}
