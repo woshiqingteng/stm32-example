@@ -10,6 +10,7 @@
 
 #define ATIM_NPWM_ARR     10000U
 #define ATIM_NPWM_PSC     9000U
+/* 180 MHz / (9000 * 10000) = 2 Hz; one cycle 500 ms; 5 pulses */
 #define ATIM_NPWM_PULSE_COUNT  5U
 #define ATIM_NPWM_LOOP_MS 500U
 

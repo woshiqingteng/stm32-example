@@ -10,6 +10,7 @@
 
 #define TRI_TIMER_ARR 899U
 #define TRI_TIMER_PSC 0U
+/* f_sample = 90 MHz/((0+1)*900) = 100 kHz; /100 samples -> ~1 kHz */
 
 int main(void)
 {

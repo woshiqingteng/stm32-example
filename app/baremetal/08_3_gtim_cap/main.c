@@ -9,6 +9,7 @@
 
 #define GTIM_CAP_ARR     0xFFFFU
 #define GTIM_CAP_PSC     90U
+/* tick = 90 MHz/90 = 1 MHz -> 1 us; the printed value is us */
 #define GTIM_CAP_LOOP_MS 200U
 
 int main(void)

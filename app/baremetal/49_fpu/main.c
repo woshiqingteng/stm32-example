@@ -116,6 +116,7 @@ int main(void)
     lcd_clear(BLACK);
     julia_clut_init();
 
+    /* ARR=65535 -> 65536*0.1 ms = 6.55 s overflow; ticks/10 = ms */
     btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
     btim_timx_int_register(&on_tim6);
 

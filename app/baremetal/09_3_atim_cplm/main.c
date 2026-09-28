@@ -11,6 +11,7 @@
 #define ATIM_CPLM_PSC     180U
 #define ATIM_CPLM_CCR     300U
 #define ATIM_CPLM_DTG_RAW     100U
+/* 180 MHz/(180*1000) = 1 kHz; duty 300/1000 = 30%; DTG=100, t_DTS = 4/180 MHz */
 #define ATIM_CPLM_LOOP_MS 500U
 
 int main(void)

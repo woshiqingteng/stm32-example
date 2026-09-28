@@ -8,6 +8,7 @@
 #include "bsp.h"
 
 #define GTIM_CNT_PSC       0U
+/* PSC=0: external edges counted 1:1; 16-bit overflow */
 #define GTIM_CNT_BLINK_COUNT 20U
 #define GTIM_CNT_LOOP_MS   10U
 

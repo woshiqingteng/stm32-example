@@ -11,6 +11,7 @@
 
 #define PWMDAC_ARR       255U
 #define PWMDAC_PSC       1U
+/* TIM9/APB2: 180 MHz/((1+1)*256) = 351.5625 kHz */
 #define PWMDAC_STEP_MV   100U
 
 static void pwmdac_show(void)

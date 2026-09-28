@@ -9,6 +9,7 @@
 
 #define BTIM_ARR 5000U
 #define BTIM_PSC 9000U
+/* 90 MHz / (9000 * 5000) = 2 Hz -> 500 ms */
 #define BTIM_LOOP_MS   200U
 
 static void on_tim6(void)

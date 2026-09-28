@@ -9,6 +9,7 @@
 
 #define ATIM_OC_ARR     1000U
 #define ATIM_OC_PSC     180U
+/* 180 MHz / (180 * 1000) = 1 kHz; CCR -> duty 25/50/75/100% */
 #define ATIM_OC_CCR_CH1 250U
 #define ATIM_OC_CCR_CH2 500U
 #define ATIM_OC_CCR_CH3 750U

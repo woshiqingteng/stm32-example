@@ -9,6 +9,7 @@
 
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U
+/* 90 MHz / (90 * 500) = 2 kHz; duty 0..300/500 = 0..60% */
 #define GTIM_PWM_DUTY_MAX_TICK   300
 #define GTIM_PWM_DUTY_STEP_TICK  1
 #define GTIM_PWM_LOOP_MS   10U

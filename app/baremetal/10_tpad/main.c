@@ -16,6 +16,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
+    /* PSC=2: charge time = count * (PSC+1) / 90 MHz */
     if (tpad_init(2) != TPAD_OK)
     {
         printf("tpad init failed\r\n");

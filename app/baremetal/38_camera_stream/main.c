@@ -352,6 +352,7 @@ int main(void)
     sdram_init();
     lcd_init();
 
+    /* 90 MHz / (9000 * 10000) = 1 Hz -> per-second FPS */
     btim_timx_int_init(10000U - 1U, 9000U - 1U);
     btim_timx_int_register(&fps_cb);
 

@@ -11,6 +11,7 @@
 
 #define SIN_TIMER_ARR   9U
 
+/* 90 MHz/((PSC+1)*(ARR+1))/100: PSC=29 -> 3 kHz, PSC=2 -> 30 kHz. */
 static const uint16_t g_sin_psc[] = { 29U, 2U };
 static const char *const g_sin_label[] = { "~3kHz", "~30kHz" };
 

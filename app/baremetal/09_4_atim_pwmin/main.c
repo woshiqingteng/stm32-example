@@ -12,6 +12,7 @@
 #define ATIM_PWMIN_TEST_PSC      90U
 #define ATIM_PWMIN_TEST_CCR      2U
 #define ATIM_PWMIN_TIMER_CLK_MHZ 180U
+/* test PWM (TIM3/APB1): 90 MHz/(90*10) = 100 kHz; measured by TIM8 @ 180 MHz */
 #define ATIM_PWMIN_US_PER_SECOND 1000000U
 #define ATIM_PWMIN_BLINK_COUNT     20U
 #define ATIM_PWMIN_LOOP_MS       10U
