@@ -46,6 +46,7 @@ void SysTick_Handler(void)
 
 void delay_init(uint16_t sysclk)
 {
+    /* 1 us = sysclk (MHz) core cycles; bsp_init() calls delay_init(180). */
     g_fac_us = sysclk;
 
 #if USE_FREERTOS

@@ -40,6 +40,8 @@ uint8_t can_init(uint32_t tsjw, uint32_t tbs2, uint32_t tbs1, uint16_t brp, uint
     /* ---- MSP end ---- */
 
     g_can_handle.Instance                  = CAN1;
+    /* CAN1 (APB1): tq = BRP/45 MHz; bit time = (1+BS1+BS2)*tq
+     * (app: brp=6, BS1=8, BS2=6 -> 15*6/45 MHz = 2 us -> 500 kbps). */
     g_can_handle.Init.Prescaler            = brp;
     g_can_handle.Init.Mode                 = mode;
     g_can_handle.Init.SyncJumpWidth        = tsjw;

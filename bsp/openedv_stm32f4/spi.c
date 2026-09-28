@@ -76,6 +76,8 @@ void spi_init(spi_bus_t bus)
     hspi->Init.Direction         = SPI_DIRECTION_2LINES;
     hspi->Init.DataSize          = SPI_DATASIZE_8BIT;
     hspi->Init.NSS               = SPI_NSS_SOFT;
+    /* f_SCK = f_PCLK/prescaler: SPI5 (APB2 90 MHz)/256 = 351.56 kHz,
+     * SPI2 (APB1 45 MHz)/256 = 175.78 kHz. */
     hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
     hspi->Init.FirstBit          = SPI_FIRSTBIT_MSB;
     hspi->Init.TIMode            = SPI_TIMODE_DISABLE;
