@@ -401,15 +401,14 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 | 计数 | `_COUNT` / `_PULSE` / `_SAMPLE` / `_TICK` | `ADC_AVG_COUNT` |
 | 像素/几何 | `_PX` / `_PIXEL` / `_LINE` | `LTDC_PANEL_WIDTH_PX` |
 | 电压/温度 | `_VOLT` / `_MV` / `_DEGC` | `ADC_TEMP_OFFSET_DEGC` |
-| 比例/分频 | `_DIV` / `_RATIO` / `_PERCENT` | `PWMDAC_ARR_TICK` |
+| 比例 | `_RATIO` / `_PERCENT` | `DMA_TX_PROGRESS_SCALE_PERCENT` |
 | 波特率 | `_BAUD` | `RS485_BAUD` |
 
 - 复数一律改单数：`_BYTES→_BYTE`、`_WORDS→_WORD`、`_TICKS→_TICK`、`_SAMPLES→_SAMPLE`、`_TIMES→_COUNT`、`_PULSES→_PULSE_COUNT`。
 - 仅**单位相关**宏在行尾加 `/*!< 物理含义 + 单位 */` 说明；无单位类（instance/port/pin/IRQ/flag/color/address/magic）不加单位后缀。
 
 ### 寄存器值命名（不暴露原始值，仅命名）
-- `ARR / CCR / RLR / COUNTER / WINDOW / MODULUS` → 加 `_TICK`
-- `PSC / PREDIV / DIVR` → 加 `_DIV`
+- 计时器节拍值：基线名已是寄存器名（`ARR / CCR / RLR / COUNTER / WINDOW / MODULUS`）→ 不加后缀；描述性计时值 → 加 `_TICK`（如 `IR_PERIOD_TICK`）
 - 其它原始字段（`DTG`、`PLLN/M/P/Q`、`SDRAM_TIMING_*`、阈值/过滤等）→ 加 `_RAW`
 - 纯枚举选择器（`PVD_LEVEL`、`RTC_WAKEUP_*`）→ 不改名，仅加注释
 - **仅改名+注释，不改数值、不做换算**。
