@@ -110,7 +110,7 @@
 | 35_i2c_imu | 35 | main | 移除 ANO 帧/500000 波特率，改为 USART 文本(115200、每 500ms) | I | 保留 | (有意) |
 | 35_i2c_imu | 35 | imu | 量程 ±8g / ±500dps（与现有换算一致） | I | 保留 | (有意) |
 | 35_i2c_imu | - | main | 倾角补偿航向角（ST480MC，无磁校准） | 扩展 | 已实现 | [x] |
-| 35_i2c_imu | - | imu/exti | 运动中断 Tap/Free-Fall/Activity（PCF8574 INT→PB12 EXTI） | 扩展 | 已实现 | [x] |
+| 35_i2c_imu | - | imu | 运动中断 Tap/Free-Fall/Activity（SH3001 中断状态轮询；板上 6D_INT 边沿不可用） | 扩展 | 已实现 | [x] |
 | 35_i2c_imu | - | imu | FIFO（stream，acc+gyro；KEY2 切换直读/FIFO） | 扩展 | 已实现 | [x] |
 | 35_i2c_imu | - | imu | 陀螺动态零偏跟踪（静止时慢速更新） | 扩展 | 已实现 | [x] |
 
