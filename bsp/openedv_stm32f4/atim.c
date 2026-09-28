@@ -40,13 +40,6 @@ static atim_isr_hook_t g_atim_cc_hook;
 static void atim_npwm_isr(void);
 static void atim_pwmin_process(void);
 
-/* F4 HAL has no public setter for the repetition counter (RCR), so it is
- * written directly. */
-static void atim_set_repetition(uint16_t n)
-{
-    TIM8->RCR = n;
-}
-
 /* ===================== TIM8 NPWM (PC6 / CH1) ===================== */
 
 static TIM_HandleTypeDef g_atim_npwm_handle;
@@ -123,7 +116,8 @@ static void atim_npwm_isr(void)
 
     if (npwm != 0U)
     {
-        atim_set_repetition((uint16_t)(npwm - 1U));
+        /* F4 HAL has no RCR setter: RCR = npwm-1 -> npwm pulses in this batch. */
+        g_atim_npwm_handle.Instance->RCR = (uint16_t)(npwm - 1U);
         HAL_TIM_GenerateEvent(&g_atim_npwm_handle, TIM_EVENTSOURCE_UPDATE);
         __HAL_TIM_ENABLE(&g_atim_npwm_handle);
     }
