@@ -305,7 +305,7 @@ void imu_motion_int_enable(void)
 
     /* Tap: X/Y/Z, thresholds chosen empirically. */
     (void)imu_write_byte(IMU_REG_TAP_AXIS, 0x0EU);
-    (void)imu_write_byte(IMU_REG_TAP_THR, 0x30U);
+    (void)imu_write_byte(IMU_REG_TAP_THR, 0x40U);
     (void)imu_write_byte(IMU_REG_TAP_DUR, 0x20U);
     (void)imu_write_byte(IMU_REG_TAP_LAT, 0x40U);
     (void)imu_write_byte(IMU_REG_TAP_WIN, 0x80U);
@@ -314,9 +314,10 @@ void imu_motion_int_enable(void)
     (void)imu_write_byte(IMU_REG_FREEFALL_THR, 0x96U);
     (void)imu_write_byte(IMU_REG_FREEFALL_TIME, 0x50U);
 
-    /* Activity: X/Y/Z, ~100mg at 0.97mg/LSB, 3 samples. */
-    (void)imu_write_byte(IMU_REG_ACT_AXIS, 0x70U);
-    (void)imu_write_byte(IMU_REG_ACT_THR, 0x64U);
+    /* Activity: X/Y/Z in AC mode (delta of consecutive samples, 0.97mg/LSB at
+     * +/-8g), ~31mg threshold over 3 samples. */
+    (void)imu_write_byte(IMU_REG_ACT_AXIS, 0xF0U);
+    (void)imu_write_byte(IMU_REG_ACT_THR, 0x20U);
     (void)imu_write_byte(IMU_REG_ACT_TIME, 0x03U);
 
     reg = imu_read_byte(IMU_REG_INT_EN0);

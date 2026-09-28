@@ -53,6 +53,7 @@ int main(void)
     bool     imu_ok;
     bool     mag_ok;
     bool     fifo_on = false;
+    uint8_t  p5_prev = 0U;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
@@ -82,8 +83,10 @@ int main(void)
         printf("ST480MC ready\r\n");
     }
 
-    (void)io_expand_init();
-    exti_io_expand_init();
+    if (io_expand_init() != 0U)
+    {
+        printf("PCF8574 check failed\r\n");
+    }
 
     if (imu_ok)
     {
@@ -95,25 +98,32 @@ int main(void)
 
     for (;;)
     {
-        if (exti_io_expand_pending())
+        /* Motion interrupt: the SH3001 INT pin drives PCF8574 P5 (active high). */
         {
-            uint8_t st;
+            uint8_t pcf = io_expand_read_byte();
+            uint8_t p5  = (uint8_t)((pcf >> PCF8574_MPU_INT_IO) & 0x01U);
 
-            (void)io_expand_read_byte();      /* clear the PCF8574 INT */
-            st = imu_motion_int_status();     /* clear the SH3001 latched INT */
+            if ((p5 != 0U) && (p5_prev == 0U))
+            {
+                uint8_t st = imu_motion_int_status();
 
-            if ((st & IMU_STATUS_TAP) != 0U)
-            {
-                printf("EVENT: TAP\r\n");
+                printf("INT p5=%u st=0x%02X\r\n", (unsigned)p5, (unsigned)st);
+
+                if ((st & IMU_STATUS_TAP) != 0U)
+                {
+                    printf("EVENT: TAP\r\n");
+                }
+                if ((st & IMU_STATUS_FREEFALL) != 0U)
+                {
+                    printf("EVENT: FREE-FALL\r\n");
+                }
+                if ((st & IMU_STATUS_ACTIVITY) != 0U)
+                {
+                    printf("EVENT: ACTIVITY\r\n");
+                }
             }
-            if ((st & IMU_STATUS_FREEFALL) != 0U)
-            {
-                printf("EVENT: FREE-FALL\r\n");
-            }
-            if ((st & IMU_STATUS_ACTIVITY) != 0U)
-            {
-                printf("EVENT: ACTIVITY\r\n");
-            }
+
+            p5_prev = p5;
         }
 
         if (imu_ok)
