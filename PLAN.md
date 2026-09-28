@@ -19,6 +19,7 @@
 | delay | `bsp/delay.c` | FreeRTOS/uint64 计数 vs 参考 UCOS/uint32 | I | 保留 | (有意) |
 | usart 重定向 | `bsp/usart.c` | `__io_putchar`+自定义 RXNE 状态机 vs 参考 fputc+Receive_IT | I | 保留 | (有意) |
 | libc | `platform/soc/.../syscalls.c` | 自研 syscall、无 nosys | I | 保留 | (有意) |
+| 看门狗 init | `bsp/wdg.c` | `iwdg_init()/wwdg_init()` 采用板级固定值、无参数 | I | 保留 | (有意) |
 
 ## 批次 1：核心 01-07
 

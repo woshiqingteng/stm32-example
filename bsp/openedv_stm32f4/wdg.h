@@ -13,14 +13,14 @@
 /** @brief Callback invoked from the WWDG early-wakeup interrupt. */
 typedef void (*wdg_wwdg_cb_t)(void);
 
-/** @brief  Initialise IWDG. @param prer IWDG_PRESCALER_x. @param rlr Reload. */
-void iwdg_init(uint32_t prer, uint16_t rlr);
+/** @brief  Initialise IWDG with the board-fixed prescaler and reload. */
+void iwdg_init(void);
 
 /** @brief  Feed the IWDG. */
 void iwdg_feed(void);
 
-/** @brief  Initialise WWDG with early-wakeup interrupt. */
-void wwdg_init(uint8_t tr, uint8_t wr, uint32_t fprer);
+/** @brief  Initialise WWDG with the board-fixed counter/window/prescaler (EWI enabled). */
+void wwdg_init(void);
 
 /** @brief  Register (or clear) the WWDG early-wakeup callback. */
 void wdg_wwdg_register(wdg_wwdg_cb_t cb);

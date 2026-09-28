@@ -7,8 +7,6 @@
 
 #include "bsp.h"
 
-#define WWDG_COUNTER_TICK        0x7FU
-#define WWDG_WINDOW_TICK         0x5FU
 #define WWDG_START_DELAY_MS 300U
 
 static void on_early_wakeup(void)
@@ -24,7 +22,7 @@ int main(void)
     delay_ms(WWDG_START_DELAY_MS);
 
     wdg_wwdg_register(on_early_wakeup);
-    wwdg_init(WWDG_COUNTER_TICK, WWDG_WINDOW_TICK, WWDG_PRESCALER_8);
+    wwdg_init();
 
     led_off(LED0);
 
