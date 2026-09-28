@@ -20,6 +20,7 @@
 | usart 重定向 | `bsp/usart.c` | `__io_putchar`+自定义 RXNE 状态机 vs 参考 fputc+Receive_IT | I | 保留 | (有意) |
 | libc | `platform/soc/.../syscalls.c` | 自研 syscall、无 nosys | I | 保留 | (有意) |
 | 看门狗 init | `bsp/wdg.c` | `iwdg_init()/wwdg_init()` 采用板级固定值、无参数 | I | 保留 | (有意) |
+| 06_wwdg LED | `06_wwdg/main.c` | 绿灯闪烁按 EWI 软件分频(÷10)以便观察（参考为每次 EWI 翻转） | I | 保留 | (有意) |
 
 ## 批次 1：核心 01-07
 
