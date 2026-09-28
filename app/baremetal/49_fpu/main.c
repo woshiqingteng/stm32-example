@@ -117,7 +117,7 @@ int main(void)
     julia_clut_init();
 
     btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
-    btim_timx_int_register(on_tim6);
+    btim_timx_int_register(&on_tim6);
 
     width  = lcd_get_width();
     height = lcd_get_height();

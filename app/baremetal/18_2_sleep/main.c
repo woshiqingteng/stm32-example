@@ -31,7 +31,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    pwr_register_wkup_hook(wkup_hook);
+    pwr_register_wkup_hook(&wkup_hook);
     pwr_wkup_key_init();
     printf("KEY0: enter sleep mode, WK_UP: wake\r\n");
 

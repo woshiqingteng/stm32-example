@@ -192,8 +192,8 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
 
     dcmi_init();
     dcmi_switch_ov5640();
-    dcmi_rx_callback    = cam_line_cb;
-    dcmi_frame_callback = cam_frame_cb;
+    dcmi_rx_callback    = &cam_line_cb;
+    dcmi_frame_callback = &cam_frame_cb;
     dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
                   (uint16_t)(CAM_OUT_WIDTH_PIXEL / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
     g_cam_curline = CAM_TOP;
@@ -304,8 +304,8 @@ int main(void)
     (void)ov5640_focus_constant();
 
     dcmi_init();
-    dcmi_rx_callback    = cam_line_cb;
-    dcmi_frame_callback = cam_frame_cb;
+    dcmi_rx_callback    = &cam_line_cb;
+    dcmi_frame_callback = &cam_frame_cb;
     dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
                   (uint16_t)(CAM_OUT_WIDTH_PIXEL / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 

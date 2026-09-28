@@ -53,7 +53,7 @@ int main(void)
     bsp_init();
 
     btim_timx_int_init(65535U, 90U - 1U); /* 1 MHz, ~65 ms overflow */
-    btim_timx_int_register(on_tim6);
+    btim_timx_int_register(&on_tim6);
 
     printf(APP_BANNER "\r\n");
 

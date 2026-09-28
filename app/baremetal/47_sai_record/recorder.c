@@ -120,7 +120,7 @@ void recoder_enter_rec_mode(void)
     sai1_tx_dma_irq_disable();
     sai1_rx_dma_init(p_sai_recbuf1, p_sai_recbuf2, REC_SAI_RX_DMA_BUF_SIZE / 2, 1);
 
-    sai_rx_callback = recoder_sai_dma_rx_callback;
+    sai_rx_callback = &recoder_sai_dma_rx_callback;
 
     sai1_play_start();
     sai1_rec_start();

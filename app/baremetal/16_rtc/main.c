@@ -53,7 +53,7 @@ int main(void)
         printf("rtc: default time/date set\r\n");
     }
 
-    rtc_register_wakeup_hook(rtc_wakeup_cb);
+    rtc_register_wakeup_hook(&rtc_wakeup_cb);
     rtc_set_wakeup(RTC_WAKEUP_CLOCK, 0U);   /* 1 Hz periodic wake-up */
     printf("rtc: wakeup timer started (1 Hz)\r\n");
 

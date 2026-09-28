@@ -37,7 +37,7 @@ int main(void)
 
     bsp_init();
     adc_scan_dma_init(g_adc_buf, ADC_DMA_BUF_LEN_SAMPLE);
-    adc_register_dma_hook(on_adc_scan_complete);
+    adc_register_dma_hook(&on_adc_scan_complete);
     adc_scan_dma_start(ADC_DMA_BUF_LEN_SAMPLE);
     printf(APP_BANNER "\r\n");
 

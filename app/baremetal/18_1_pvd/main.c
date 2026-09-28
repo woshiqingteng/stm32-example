@@ -29,7 +29,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    pwr_register_pvd_hook(pvd_hook);
+    pwr_register_pvd_hook(&pvd_hook);
     pwr_pvd_init(PVD_LEVEL);
     printf("PVD level 7 (2.9V) monitor started\r\n");
 

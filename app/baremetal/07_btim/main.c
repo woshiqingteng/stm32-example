@@ -21,7 +21,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    btim_timx_int_register(on_tim6);
+    btim_timx_int_register(&on_tim6);
     btim_timx_int_init(BTIM_ARR - 1U, BTIM_PSC - 1U);
 
     for (;;)

@@ -9,13 +9,13 @@
 #include "bsp.h"
 
 #define WWDG_START_DELAY_MS   300U
-#define WWDG_LED_TOGGLE_DIV   10U   /*!< toggle LED1 every 10 early-wakeup interrupts */
+#define WWDG_LED_TOGGLE_COUNT   10U   /*!< toggle LED1 every 10 early-wakeup interrupts */
 
 static void on_early_wakeup(void)
 {
     static uint8_t count;
 
-    if (++count >= WWDG_LED_TOGGLE_DIV)
+    if (++count >= WWDG_LED_TOGGLE_COUNT)
     {
         count = 0U;
         led_toggle(LED1);
@@ -29,7 +29,7 @@ int main(void)
     led_on(LED0);
     delay_ms(WWDG_START_DELAY_MS);
 
-    wdg_wwdg_register(on_early_wakeup);
+    wdg_wwdg_register(&on_early_wakeup);
     wwdg_init();
 
     led_off(LED0);

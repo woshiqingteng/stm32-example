@@ -260,8 +260,8 @@ static void rgb565_test(void)
     (void)ov5640_focus_constant();
 
     dcmi_init();
-    dcmi_rx_callback    = rgblcd_dcmi_rx_callback;
-    dcmi_frame_callback = rgb_frame_cb;
+    dcmi_rx_callback    = &rgblcd_dcmi_rx_callback;
+    dcmi_frame_callback = &rgb_frame_cb;
     dcmi_dma_init((uint32_t)g_dcmi_line_buf[0], (uint32_t)g_dcmi_line_buf[1],
                   (uint16_t)(lcd_get_width() / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 
@@ -353,7 +353,7 @@ int main(void)
     lcd_init();
 
     btim_timx_int_init(10000U - 1U, 9000U - 1U);
-    btim_timx_int_register(fps_cb);
+    btim_timx_int_register(&fps_cb);
 
     lcd_show_string(30, 50, 200, 16, LCD_FONT_SIZE_16, "STM32", RED);
     lcd_show_string(30, 70, 200, 16, LCD_FONT_SIZE_16, "OV5640 TEST", RED);
