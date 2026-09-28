@@ -9,13 +9,37 @@
 #include "gtim.h"
 
 #define GTIM_CNT_PSC       0U
-/* PSC=0: external edges counted 1:1; 16-bit overflow */
+/* PSC=0: external edges counted 1:1; 32-bit CNT, 64-bit total */
 #define GTIM_CNT_BLINK_COUNT 20U
 #define GTIM_CNT_LOOP_MS   10U
 
+/* Print a 64-bit value in decimal without relying on %llu (nano.specs). */
+static void print_u64(uint64_t value)
+{
+    char     buf[20];
+    uint32_t i = 0U;
+
+    if (value == 0U)
+    {
+        printf("0");
+        return;
+    }
+
+    while ((value != 0U) && (i < sizeof(buf)))
+    {
+        buf[i++] = (char)('0' + (uint32_t)(value % 10U));
+        value /= 10U;
+    }
+
+    while (i > 0U)
+    {
+        printf("%c", buf[--i]);
+    }
+}
+
 int main(void)
 {
-    uint32_t old_count = 0;
+    uint64_t old_count = 0;
     uint32_t blink = 0;
 
     bsp_init();
@@ -25,7 +49,7 @@ int main(void)
 
     for (;;)
     {
-        uint32_t count;
+        uint64_t count;
 
         if (key_scan(false) == KEY0)
         {
@@ -35,7 +59,9 @@ int main(void)
         count = gtim_timx_cnt_chy_get_count();
         if (count != old_count)
         {
-            printf("CNT:%lu\r\n", (unsigned long)count);
+            printf("CNT:");
+            print_u64(count);
+            printf("\r\n");
             old_count = count;
         }
 

@@ -45,7 +45,7 @@
 | 08_1_gtim_int | 8-1 | main+gtim | 一致 | P | 无 | [x] |
 | 08_2_gtim_pwm | 8-2 | main | 亮度范围 0..100%（厂商 0..60%）、整体更慢（500 步×10ms，每程 5s） | I | 保留 | (有意) |
 | 08_3_gtim_cap | 8-3 | `gtim.c`+main | 重构：状态机移到 app（回调+单枚举事件+显式 switch）、捕获 16→32 位、软件溢出累计（uint64）、公共接口仅 `init`+`register`、去旧超时；打印自动换单位 us/ms/s/min/h（3 位小数） | I | 保留 | (有意) |
-| 08_4_gtim_cnt | 8-4 | `gtim.c` | 当前加临界保护（增强） | R | 保留 | (可选) |
+| 08_4_gtim_cnt | 8-4 | `gtim.c` | get_count 临界保护 + restart 清 UPDATE + 32 位 CNT/32 位溢出计数、总量 64 位（宏更名 GTIM_CNT_*） | I | 保留 | (有意) |
 | 09_1_atim_npwm | 9-1 | main | 参考显式 CCR=5000(50%)；当前驱动默认 4999 | S | 可选 | (可选) |
 | 09_2/09_3 | 9-2/9-3 | main+atim | 一致 | P | 无 | [x] |
 | 09_4_atim_pwmin | 9-4 | main | 整数换算可能溢出/丢小数 | R | 可选 | (可选) |

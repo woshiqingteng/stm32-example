@@ -37,7 +37,7 @@ void gtim_timx_cap_chy_register(gtim_cap_cb_t cb);
 
 /* ---- TIM2_CH1 (PA0) external pulse counter ---- */
 void gtim_timx_cnt_chy_init(uint16_t psc);
-uint32_t gtim_timx_cnt_chy_get_count(void);
+uint64_t gtim_timx_cnt_chy_get_count(void);
 void gtim_timx_cnt_chy_restart(void);
 
 /* ---- TIM14 1 Hz frame-rate timer (camera) ---- */

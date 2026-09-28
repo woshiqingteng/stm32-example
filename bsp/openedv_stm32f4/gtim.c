@@ -12,8 +12,8 @@
 #include "gtim.h"
 #include "sys.h"
 
-#define GTIM_TIMER_MODULUS     0x10000U
-#define GTIM_TIMER_MAX_COUNT   0xFFFFU
+#define GTIM_CNT_MAX_COUNT     0xFFFFFFFFU      /*!< TIM2 32-bit period */
+#define GTIM_CNT_MODULUS       (1ULL << 32)     /*!< 32-bit wrap modulus */
 #define GTIM_PWM_HALF_DUTY_DIV 2U
 
 /* ---- TIM3 update interrupt (APB1): f = 90 MHz/((PSC+1)(ARR+1)) ---- */
@@ -192,7 +192,7 @@ void TIM5_IRQHandler(void)
 }
 
 /* ---- TIM2_CH1 (PA0) external pulse counter (APB1):
- *      count = edges/(PSC+1); 16-bit overflow ---- */
+ *      count = edges/(PSC+1); 32-bit CNT + 32-bit overflow counter (64-bit total) ---- */
 static TIM_HandleTypeDef g_gtim_cnt_handle;
 static uint32_t          g_gtim_cnt_overflows;
 
@@ -216,7 +216,7 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
     g_gtim_cnt_handle.Instance         = TIM2;
     g_gtim_cnt_handle.Init.Prescaler   = psc;
     g_gtim_cnt_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    g_gtim_cnt_handle.Init.Period      = GTIM_TIMER_MAX_COUNT;
+    g_gtim_cnt_handle.Init.Period      = GTIM_CNT_MAX_COUNT;
     HAL_TIM_IC_Init(&g_gtim_cnt_handle);
 
     slave.SlaveMode       = TIM_SLAVEMODE_EXTERNAL1;
@@ -231,12 +231,13 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
     HAL_TIM_IC_Start(&g_gtim_cnt_handle, TIM_CHANNEL_1);
 }
 
-uint32_t gtim_timx_cnt_chy_get_count(void)
+uint64_t gtim_timx_cnt_chy_get_count(void)
 {
-    uint32_t count;
+    uint64_t count;
 
     sys_intx_disable();
-    count = (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
+    count = ((uint64_t)g_gtim_cnt_overflows * GTIM_CNT_MODULUS) +
+            (uint64_t)__HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
     sys_intx_enable();
 
     return count;
@@ -245,8 +246,9 @@ uint32_t gtim_timx_cnt_chy_get_count(void)
 void gtim_timx_cnt_chy_restart(void)
 {
     __HAL_TIM_DISABLE(&g_gtim_cnt_handle);
-    g_gtim_cnt_overflows = 0;
-    __HAL_TIM_SET_COUNTER(&g_gtim_cnt_handle, 0);
+    __HAL_TIM_CLEAR_FLAG(&g_gtim_cnt_handle, TIM_FLAG_UPDATE);   /* clear a pending overflow */
+    g_gtim_cnt_overflows = 0U;
+    __HAL_TIM_SET_COUNTER(&g_gtim_cnt_handle, 0U);
     __HAL_TIM_ENABLE(&g_gtim_cnt_handle);
 }
 
