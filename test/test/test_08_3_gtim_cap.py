@@ -21,6 +21,6 @@ class Test08_3GtimCap:
         self.board.serial_read_lines(0.3)
         # 动作：注入一次捕获（value=1234）
         self.board.inject_capture(1234)
-        # 期望：应用读取并打印 "HIGH:1234 us"
+        # 期望：应用读取并打印 "HIGH:1.234 ms"（1234 us 自动换单位为 ms）
         lines = self.board.serial_read_lines(1.0)
-        assert any("HIGH:1234" in ln for ln in lines), lines
+        assert any("HIGH:1.234 ms" in ln for ln in lines), lines

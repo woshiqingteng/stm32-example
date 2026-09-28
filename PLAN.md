@@ -44,8 +44,7 @@
 |---|---|---|---|---|---|---|
 | 08_1_gtim_int | 8-1 | main+gtim | 一致 | P | 无 | [x] |
 | 08_2_gtim_pwm | 8-2 | main | 亮度范围 0..100%（厂商 0..60%）、整体更慢（500 步×10ms，每程 5s） | I | 保留 | (有意) |
-| 08_3_gtim_cap | 8-3 | `gtim.c` | 首次上升沿参考仅 CNT=0；当前 DISABLE→CNT=0→ENABLE | R | 可选 | (可选) |
-| 08_3_gtim_cap | 8-3 | `gtim.c` | 超时阈值判定时机差 1 次溢出 | S | 可选 | (可选) |
+| 08_3_gtim_cap | 8-3 | `gtim.c`+main | 重构：状态机移到 app（回调+单枚举事件+显式 switch）、捕获 16→32 位、软件溢出累计（uint64）、公共接口仅 `init`+`register`、去旧超时；打印自动换单位 us/ms/s/min/h（3 位小数） | I | 保留 | (有意) |
 | 08_4_gtim_cnt | 8-4 | `gtim.c` | 当前加临界保护（增强） | R | 保留 | (可选) |
 | 09_1_atim_npwm | 9-1 | main | 参考显式 CCR=5000(50%)；当前驱动默认 4999 | S | 可选 | (可选) |
 | 09_2/09_3 | 9-2/9-3 | main+atim | 一致 | P | 无 | [x] |
@@ -257,7 +256,7 @@
 | 07_btim | 采样 ODR（500/200ms） | 真功能 | [ ] |
 | 08_1_gtim_int | 采样 ODR | 真功能 | [ ] |
 | 08_2_gtim_pwm | 采样 TIM3->CCR4 呼吸 | 真功能 | [ ] |
-| 08_3_gtim_cap | 注入 TIM5 捕获（CCR1+CC1IF）→ 断言 HIGH:…us | 寄存器注入 | [ ] |
+| 08_3_gtim_cap | 注入 app 捕获态（poke `g_cap_state`/`g_cap_width`）→ 断言 `HIGH:1.234 ms` | 状态注入 | [ ] |
 | 08_4_gtim_cnt | 注入 TIM2 CNT → 断言 CNT:；KEY0 清零 | 寄存器注入 | [ ] |
 | 09_1_atim_npwm | 采样 PC6（≈0.5s）数 5 脉冲后停 + KEY0 重触发 | 真功能 | [ ] |
 | 09_2_atim_oc | 读 CCMR/CCR1..4 + 采样 PC6..9 | 真功能 | [ ] |

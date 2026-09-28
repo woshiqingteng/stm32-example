@@ -170,11 +170,10 @@ class OpenEdvSTM32F429Page(BasePage):
         return self.peek(self.TIM1_BASE + self.TIM_BDTR)
 
     # -- app-specific operation injection ----------------------------------
-    def inject_capture(self, value: int, overflows: int = 0):
-        """08_3: inject a TIM5 input capture result (state -> DONE)."""
-        self.poke(self.symbol("g_gtim_cap_overflows"), overflows)
-        self.poke(self.symbol("g_gtim_cap_value"), value)
-        self.poke(self.symbol("g_gtim_cap_state"), 2)  # GTIM_CAP_DONE
+    def inject_capture(self, value: int):
+        """08_3: force a completed capture (state -> CAP_READY, width=value us)."""
+        self.poke(self.symbol("g_cap_width"), value)  # low 32 bits (little-endian)
+        self.poke(self.symbol("g_cap_state"), 2)  # CAP_READY
 
     def inject_counter(self, count: int):
         """08_4: inject a TIM2 external-counter value."""
