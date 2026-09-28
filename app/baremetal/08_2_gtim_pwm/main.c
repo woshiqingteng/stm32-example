@@ -10,9 +10,9 @@
 
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U
-/* 90 MHz / (90 * 500) = 2 kHz; duty 0..300/500 = 0..60% */
-#define GTIM_PWM_DUTY_MAX_TICK   300
-#define GTIM_PWM_DUTY_STEP_TICK  1
+/* 90 MHz / (90 * 500) = 2 kHz; duty 0..500/500 = 0..100% */
+#define GTIM_PWM_DUTY_MAX_TICK   500U
+#define GTIM_PWM_DUTY_STEP_TICK  1U
 #define GTIM_PWM_LOOP_MS   10U
 
 /** @brief PWM duty ramp direction. */
@@ -33,20 +33,21 @@ int main(void)
 
     for (;;)
     {
-        delay_ms(GTIM_PWM_LOOP_MS);
-
         duty += (ramp == GTIM_PWM_RAMP_UP) ? (int16_t)GTIM_PWM_DUTY_STEP_TICK
                                            : -(int16_t)GTIM_PWM_DUTY_STEP_TICK;
-        if (duty > GTIM_PWM_DUTY_MAX_TICK)
+        if (duty >= (int16_t)GTIM_PWM_DUTY_MAX_TICK)
         {
-            duty = GTIM_PWM_DUTY_MAX_TICK;
+            duty = (int16_t)GTIM_PWM_DUTY_MAX_TICK;
             ramp = GTIM_PWM_RAMP_DOWN;
         }
-        else if (duty == 0)
+        else if (duty <= 0)
         {
+            duty = 0;
             ramp = GTIM_PWM_RAMP_UP;
         }
 
         gtim_timx_pwm_chy_set((uint16_t)duty);
+
+        delay_ms(GTIM_PWM_LOOP_MS);
     }
 }
