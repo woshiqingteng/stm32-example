@@ -1,6 +1,6 @@
 /**
  * @file    bsp.h
- * @brief   Board support package entry point and aggregated driver headers.
+ * @brief   Board support package entry point.
  */
 
 #ifndef BSP_BSP_H
@@ -11,44 +11,6 @@
 #include "usart.h"
 #include "led.h"
 #include "key.h"
-#include "exti.h"
-#include "wdg.h"
-#include "btim.h"
-#include "gtim.h"
-#include "atim.h"
-#include "tpad.h"
-#include "adc.h"
-#include "dac.h"
-#include "pwmdac.h"
-#include "internal_flash.h"
-#include "rtc.h"
-#include "rng.h"
-#include "pwr.h"
-#include "iap.h"
-#include "sdram.h"
-#include "lcd.h"
-#include "oled.h"
-#include "i2c.h"
-#include "eeprom.h"
-#include "io_expand.h"
-#include "ap3216c.h"
-#include "touch.h"
-#include "st480mc.h"
-#include "imu.h"
-#include "spi.h"
-#include "nor.h"
-#include "rs485.h"
-#include "can.h"
-#include "ir.h"
-#include "ds18b20.h"
-#include "dht11.h"
-#include "wireless.h"
-#include "sdio.h"
-#include "nand.h"
-#include "dcmi.h"
-#include "ov5640.h"
-#include "codec.h"
-#include "sai.h"
 
 /* Clock tree (HSE 25 MHz -> PLL): SYSCLK = HCLK = 180 MHz.
  * PCLK1 = HCLK/4 = 45 MHz -> APB1 timer clock = PCLK1 x2 = 90 MHz (TIM2..7,12..14).
