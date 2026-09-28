@@ -298,3 +298,35 @@ float imu_read_temperature(void)
 
     return ((float)temp - (float)room) / IMU_TEMP_DIVISOR + IMU_TEMP_OFFSET_C;
 }
+
+void imu_motion_int_enable(void)
+{
+    uint8_t reg;
+
+    /* Tap: X/Y/Z, thresholds chosen empirically. */
+    (void)imu_write_byte(IMU_REG_TAP_AXIS, 0x0EU);
+    (void)imu_write_byte(IMU_REG_TAP_THR, 0x30U);
+    (void)imu_write_byte(IMU_REG_TAP_DUR, 0x20U);
+    (void)imu_write_byte(IMU_REG_TAP_LAT, 0x40U);
+    (void)imu_write_byte(IMU_REG_TAP_WIN, 0x80U);
+
+    /* Free-fall: ~300mg threshold at 2mg/LSB, 160ms (2ms/LSB). */
+    (void)imu_write_byte(IMU_REG_FREEFALL_THR, 0x96U);
+    (void)imu_write_byte(IMU_REG_FREEFALL_TIME, 0x50U);
+
+    /* Activity: X/Y/Z, ~100mg at 0.97mg/LSB, 3 samples. */
+    (void)imu_write_byte(IMU_REG_ACT_AXIS, 0x70U);
+    (void)imu_write_byte(IMU_REG_ACT_THR, 0x64U);
+    (void)imu_write_byte(IMU_REG_ACT_TIME, 0x03U);
+
+    reg = imu_read_byte(IMU_REG_INT_EN0);
+    (void)imu_write_byte(IMU_REG_INT_EN0, (uint8_t)(reg | IMU_INT_TAP_ENABLE | IMU_INT_ACTIVITY_ENABLE));
+
+    reg = imu_read_byte(IMU_REG_INT_EN1);
+    (void)imu_write_byte(IMU_REG_INT_EN1, (uint8_t)(reg | IMU_INT_FREEFALL_ENABLE));
+}
+
+uint8_t imu_motion_int_status(void)
+{
+    return imu_read_byte(IMU_REG_INT_STATUS0);
+}

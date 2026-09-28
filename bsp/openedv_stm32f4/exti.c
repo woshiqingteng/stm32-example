@@ -6,8 +6,11 @@
 #include "stm32f4xx_hal.h"
 #include "exti.h"
 #include "key.h"
+#include "io_expand.h"
 
 #define EXTI_IRQ_SUB      2U
+
+#define EXTI_IO_EXPAND_PREEMPT 3U
 
 #define EXTI_KEY0_PREEMPT 0U
 #define EXTI_KEY1_PREEMPT 1U
@@ -36,6 +39,7 @@ static exti_cb_t g_exti_cb[KEY_NUM];
 
 static volatile key_id_t g_pending_id   = KEY_NONE;
 static volatile uint32_t g_pending_tick = 0U;
+static volatile bool     g_io_expand_pending = false;
 
 /* ISR side: latch the edge and (re)start the debounce window. Non-blocking. */
 static void exti_latch(key_id_t id)
@@ -64,8 +68,17 @@ void EXTI3_IRQHandler(void)
 
 void EXTI15_10_IRQHandler(void)
 {
-    __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY2));
-    exti_latch(KEY2);
+    if (__HAL_GPIO_EXTI_GET_IT(key_pin(KEY2)) != 0U)
+    {
+        __HAL_GPIO_EXTI_CLEAR_IT(key_pin(KEY2));
+        exti_latch(KEY2);
+    }
+
+    if (__HAL_GPIO_EXTI_GET_IT(PCF8574_GPIO_PIN) != 0U)
+    {
+        __HAL_GPIO_EXTI_CLEAR_IT(PCF8574_GPIO_PIN);
+        g_io_expand_pending = true;
+    }
 }
 
 void exti_register(key_id_t id, exti_cb_t cb)
@@ -123,4 +136,18 @@ void exti_init(void)
                 EXTI_KEY2_PREEMPT);
     exti_config(key_port(KEY_WKUP), key_pin(KEY_WKUP), EXTI_KEY_WKUP_MODE, EXTI_KEY_WKUP_PULL,
                 EXTI_KEY_WKUP_IRQn, EXTI_WKUP_PREEMPT);
+}
+
+void exti_io_expand_init(void)
+{
+    exti_config(PCF8574_GPIO_PORT, PCF8574_GPIO_PIN, GPIO_MODE_IT_FALLING, GPIO_PULLUP,
+                EXTI15_10_IRQn, EXTI_IO_EXPAND_PREEMPT);
+}
+
+bool exti_io_expand_pending(void)
+{
+    bool pending = g_io_expand_pending;
+
+    g_io_expand_pending = false;
+    return pending;
 }

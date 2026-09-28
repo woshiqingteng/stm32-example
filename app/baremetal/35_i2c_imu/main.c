@@ -81,10 +81,39 @@ int main(void)
         printf("ST480MC ready\r\n");
     }
 
+    (void)io_expand_init();
+    exti_io_expand_init();
+
+    if (imu_ok)
+    {
+        imu_motion_int_enable();
+    }
+
     printf("35_i2c_imu ready (SH3001+ST480MC, KEY0: recalibrate)\r\n");
 
     for (;;)
     {
+        if (exti_io_expand_pending())
+        {
+            uint8_t st;
+
+            (void)io_expand_read_byte();      /* clear the PCF8574 INT */
+            st = imu_motion_int_status();     /* clear the SH3001 latched INT */
+
+            if ((st & IMU_STATUS_TAP) != 0U)
+            {
+                printf("EVENT: TAP\r\n");
+            }
+            if ((st & IMU_STATUS_FREEFALL) != 0U)
+            {
+                printf("EVENT: FREE-FALL\r\n");
+            }
+            if ((st & IMU_STATUS_ACTIVITY) != 0U)
+            {
+                printf("EVENT: ACTIVITY\r\n");
+            }
+        }
+
         if (imu_ok)
         {
             imu_read_xyz(acc, gyro);
