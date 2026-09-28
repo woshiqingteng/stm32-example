@@ -12,13 +12,6 @@
 /** @brief Callback invoked from the TIM3 update interrupt. */
 typedef void (*gtim_cb_t)(void);
 
-typedef enum
-{
-    GTIM_CAP_IDLE = 0,   /*!< waiting for the rising edge */
-    GTIM_CAP_RISING = 1, /*!< rising edge captured, waiting for falling */
-    GTIM_CAP_DONE = 2,   /*!< high-level width available */
-} gtim_cap_state_t;
-
 /* ---- TIM3 update interrupt ---- */
 void gtim_timx_int_init(uint16_t arr, uint16_t psc);
 void gtim_timx_int_register(gtim_cb_t cb);
@@ -27,11 +20,20 @@ void gtim_timx_int_register(gtim_cb_t cb);
 void gtim_timx_pwm_chy_init(uint16_t arr, uint16_t psc);
 void gtim_timx_pwm_chy_set(uint16_t ccr);
 
-/* ---- TIM5_CH1 (PA0) input capture, 1 tick = 1 us ---- */
+/* ---- TIM5_CH1 (PA0) input capture (32-bit timer + software overflow) ---- */
+typedef enum
+{
+    GTIM_CAP_RISING   = 0,   /*!< rising edge  (arm + event) */
+    GTIM_CAP_FALLING  = 1,   /*!< falling edge (arm + event) */
+    GTIM_CAP_OVERFLOW = 2,   /*!< 32-bit CNT wrapped (event only) */
+} gtim_cap_event_t;
+
+/*!< Called on every event; returns the edge to arm next
+ *   (ignored when the event is GTIM_CAP_OVERFLOW). */
+typedef gtim_cap_event_t (*gtim_cap_cb_t)(uint32_t value, gtim_cap_event_t event);
+
 void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc);
-gtim_cap_state_t gtim_timx_cap_chy_state(void);
-uint32_t gtim_timx_cap_chy_value(void);
-void gtim_timx_cap_chy_clear(void);
+void gtim_timx_cap_chy_register(gtim_cap_cb_t cb);
 
 /* ---- TIM2_CH1 (PA0) external pulse counter ---- */
 void gtim_timx_cnt_chy_init(uint16_t psc);
