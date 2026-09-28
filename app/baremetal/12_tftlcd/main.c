@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define LCD_COLOR_COUNT 12U
 #define DEMO_TEXT_X     10U
 #define DEMO_TEXT_WIDTH_PIXEL 240U

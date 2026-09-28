@@ -7,6 +7,7 @@
 #define BSP_WDG_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief Callback invoked from the WWDG early-wakeup interrupt. */

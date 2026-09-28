@@ -7,6 +7,7 @@
 #define BSP_ADC_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief ADC1 regular channels routed to PA0..PA5. */

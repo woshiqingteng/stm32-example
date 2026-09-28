@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <stdint.h>
+
 #include "text.h"
 #include "lcd.h"
 #include "malloc.h"

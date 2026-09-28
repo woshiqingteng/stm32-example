@@ -6,6 +6,7 @@
  */
 
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 #include "oled.h"
 #include "oledfont.h"

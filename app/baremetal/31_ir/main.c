@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define KEY_SETTLE_DELAY_MS 100U
 #define POLL_DELAY_MS   10U
 

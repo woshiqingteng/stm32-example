@@ -8,6 +8,7 @@
  */
 
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "qmi8658a.h"

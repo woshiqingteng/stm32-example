@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define LOOP_DELAY_MS 10U
 
 int main(void)

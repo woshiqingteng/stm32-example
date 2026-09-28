@@ -17,12 +17,14 @@
 
 #ifdef FATFS_USB_MSC
 #include "usbh_diskio.h"
+
 #define USB_MSC     2   /* USB mass storage (logical drive "2:") */
 #endif
 
 #ifdef FATFS_NAND
 #include "ftl.h"
 #include "nand.h"
+
 #define EX_NAND     2   /* NAND flash via the FTL (logical drive "2:") */
 #endif
 

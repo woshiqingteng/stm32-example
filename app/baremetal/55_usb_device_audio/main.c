@@ -12,6 +12,7 @@
 #include "usbd_desc.h"
 #include "usbd_audio.h"
 #include "usbd_audio_if.h"
+
 #define BLINK_PERIOD_MS 200U
 
 int main(void)

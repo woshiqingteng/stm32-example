@@ -10,6 +10,7 @@
 #define BSP_RTC_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief Callback invoked from the RTC periodic wake-up interrupt. */

@@ -7,6 +7,7 @@
 #define BSP_PWMDAC_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief PWM DAC reference voltage in mV (full-scale duty). */

@@ -11,6 +11,7 @@
 
 #include "bsp.h"
 #include "malloc.h"
+
 #define TEST_SIZE_BYTE       2048U
 #define BLINK_PERIOD_MS 500U
 

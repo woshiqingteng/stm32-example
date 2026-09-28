@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <setjmp.h>
+
 #include "jpeglib.h"
 #include "jerror.h"
 #include "lcd.h"

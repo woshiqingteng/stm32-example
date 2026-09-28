@@ -13,6 +13,7 @@
 #include "text.h"
 #include "malloc.h"
 #include "videoplayer.h"
+
 #define DRIVE       "0:"
 #define TEXT_X      30U
 #define TEXT_WIDTH_PIXEL  320U

@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+
 #include "nand.h"
 #include "delay.h"
 

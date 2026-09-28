@@ -7,6 +7,7 @@
 #define BSP_KEY_H
 
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 
 typedef enum

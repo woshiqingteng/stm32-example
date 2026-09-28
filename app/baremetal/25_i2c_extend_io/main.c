@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define PATTERN_PERIOD_MS  500U
 
 static const uint8_t g_patterns[] = { 0xAAU, 0x55U };

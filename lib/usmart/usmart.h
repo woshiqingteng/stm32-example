@@ -13,6 +13,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "usmart_port.h"
 
 /** @brief Parser / dispatcher status codes. */

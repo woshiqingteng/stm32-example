@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define TOUCH_POINT_SIZE_PIXEL  2U
 #define TOUCH_SAMPLE_MS   5U
 #define TOUCH_LED_COUNT     40U

@@ -7,6 +7,7 @@
 #define BSP_NOR_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define NOR_CS_GPIO_PORT   GPIOF

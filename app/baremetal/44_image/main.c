@@ -15,6 +15,7 @@
 #include "exfuns.h"
 #include "text.h"
 #include "piclib.h"
+
 #define PIC_DIR         "0:/PICTURE"
 #define MAX_PIC_COUNT        64U
 #define NAME_LEN_BYTE        64U

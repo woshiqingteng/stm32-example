@@ -7,6 +7,7 @@
 #define BSP_PWR_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief  PVD comparator state. */

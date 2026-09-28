@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define ADC_SCAN_SAMPLE_COUNT     50U
 #define ADC_DMA_BUF_LEN_SAMPLE      (ADC_SCAN_SAMPLE_COUNT * ADC_SCAN_CH_NUM)
 #define ADC_VREF_MV          3300U

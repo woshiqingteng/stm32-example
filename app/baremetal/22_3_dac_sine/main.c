@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define SIN_TIMER_ARR_TICK   9U
 
 static const uint16_t g_sin_psc[] = { 29U, 2U };

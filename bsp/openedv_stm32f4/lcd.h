@@ -9,6 +9,7 @@
 #define BSP_LCD_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 #include "ltdc.h"
 

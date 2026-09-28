@@ -8,6 +8,7 @@
 #define PORT_USBD_AUDIO_IF_H
 
 #include <stdint.h>
+
 #include "usbd_audio.h"
 
 extern USBD_AUDIO_ItfTypeDef USBD_AUDIO_fops;

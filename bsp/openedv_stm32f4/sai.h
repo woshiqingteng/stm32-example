@@ -11,6 +11,7 @@
 #define BSP_SAI_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /* SAI1 pin mapping. */

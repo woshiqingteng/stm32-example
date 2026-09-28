@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define SDRAM_SIZE_BYTE    (32U * 1024U * 1024U)
 #define SDRAM_BLOCK_STEP_BYTE    (16U * 1024U)
 #define SDRAM_DATA_WORD_COUNT    250000U

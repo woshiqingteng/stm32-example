@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <stdint.h>
+
 #include "jpeglib.h"
 #include "jerror.h"
 #include "tjpgd.h"

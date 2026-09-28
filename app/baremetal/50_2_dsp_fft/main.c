@@ -10,6 +10,7 @@
 
 #include "bsp.h"
 #include "arm_math.h"
+
 #define FFT_LENGTH_SAMPLE      1024U       /* FFT length: 16, 64, 256 or 1024 */
 #define FFT_RUN_COUNT        100U        /* FFT repetitions used for the timing */
 #define FFT_SIGNAL_LEN_SAMPLE  32U         /* Serial dump of the first N magnitudes */

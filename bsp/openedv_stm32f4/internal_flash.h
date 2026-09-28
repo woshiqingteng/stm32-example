@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 
 #define INTERNAL_FLASH_BASE        0x08000000U /*!< start of the 1 MB internal flash */

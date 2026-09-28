@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define ATIM_OC_ARR_TICK     1000U
 #define ATIM_OC_PSC_DIV     180U
 #define ATIM_OC_CCR_CH1_TICK 250U

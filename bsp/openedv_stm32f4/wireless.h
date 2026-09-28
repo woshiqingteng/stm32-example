@@ -7,6 +7,7 @@
 #define BSP_WIRELESS_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define NRF24L01_CE_GPIO_PORT   GPIOG

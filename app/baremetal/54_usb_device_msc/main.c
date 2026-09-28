@@ -14,6 +14,7 @@
 #include "usbd_desc.h"
 #include "usbd_msc.h"
 #include "usbd_storage_if.h"
+
 #define BLINK_PERIOD_MS 500U
 
 int main(void)

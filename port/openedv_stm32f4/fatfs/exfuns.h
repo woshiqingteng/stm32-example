@@ -9,6 +9,7 @@
 #define PORT_EXFUNS_H
 
 #include <stdint.h>
+
 #include "ff.h"
 
 extern FATFS *fs[FF_VOLUMES];

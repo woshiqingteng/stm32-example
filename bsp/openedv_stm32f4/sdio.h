@@ -8,6 +8,7 @@
 #define BSP_SDIO_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /* Pin assignment (same as the vendor board). */

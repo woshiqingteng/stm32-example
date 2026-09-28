@@ -7,6 +7,7 @@
 #define BSP_CAN_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief Callback invoked for every received standard data frame. */

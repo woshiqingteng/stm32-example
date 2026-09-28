@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define NOR_TEST_SECTOR    0U
 #define NOR_TEST_ADDR      (NOR_TEST_SECTOR * NOR_SECTOR_SIZE_BYTE)
 #define NOR_TEST_LEN_BYTE       32U

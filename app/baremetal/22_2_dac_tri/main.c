@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define TRI_TIMER_ARR_TICK 899U
 #define TRI_TIMER_PSC_DIV 0U
 

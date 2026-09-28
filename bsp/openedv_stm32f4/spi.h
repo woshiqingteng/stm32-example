@@ -11,6 +11,7 @@
 #define BSP_SPI_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief  Selects which physical SPI bus a call applies to. */

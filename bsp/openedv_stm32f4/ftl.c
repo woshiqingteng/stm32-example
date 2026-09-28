@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdio.h>
+
 #include "ftl.h"
 #include "nand.h"
 

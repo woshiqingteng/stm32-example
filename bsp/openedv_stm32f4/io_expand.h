@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 
 #define PCF8574_GPIO_PORT   GPIOB

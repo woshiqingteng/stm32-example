@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define DMA_TX_BUF_SIZE_BYTE       (6U * 1024U)
 #define DMA_TX_CHUNK_BYTE          1024U
 

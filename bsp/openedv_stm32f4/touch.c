@@ -8,6 +8,7 @@
  */
 
 #include <string.h>
+
 #include "stm32f4xx_hal.h"
 #include "lcd.h"
 #include "touch.h"

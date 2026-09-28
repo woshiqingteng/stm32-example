@@ -7,6 +7,7 @@
 #define LIB_TEXT_TEXT_H
 
 #include <stdint.h>
+
 #include "fonts.h"
 
 /** @brief  Draw one GBK glyph (2-byte code) at (x, y). */

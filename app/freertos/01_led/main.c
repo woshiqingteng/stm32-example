@@ -8,6 +8,7 @@
 #include "bsp.h"
 #include "FreeRTOS.h"
 #include "task.h"
+
 #define LED_TASK_STACK    128U
 #define PRINT_TASK_STACK  256U
 #define LED_TASK_PRIO     2U

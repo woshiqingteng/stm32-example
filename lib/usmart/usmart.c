@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+
 #include "usmart.h"
 #include "usmart_str.h"
 #include "usmart_port.h"

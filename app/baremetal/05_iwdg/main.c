@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define IWDG_RELOAD_TICK          500U
 #define IWDG_START_DELAY_MS  100U
 #define KEY_POLL_MS          10U

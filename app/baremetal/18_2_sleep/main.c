@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define LOOP_DELAY_MS 10U
 #define WKUP_DEBOUNCE_WAIT_MS 30U
 

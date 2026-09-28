@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define POLL_DELAY_MS 1U
 
 static void on_key0(key_id_t id)

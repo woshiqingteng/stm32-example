@@ -7,6 +7,7 @@
 #define BSP_DS18B20_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define DS18B20_DQ_GPIO_PORT    GPIOB

@@ -7,6 +7,7 @@
 #define BSP_SYS_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief  Integer power helper: returns @p m raised to @p n (small exponent). */

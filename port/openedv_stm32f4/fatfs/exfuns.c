@@ -6,8 +6,9 @@
  *          vendor heap allocation.
  */
 
-#include "exfuns.h"
 #include <string.h>
+
+#include "exfuns.h"
 
 FATFS *fs[FF_VOLUMES];
 

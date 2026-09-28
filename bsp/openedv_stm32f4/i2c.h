@@ -10,6 +10,7 @@
 #define BSP_I2C_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /* 0 = software bit-bang (default), 1 = hardware I2C2 (PH4/PH5, AF4). */

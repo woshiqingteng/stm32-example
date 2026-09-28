@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define LED_BLINK_INTERVAL_MS 500U
 
 int main(void)

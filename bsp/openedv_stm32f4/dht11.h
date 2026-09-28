@@ -7,6 +7,7 @@
 #define BSP_DHT11_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define DHT11_DQ_GPIO_PORT  GPIOB

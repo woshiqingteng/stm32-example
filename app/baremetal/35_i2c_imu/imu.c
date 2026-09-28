@@ -6,6 +6,7 @@
  */
 
 #include <math.h>
+
 #include "imu.h"
 
 #define IMU_KP_INIT     20.0f   /* high gain while settling */

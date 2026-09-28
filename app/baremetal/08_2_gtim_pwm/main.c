@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define GTIM_PWM_ARR_TICK        500U
 #define GTIM_PWM_PSC_DIV        90U
 #define GTIM_PWM_DUTY_MAX_TICK   300

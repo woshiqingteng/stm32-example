@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief  Selectable ASCII font heights. */

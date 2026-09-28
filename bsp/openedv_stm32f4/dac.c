@@ -5,8 +5,9 @@
  *          init functions.
  */
 
-#include "stm32f4xx_hal.h"
 #include <math.h>
+
+#include "stm32f4xx_hal.h"
 #include "dac.h"
 
 #define DAC_PI  3.14159265f

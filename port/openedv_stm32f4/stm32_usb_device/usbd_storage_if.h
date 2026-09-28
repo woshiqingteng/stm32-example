@@ -7,6 +7,7 @@
 #define PORT_USBD_STORAGE_IF_H
 
 #include <stdint.h>
+
 #include "usbd_msc.h"
 
 /** @brief  Current storage activity, reported to the application. */

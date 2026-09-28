@@ -5,8 +5,9 @@
  *          the capture/update interrupts are handled directly.
  */
 
-#include "stm32f4xx_hal.h"
 #include <stdbool.h>
+
+#include "stm32f4xx_hal.h"
 #include "ir.h"
 
 #define IR_PRESCALER_DIV        (180U - 1U) /* 1 tick = 1 us at 180 MHz */

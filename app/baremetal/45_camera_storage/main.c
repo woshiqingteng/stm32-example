@@ -19,6 +19,7 @@
 #include "jpeg_dec.h"
 #include "bmp.h"
 #include "ltdc.h"
+
 #define CAM_OUT_WIDTH_PIXEL    800U
 #define CAM_OUT_HEIGHT_PIXEL   464U
 #define CAM_TOP          16U

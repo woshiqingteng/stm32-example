@@ -17,6 +17,7 @@
 
 #include "bsp.h"
 #include "ltdc.h"
+
 /** @brief  Current camera mode. */
 typedef enum
 {

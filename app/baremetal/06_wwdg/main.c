@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define WWDG_COUNTER_TICK        0x7FU
 #define WWDG_WINDOW_TICK         0x5FU
 #define WWDG_START_DELAY_MS 300U

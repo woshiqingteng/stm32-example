@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <stdint.h>
+
 #include "fonts.h"
 #include "lcd.h"
 #include "malloc.h"

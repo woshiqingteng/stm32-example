@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "bmp.h"
 #include "gif.h"
 #include "jpeg_dec.h"

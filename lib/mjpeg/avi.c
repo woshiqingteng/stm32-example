@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+
 #include "avi.h"
 
 AVI_INFO g_avix;

@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define SAMPLE_PERIOD_MS   120U
 
 int main(void)

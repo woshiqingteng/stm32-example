@@ -8,6 +8,7 @@
 #define BSP_RS485_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define RS485_UX            USART2

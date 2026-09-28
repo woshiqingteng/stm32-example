@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define PWMDAC_ARR_TICK       255U
 #define PWMDAC_PSC_DIV       1U
 #define PWMDAC_STEP_MV   100U

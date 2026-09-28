@@ -7,6 +7,7 @@
 #define BSP_SDRAM_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief  SDRAM base address (FMC bank5). */

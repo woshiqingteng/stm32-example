@@ -16,6 +16,7 @@
 #include "usbh_hid.h"
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_mouse.h"
+
 #define BLINK_PERIOD_MS     500U
 #define LOOP_DELAY_MS       10U
 #define MOUSE_MAX_X         799

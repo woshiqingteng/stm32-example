@@ -11,6 +11,7 @@
 #define BSP_LTDC_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 /* Pixel formats. The _ID macros keep the values visible to the preprocessor so

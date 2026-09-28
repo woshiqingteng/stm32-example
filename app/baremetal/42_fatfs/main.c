@@ -13,6 +13,7 @@
 #include "bsp.h"
 #include "ff.h"
 #include "exfuns.h"
+
 #define BLINK_PERIOD_MS 500U
 
 static const char *const g_drv[3]  = { "0:", "1:", "2:" };

@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define GTIM_CNT_PSC_DIV       0U
 #define GTIM_CNT_BLINK_COUNT 20U
 #define GTIM_CNT_LOOP_MS   10U

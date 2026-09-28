@@ -13,6 +13,7 @@
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"
+
 #define DRIVE           "0:"
 #define TEXT_X          30U
 #define TEXT_WIDTH_PIXEL      320U

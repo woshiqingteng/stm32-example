@@ -7,6 +7,7 @@
 #define LIB_MJPEG_VIDEOPLAYER_H
 
 #include <stdint.h>
+
 #include "avi.h"
 
 /* The FatFs file handle stays opaque here so this public header does not pull

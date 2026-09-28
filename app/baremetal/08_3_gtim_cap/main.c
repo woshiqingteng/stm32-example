@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define GTIM_CAP_ARR_TICK     0xFFFFU
 #define GTIM_CAP_PSC_DIV     90U
 #define GTIM_CAP_LOOP_MS 200U

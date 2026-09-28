@@ -8,6 +8,7 @@
 #define LIB_AUDIO_RECORDER_H
 
 #include <stdint.h>
+
 #include "wavplay.h"    /* __WaveHeader */
 
 #define REC_SAI_RX_DMA_BUF_SIZE     4096U   /* capture DMA half-buffer size (bytes) */

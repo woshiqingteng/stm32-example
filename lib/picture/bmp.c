@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+
 #include "bmp.h"
 #include "piclib.h"
 #include "ff.h"

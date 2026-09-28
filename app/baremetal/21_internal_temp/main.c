@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define TEMP_SAMPLE_PERIOD_MS 500U
 
 int main(void)

@@ -5,7 +5,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define ATIM_NPWM_ARR_TICK     10000U
 #define ATIM_NPWM_PSC_DIV     9000U
 #define ATIM_NPWM_PULSE_COUNT  5U

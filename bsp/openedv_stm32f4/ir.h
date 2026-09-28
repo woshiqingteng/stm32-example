@@ -7,6 +7,7 @@
 #define BSP_IR_H
 
 #include <stdint.h>
+
 #include "stm32f4xx_hal.h"
 
 #define IR_IN_GPIO_PORT GPIOA

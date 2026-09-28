@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define ATIM_PWMIN_TEST_ARR_TICK      10U
 #define ATIM_PWMIN_TEST_PSC_DIV      90U
 #define ATIM_PWMIN_TEST_CCR_TICK      2U

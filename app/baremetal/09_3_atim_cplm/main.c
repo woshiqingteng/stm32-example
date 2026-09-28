@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "bsp.h"
+
 #define ATIM_CPLM_ARR_TICK     1000U
 #define ATIM_CPLM_PSC_DIV     180U
 #define ATIM_CPLM_CCR_TICK     300U

@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "stm32f4xx_hal.h"
 
 /** @brief USART instance selector (id, not the CMSIS USARTx pointer macro). */

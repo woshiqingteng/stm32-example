@@ -9,6 +9,7 @@
  */
 
 #include <string.h>
+
 #include "usmart.h"
 #include "usmart_str.h"
 #include "sys.h"

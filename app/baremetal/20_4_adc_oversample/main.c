@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+
 #define ADC_OVERSAMPLE_COUNT 256U
 #define ADC_DMA_GROUP_COUNT       10U
 #define ADC_DMA_BUF_LEN_SAMPLE      (ADC_OVERSAMPLE_COUNT * ADC_DMA_GROUP_COUNT)
