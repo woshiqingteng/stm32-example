@@ -4,7 +4,8 @@
  *
  * Line assembly (CR+LF terminated) lives here in the application; the usart
  * driver only delivers bytes through the registered callback. A CR not
- * followed by LF discards the whole line; an overlength line is dropped.
+ * followed by LF discards the whole line; an overlength line restarts the
+ * buffer immediately, and the excess is received as a new line.
  * The prompt/LED cadence is driven from HAL_GetTick() so it is unaffected by
  * the (blocking) printf time.
  */
@@ -18,57 +19,66 @@
 
 #define LINE_MAX 199U
 
-static uint8_t           s_rx_buf[128];
-static uint8_t           g_line[LINE_MAX + 1U];
-static volatile uint16_t g_line_len;
-static volatile bool     g_line_ready;
-static bool              g_cr_seen;
-static bool              g_overflow;
+typedef enum
+{
+    LINE_STATE_IDLE      = 0, /*!< no byte yet for the current line */
+    LINE_STATE_RECEIVING = 1, /*!< collecting bytes */
+    LINE_STATE_CR        = 2, /*!< CR received; LF completes, any other byte discards */
+    LINE_STATE_READY     = 3  /*!< complete line waiting for main */
+} line_state_t;
+
+static uint8_t               s_rx_buf[128];
+static uint8_t               g_line[LINE_MAX + 1U];
+static volatile line_state_t g_line_state = LINE_STATE_IDLE;
+static volatile uint16_t     g_line_len;
 
 static void line_feed(uint8_t byte)
 {
-    if (g_line_ready)
+    switch (g_line_state)
     {
-        return;
-    }
-
-    if (g_cr_seen)
-    {
-        g_cr_seen = false;
-        if (byte == '\n')
+    case LINE_STATE_IDLE:
+        if (byte == '\r')
         {
-            if (!g_overflow)
-            {
-                g_line_ready = true;
-            }
-            g_overflow = false;
+            g_line_state = LINE_STATE_CR;
         }
         else
         {
-            g_line_len = 0U;
-            g_overflow = false;
+            g_line[g_line_len++] = byte;
+            g_line_state = LINE_STATE_RECEIVING;
         }
-        return;
-    }
+        break;
 
-    if (byte == '\r')
-    {
-        g_cr_seen = true;
-        return;
-    }
+    case LINE_STATE_RECEIVING:
+        if (byte == '\r')
+        {
+            g_line_state = LINE_STATE_CR;
+        }
+        else if (g_line_len < LINE_MAX)
+        {
+            g_line[g_line_len++] = byte;
+        }
+        else
+        {
+            g_line_len   = 0U;
+            g_line_state = LINE_STATE_IDLE;
+        }
+        break;
 
-    if (g_overflow)
-    {
-        return;
-    }
+    case LINE_STATE_CR:
+        if (byte == '\n')
+        {
+            g_line_state = LINE_STATE_READY;
+        }
+        else
+        {
+            g_line_len   = 0U;
+            g_line_state = LINE_STATE_IDLE;
+        }
+        break;
 
-    if (g_line_len < LINE_MAX)
-    {
-        g_line[g_line_len++] = byte;
-    }
-    else
-    {
-        g_overflow = true;
+    case LINE_STATE_READY:
+    default:
+        break;
     }
 }
 
@@ -106,14 +116,14 @@ int main(void)
 
     for (;;)
     {
-        if (g_line_ready)
+        if (g_line_state == LINE_STATE_READY)
         {
             uint16_t len = g_line_len;
 
             g_line[len] = '\0';
             printf("recv %u bytes: %s\r\n", (unsigned)len, (const char *)g_line);
             g_line_len   = 0U;
-            g_line_ready = false;
+            g_line_state = LINE_STATE_IDLE;
         }
 
         if (time_due(&next_prompt, USART_PROMPT_PERIOD_MS))
