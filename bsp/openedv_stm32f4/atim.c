@@ -40,7 +40,9 @@ static atim_isr_hook_t g_atim_cc_hook;
 static void atim_npwm_isr(void);
 static void atim_pwmin_process(void);
 
-/* ===================== TIM8 NPWM (PC6 / CH1) ===================== */
+/* ===================== TIM8 NPWM (PC6 / CH1) =====================
+ * NPWM: RCR makes the update event fire every (RCR+1) PWM periods, so one
+ * ISR entry covers one batch (<=256 pulses); the ISR then chains batches. */
 
 static TIM_HandleTypeDef g_atim_npwm_handle;
 static uint32_t          g_atim_npwm_remain;
@@ -90,6 +92,8 @@ void atim_timx_npwm_chy_set(uint32_t npwm)
     }
 
     g_atim_npwm_remain = npwm;
+    /* Force a UEV (EGR.UG: reset CNT, reload registers, set UIF) so the ISR
+     * loads batch 1 now. npwm == 0 is ignored and does not cancel a burst. */
     HAL_TIM_GenerateEvent(&g_atim_npwm_handle, TIM_EVENTSOURCE_UPDATE);
     __HAL_TIM_ENABLE(&g_atim_npwm_handle);
 }
@@ -110,13 +114,15 @@ static void atim_npwm_isr(void)
     }
     else if ((g_atim_npwm_remain % ATIM_NPWM_BATCH_COUNT) != 0U)
     {
-        npwm = (uint16_t)(g_atim_npwm_remain % ATIM_NPWM_BATCH_COUNT);
+        npwm = (uint16_t)g_atim_npwm_remain;
         g_atim_npwm_remain = 0;
     }
 
     if (npwm != 0U)
     {
-        /* F4 HAL has no RCR setter: RCR = npwm-1 -> npwm pulses in this batch. */
+        /* RCR = npwm-1 -> npwm pulses before the next update; F4 HAL has no
+         * RCR setter. The forced UEV reloads RCR and resets CNT so the batch
+         * starts now. */
         g_atim_npwm_handle.Instance->RCR = (uint16_t)(npwm - 1U);
         HAL_TIM_GenerateEvent(&g_atim_npwm_handle, TIM_EVENTSOURCE_UPDATE);
         __HAL_TIM_ENABLE(&g_atim_npwm_handle);
@@ -126,6 +132,7 @@ static void atim_npwm_isr(void)
         __HAL_TIM_DISABLE(&g_atim_npwm_handle);
     }
 
+    /* Clear UIF so our own forced UG does not re-enter immediately. */
     __HAL_TIM_CLEAR_IT(&g_atim_npwm_handle, TIM_IT_UPDATE);
 }
 
