@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "dht11.h"
 
 #define DHT11_PERIOD_MS 1000U
 

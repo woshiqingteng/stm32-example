@@ -8,6 +8,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "lcd.h"
+#include "sdram.h"
 
 #define SDRAM_SIZE_BYTE    (32U * 1024U * 1024U)
 #define SDRAM_BLOCK_STEP_BYTE    (16U * 1024U)

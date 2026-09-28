@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "io_expand.h"
 
 #define PATTERN_PERIOD_MS  500U
 

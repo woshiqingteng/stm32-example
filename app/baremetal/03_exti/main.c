@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "exti.h"
 
 #define EXTI_LOOP_MS 1U
 

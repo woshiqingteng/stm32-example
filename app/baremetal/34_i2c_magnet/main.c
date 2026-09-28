@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "bsp.h"
+#include "st480mc.h"
 
 #define SAMPLE_PERIOD_MS   200U
 

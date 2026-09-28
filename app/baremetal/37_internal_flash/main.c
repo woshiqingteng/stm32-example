@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #include "bsp.h"
+#include "internal_flash.h"
 
 #define FLASH_TEXT        "STM32 FLASH TEST"
 #define FLASH_TEXT_SIZE_BYTE   (sizeof(FLASH_TEXT))

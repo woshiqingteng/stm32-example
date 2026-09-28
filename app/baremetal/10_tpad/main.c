@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "tpad.h"
 
 #define TPAD_LOOP_MS 10U
 

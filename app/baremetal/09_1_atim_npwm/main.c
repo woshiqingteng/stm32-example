@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "atim.h"
 
 #define ATIM_NPWM_ARR     10000U
 #define ATIM_NPWM_PSC     9000U

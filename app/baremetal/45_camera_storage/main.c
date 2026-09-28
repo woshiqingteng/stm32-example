@@ -12,6 +12,13 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "dcmi.h"
+#include "gtim.h"
+#include "io_expand.h"
+#include "lcd.h"
+#include "ov5640.h"
+#include "sdio.h"
+#include "sdram.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"

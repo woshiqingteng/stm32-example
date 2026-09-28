@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "gtim.h"
 
 #define GTIM_ARR 5000U
 #define GTIM_PSC 9000U

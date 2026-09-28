@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "atim.h"
 
 #define ATIM_CPLM_ARR     1000U
 #define ATIM_CPLM_PSC     180U

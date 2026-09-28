@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "wdg.h"
 
 #define IWDG_START_DELAY_MS  100U
 #define IWDG_LOOP_MS          10U

@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "gtim.h"
 
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U

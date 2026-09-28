@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "sdram.h"
 #include "malloc.h"
 
 #define TEST_SIZE_BYTE       2048U

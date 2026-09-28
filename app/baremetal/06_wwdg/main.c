@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "wdg.h"
 
 #define WWDG_START_DELAY_MS   300U
 #define WWDG_LED_TOGGLE_COUNT   10U   /*!< toggle LED1 every 10 early-wakeup interrupts */

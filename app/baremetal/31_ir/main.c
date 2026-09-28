@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "ir.h"
 
 #define KEY_SETTLE_DELAY_MS 100U
 #define IR_LOOP_MS   10U

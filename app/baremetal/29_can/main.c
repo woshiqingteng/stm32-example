@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "can.h"
 
 #define CAN_TEST_ID         0x12U
 #define CAN_TEST_LEN_BYTE        8U

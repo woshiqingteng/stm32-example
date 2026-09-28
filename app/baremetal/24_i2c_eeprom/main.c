@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "eeprom.h"
 
 #define EEPROM_TEST_ADDR   0U
 #define EEPROM_BYTE_COUNT  16U

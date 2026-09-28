@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "gtim.h"
 
 #define GTIM_CNT_PSC       0U
 /* PSC=0: external edges counted 1:1; 16-bit overflow */

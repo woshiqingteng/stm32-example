@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "exti.h"
+#include "pwr.h"
 
 #define SLEEP_LOOP_MS 10U
 #define WKUP_DEBOUNCE_WAIT_MS 30U

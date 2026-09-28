@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "ap3216c.h"
 
 #define SAMPLE_PERIOD_MS   120U
 

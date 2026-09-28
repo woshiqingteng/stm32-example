@@ -7,6 +7,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "atim.h"
+#include "gtim.h"
 
 #define ATIM_PWMIN_TEST_ARR      10U
 #define ATIM_PWMIN_TEST_PSC      90U

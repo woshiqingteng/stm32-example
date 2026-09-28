@@ -8,6 +8,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "adc.h"
+#include "dac.h"
 
 #define SIN_TIMER_ARR   9U
 

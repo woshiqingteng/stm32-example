@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "sdio.h"
 #include "usbd_core.h"
 #include "usbd_handle.h"
 #include "usbd_desc.h"

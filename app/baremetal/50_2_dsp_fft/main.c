@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "bsp.h"
+#include "btim.h"
 #include "arm_math.h"
 
 #define FFT_LENGTH_SAMPLE      1024U       /* FFT length: 16, 64, 256 or 1024 */

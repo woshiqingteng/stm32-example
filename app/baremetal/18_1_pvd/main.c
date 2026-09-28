@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "pwr.h"
 
 #define PVD_LEVEL  PWR_PVDLEVEL_7  /*!< HAL threshold selector (PWR_PVDLEVEL_7 = 2.9 V) */
 #define PVD_LOOP_MS 10U

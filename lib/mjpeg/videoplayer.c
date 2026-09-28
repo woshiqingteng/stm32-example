@@ -13,6 +13,9 @@
 #include <stdbool.h>
 
 #include "bsp.h"
+#include "codec.h"
+#include "lcd.h"
+#include "sai.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"

@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "iap.h"
 
 #define IAP_LOOP_MS 100U
 

@@ -9,6 +9,9 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "btim.h"
+#include "lcd.h"
+#include "sdram.h"
 
 #define FPU_ITERATION_COUNT   128U
 #define FPU_REAL_CONST  0.285f

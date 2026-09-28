@@ -11,6 +11,8 @@
 #include <stdbool.h>
 
 #include "bsp.h"
+#include "codec.h"
+#include "sai.h"
 #include "ff.h"
 #include "malloc.h"
 #include "wavplay.h"

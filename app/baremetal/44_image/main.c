@@ -11,6 +11,9 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "lcd.h"
+#include "sdio.h"
+#include "sdram.h"
 #include "ff.h"
 #include "exfuns.h"
 #include "text.h"

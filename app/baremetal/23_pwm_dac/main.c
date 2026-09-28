@@ -8,6 +8,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "adc.h"
+#include "pwmdac.h"
 
 #define PWMDAC_ARR       255U
 #define PWMDAC_PSC       1U

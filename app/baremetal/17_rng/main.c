@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "rng.h"
 
 #define RNG_RANGE_MIN  0
 #define RNG_RANGE_MAX  9

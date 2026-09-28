@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "iap.h"
 
 #define IAP_APP_LOOP_MS 500U
 

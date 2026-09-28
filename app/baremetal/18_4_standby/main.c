@@ -9,6 +9,9 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "exti.h"
+#include "pwr.h"
+#include "rtc.h"
 
 #define STANDBY_BKP_REG    1U
 #define STANDBY_BKP_MAGIC  0x5354414EU  /* "STAN" */

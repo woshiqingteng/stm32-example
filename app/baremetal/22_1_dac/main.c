@@ -8,6 +8,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "adc.h"
+#include "dac.h"
 
 #define DAC_STEP_COUNT     256U
 #define DAC_MV_FULL  3300U

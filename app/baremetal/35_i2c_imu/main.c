@@ -12,6 +12,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "imu.h"
+#include "st480mc.h"
 #include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U

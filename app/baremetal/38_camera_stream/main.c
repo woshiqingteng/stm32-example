@@ -16,6 +16,11 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "btim.h"
+#include "dcmi.h"
+#include "lcd.h"
+#include "ov5640.h"
+#include "sdram.h"
 #include "ltdc.h"
 
 /** @brief  Current camera mode. */

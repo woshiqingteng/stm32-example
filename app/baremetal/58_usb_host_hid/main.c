@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "io_expand.h"
 #include "usbh_core.h"
 #include "usbh_handle.h"
 #include "usbh_hid.h"

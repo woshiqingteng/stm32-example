@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "rs485.h"
 
 #define RS485_BAUD      9600U
 #define RS485_PERIOD_MS     500U

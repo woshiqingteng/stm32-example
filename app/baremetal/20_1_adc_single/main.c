@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "adc.h"
 
 #define ADC_AVG_COUNT         10U
 #define ADC_VREF_MV           3300U

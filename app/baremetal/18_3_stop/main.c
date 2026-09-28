@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "exti.h"
+#include "pwr.h"
 
 #define STOP_LOOP_MS 10U
 

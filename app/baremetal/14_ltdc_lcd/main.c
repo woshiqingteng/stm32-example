@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "lcd.h"
+#include "sdram.h"
 
 #define LTDC_COLOR_COUNT 12U
 #define DEMO_TEXT_X      10U

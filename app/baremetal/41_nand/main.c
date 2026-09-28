@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "nand.h"
 #include "malloc.h"
 #include "ftl.h"
 

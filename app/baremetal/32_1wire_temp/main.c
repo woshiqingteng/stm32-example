@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
+#include "ds18b20.h"
 
 #define TEMP_PERIOD_MS  500U
 
