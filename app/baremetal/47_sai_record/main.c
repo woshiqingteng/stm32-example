@@ -16,7 +16,7 @@
 #include "recorder.h"
 
 #define DRIVE       "0:"
-#define LOOP_DELAY_MS 500U
+#define SAI_RECORD_LOOP_MS 500U
 
 int main(void)
 {
@@ -56,6 +56,6 @@ int main(void)
     for (;;)
     {
         led_toggle(LED0);
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(SAI_RECORD_LOOP_MS);
     }
 }

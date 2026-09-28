@@ -14,7 +14,7 @@
 #include "audioplay.h"
 
 #define DRIVE       "0:"
-#define LOOP_DELAY_MS 500U
+#define SAI_AUDIO_LOOP_MS 500U
 
 int main(void)
 {
@@ -52,6 +52,6 @@ int main(void)
     for (;;)
     {
         led_toggle(LED0);
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(SAI_AUDIO_LOOP_MS);
     }
 }

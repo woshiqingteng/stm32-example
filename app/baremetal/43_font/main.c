@@ -18,7 +18,7 @@
 #define TEXT_X          30U
 #define TEXT_WIDTH_PIXEL      320U
 #define FONT_SIZE_PIXEL       16U
-#define LOOP_DELAY_MS   50U
+#define FONT_LOOP_MS   50U
 
 /* Four sample pages; the Chinese entries are GBK byte sequences. */
 static const char *const g_sample_title[] =
@@ -234,6 +234,6 @@ int main(void)
         }
 
         led_toggle(LED0);
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(FONT_LOOP_MS);
     }
 }

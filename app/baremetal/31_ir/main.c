@@ -9,7 +9,7 @@
 #include "bsp.h"
 
 #define KEY_SETTLE_DELAY_MS 100U
-#define POLL_DELAY_MS   10U
+#define IR_LOOP_MS   10U
 
 static const char *ir_symbol(uint8_t key)
 {
@@ -61,7 +61,7 @@ int main(void)
         }
         else
         {
-            delay_ms(POLL_DELAY_MS);
+            delay_ms(IR_LOOP_MS);
         }
 
         led_tick++;

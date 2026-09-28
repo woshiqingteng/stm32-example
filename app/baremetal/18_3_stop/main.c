@@ -7,7 +7,7 @@
 
 #include "bsp.h"
 
-#define LOOP_DELAY_MS 10U
+#define STOP_LOOP_MS 10U
 
 int main(void)
 {
@@ -41,6 +41,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(STOP_LOOP_MS);
     }
 }

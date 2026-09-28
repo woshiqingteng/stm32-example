@@ -8,7 +8,7 @@
 #include "bsp.h"
 
 #define PVD_LEVEL  PWR_PVDLEVEL_7  /*!< HAL threshold selector (PWR_PVDLEVEL_7 = 2.9 V) */
-#define LOOP_DELAY_MS 10U
+#define PVD_LOOP_MS 10U
 
 static void pvd_hook(pwr_pvd_state_t state)
 {
@@ -40,6 +40,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(PVD_LOOP_MS);
     }
 }

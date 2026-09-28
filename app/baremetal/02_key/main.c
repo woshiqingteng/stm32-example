@@ -7,7 +7,7 @@
 
 #include "bsp.h"
 
-#define KEY_IDLE_POLL_MS 10U
+#define KEY_LOOP_MS 10U
 
 typedef enum
 {
@@ -50,7 +50,7 @@ int main(void)
                 led0_state = led_state_toggle(led0_state);
                 break;
             default:
-                delay_ms(KEY_IDLE_POLL_MS);
+                delay_ms(KEY_LOOP_MS);
                 break;
         }
 

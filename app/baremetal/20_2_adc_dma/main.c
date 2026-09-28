@@ -13,7 +13,7 @@
 #define ADC_UV_PER_VOLT      1000000U
 #define ADC_UV_PER_MV        1000U
 #define ADC_FULL_SCALE_COUNT       4096U
-#define ADC_POLL_PERIOD_MS   10U
+#define ADC_LOOP_MS   10U
 #define BLINK_PERIOD_MS         10U
 
 typedef enum
@@ -71,6 +71,6 @@ int main(void)
             }
         }
 
-        delay_ms(ADC_POLL_PERIOD_MS);
+        delay_ms(ADC_LOOP_MS);
     }
 }

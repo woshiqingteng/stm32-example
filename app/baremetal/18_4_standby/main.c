@@ -13,7 +13,7 @@
 #define STANDBY_BKP_REG    1U
 #define STANDBY_BKP_MAGIC  0x5354414EU  /* "STAN" */
 #define STANDBY_ENTRY_DELAY_MS 50U
-#define LOOP_DELAY_MS      10U
+#define STANDBY_LOOP_MS      10U
 
 static void print_boot_cause(void)
 {
@@ -62,6 +62,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(STANDBY_LOOP_MS);
     }
 }

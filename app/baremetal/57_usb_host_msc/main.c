@@ -16,7 +16,7 @@
 
 #define USB_DRIVE       "2:"
 #define BLINK_PERIOD_MS 500U
-#define LOOP_DELAY_MS   10U
+#define USB_MSC_HOST_LOOP_MS   10U
 
 static void usbh_list_root(void)
 {
@@ -117,12 +117,12 @@ int main(void)
     {
         (void)USBH_Process(&g_hUSBHost);
 
-        if (++blink >= (BLINK_PERIOD_MS / LOOP_DELAY_MS))
+        if (++blink >= (BLINK_PERIOD_MS / USB_MSC_HOST_LOOP_MS))
         {
             blink = 0U;
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(USB_MSC_HOST_LOOP_MS);
     }
 }

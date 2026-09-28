@@ -7,7 +7,7 @@
 
 #include "bsp.h"
 
-#define POLL_DELAY_MS 1U
+#define EXTI_LOOP_MS 1U
 
 static void on_key0(key_id_t id)
 {
@@ -60,6 +60,6 @@ int main(void)
     for (;;)
     {
         exti_poll();
-        delay_ms(POLL_DELAY_MS);
+        delay_ms(EXTI_LOOP_MS);
     }
 }

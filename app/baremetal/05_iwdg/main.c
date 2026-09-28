@@ -8,7 +8,7 @@
 #include "bsp.h"
 
 #define IWDG_START_DELAY_MS  100U
-#define KEY_POLL_MS          10U
+#define IWDG_LOOP_MS          10U
 
 int main(void)
 {
@@ -25,6 +25,6 @@ int main(void)
             iwdg_feed();
         }
 
-        delay_ms(KEY_POLL_MS);
+        delay_ms(IWDG_LOOP_MS);
     }
 }

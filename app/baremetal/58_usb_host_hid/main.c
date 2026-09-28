@@ -18,7 +18,7 @@
 #include "usbh_hid_mouse.h"
 
 #define BLINK_PERIOD_MS     500U
-#define LOOP_DELAY_MS       10U
+#define USB_HID_LOOP_MS       10U
 #define MOUSE_MAX_X         799
 #define MOUSE_MAX_Y         479
 #define KBD_LINE_MAX_BYTE        64U
@@ -160,12 +160,12 @@ int main(void)
             g_lost_tick = sys_get_tick();
         }
 
-        if (++blink >= (BLINK_PERIOD_MS / LOOP_DELAY_MS))
+        if (++blink >= (BLINK_PERIOD_MS / USB_HID_LOOP_MS))
         {
             blink = 0U;
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(USB_HID_LOOP_MS);
     }
 }

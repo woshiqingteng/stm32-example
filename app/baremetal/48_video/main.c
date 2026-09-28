@@ -19,7 +19,7 @@
 #define TEXT_WIDTH_PIXEL  320U
 #define FONT_SIZE_PIXEL   16U
 #define VIDEO_START_DELAY_MS 1200U
-#define LOOP_DELAY_MS 500U
+#define VIDEO_LOOP_MS 500U
 
 static void app_font_prepare(void)
 {
@@ -95,6 +95,6 @@ int main(void)
     for (;;)
     {
         led_toggle(LED0);
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(VIDEO_LOOP_MS);
     }
 }

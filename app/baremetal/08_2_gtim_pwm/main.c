@@ -11,7 +11,7 @@
 #define GTIM_PWM_PSC        90U
 #define GTIM_PWM_DUTY_MAX_TICK   300
 #define GTIM_PWM_DUTY_STEP_TICK  1
-#define GTIM_PWM_DELAY_MS   10U
+#define GTIM_PWM_LOOP_MS   10U
 
 /** @brief PWM duty ramp direction. */
 typedef enum
@@ -31,7 +31,7 @@ int main(void)
 
     for (;;)
     {
-        delay_ms(GTIM_PWM_DELAY_MS);
+        delay_ms(GTIM_PWM_LOOP_MS);
 
         duty += (ramp == GTIM_PWM_RAMP_UP) ? (int16_t)GTIM_PWM_DUTY_STEP_TICK
                                            : -(int16_t)GTIM_PWM_DUTY_STEP_TICK;

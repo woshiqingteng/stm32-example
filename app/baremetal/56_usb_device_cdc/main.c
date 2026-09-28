@@ -15,7 +15,7 @@
 #include "usbd_cdc_if.h"
 
 #define BLINK_PERIOD_MS 500U
-#define LOOP_DELAY_MS   10U
+#define USB_CDC_LOOP_MS   10U
 
 int main(void)
 {
@@ -82,7 +82,7 @@ int main(void)
                 led_toggle(LED0);
             }
 
-            delay_ms(LOOP_DELAY_MS);
+            delay_ms(USB_CDC_LOOP_MS);
         }
     }
 }

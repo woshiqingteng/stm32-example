@@ -14,7 +14,7 @@
 
 #include "bsp.h"
 
-#define USART_POLL_MS          10U
+#define USART_LOOP_MS          10U
 #define USART_PROMPT_PERIOD_MS 2000U
 #define USART_BLINK_PERIOD_MS  300U
 
@@ -136,6 +136,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(USART_POLL_MS);
+        delay_ms(USART_LOOP_MS);
     }
 }

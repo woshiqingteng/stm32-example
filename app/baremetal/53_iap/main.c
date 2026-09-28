@@ -10,7 +10,7 @@
 
 #include "bsp.h"
 
-#define LOOP_DELAY_MS 100U
+#define IAP_LOOP_MS 100U
 
 int main(void)
 {
@@ -46,6 +46,6 @@ int main(void)
         }
 
         led_toggle(LED0);
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(IAP_LOOP_MS);
     }
 }

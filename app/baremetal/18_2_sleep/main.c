@@ -7,7 +7,7 @@
 
 #include "bsp.h"
 
-#define LOOP_DELAY_MS 10U
+#define SLEEP_LOOP_MS 10U
 #define WKUP_DEBOUNCE_WAIT_MS 30U
 
 /** @brief Cause recorded when the MCU wakes from sleep. */
@@ -67,6 +67,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(LOOP_DELAY_MS);
+        delay_ms(SLEEP_LOOP_MS);
     }
 }
