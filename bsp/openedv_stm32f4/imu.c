@@ -254,6 +254,33 @@ void imu_read_xyz(int16_t acc[3], int16_t gyro[3])
     gyro[2] = (int16_t)((float)g_imu_gyro[2] - g_imu_gyro_bias[2]);
 }
 
+void imu_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
+{
+    float   ax = (float)acc[0] / IMU_ACC_1G_COUNT;
+    float   ay = (float)acc[1] / IMU_ACC_1G_COUNT;
+    float   az = (float)acc[2] / IMU_ACC_1G_COUNT;
+    float   mag = sqrtf(ax * ax + ay * ay + az * az);
+    uint8_t i;
+
+    if ((mag < IMU_DYN_ACC_MIN_G) || (mag > IMU_DYN_ACC_MAX_G))
+    {
+        return;
+    }
+
+    for (i = 0U; i < 3U; i++)
+    {
+        if (((gyro[i] < 0) ? -gyro[i] : gyro[i]) >= IMU_DYN_GYRO_THR_COUNT)
+        {
+            return;
+        }
+    }
+
+    for (i = 0U; i < 3U; i++)
+    {
+        g_imu_gyro_bias[i] += IMU_DYN_BIAS_ALPHA * (float)gyro[i];
+    }
+}
+
 float imu_read_temperature(void)
 {
     uint8_t buf[IMU_TEMP_LEN_BYTE];

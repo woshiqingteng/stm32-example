@@ -46,6 +46,11 @@
 #define IMU_CAL_SAMPLE_COUNT     200U    /*!< samples averaged while calibrating */
 #define IMU_CAL_SAMPLE_DELAY_MS  2U      /*!< settle delay between calibration samples */
 
+#define IMU_DYN_ACC_MIN_G        0.9f    /*!< still detection: |acc| lower bound (g) */
+#define IMU_DYN_ACC_MAX_G        1.1f    /*!< still detection: |acc| upper bound (g) */
+#define IMU_DYN_GYRO_THR_COUNT   200     /*!< still detection: |gyro| limit (~3 dps) */
+#define IMU_DYN_BIAS_ALPHA       0.01f   /*!< bias tracking gain when still */
+
 /** @brief  Probe and configure the accelerometer and gyroscope.
  *  @return 0 on success, 1 if the chip id does not match. */
 uint8_t imu_init(void);
@@ -54,6 +59,10 @@ uint8_t imu_init(void);
  *          Gyro bias is the averaged rate; acc bias keeps |acc| = 1g along the
  *          measured gravity direction. */
 void imu_calibrate(void);
+
+/** @brief  Slowly track the gyro bias while the board is stationary (call every
+ *          sample with the bias-corrected values from imu_read_xyz()). */
+void imu_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3]);
 
 /** @brief  Read raw accelerometer and gyroscope counts (bias corrected). */
 void imu_read_xyz(int16_t acc[3], int16_t gyro[3]);

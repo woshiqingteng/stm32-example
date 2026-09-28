@@ -90,6 +90,11 @@ int main(void)
 
         imu_read_xyz(acc, gyro);
 
+        if (imu_ok)
+        {
+            imu_update_dynamic_bias(acc, gyro);
+        }
+
         for (i = 0U; i < 3U; i++)
         {
             af[i] = (float)acc[i] / ACC_LSB_PER_G;
