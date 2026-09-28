@@ -17,12 +17,8 @@ static void sai1_gpio_msp_init(void)
     GPIO_InitTypeDef gpio_init_struct;
 
     /* ---- MSP begin: SAI1 clock + PE2/PE3/PE4/PE5/PE6 ---- */
-    SAI1_SAI_CLK_ENABLE();
-    SAI1_CLK_GPIO_CLK_ENABLE();
-    SAI1_SCK_GPIO_CLK_ENABLE();
-    SAI1_FSA_GPIO_CLK_ENABLE();
-    SAI1_SDA_GPIO_CLK_ENABLE();
-    SAI1_SDB_GPIO_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_SAI1_CLK_ENABLE();
 
     gpio_init_struct.Pin = SAI1_CLK_GPIO_PIN;
     gpio_init_struct.Mode = GPIO_MODE_AF_PP;
@@ -240,7 +236,7 @@ void sai1_tx_dma_init(uint8_t *buf0, uint8_t *buf1, uint16_t num, uint8_t width)
             break;
     }
 
-    SAI1_TX_DMA_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_LINKDMA(&g_sai1_a_handle, hdmatx, g_sai1_tx_dma_handle);
 
     g_sai1_tx_dma_handle.Instance = SAI1_TX_DMASx;
@@ -293,7 +289,7 @@ void sai1_rx_dma_init(uint8_t *buf0, uint8_t *buf1, uint16_t num, uint8_t width)
             break;
     }
 
-    SAI1_RX_DMA_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_LINKDMA(&g_sai1_b_handle, hdmarx, g_sai1_rx_dma_handle);
 
     g_sai1_rx_dma_handle.Instance = SAI1_RX_DMASx;

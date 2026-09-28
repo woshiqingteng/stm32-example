@@ -17,25 +17,18 @@
 /* SAI1 pin mapping. */
 #define SAI1_CLK_GPIO_PORT              GPIOE
 #define SAI1_CLK_GPIO_PIN               GPIO_PIN_2
-#define SAI1_CLK_GPIO_CLK_ENABLE()      do { __HAL_RCC_GPIOE_CLK_ENABLE(); } while (0)
 
 #define SAI1_SCK_GPIO_PORT              GPIOE
 #define SAI1_SCK_GPIO_PIN               GPIO_PIN_5
-#define SAI1_SCK_GPIO_CLK_ENABLE()      do { __HAL_RCC_GPIOE_CLK_ENABLE(); } while (0)
 
 #define SAI1_FSA_GPIO_PORT              GPIOE
 #define SAI1_FSA_GPIO_PIN               GPIO_PIN_4
-#define SAI1_FSA_GPIO_CLK_ENABLE()      do { __HAL_RCC_GPIOE_CLK_ENABLE(); } while (0)
 
 #define SAI1_SDA_GPIO_PORT              GPIOE
 #define SAI1_SDA_GPIO_PIN               GPIO_PIN_6
-#define SAI1_SDA_GPIO_CLK_ENABLE()      do { __HAL_RCC_GPIOE_CLK_ENABLE(); } while (0)
 
 #define SAI1_SDB_GPIO_PORT              GPIOE
 #define SAI1_SDB_GPIO_PIN               GPIO_PIN_3
-#define SAI1_SDB_GPIO_CLK_ENABLE()      do { __HAL_RCC_GPIOE_CLK_ENABLE(); } while (0)
-
-#define SAI1_SAI_CLK_ENABLE()           do { __HAL_RCC_SAI1_CLK_ENABLE(); } while (0)
 
 /* Playback DMA: DMA2 stream 3, channel 0. */
 #define SAI1_TX_DMASx                   DMA2_Stream3
@@ -43,7 +36,6 @@
 #define SAI1_TX_DMASx_IRQHandler        DMA2_Stream3_IRQHandler
 #define SAI1_TX_DMASx_IRQ               DMA2_Stream3_IRQn
 #define SAI1_TX_DMASx_FLAG              DMA_FLAG_TCIF3_7
-#define SAI1_TX_DMA_CLK_ENABLE()        do { __HAL_RCC_DMA2_CLK_ENABLE(); } while (0)
 
 /* Capture DMA: DMA2 stream 5, channel 0. */
 #define SAI1_RX_DMASx                   DMA2_Stream5
@@ -51,7 +43,6 @@
 #define SAI1_RX_DMASx_IRQHandler        DMA2_Stream5_IRQHandler
 #define SAI1_RX_DMASx_IRQ               DMA2_Stream5_IRQn
 #define SAI1_RX_DMASx_FLAG              DMA_FLAG_TCIF1_5
-#define SAI1_RX_DMA_CLK_ENABLE()        do { __HAL_RCC_DMA2_CLK_ENABLE(); } while (0)
 
 extern SAI_HandleTypeDef g_sai1_a_handle;     /* SAI1 block A (playback) */
 extern SAI_HandleTypeDef g_sai1_b_handle;     /* SAI1 block B (capture)  */

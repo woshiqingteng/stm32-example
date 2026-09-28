@@ -18,7 +18,6 @@
 
 /* TIM4 time base (board specific, deliberately kept out of the public header). */
 #define USMART_TIMX              TIM4
-#define USMART_TIMX_CLK_ENABLE() do { __HAL_RCC_TIM4_CLK_ENABLE(); } while (0)
 
 /** @brief Command line reception state. */
 typedef enum
@@ -75,7 +74,7 @@ char *usmart_get_input_string(void)
 
 static void usmart_timx_init(uint16_t arr, uint16_t psc)
 {
-    USMART_TIMX_CLK_ENABLE();
+    __HAL_RCC_TIM4_CLK_ENABLE();
 
     g_usmart_timx.Instance           = USMART_TIMX;
     g_usmart_timx.Init.Prescaler     = psc;

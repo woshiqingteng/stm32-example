@@ -12,19 +12,15 @@
 /* On-board keys: KEY0 = PH3, KEY1 = PH2, KEY2 = PC13, WK_UP = PA0. */
 #define KEY0_GPIO_PORT      GPIOH
 #define KEY0_GPIO_PIN       GPIO_PIN_3
-#define KEY0_GPIO_CLK_ENABLE() do { __HAL_RCC_GPIOH_CLK_ENABLE(); } while (0)
 
 #define KEY1_GPIO_PORT      GPIOH
 #define KEY1_GPIO_PIN       GPIO_PIN_2
-#define KEY1_GPIO_CLK_ENABLE() do { __HAL_RCC_GPIOH_CLK_ENABLE(); } while (0)
 
 #define KEY2_GPIO_PORT      GPIOC
 #define KEY2_GPIO_PIN       GPIO_PIN_13
-#define KEY2_GPIO_CLK_ENABLE() do { __HAL_RCC_GPIOC_CLK_ENABLE(); } while (0)
 
 #define KEY_WKUP_GPIO_PORT  GPIOA
 #define KEY_WKUP_GPIO_PIN   GPIO_PIN_0
-#define KEY_WKUP_GPIO_CLK_ENABLE() do { __HAL_RCC_GPIOA_CLK_ENABLE(); } while (0)
 
 #define KEY0_PRESSED_LEVEL     GPIO_PIN_RESET
 #define KEY1_PRESSED_LEVEL     GPIO_PIN_RESET
@@ -56,10 +52,9 @@ static void key_gpio_config(GPIO_TypeDef *port, uint16_t pin, uint32_t pull)
 
 void key_init(void)
 {
-    KEY0_GPIO_CLK_ENABLE();
-    KEY1_GPIO_CLK_ENABLE();
-    KEY2_GPIO_CLK_ENABLE();
-    KEY_WKUP_GPIO_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
 
     key_gpio_config(KEY0_GPIO_PORT, KEY0_GPIO_PIN, GPIO_PULLUP);
     key_gpio_config(KEY1_GPIO_PORT, KEY1_GPIO_PIN, GPIO_PULLUP);
