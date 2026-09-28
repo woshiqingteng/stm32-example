@@ -11,10 +11,10 @@
 
 /* Board-fixed watchdog configuration. */
 #define IWDG_PRESCALER      IWDG_PRESCALER_64  /*!< LSI ~32 kHz input */
-#define IWDG_RELOAD_TICK    500U               /*!< ~1.0 s timeout (500 * 64 / 32 kHz) */
+#define IWDG_RELOAD    500U               /*!< ~1.0 s timeout (500 * 64 / 32 kHz) */
 #define WWDG_PRESCALER      WWDG_PRESCALER_8   /*!< PCLK1/8 input */
-#define WWDG_COUNTER_TICK   0x7FU              /*!< T[6:0] counter reload */
-#define WWDG_WINDOW_TICK    0x5FU              /*!< W[5:0] refresh window */
+#define WWDG_COUNTER   0x7FU              /*!< T[6:0] counter reload */
+#define WWDG_WINDOW    0x5FU              /*!< W[5:0] refresh window */
 
 IWDG_HandleTypeDef g_iwdg_handle;
 WWDG_HandleTypeDef g_wwdg_handle;
@@ -25,7 +25,7 @@ void iwdg_init(void)
 {
     g_iwdg_handle.Instance       = IWDG;
     g_iwdg_handle.Init.Prescaler = IWDG_PRESCALER;
-    g_iwdg_handle.Init.Reload    = IWDG_RELOAD_TICK;
+    g_iwdg_handle.Init.Reload    = IWDG_RELOAD;
     HAL_IWDG_Init(&g_iwdg_handle);
 }
 
@@ -44,8 +44,8 @@ void wwdg_init(void)
 
     g_wwdg_handle.Instance         = WWDG;
     g_wwdg_handle.Init.Prescaler   = WWDG_PRESCALER;
-    g_wwdg_handle.Init.Window      = WWDG_WINDOW_TICK;
-    g_wwdg_handle.Init.Counter     = WWDG_COUNTER_TICK;
+    g_wwdg_handle.Init.Window      = WWDG_WINDOW;
+    g_wwdg_handle.Init.Counter     = WWDG_COUNTER;
     g_wwdg_handle.Init.EWIMode     = WWDG_EWI_ENABLE;
     HAL_WWDG_Init(&g_wwdg_handle);
 }

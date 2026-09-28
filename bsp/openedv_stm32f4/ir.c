@@ -10,7 +10,7 @@
 #include "stm32f4xx_hal.h"
 #include "ir.h"
 
-#define IR_PRESCALER_DIV        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
+#define IR_PRESCALER        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
 #define IR_PERIOD_TICK           10000U
 #define IR_IC_FILTER        0x03U
 #define IR_NVIC_PREEMP      1U
@@ -66,7 +66,7 @@ void ir_init(void)
     /* ---- MSP end ---- */
 
     g_ir_handle.Instance               = IR_IN_TIMX;
-    g_ir_handle.Init.Prescaler         = IR_PRESCALER_DIV;
+    g_ir_handle.Init.Prescaler         = IR_PRESCALER;
     g_ir_handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     g_ir_handle.Init.Period            = IR_PERIOD_TICK;
     g_ir_handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
