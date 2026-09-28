@@ -14,7 +14,7 @@
 #define FPU_REAL_CONST  0.285f
 #define FPU_IMG_CONST   0.01f
 #define FPU_ROW_COUNT     800U
-#define FPU_TIMER_PSC_DIV   (9000U - 1U) /* 90 MHz / 9000 = 10 kHz (0.1 ms) */
+#define FPU_TIMER_PSC   (9000U - 1U) /* 90 MHz / 9000 = 10 kHz (0.1 ms) */
 
 #if defined(__FPU_USED) && (__FPU_USED == 1)
 #define FPU_MODE_TEXT "FPU On"
@@ -116,7 +116,7 @@ int main(void)
     lcd_clear(BLACK);
     julia_clut_init();
 
-    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC_DIV);
+    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
     btim_timx_int_register(on_tim6);
 
     width  = lcd_get_width();

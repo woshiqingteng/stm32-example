@@ -8,8 +8,8 @@
 
 #include "bsp.h"
 
-#define ATIM_NPWM_ARR_TICK     10000U
-#define ATIM_NPWM_PSC_DIV     9000U
+#define ATIM_NPWM_ARR     10000U
+#define ATIM_NPWM_PSC     9000U
 #define ATIM_NPWM_PULSE_COUNT  5U
 #define ATIM_NPWM_LOOP_MS 500U
 
@@ -21,7 +21,7 @@ int main(void)
     /* Free PB0 (LED1) and use it as the pulse observation input. */
     led_set_input(LED1);
 
-    atim_timx_npwm_chy_init(ATIM_NPWM_ARR_TICK - 1U, ATIM_NPWM_PSC_DIV - 1U);
+    atim_timx_npwm_chy_init(ATIM_NPWM_ARR - 1U, ATIM_NPWM_PSC - 1U);
     atim_timx_npwm_chy_set(ATIM_NPWM_PULSE_COUNT);
 
     for (;;)

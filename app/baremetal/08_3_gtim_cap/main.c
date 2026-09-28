@@ -7,15 +7,15 @@
 
 #include "bsp.h"
 
-#define GTIM_CAP_ARR_TICK     0xFFFFU
-#define GTIM_CAP_PSC_DIV     90U
+#define GTIM_CAP_ARR     0xFFFFU
+#define GTIM_CAP_PSC     90U
 #define GTIM_CAP_LOOP_MS 200U
 
 int main(void)
 {
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_cap_chy_init(GTIM_CAP_ARR_TICK, GTIM_CAP_PSC_DIV - 1U);
+    gtim_timx_cap_chy_init(GTIM_CAP_ARR, GTIM_CAP_PSC - 1U);
 
     for (;;)
     {
