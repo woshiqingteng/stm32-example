@@ -28,8 +28,8 @@ typedef enum
     GTIM_CAP_OVERFLOW = 2,   /*!< 32-bit CNT wrapped (event only) */
 } gtim_cap_event_t;
 
-/*!< Called on every event; returns the edge to arm next
- *   (ignored when the event is GTIM_CAP_OVERFLOW). */
+/** @brief  Called on every event; returns the edge to arm next
+ *          (ignored when the event is GTIM_CAP_OVERFLOW). */
 typedef gtim_cap_event_t (*gtim_cap_cb_t)(uint32_t value, gtim_cap_event_t event);
 
 void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc);

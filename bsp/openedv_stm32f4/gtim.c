@@ -91,22 +91,22 @@ void gtim_timx_pwm_chy_set(uint16_t ccr)
  *      one callback per edge/overflow; the measurement state machine lives in
  *      the application. tick = (PSC+1)/90 MHz (1 us when PSC=90). ---- */
 static TIM_HandleTypeDef g_gtim_cap_handle;
-static gtim_cap_cb_t     g_cap_cb;
-static gtim_cap_event_t  g_cap_edge = GTIM_CAP_RISING;
+static gtim_cap_cb_t     g_gtim_cap_cb;
+static gtim_cap_event_t  g_gtim_cap_edge = GTIM_CAP_RISING;
 
 /* Arm the next edge to capture. */
-static void cap_arm(gtim_cap_event_t edge)
+static void gtim_cap_arm(gtim_cap_event_t edge)
 {
     uint32_t polarity = (edge == GTIM_CAP_RISING) ? TIM_ICPOLARITY_RISING
                                                   : TIM_ICPOLARITY_FALLING;
 
     TIM_RESET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1);
     TIM_SET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1, polarity);
-    g_cap_edge = edge;
+    g_gtim_cap_edge = edge;
 }
 
 /* Zero the counter without a capture/update landing in between. */
-static void cap_reset(void)
+static void gtim_cap_reset(void)
 {
     __HAL_TIM_DISABLE(&g_gtim_cap_handle);
     __HAL_TIM_SET_COUNTER(&g_gtim_cap_handle, 0U);
@@ -142,8 +142,8 @@ void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc)
     ic.ICFilter    = 0;
     HAL_TIM_IC_ConfigChannel(&g_gtim_cap_handle, &ic, TIM_CHANNEL_1);
 
-    g_cap_cb   = 0;
-    g_cap_edge = GTIM_CAP_RISING;
+    g_gtim_cap_cb   = 0;
+    g_gtim_cap_edge = GTIM_CAP_RISING;
 
     __HAL_TIM_ENABLE_IT(&g_gtim_cap_handle, TIM_IT_UPDATE);
     HAL_TIM_IC_Start_IT(&g_gtim_cap_handle, TIM_CHANNEL_1);
@@ -151,15 +151,27 @@ void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc)
 
 void gtim_timx_cap_chy_register(gtim_cap_cb_t cb)
 {
-    g_cap_cb = cb;
+    g_gtim_cap_cb = cb;
 }
 
 void TIM5_IRQHandler(void)
 {
+    /* Overflow first: if a wrap coincides with the falling edge, counting it
+     * here lets the capture add the full 2^32 before computing the width. */
+    if (__HAL_TIM_GET_FLAG(&g_gtim_cap_handle, TIM_FLAG_UPDATE) != RESET)
+    {
+        __HAL_TIM_CLEAR_FLAG(&g_gtim_cap_handle, TIM_FLAG_UPDATE);
+
+        if (g_gtim_cap_cb != 0)
+        {
+            (void)g_gtim_cap_cb(0U, GTIM_CAP_OVERFLOW);        /* return value unused */
+        }
+    }
+
     if (__HAL_TIM_GET_FLAG(&g_gtim_cap_handle, TIM_FLAG_CC1) != RESET)
     {
         uint32_t         value = HAL_TIM_ReadCapturedValue(&g_gtim_cap_handle, TIM_CHANNEL_1);
-        gtim_cap_event_t edge  = g_cap_edge;
+        gtim_cap_event_t edge  = g_gtim_cap_edge;
         gtim_cap_event_t next  = (edge == GTIM_CAP_RISING) ? GTIM_CAP_FALLING
                                                            : GTIM_CAP_RISING;
 
@@ -167,26 +179,15 @@ void TIM5_IRQHandler(void)
 
         if (edge == GTIM_CAP_RISING)
         {
-            cap_reset();                                  /* width counts from the rising edge */
-            __HAL_TIM_CLEAR_FLAG(&g_gtim_cap_handle, TIM_FLAG_UPDATE);
+            gtim_cap_reset();                                  /* width counts from the rising edge */
         }
 
-        if (g_cap_cb != 0)
+        if (g_gtim_cap_cb != 0)
         {
-            next = g_cap_cb(value, edge);
+            next = g_gtim_cap_cb(value, edge);
         }
 
-        cap_arm(next);
-    }
-
-    if (__HAL_TIM_GET_FLAG(&g_gtim_cap_handle, TIM_FLAG_UPDATE) != RESET)
-    {
-        __HAL_TIM_CLEAR_FLAG(&g_gtim_cap_handle, TIM_FLAG_UPDATE);
-
-        if (g_cap_cb != 0)
-        {
-            (void)g_cap_cb(0U, GTIM_CAP_OVERFLOW);        /* return value unused */
-        }
+        gtim_cap_arm(next);
     }
 }
 
