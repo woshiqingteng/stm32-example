@@ -51,7 +51,6 @@ static gtim_cap_event_t cap_event(uint32_t value, gtim_cap_event_t event)
         {
         case GTIM_CAP_OVERFLOW:
             g_cap_overflows++;
-            next = GTIM_CAP_FALLING;
             break;
 
         case GTIM_CAP_FALLING:
