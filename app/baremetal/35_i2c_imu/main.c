@@ -67,6 +67,9 @@ int main(void)
     else
     {
         printf("SH3001 ready\r\n");
+        printf("Calibrating: keep the board still...\r\n");
+        imu_calibrate();
+        printf("Calibration done\r\n");
     }
 
     printf("35_i2c_imu ready (RPY fusion)\r\n");

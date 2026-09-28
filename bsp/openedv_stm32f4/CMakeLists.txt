@@ -139,7 +139,7 @@ bsp_library(bsp_ap3216c
 target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
 bsp_library(bsp_imu
     imu.c)
-target_link_libraries(bsp_imu PUBLIC bsp_i2c)
+target_link_libraries(bsp_imu PUBLIC bsp_i2c m)
 bsp_library(bsp_st480mc
     st480mc.c)
 target_link_libraries(bsp_st480mc PUBLIC bsp_i2c)

@@ -7,17 +7,21 @@
  * gyroscope for +/-500dps, both at 500Hz.
  */
 
+#include <math.h>
 #include <stdbool.h>
 
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "imu.h"
+#include "delay.h"
 
 #define IMU_TEMP_DIVISOR   16.0f  /*!< TEMP DATA resolution, LSB per degC */
 #define IMU_TEMP_OFFSET_C  25.0f  /*!< reference temperature, degC */
 
 static int16_t g_imu_acc[3];
 static int16_t g_imu_gyro[3];
+static float   g_imu_acc_bias[3];
+static float   g_imu_gyro_bias[3];
 
 static uint8_t imu_write_byte(uint8_t reg, uint8_t data)
 {
@@ -176,6 +180,56 @@ uint8_t imu_init(void)
     return 0U;
 }
 
+void imu_calibrate(void)
+{
+    int32_t  sum_acc[3] = { 0, 0, 0 };
+    int32_t  sum_gyro[3] = { 0, 0, 0 };
+    int16_t  acc[3];
+    int16_t  gyro[3];
+    float    ax, ay, az;
+    float    mag;
+    float    scale;
+    uint16_t i;
+
+    for (i = 0U; i < IMU_CAL_SAMPLE_COUNT; i++)
+    {
+        imu_read_xyz(acc, gyro);
+
+        sum_acc[0] += acc[0];
+        sum_acc[1] += acc[1];
+        sum_acc[2] += acc[2];
+        sum_gyro[0] += gyro[0];
+        sum_gyro[1] += gyro[1];
+        sum_gyro[2] += gyro[2];
+
+        delay_ms(IMU_CAL_SAMPLE_DELAY_MS);
+    }
+
+    g_imu_gyro_bias[0] = (float)sum_gyro[0] / (float)IMU_CAL_SAMPLE_COUNT;
+    g_imu_gyro_bias[1] = (float)sum_gyro[1] / (float)IMU_CAL_SAMPLE_COUNT;
+    g_imu_gyro_bias[2] = (float)sum_gyro[2] / (float)IMU_CAL_SAMPLE_COUNT;
+
+    /* Keep the measured gravity vector at 1g (orientation independent). */
+    ax = (float)sum_acc[0] / (float)IMU_CAL_SAMPLE_COUNT;
+    ay = (float)sum_acc[1] / (float)IMU_CAL_SAMPLE_COUNT;
+    az = (float)sum_acc[2] / (float)IMU_CAL_SAMPLE_COUNT;
+    mag = sqrtf(ax * ax + ay * ay + az * az);
+
+    if (mag > 1.0f)
+    {
+        scale = IMU_ACC_1G_COUNT / mag;
+        g_imu_acc_bias[0] = ax * (1.0f - scale);
+        g_imu_acc_bias[1] = ay * (1.0f - scale);
+        g_imu_acc_bias[2] = az * (1.0f - scale);
+    }
+    else
+    {
+        g_imu_acc_bias[0] = 0.0f;
+        g_imu_acc_bias[1] = 0.0f;
+        g_imu_acc_bias[2] = 0.0f;
+    }
+}
+
 void imu_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     uint8_t buf[IMU_DATA_LEN_BYTE];
@@ -191,13 +245,13 @@ void imu_read_xyz(int16_t acc[3], int16_t gyro[3])
         g_imu_gyro[2] = (int16_t)(((uint16_t)buf[11] << 8) | buf[10]);
     }
 
-    acc[0] = g_imu_acc[0];
-    acc[1] = g_imu_acc[1];
-    acc[2] = g_imu_acc[2];
+    acc[0] = (int16_t)((float)g_imu_acc[0] - g_imu_acc_bias[0]);
+    acc[1] = (int16_t)((float)g_imu_acc[1] - g_imu_acc_bias[1]);
+    acc[2] = (int16_t)((float)g_imu_acc[2] - g_imu_acc_bias[2]);
 
-    gyro[0] = g_imu_gyro[0];
-    gyro[1] = g_imu_gyro[1];
-    gyro[2] = g_imu_gyro[2];
+    gyro[0] = (int16_t)((float)g_imu_gyro[0] - g_imu_gyro_bias[0]);
+    gyro[1] = (int16_t)((float)g_imu_gyro[1] - g_imu_gyro_bias[1]);
+    gyro[2] = (int16_t)((float)g_imu_gyro[2] - g_imu_gyro_bias[2]);
 }
 
 float imu_read_temperature(void)

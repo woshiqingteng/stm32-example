@@ -42,11 +42,20 @@
 #define IMU_TEMP_LEN_BYTE        2U
 #define IMU_PROBE_RETRY_COUNT    5U
 
+#define IMU_ACC_1G_COUNT         4096.0f /*!< counts per g at the configured +/-8g */
+#define IMU_CAL_SAMPLE_COUNT     200U    /*!< samples averaged while calibrating */
+#define IMU_CAL_SAMPLE_DELAY_MS  2U      /*!< settle delay between calibration samples */
+
 /** @brief  Probe and configure the accelerometer and gyroscope.
  *  @return 0 on success, 1 if the chip id does not match. */
 uint8_t imu_init(void);
 
-/** @brief  Read raw accelerometer and gyroscope counts. */
+/** @brief  Zero-bias calibration; keep the board still and level while it runs.
+ *          Gyro bias is the averaged rate; acc bias keeps |acc| = 1g along the
+ *          measured gravity direction. */
+void imu_calibrate(void);
+
+/** @brief  Read raw accelerometer and gyroscope counts (bias corrected). */
 void imu_read_xyz(int16_t acc[3], int16_t gyro[3]);
 
 /** @brief  Read the die temperature in degrees Celsius. */
