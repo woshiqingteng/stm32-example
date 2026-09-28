@@ -12,11 +12,6 @@
 #include "dcmi.h"
 #include "ov5640.h"
 
-#define DCMI_IRQ_PREEMPT_PRIO   2U
-#define DCMI_IRQ_SUB_PRIO       2U
-#define DCMI_DMA_PREEMPT_PRIO   2U
-#define DCMI_DMA_SUB_PRIO       2U
-
 DCMI_HandleTypeDef g_dcmi_handle;
 DMA_HandleTypeDef  g_dma_dcmi_handle;
 
@@ -79,7 +74,7 @@ void dcmi_init(void)
     __HAL_DCMI_ENABLE_IT(&g_dcmi_handle, DCMI_IT_FRAME);
     __HAL_DCMI_ENABLE(&g_dcmi_handle);
 
-    HAL_NVIC_SetPriority(DCMI_IRQn, DCMI_IRQ_PREEMPT_PRIO, DCMI_IRQ_SUB_PRIO);
+    HAL_NVIC_SetPriority(DCMI_IRQn, 2U, 2U);
     HAL_NVIC_EnableIRQ(DCMI_IRQn);
 }
 
@@ -117,7 +112,7 @@ void dcmi_dma_init(uint32_t mem0, uint32_t mem1, uint16_t memsize, uint32_t memb
         (void)HAL_DMAEx_MultiBufferStart(&g_dma_dcmi_handle, (uint32_t)&DCMI->DR, mem0, mem1, memsize);
 
         __HAL_DMA_ENABLE_IT(&g_dma_dcmi_handle, DMA_IT_TC);
-        HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, DCMI_DMA_PREEMPT_PRIO, DCMI_DMA_SUB_PRIO);
+        HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 2U, 2U);
         HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
     }
 }

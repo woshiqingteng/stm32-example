@@ -10,9 +10,6 @@
 #include "pwr.h"
 #include "exti.h"
 
-#define PWR_PVD_IRQ_PREEMPT     3U
-#define PWR_PVD_IRQ_SUB         3U
-
 static pwr_pvd_hook_t  g_pvd_hook;
 static pwr_wkup_hook_t g_wkup_hook;
 
@@ -55,7 +52,7 @@ void pwr_pvd_init(uint32_t level)
     HAL_PWR_ConfigPVD(&pvd);
 
     /* ---- MSP begin: NVIC ---- */
-    HAL_NVIC_SetPriority(PVD_IRQn, PWR_PVD_IRQ_PREEMPT, PWR_PVD_IRQ_SUB);
+    HAL_NVIC_SetPriority(PVD_IRQn, 3U, 3U);
     HAL_NVIC_EnableIRQ(PVD_IRQn);
     /* ---- MSP end ---- */
 

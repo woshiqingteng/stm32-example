@@ -14,9 +14,6 @@
 #define __HAL_TIM_GET_PRESCALER(__HANDLE__) ((__HANDLE__)->Instance->PSC)
 #endif
 
-#define ATIM_NVIC_PRIORITY           1U
-#define ATIM_NVIC_SUBPRIORITY        3U
-
 #define ATIM_NPWM_BATCH_COUNT              256U
 #define ATIM_NPWM_DEFAULT_PULSE_DIV  2U
 #define ATIM_REPETITION_COUNT      0U
@@ -62,7 +59,7 @@ void atim_timx_npwm_chy_init(uint16_t arr, uint16_t psc)
 
     __HAL_RCC_TIM8_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, ATIM_NVIC_PRIORITY, ATIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM8_UP_TIM13_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_6;
@@ -294,9 +291,9 @@ void atim_timx_pwmin_chy_init(void)
 
     __HAL_RCC_TIM8_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, ATIM_NVIC_PRIORITY, ATIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM8_UP_TIM13_IRQn);
-    HAL_NVIC_SetPriority(TIM8_CC_IRQn, ATIM_NVIC_PRIORITY, ATIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM8_CC_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM8_CC_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_6;

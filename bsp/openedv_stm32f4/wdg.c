@@ -6,9 +6,6 @@
 #include "stm32f4xx_hal.h"
 #include "wdg.h"
 
-#define WWDG_IRQ_PRIORITY    2U
-#define WWDG_IRQ_SUBPRIORITY 3U
-
 /* Board-fixed watchdog configuration. */
 #define IWDG_PRESCALER      IWDG_PRESCALER_64  /*!< LSI ~32 kHz input */
 #define IWDG_RELOAD    500U               /*!< ~1.0 s timeout (500 * 64 / 32 kHz) */
@@ -38,7 +35,7 @@ void wwdg_init(void)
 {
     /* ---- MSP begin: clock + NVIC ---- */
     __HAL_RCC_WWDG_CLK_ENABLE();
-    HAL_NVIC_SetPriority(WWDG_IRQn, WWDG_IRQ_PRIORITY, WWDG_IRQ_SUBPRIORITY);
+    HAL_NVIC_SetPriority(WWDG_IRQn, 2U, 3U);
     HAL_NVIC_EnableIRQ(WWDG_IRQn);
     /* ---- MSP end ---- */
 

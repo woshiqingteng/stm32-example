@@ -25,9 +25,6 @@
 #define ADC_POLL_TIMEOUT_MS     10U
 #define ADC_AVG_DELAY_MS        5U
 
-#define ADC_DMA_IRQ_PRIORITY    3U
-#define ADC_DMA_IRQ_SUBPRIORITY 3U
-
 #define ADC_TEMP_AVG_COUNT      10U
 #define ADC_VREF_VOLT           3.3f
 #define ADC_FULL_SCALE_COUNT        4096.0f
@@ -231,7 +228,7 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
 
     adc_gpio_config(ops->gpio_pins);
 
-    HAL_NVIC_SetPriority(ADC_DMA_IRQN, ADC_DMA_IRQ_PRIORITY, ADC_DMA_IRQ_SUBPRIORITY);
+    HAL_NVIC_SetPriority(ADC_DMA_IRQN, 3U, 3U);
     HAL_NVIC_EnableIRQ(ADC_DMA_IRQN);
     /* ---- MSP end ---- */
 

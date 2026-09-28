@@ -20,8 +20,6 @@
 #define DAC_DMA_STREAM          DMA1_Stream5
 #define DAC_DMA_CHANNEL_ID      DMA_CHANNEL_7
 #define DAC_DMA_IRQN            DMA1_Stream5_IRQn
-#define DAC_DMA_IRQ_PRIORITY    3U
-#define DAC_DMA_IRQ_SUBPRIORITY 3U
 
 #define DAC_WAVE_SAMPLE_COUNT        100U
 
@@ -113,7 +111,7 @@ static void dac_wave_dma_init(void)
     /* ---- MSP begin: DMA clock + NVIC ---- */
     __HAL_RCC_DMA1_CLK_ENABLE();
 
-    HAL_NVIC_SetPriority(DAC_DMA_IRQN, DAC_DMA_IRQ_PRIORITY, DAC_DMA_IRQ_SUBPRIORITY);
+    HAL_NVIC_SetPriority(DAC_DMA_IRQN, 3U, 3U);
     HAL_NVIC_EnableIRQ(DAC_DMA_IRQN);
     /* ---- MSP end ---- */
 

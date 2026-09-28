@@ -12,8 +12,6 @@
 #include "gtim.h"
 #include "sys.h"
 
-#define GTIM_NVIC_PRIORITY     1U
-#define GTIM_NVIC_SUBPRIORITY  3U
 #define GTIM_TIMER_MODULUS     0x10000U
 #define GTIM_TIMER_MAX_COUNT   0xFFFFU
 #define GTIM_PWM_HALF_DUTY_DIV 2U
@@ -27,7 +25,7 @@ static gtim_cb_t         g_gtim_int_cb;
 void gtim_timx_int_init(uint16_t arr, uint16_t psc)
 {
     __HAL_RCC_TIM3_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM3_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM3_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
 
     g_gtim_int_handle.Instance         = TIM3;
@@ -104,7 +102,7 @@ void gtim_timx_cap_chy_init(uint32_t arr, uint16_t psc)
 
     __HAL_RCC_TIM5_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM5_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM5_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_0;
@@ -211,7 +209,7 @@ void gtim_timx_cnt_chy_init(uint16_t psc)
 
     __HAL_RCC_TIM2_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    HAL_NVIC_SetPriority(TIM2_IRQn, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(TIM2_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
     gpio_init.Pin       = GPIO_PIN_0;
@@ -285,7 +283,7 @@ void gtim_frame_init(void)
 {
     __HAL_RCC_TIM14_CLK_ENABLE();
 
-    HAL_NVIC_SetPriority(GTIM_FRAME_TIMX_IRQN, GTIM_NVIC_PRIORITY, GTIM_NVIC_SUBPRIORITY);
+    HAL_NVIC_SetPriority(GTIM_FRAME_TIMX_IRQN, 1U, 3U);
     HAL_NVIC_EnableIRQ(GTIM_FRAME_TIMX_IRQN);
 
     g_gtim_frame_handle.Instance           = GTIM_FRAME_TIMX;

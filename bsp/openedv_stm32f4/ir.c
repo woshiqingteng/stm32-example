@@ -13,9 +13,6 @@
 #define IR_PRESCALER        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
 #define IR_PERIOD_TICK           10000U
 #define IR_IC_FILTER        0x03U
-#define IR_NVIC_PREEMP      1U
-#define IR_NVIC_UP_SUB      3U
-#define IR_NVIC_CC_SUB      2U
 
 #define IR_REPEAT_MAX_COUNT       14U
 
@@ -59,9 +56,9 @@ void ir_init(void)
     gpio_init.Alternate = IR_IN_GPIO_AF;
     HAL_GPIO_Init(IR_IN_GPIO_PORT, &gpio_init);
 
-    HAL_NVIC_SetPriority(TIM1_UP_TIM10_IRQn, IR_NVIC_PREEMP, IR_NVIC_UP_SUB);
+    HAL_NVIC_SetPriority(TIM1_UP_TIM10_IRQn, 1U, 3U);
     HAL_NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
-    HAL_NVIC_SetPriority(TIM1_CC_IRQn, IR_NVIC_PREEMP, IR_NVIC_CC_SUB);
+    HAL_NVIC_SetPriority(TIM1_CC_IRQn, 1U, 2U);
     HAL_NVIC_EnableIRQ(TIM1_CC_IRQn);
     /* ---- MSP end ---- */
 

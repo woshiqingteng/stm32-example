@@ -17,9 +17,6 @@
 #define RTC_ASYNC_PREDIV    0x7FU
 #define RTC_SYNC_PREDIV     0xFFU
 
-#define RTC_WKUP_IRQ_PRIORITY    2U
-#define RTC_WKUP_IRQ_SUBPRIORITY 2U
-
 /* Gregorian week calculation constants (valid for 1901..2099). */
 #define RTC_CENTURY_BASE       19U
 #define RTC_YEARS_PER_CENTURY  100U
@@ -218,7 +215,7 @@ void rtc_set_wakeup(uint8_t wksel, uint16_t cnt)
     (void)HAL_RTCEx_SetWakeUpTimer_IT(&g_rtc_handle, cnt, wksel);
 
     /* ---- MSP begin: NVIC ---- */
-    HAL_NVIC_SetPriority(RTC_WKUP_IRQn, RTC_WKUP_IRQ_PRIORITY, RTC_WKUP_IRQ_SUBPRIORITY);
+    HAL_NVIC_SetPriority(RTC_WKUP_IRQn, 2U, 2U);
     HAL_NVIC_EnableIRQ(RTC_WKUP_IRQn);
     /* ---- MSP end ---- */
 }
