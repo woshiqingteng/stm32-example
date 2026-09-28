@@ -56,6 +56,7 @@ int main(void)
     int16_t  r100[3];
     uint32_t next_report;
     uint16_t i;
+    bool     imu_ok = false;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
@@ -66,18 +67,27 @@ int main(void)
     }
     else
     {
+        imu_ok = true;
         printf("SH3001 ready\r\n");
         printf("Calibrating: keep the board still...\r\n");
         imu_calibrate();
         printf("Calibration done\r\n");
     }
 
-    printf("35_i2c_imu ready (RPY fusion)\r\n");
+    printf("35_i2c_imu ready (RPY fusion, KEY0: recalibrate)\r\n");
 
     next_report = HAL_GetTick() + REPORT_PERIOD_MS;
 
     for (;;)
     {
+        if (imu_ok && (key_scan(false) == KEY0))
+        {
+            printf("Recalibrating: keep the board still...\r\n");
+            delay_ms(100);
+            imu_calibrate();
+            printf("Calibration done\r\n");
+        }
+
         imu_read_xyz(acc, gyro);
 
         for (i = 0U; i < 3U; i++)
