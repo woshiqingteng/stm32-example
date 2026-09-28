@@ -50,6 +50,11 @@
 #include "codec.h"
 #include "sai.h"
 
+/* Clock tree (HSE 25 MHz -> PLL): SYSCLK = HCLK = 180 MHz.
+ * PCLK1 = HCLK/4 = 45 MHz -> APB1 timer clock = PCLK1 x2 = 90 MHz (TIM2..7,12..14).
+ * PCLK2 = HCLK/2 = 90 MHz -> APB2 timer clock = PCLK2 x2 = 180 MHz (TIM1,8..11).
+ * Timer update: f = f_TIMxCLK / ((PSC+1)*(ARR+1)). */
+
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
 

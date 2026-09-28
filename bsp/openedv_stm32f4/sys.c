@@ -3,6 +3,8 @@
  * @brief   System clock configuration (HSE 25MHz -> PLL).
  *
  * Example: plln=336, pllm=25, pllp=2, pllq=7 -> SYSCLK 168MHz, PLL48CK 48MHz.
+ * NOTE: stale example - the board runs PLLN=360/PLLP=2 -> SYSCLK/HCLK = 180 MHz
+ *       (see the clock-tree note in bsp.h).
  */
 
 #include "stm32f4xx_hal.h"
@@ -71,6 +73,7 @@ HAL_StatusTypeDef sys_clk_init(uint32_t plln, uint32_t pllm, uint32_t pllp, uint
                                   RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
     rcc_clk_init.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
     rcc_clk_init.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    /* PCLK1 = 45 MHz, PCLK2 = 90 MHz (see the clock-tree note in bsp.h). */
     rcc_clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
     rcc_clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
     status = HAL_RCC_ClockConfig(&rcc_clk_init, FLASH_LATENCY_5);
