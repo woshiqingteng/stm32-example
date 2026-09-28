@@ -16,13 +16,13 @@
 #include "text.h"
 #include "piclib.h"
 #define PIC_DIR         "0:/PICTURE"
-#define MAX_PICS        64U
-#define NAME_LEN        64U
+#define MAX_PIC_COUNT        64U
+#define NAME_LEN_BYTE        64U
 #define SLIDESHOW_MS    2000U
 
-static char     g_names[MAX_PICS][NAME_LEN];
+static char     g_names[MAX_PIC_COUNT][NAME_LEN_BYTE];
 static uint16_t g_count;
-static char     g_path[NAME_LEN + 16];
+static char     g_path[NAME_LEN_BYTE + 16];
 
 /** @brief  Collect the picture file names from the SD card. */
 static void pic_scan(void)
@@ -52,10 +52,10 @@ static void pic_scan(void)
 
         if ((exfuns_file_type(fno.fname) & 0xF0U) == 0x50U)
         {
-            if (g_count < MAX_PICS)
+            if (g_count < MAX_PIC_COUNT)
             {
-                (void)strncpy(g_names[g_count], fno.fname, NAME_LEN - 1U);
-                g_names[g_count][NAME_LEN - 1U] = '\0';
+                (void)strncpy(g_names[g_count], fno.fname, NAME_LEN_BYTE - 1U);
+                g_names[g_count][NAME_LEN_BYTE - 1U] = '\0';
                 g_count++;
             }
         }

@@ -22,17 +22,17 @@
 #define DAC_DMA_IRQ_PRIORITY    3U
 #define DAC_DMA_IRQ_SUBPRIORITY 3U
 
-#define DAC_WAVE_SAMPLES        100U
+#define DAC_WAVE_SAMPLE_COUNT        100U
 
 static DAC_HandleTypeDef g_dac_handle;
 static DMA_HandleTypeDef g_dac_dma_handle;
 static TIM_HandleTypeDef g_dac_tim_handle;
 
 /* One full sine period, generated at init time: 2048 * (1 + sin). */
-static uint16_t g_dac_sine_buf[DAC_WAVE_SAMPLES];
+static uint16_t g_dac_sine_buf[DAC_WAVE_SAMPLE_COUNT];
 
 /* One full triangle period: 50 rising samples followed by 50 falling. */
-static const uint16_t g_dac_triangle_buf[DAC_WAVE_SAMPLES] =
+static const uint16_t g_dac_triangle_buf[DAC_WAVE_SAMPLE_COUNT] =
 {
        0,   84,  167,  251,  334,  418,  501,  585,  669,  752,
      836,  919, 1003, 1086, 1170, 1254, 1337, 1421, 1504, 1588,
@@ -86,9 +86,9 @@ void dac_init(void)
 
 void dac_set(uint32_t channel, uint16_t value)
 {
-    if (value > DAC_FULL_SCALE)
+    if (value > DAC_FULL_SCALE_COUNT)
     {
-        value = DAC_FULL_SCALE;
+        value = DAC_FULL_SCALE_COUNT;
     }
 
     (void)HAL_DAC_SetValue(&g_dac_handle, dac_channel_to_hal(channel), DAC_ALIGN_12B_R, value);
@@ -103,7 +103,7 @@ void dac_set_voltage(uint32_t channel, uint16_t millivolt)
         millivolt = 3300U;
     }
 
-    code = ((uint32_t)millivolt * (DAC_FULL_SCALE + 1U)) / 3300U;
+    code = ((uint32_t)millivolt * (DAC_FULL_SCALE_COUNT + 1U)) / 3300U;
     dac_set(channel, (uint16_t)code);
 }
 
@@ -164,7 +164,7 @@ static void dac_wave_start(const uint16_t *buf)
     dac_wave_stop();
 
     (void)HAL_DAC_Start_DMA(&g_dac_handle, DAC_CHANNEL_1, (const uint32_t *)buf,
-                            DAC_WAVE_SAMPLES, DAC_ALIGN_12B_R);
+                            DAC_WAVE_SAMPLE_COUNT, DAC_ALIGN_12B_R);
     (void)HAL_TIM_Base_Start(&g_dac_tim_handle);
 }
 
@@ -215,10 +215,10 @@ void dac_sine_init(uint16_t arr, uint16_t psc)
     /* ---- MSP end ---- */
 
     /* Generate one full sine period at run time. */
-    for (i = 0U; i < DAC_WAVE_SAMPLES; i++)
+    for (i = 0U; i < DAC_WAVE_SAMPLE_COUNT; i++)
     {
         g_dac_sine_buf[i] = (uint16_t)(2048.0f +
-                           2047.0f * sinf(2.0f * DAC_PI * (float)i / (float)DAC_WAVE_SAMPLES));
+                           2047.0f * sinf(2.0f * DAC_PI * (float)i / (float)DAC_WAVE_SAMPLE_COUNT));
     }
 
     g_dac_handle.Instance = DAC_INSTANCE;

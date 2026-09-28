@@ -6,8 +6,8 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define GTIM_CNT_PSC       0U
-#define GTIM_CNT_BLINK_DIV 20U
+#define GTIM_CNT_PSC_DIV       0U
+#define GTIM_CNT_BLINK_COUNT 20U
 #define GTIM_CNT_LOOP_MS   10U
 
 int main(void)
@@ -17,7 +17,7 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_cnt_chy_init(GTIM_CNT_PSC);
+    gtim_timx_cnt_chy_init(GTIM_CNT_PSC_DIV);
     gtim_timx_cnt_chy_restart();
 
     for (;;)
@@ -36,7 +36,7 @@ int main(void)
             old_count = count;
         }
 
-        if ((++blink % GTIM_CNT_BLINK_DIV) == 0U)
+        if ((++blink % GTIM_CNT_BLINK_COUNT) == 0U)
         {
             led_toggle(LED0);
         }

@@ -14,7 +14,7 @@
 
 /* ===================== hardware I2C2 backend ===================== */
 
-#define I2C_HW_TIMEOUT   0x000FFFFFU
+#define I2C_HW_TIMEOUT_COUNT   0x000FFFFFU
 
 static I2C_HandleTypeDef g_i2c_handle;
 static uint8_t           g_i2c_addr_phase;
@@ -25,7 +25,7 @@ static uint8_t           g_i2c_addr_phase;
  */
 static uint8_t i2c_hw_wait_any(uint32_t f1, uint32_t f2)
 {
-    uint32_t time = I2C_HW_TIMEOUT;
+    uint32_t time = I2C_HW_TIMEOUT_COUNT;
 
     while (((I2C2->SR1 & f1) == 0U) && ((I2C2->SR1 & f2) == 0U))
     {
@@ -151,7 +151,7 @@ uint8_t i2c_read_byte(uint8_t ack)
 #include "delay.h"
 
 #define I2C_DELAY_US      2U
-#define I2C_ACK_TIMEOUT   250U
+#define I2C_ACK_TIMEOUT_COUNT   250U
 
 #define I2C_SCL(x)  do { (x) ? HAL_GPIO_WritePin(I2C_SCL_GPIO_PORT, I2C_SCL_GPIO_PIN, GPIO_PIN_SET) \
                              : HAL_GPIO_WritePin(I2C_SCL_GPIO_PORT, I2C_SCL_GPIO_PIN, GPIO_PIN_RESET); } while (0)
@@ -215,7 +215,7 @@ uint8_t i2c_wait_ack(void)
     {
         waittime++;
 
-        if (waittime > I2C_ACK_TIMEOUT)
+        if (waittime > I2C_ACK_TIMEOUT_COUNT)
         {
             i2c_stop();
             rack = 1;

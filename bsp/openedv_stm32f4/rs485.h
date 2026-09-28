@@ -18,7 +18,7 @@
 #define RS485_RX_GPIO_PIN   GPIO_PIN_3
 #define RS485_GPIO_AF       GPIO_AF7_USART2
 
-#define RS485_REC_LEN       64U
+#define RS485_REC_LEN_BYTE       64U
 
 /** @brief Callback invoked for every byte received on USART2. */
 typedef void (*rs485_rx_byte_cb_t)(uint8_t byte);

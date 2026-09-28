@@ -9,7 +9,7 @@
 #include "sys.h"
 
 /* Upper bound on the HSI-ready poll so a dead oscillator cannot hang boot. */
-#define SYS_HSI_READY_TIMEOUT 0xFFFFU
+#define SYS_HSI_READY_TIMEOUT_COUNT 0xFFFFU
 
 /* This HAL release has no public NVIC vector-table setter, so the CMSIS SCB
  * access is wrapped here. */
@@ -87,7 +87,7 @@ HAL_StatusTypeDef sys_clk_init(uint32_t plln, uint32_t pllm, uint32_t pllp, uint
 HAL_StatusTypeDef sys_clk_reconfig(uint32_t plln, uint32_t pllm, uint32_t pllp, uint32_t pllq)
 {
     RCC_ClkInitTypeDef rcc_clk_init = {0};
-    uint32_t           retry        = SYS_HSI_READY_TIMEOUT;
+    uint32_t           retry        = SYS_HSI_READY_TIMEOUT_COUNT;
     HAL_StatusTypeDef  status;
 
     __HAL_RCC_HSI_ENABLE();

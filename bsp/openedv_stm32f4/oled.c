@@ -98,18 +98,18 @@ typedef enum
 #define OLED_VCOMH_VALUE         0x30U
 
 /* Panel geometry. */
-#define OLED_WIDTH     128U
-#define OLED_HEIGHT    64U
-#define OLED_PAGE_BITS 8U
-#define OLED_PAGES     (OLED_HEIGHT / OLED_PAGE_BITS)
+#define OLED_WIDTH_PX     128U
+#define OLED_HEIGHT_PX    64U
+#define OLED_PAGE_BIT_COUNT 8U
+#define OLED_PAGE_COUNT     (OLED_HEIGHT_PX / OLED_PAGE_BIT_COUNT)
 
 /* Character metrics. */
-#define OLED_6X8_WIDTH          6U
-#define OLED_8X16_WIDTH         8U
+#define OLED_6X8_WIDTH_PX          6U
+#define OLED_8X16_WIDTH_PX         8U
 #define OLED_ASCII_FIRST        0x20U
 #define OLED_ASCII_LAST         0x7EU
-#define OLED_FONT_ROWS          8U
-#define OLED_8X16_BYTES_PER_COL 2U
+#define OLED_FONT_ROW_COUNT          8U
+#define OLED_8X16_BYTE_PER_COL 2U
 #define OLED_DECIMAL_BASE       10U
 
 #define OLED_RESET_DELAY_MS     100U
@@ -127,7 +127,7 @@ typedef enum
     OLED_LEADING_VISIBLE    = 1
 } oled_leading_t;
 
-static uint8_t g_oled_gram[OLED_WIDTH][OLED_PAGES];
+static uint8_t g_oled_gram[OLED_WIDTH_PX][OLED_PAGE_COUNT];
 
 static void oled_wr_byte(uint8_t data, oled_arg_t arg);
 static void oled_draw_point(uint8_t x, uint8_t y, bool dot);
@@ -163,13 +163,13 @@ static void oled_draw_point(uint8_t x, uint8_t y, bool dot)
     uint8_t page;
     uint8_t bit;
 
-    if ((x >= OLED_WIDTH) || (y >= OLED_HEIGHT))
+    if ((x >= OLED_WIDTH_PX) || (y >= OLED_HEIGHT_PX))
     {
         return;
     }
 
-    page = (uint8_t)(y / OLED_PAGE_BITS);
-    bit  = (uint8_t)(1U << (y % OLED_PAGE_BITS));
+    page = (uint8_t)(y / OLED_PAGE_BIT_COUNT);
+    bit  = (uint8_t)(1U << (y % OLED_PAGE_BIT_COUNT));
 
     if (dot)
     {
@@ -271,13 +271,13 @@ void oled_refresh(void)
     uint8_t page;
     uint8_t col;
 
-    for (page = 0; page < OLED_PAGES; page++)
+    for (page = 0; page < OLED_PAGE_COUNT; page++)
     {
         oled_wr_byte((uint8_t)(OLED_CMD_PAGE_ADDR + page), OLED_ARG_CMD);
         oled_wr_byte(OLED_CMD_LOW_COLUMN, OLED_ARG_CMD);
         oled_wr_byte(OLED_CMD_HIGH_COLUMN, OLED_ARG_CMD);
 
-        for (col = 0; col < OLED_WIDTH; col++)
+        for (col = 0; col < OLED_WIDTH_PX; col++)
         {
             oled_wr_byte(g_oled_gram[col][page], OLED_ARG_DATA);
         }
@@ -303,9 +303,9 @@ void oled_clear(void)
     uint8_t page;
     uint8_t col;
 
-    for (page = 0; page < OLED_PAGES; page++)
+    for (page = 0; page < OLED_PAGE_COUNT; page++)
     {
-        for (col = 0; col < OLED_WIDTH; col++)
+        for (col = 0; col < OLED_WIDTH_PX; col++)
         {
             g_oled_gram[col][page] = 0x00U;
         }
@@ -320,13 +320,13 @@ void oled_show_string(uint8_t x, uint8_t y, const char *str, oled_font_t size)
 
     while ((*str >= (char)OLED_ASCII_FIRST) && (*str <= (char)OLED_ASCII_LAST))
     {
-        if (x > (uint8_t)(OLED_WIDTH - width))
+        if (x > (uint8_t)(OLED_WIDTH_PX - width))
         {
             x = 0U;
             y = (uint8_t)(y + size);
         }
 
-        if (y > (uint8_t)(OLED_HEIGHT - size))
+        if (y > (uint8_t)(OLED_HEIGHT_PX - size))
         {
             x = 0U;
             y = 0U;

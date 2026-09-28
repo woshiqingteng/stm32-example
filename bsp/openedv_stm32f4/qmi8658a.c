@@ -14,9 +14,9 @@
 #include "delay.h"
 
 #define QMI8658A_RESET_DELAY_MS     150U
-#define QMI8658A_PROBE_RETRIES      5U
-#define QMI8658A_DATA_LEN           12U
-#define QMI8658A_TEMP_LEN           2U
+#define QMI8658A_PROBE_RETRY_COUNT      5U
+#define QMI8658A_DATA_LEN_BYTE           12U
+#define QMI8658A_TEMP_LEN_BYTE           2U
 #define QMI8658A_TEMP_DIVISOR       256.0f
 
 /* CTRL2: accelerometer range/ODR, self-test enabled. */
@@ -139,7 +139,7 @@ static uint8_t qmi8658a_check_whoami(void)
     uint8_t revision_id = 0;
     uint8_t i;
 
-    for (i = 0U; i < QMI8658A_PROBE_RETRIES; i++)
+    for (i = 0U; i < QMI8658A_PROBE_RETRY_COUNT; i++)
     {
         chip_id = qmi8658a_read_byte(QMI8658A_REG_WHO_AM_I);
 
@@ -160,7 +160,7 @@ static uint8_t qmi8658a_check_whoami(void)
 
 void qmi8658a_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
-    uint8_t buf[QMI8658A_DATA_LEN];
+    uint8_t buf[QMI8658A_DATA_LEN_BYTE];
     uint8_t status = 0;
     bool    ready = false;
     uint8_t retry;
@@ -178,7 +178,7 @@ void qmi8658a_read_xyz(int16_t acc[3], int16_t gyro[3])
 
     if (ready)
     {
-        (void)qmi8658a_read_nbytes(QMI8658A_REG_AX_L, buf, QMI8658A_DATA_LEN);
+        (void)qmi8658a_read_nbytes(QMI8658A_REG_AX_L, buf, QMI8658A_DATA_LEN_BYTE);
 
         g_qmi8658a_acc[0] = (int16_t)(((uint16_t)buf[1] << 8) | buf[0]);
         g_qmi8658a_acc[1] = (int16_t)(((uint16_t)buf[3] << 8) | buf[2]);
@@ -200,10 +200,10 @@ void qmi8658a_read_xyz(int16_t acc[3], int16_t gyro[3])
 
 float qmi8658a_read_temperature(void)
 {
-    uint8_t buf[QMI8658A_TEMP_LEN];
+    uint8_t buf[QMI8658A_TEMP_LEN_BYTE];
     int16_t raw;
 
-    (void)qmi8658a_read_nbytes(QMI8658A_REG_TEMP_L, buf, QMI8658A_TEMP_LEN);
+    (void)qmi8658a_read_nbytes(QMI8658A_REG_TEMP_L, buf, QMI8658A_TEMP_LEN_BYTE);
     raw = (int16_t)(((uint16_t)buf[1] << 8) | buf[0]);
 
     return (float)raw / QMI8658A_TEMP_DIVISOR;

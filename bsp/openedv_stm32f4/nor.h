@@ -25,8 +25,8 @@
 #define NM25Q64     0x5216U
 #define NM25Q128    0x5217U
 
-#define NOR_SECTOR_SIZE    4096U
-#define NOR_PAGE_SIZE      256U
+#define NOR_SECTOR_SIZE_BYTE    4096U
+#define NOR_PAGE_SIZE_BYTE      256U
 
 extern uint16_t g_nor_type; /*!< detected device ID */
 

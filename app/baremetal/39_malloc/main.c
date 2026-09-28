@@ -11,13 +11,13 @@
 
 #include "bsp.h"
 #include "malloc.h"
-#define TEST_SIZE       2048U
+#define TEST_SIZE_BYTE       2048U
 #define BLINK_PERIOD_MS 500U
 
 static const char *const g_bank_name[SRAMBANK] = {"SRAMIN", "SRAMCCM", "SRAMEX"};
 
-static uint8_t g_pattern[TEST_SIZE];
-static uint8_t g_readback[TEST_SIZE];
+static uint8_t g_pattern[TEST_SIZE_BYTE];
+static uint8_t g_readback[TEST_SIZE_BYTE];
 
 static void pattern_fill(uint8_t *buf, uint32_t len, uint8_t seed)
 {
@@ -64,9 +64,9 @@ int main(void)
 
     for (bank = 0U; bank < SRAMBANK; bank++)
     {
-        pattern_fill(g_pattern, TEST_SIZE, (uint8_t)(bank * 3U + 1U));
+        pattern_fill(g_pattern, TEST_SIZE_BYTE, (uint8_t)(bank * 3U + 1U));
 
-        p = mymalloc(bank, TEST_SIZE);
+        p = mymalloc(bank, TEST_SIZE_BYTE);
 
         if (p == NULL)
         {
@@ -74,10 +74,10 @@ int main(void)
             continue;
         }
 
-        memcpy(p, g_pattern, TEST_SIZE);
-        memcpy(g_readback, p, TEST_SIZE);
+        memcpy(p, g_pattern, TEST_SIZE_BYTE);
+        memcpy(g_readback, p, TEST_SIZE_BYTE);
 
-        errors = pattern_errors(g_readback, TEST_SIZE, (uint8_t)(bank * 3U + 1U));
+        errors = pattern_errors(g_readback, TEST_SIZE_BYTE, (uint8_t)(bank * 3U + 1U));
         myfree(bank, p);
 
         used = my_mem_perused(bank);

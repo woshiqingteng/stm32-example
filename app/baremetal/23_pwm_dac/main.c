@@ -8,14 +8,14 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define PWMDAC_ARR       255U
-#define PWMDAC_PSC       1U
+#define PWMDAC_ARR_TICK       255U
+#define PWMDAC_PSC_DIV       1U
 #define PWMDAC_STEP_MV   100U
 
 static void pwmdac_show(void)
 {
     uint16_t code = (uint16_t)pwmdac_get_code();
-    uint16_t vol = (uint16_t)(((uint32_t)code * PWMDAC_VREF_MV) / (PWMDAC_ARR + 1U));
+    uint16_t vol = (uint16_t)(((uint32_t)code * PWMDAC_VREF_MV) / (PWMDAC_ARR_TICK + 1U));
     uint32_t adc = adc_get_result_average(ADC_CH3, 10U);
     uint32_t adc_mv = (adc * PWMDAC_VREF_MV) / 4095U;
 
@@ -31,7 +31,7 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    pwmdac_init(PWMDAC_ARR, PWMDAC_PSC);
+    pwmdac_init(PWMDAC_ARR_TICK, PWMDAC_PSC_DIV);
     adc_init();
     pwmdac_set(vol);
 

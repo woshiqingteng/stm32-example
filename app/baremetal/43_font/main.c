@@ -15,8 +15,8 @@
 #include "text.h"
 #define DRIVE           "0:"
 #define TEXT_X          30U
-#define TEXT_WIDTH      320U
-#define FONT_SIZE       16U
+#define TEXT_WIDTH_PIXEL      320U
+#define FONT_SIZE_PIXEL       16U
 #define LOOP_DELAY_MS   50U
 
 /* Four sample pages; the Chinese entries are GBK byte sequences. */
@@ -74,15 +74,15 @@ static uint8_t app_font_prepare(void)
     }
 
     printf("font store missing, updating from SD\r\n");
-    lcd_show_string(TEXT_X, 60U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+    lcd_show_string(TEXT_X, 60U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                     "Font Updating...", RED);
 
-    key = fonts_update_font(TEXT_X, 90U, FONT_SIZE, (uint8_t *)DRIVE, RED);
+    key = fonts_update_font(TEXT_X, 90U, FONT_SIZE_PIXEL, (uint8_t *)DRIVE, RED);
 
     if (key != 0U)
     {
         printf("font update failed (%u)\r\n", (unsigned int)key);
-        lcd_show_string(TEXT_X, 90U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+        lcd_show_string(TEXT_X, 90U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                         "Font Update Failed!", RED);
         return 1U;
     }
@@ -97,17 +97,17 @@ static void app_show_page(uint8_t page)
     lcd_clear(WHITE);
 
     (void)sprintf(g_line, "43_font page %u", (unsigned int)page);
-    lcd_show_string(TEXT_X, 10U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, g_line, BLUE);
+    lcd_show_string(TEXT_X, 10U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, g_line, BLUE);
 
-    text_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE,
-                     (char *)g_sample_title[page], FONT_SIZE, 0, RED);
-    text_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE,
-                     (char *)g_sample_line1[page], FONT_SIZE, 0, BLUE);
-    text_show_string(TEXT_X, 100U, TEXT_WIDTH, FONT_SIZE,
-                     (char *)g_sample_line2[page], FONT_SIZE, 0, GREEN);
+    text_show_string(TEXT_X, 40U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL,
+                     (char *)g_sample_title[page], FONT_SIZE_PIXEL, 0, RED);
+    text_show_string(TEXT_X, 70U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL,
+                     (char *)g_sample_line1[page], FONT_SIZE_PIXEL, 0, BLUE);
+    text_show_string(TEXT_X, 100U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL,
+                     (char *)g_sample_line2[page], FONT_SIZE_PIXEL, 0, GREEN);
 
-    text_show_string(TEXT_X, 150U, TEXT_WIDTH, 24U, (char *)"\xBA\xBA", 24U, 0, MAGENTA);
-    text_show_string(TEXT_X, 200U, TEXT_WIDTH, 32U, (char *)"\xD7\xD6", 32U, 0, BLACK);
+    text_show_string(TEXT_X, 150U, TEXT_WIDTH_PIXEL, 24U, (char *)"\xBA\xBA", 24U, 0, MAGENTA);
+    text_show_string(TEXT_X, 200U, TEXT_WIDTH_PIXEL, 32U, (char *)"\xD7\xD6", 32U, 0, BLACK);
 
     printf("page %u: %s\r\n", (unsigned int)page, g_sample_line2[page]);
 }
@@ -123,13 +123,13 @@ int main(void)
     lcd_init();
     lcd_clear(WHITE);
 
-    lcd_show_string(TEXT_X, 10U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "STM32", RED);
+    lcd_show_string(TEXT_X, 10U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, "STM32", RED);
 
     printf("43_font ready\r\n");
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+        lcd_show_string(TEXT_X, 40U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                         "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
@@ -152,7 +152,7 @@ int main(void)
         if (res != FR_OK)
         {
             (void)sprintf(g_line, "mount failed (%d)", (int)res);
-            lcd_show_string(TEXT_X, 40U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, g_line, RED);
+            lcd_show_string(TEXT_X, 40U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, g_line, RED);
             printf("%s\r\n", g_line);
         }
         else
@@ -161,7 +161,7 @@ int main(void)
 
             if (app_font_prepare() != 0U)
             {
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                                 "Font Error!", RED);
             }
 
@@ -208,14 +208,14 @@ int main(void)
             gbk[1] = (char)g_hi;
             gbk[2] = '\0';
 
-            lcd_fill(TEXT_X, GBK_SWEEP_Y, (uint16_t)(TEXT_X + TEXT_WIDTH),
+            lcd_fill(TEXT_X, GBK_SWEEP_Y, (uint16_t)(TEXT_X + TEXT_WIDTH_PIXEL),
                      (uint16_t)(GBK_SWEEP_Y + size), WHITE);
-            text_show_string(TEXT_X, GBK_SWEEP_Y, TEXT_WIDTH, size, gbk, size, 0, RED);
+            text_show_string(TEXT_X, GBK_SWEEP_Y, TEXT_WIDTH_PIXEL, size, gbk, size, 0, RED);
 
             (void)sprintf(g_line, "GBK %02X%02X size %u", (unsigned int)g_lo,
                           (unsigned int)g_hi, (unsigned int)size);
-            lcd_fill(TEXT_X, 10U, (uint16_t)(TEXT_X + TEXT_WIDTH), 30U, WHITE);
-            lcd_show_string(TEXT_X, 10U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, g_line, BLUE);
+            lcd_fill(TEXT_X, 10U, (uint16_t)(TEXT_X + TEXT_WIDTH_PIXEL), 30U, WHITE);
+            lcd_show_string(TEXT_X, 10U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, g_line, BLUE);
             printf("%s\r\n", g_line);
 
             g_hi++;

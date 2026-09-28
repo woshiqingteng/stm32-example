@@ -18,7 +18,7 @@
 #define OV5640_RESET_LOW_MS    20U
 #define OV5640_RESET_HIGH_MS   20U
 #define OV5640_PWDN_SETTLE_MS  5U
-#define OV5640_FOCUS_TIMEOUT   1000U
+#define OV5640_FOCUS_TIMEOUT_COUNT   1000U
 #define OV5640_FOCUS_POLL_MS   5U
 
 /* ------------------------------------------------------------------------- */
@@ -604,7 +604,7 @@ uint8_t ov5640_focus_init(void)
         delay_ms(OV5640_FOCUS_POLL_MS);
         i++;
 
-        if (i > OV5640_FOCUS_TIMEOUT)
+        if (i > OV5640_FOCUS_TIMEOUT_COUNT)
         {
             return 1U;
         }
@@ -632,7 +632,7 @@ uint8_t ov5640_focus_single(void)
 
         delay_ms(OV5640_FOCUS_POLL_MS);
 
-        if (retry > OV5640_FOCUS_TIMEOUT)
+        if (retry > OV5640_FOCUS_TIMEOUT_COUNT)
         {
             return 1U;
         }
@@ -654,7 +654,7 @@ uint8_t ov5640_focus_constant(void)
         temp = ov5640_read_reg(0x3023);
         retry++;
 
-        if (retry > OV5640_FOCUS_TIMEOUT)
+        if (retry > OV5640_FOCUS_TIMEOUT_COUNT)
         {
             return 2U;
         }
@@ -671,7 +671,7 @@ uint8_t ov5640_focus_constant(void)
         temp = ov5640_read_reg(0x3023);
         retry++;
 
-        if (retry > OV5640_FOCUS_TIMEOUT)
+        if (retry > OV5640_FOCUS_TIMEOUT_COUNT)
         {
             return 2U;
         }

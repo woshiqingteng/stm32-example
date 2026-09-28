@@ -8,9 +8,9 @@
 #include "bsp.h"
 #define LTDC_COLOR_COUNT 12U
 #define DEMO_TEXT_X      10U
-#define DEMO_TEXT_WIDTH  240U
+#define DEMO_TEXT_WIDTH_PIXEL  240U
 #define DEMO_ID_Y        130U
-#define DEMO_ID_SIZE     16U
+#define DEMO_ID_SIZE_PIXEL     16U
 #define DEMO_REFRESH_MS  1000U
 
 typedef struct
@@ -55,13 +55,13 @@ int main(void)
 
         for (i = 0U; i < (uint8_t)DEMO_LINE_COUNT; i++)
         {
-            lcd_show_string(DEMO_TEXT_X, g_demo_lines[i].y, DEMO_TEXT_WIDTH,
+            lcd_show_string(DEMO_TEXT_X, g_demo_lines[i].y, DEMO_TEXT_WIDTH_PIXEL,
                             g_demo_lines[i].size, g_demo_lines[i].size,
                             g_demo_lines[i].text, RED);
         }
 
-        lcd_show_string(DEMO_TEXT_X, DEMO_ID_Y, DEMO_TEXT_WIDTH, DEMO_ID_SIZE,
-                        DEMO_ID_SIZE, lcd_id, RED);
+        lcd_show_string(DEMO_TEXT_X, DEMO_ID_Y, DEMO_TEXT_WIDTH_PIXEL, DEMO_ID_SIZE_PIXEL,
+                        DEMO_ID_SIZE_PIXEL, lcd_id, RED);
 
         printf("color index %u\r\n", (unsigned)x);
 

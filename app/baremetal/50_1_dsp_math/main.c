@@ -12,7 +12,7 @@
 #include "bsp.h"
 #include "arm_math.h"
 #define DELTA           0.0001f     /* Maximum allowed sin^2 + cos^2 error */
-#define SIN_COS_TIMES   200000U     /* Iterations per run */
+#define SIN_COS_COUNT   200000U     /* Iterations per run */
 
 /* 0 = plain sinf/cosf, 1 = CMSIS-DSP arm_sin_f32/arm_cos_f32. Returns 0xFF
  * when a result deviates from 1 by more than DELTA. */
@@ -63,13 +63,13 @@ int main(void)
     for (;;)
     {
         t0      = sys_get_tick();
-        res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 0U);
+        res     = sin_cos_test(PI / 6.0f, SIN_COS_COUNT, 0U);
         elapsed = sys_get_tick() - t0;
         printf("sin/cos noDSP : %lu ms (%s)\r\n",
                (unsigned long)elapsed, (res == 0U) ? "OK" : "error");
 
         t0      = sys_get_tick();
-        res     = sin_cos_test(PI / 6.0f, SIN_COS_TIMES, 1U);
+        res     = sin_cos_test(PI / 6.0f, SIN_COS_COUNT, 1U);
         elapsed = sys_get_tick() - t0;
         printf("sin/cos DSP   : %lu ms (%s)\r\n\r\n",
                (unsigned long)elapsed, (res == 0U) ? "OK" : "error");

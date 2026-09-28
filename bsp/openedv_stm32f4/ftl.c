@@ -12,9 +12,9 @@
 /* Static LUT / bad-block table, sized for the largest supported NAND part
  * (see nand.c: block_totalnum <= 4096). Adopt a larger part only after bumping
  * this bound; ftl_init() rejects parts with more blocks. */
-#define FTL_MAX_BLOCKS 4096U
-static uint16_t g_ftl_lut[FTL_MAX_BLOCKS];
-static uint8_t  g_ftl_blktbl[FTL_MAX_BLOCKS];
+#define FTL_MAX_BLOCK_COUNT 4096U
+static uint16_t g_ftl_lut[FTL_MAX_BLOCK_COUNT];
+static uint8_t  g_ftl_blktbl[FTL_MAX_BLOCK_COUNT];
 
 uint8_t ftl_init(void)
 {
@@ -25,7 +25,7 @@ uint8_t ftl_init(void)
         return 1;
     }
 
-    if (nand_dev.block_totalnum > FTL_MAX_BLOCKS)   /* static LUT bound */
+    if (nand_dev.block_totalnum > FTL_MAX_BLOCK_COUNT)   /* static LUT bound */
     {
         return 1;
     }

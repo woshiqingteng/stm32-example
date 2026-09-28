@@ -11,7 +11,7 @@
 #define IMU_KP_INIT     20.0f   /* high gain while settling */
 #define IMU_KP_NORMAL   1.0f
 #define IMU_KI          0.01f
-#define IMU_SETTLE_N    200U    /* samples with the high gain */
+#define IMU_SETTLE_SAMPLE    200U    /* samples with the high gain */
 
 static float q0 = 1.0f;
 static float q1 = 0.0f;
@@ -64,7 +64,7 @@ static void imu_computerotationmatrix(void)
 
 void imu_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
 {
-    static unsigned short settle = IMU_SETTLE_N;
+    static unsigned short settle = IMU_SETTLE_SAMPLE;
 
     float normalise;
     float ex, ey, ez;

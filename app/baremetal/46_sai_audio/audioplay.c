@@ -13,10 +13,10 @@
 #include "malloc.h"
 #include "wavplay.h"
 #include "audioplay.h"
-#define AUDIO_MAX_FILES 64U
-#define AUDIO_NAME_LEN  64U
+#define AUDIO_MAX_FILE_COUNT 64U
+#define AUDIO_NAME_LEN_BYTE  64U
 
-static char     g_audio_names[AUDIO_MAX_FILES][AUDIO_NAME_LEN];
+static char     g_audio_names[AUDIO_MAX_FILE_COUNT][AUDIO_NAME_LEN_BYTE];
 static uint16_t g_audio_count;
 
 uint16_t audioplay_get_tnum(const char *path)
@@ -68,10 +68,10 @@ static void audioplay_scan(void)
             break;
         }
 
-        if ((exfuns_file_type(fno.fname) == T_WAV) && (g_audio_count < AUDIO_MAX_FILES))
+        if ((exfuns_file_type(fno.fname) == T_WAV) && (g_audio_count < AUDIO_MAX_FILE_COUNT))
         {
-            (void)strncpy(g_audio_names[g_audio_count], fno.fname, AUDIO_NAME_LEN - 1U);
-            g_audio_names[g_audio_count][AUDIO_NAME_LEN - 1U] = '\0';
+            (void)strncpy(g_audio_names[g_audio_count], fno.fname, AUDIO_NAME_LEN_BYTE - 1U);
+            g_audio_names[g_audio_count][AUDIO_NAME_LEN_BYTE - 1U] = '\0';
             g_audio_count++;
         }
     }
@@ -100,7 +100,7 @@ static audio_nav_t audioplay_play_song(char *fname)
 void audioplay_play(void)
 {
     uint16_t index = 0;
-    char     path[AUDIO_NAME_LEN + 16];
+    char     path[AUDIO_NAME_LEN_BYTE + 16];
     audio_nav_t key;
 
     audio_hw_init();

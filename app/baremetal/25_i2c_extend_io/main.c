@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define PATTERN_PERIOD  500U
+#define PATTERN_PERIOD_MS  500U
 
 static const uint8_t g_patterns[] = { 0xAAU, 0x55U };
 
@@ -52,6 +52,6 @@ int main(void)
 
         idx ^= 1U;
         led_toggle(LED0);
-        delay_ms(PATTERN_PERIOD);
+        delay_ms(PATTERN_PERIOD_MS);
     }
 }

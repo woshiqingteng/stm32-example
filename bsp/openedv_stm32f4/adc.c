@@ -20,7 +20,7 @@
 #define ADC_SCAN_GPIO_PINS      (GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | \
                                  GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5)
 
-#define ADC_SINGLE_CONV_NUM     1U
+#define ADC_SINGLE_CONV_COUNT     1U
 #define ADC_RANK_FIRST          1U
 #define ADC_POLL_TIMEOUT_MS     10U
 #define ADC_AVG_DELAY_MS        5U
@@ -28,12 +28,12 @@
 #define ADC_DMA_IRQ_PRIORITY    3U
 #define ADC_DMA_IRQ_SUBPRIORITY 3U
 
-#define ADC_TEMP_AVG_TIMES      10U
+#define ADC_TEMP_AVG_COUNT      10U
 #define ADC_VREF_VOLT           3.3f
-#define ADC_FULL_SCALE_F        4096.0f
-#define ADC_TEMP_V25            0.76f
-#define ADC_TEMP_SLOPE          0.0025f
-#define ADC_TEMP_OFFSET         25.0f
+#define ADC_FULL_SCALE_COUNT        4096.0f
+#define ADC_TEMP_V25_VOLT            0.76f
+#define ADC_TEMP_SLOPE_VOLT_PER_DEGC          0.0025f
+#define ADC_TEMP_OFFSET_DEGC         25.0f
 #define ADC_TEMP_SCALE          100.0f
 
 typedef enum
@@ -127,7 +127,7 @@ static void adc_dma_channels_scan(ADC_HandleTypeDef *hadc)
 static const adc_dma_ops_t g_adc_dma_ops[3] =
 {
     { 0,                  DISABLE, 0U,                    0U,                0 },
-    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_NUM,   ADC_SINGLE_GPIO_PIN, adc_dma_channels_single },
+    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_COUNT,   ADC_SINGLE_GPIO_PIN, adc_dma_channels_single },
     { &g_adc_scan_handle, ENABLE,  (uint32_t)ADC_SCAN_CH_NUM, ADC_SCAN_GPIO_PINS, adc_dma_channels_scan },
 };
 
@@ -140,7 +140,7 @@ void adc_init(void)
     adc_gpio_config(ADC_SINGLE_GPIO_PIN);
     /* ---- MSP end ---- */
 
-    adc_instance_config(&g_adc_handle, DISABLE, ADC_SINGLE_CONV_NUM, DISABLE, DISABLE);
+    adc_instance_config(&g_adc_handle, DISABLE, ADC_SINGLE_CONV_COUNT, DISABLE, DISABLE);
 }
 
 uint32_t adc_get_result(adc_channel_t channel)
@@ -186,9 +186,9 @@ void adc_temp_init(void)
 
 int16_t adc_get_temperature(void)
 {
-    uint32_t raw     = adc_get_result_average(ADC_TEMP_CH, ADC_TEMP_AVG_TIMES);
-    float    voltage = (float)raw * ADC_VREF_VOLT / ADC_FULL_SCALE_F;
-    float    temp    = ((voltage - ADC_TEMP_V25) / ADC_TEMP_SLOPE + ADC_TEMP_OFFSET) * ADC_TEMP_SCALE;
+    uint32_t raw     = adc_get_result_average(ADC_TEMP_CH, ADC_TEMP_AVG_COUNT);
+    float    voltage = (float)raw * ADC_VREF_VOLT / ADC_FULL_SCALE_COUNT;
+    float    temp    = ((voltage - ADC_TEMP_V25_VOLT) / ADC_TEMP_SLOPE_VOLT_PER_DEGC + ADC_TEMP_OFFSET_DEGC) * ADC_TEMP_SCALE;
 
     return (int16_t)temp;
 }

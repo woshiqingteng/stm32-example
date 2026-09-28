@@ -20,7 +20,7 @@
 #define RTC_DEFAULT_DATE   1U
 #define RTC_DEFAULT_WEEK   1U
 #define RTC_PRINT_PERIOD_MS 1000U
-#define RTC_WAKEUP_1HZ      0x4U    /* HAL RTC_WAKEUPCLOCK_CK_SPRE_16BITS */
+#define RTC_WAKEUP_CLOCK      0x4U    /* HAL RTC_WAKEUPCLOCK_CK_SPRE_16BITS */
 
 static volatile uint32_t g_wakeups;
 
@@ -53,7 +53,7 @@ int main(void)
     }
 
     rtc_register_wakeup_hook(rtc_wakeup_cb);
-    rtc_set_wakeup(RTC_WAKEUP_1HZ, 0U);   /* 1 Hz periodic wake-up */
+    rtc_set_wakeup(RTC_WAKEUP_CLOCK, 0U);   /* 1 Hz periodic wake-up */
     printf("rtc: wakeup timer started (1 Hz)\r\n");
 
     for (;;)

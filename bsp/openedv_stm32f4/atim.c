@@ -17,22 +17,22 @@
 #define ATIM_NVIC_PRIORITY           1U
 #define ATIM_NVIC_SUBPRIORITY        3U
 
-#define ATIM_NPWM_BATCH              256U
+#define ATIM_NPWM_BATCH_COUNT              256U
 #define ATIM_NPWM_DEFAULT_PULSE_DIV  2U
-#define ATIM_REPETITION_COUNTER      0U
+#define ATIM_REPETITION_COUNT      0U
 
-#define ATIM_OC_COMPARE_CH1          250U
-#define ATIM_OC_COMPARE_CH2          500U
-#define ATIM_OC_COMPARE_CH3          750U
-#define ATIM_OC_COMPARE_CH4          1000U
+#define ATIM_OC_COMPARE_CH1_TICK          250U
+#define ATIM_OC_COMPARE_CH2_TICK          500U
+#define ATIM_OC_COMPARE_CH3_TICK          750U
+#define ATIM_OC_COMPARE_CH4_TICK          1000U
 #define ATIM_OC_GPIO_PINS            (GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9)
 
-#define ATIM_PWMIN_ARR               0xFFFFU
-#define ATIM_PWMIN_PSC_DEFAULT       0U
-#define ATIM_PWMIN_PSC_FIRST         1U
-#define ATIM_PWMIN_PSC_STEP          2U
-#define ATIM_PWMIN_PSC_DOUBLE_LIMIT  0x7FFFU
-#define ATIM_PWMIN_PSC_MAX           0xFFFFU
+#define ATIM_PWMIN_ARR_TICK               0xFFFFU
+#define ATIM_PWMIN_PSC_DEFAULT_DIV       0U
+#define ATIM_PWMIN_PSC_FIRST_DIV         1U
+#define ATIM_PWMIN_PSC_STEP_DIV          2U
+#define ATIM_PWMIN_PSC_DOUBLE_LIMIT_DIV  0x7FFFU
+#define ATIM_PWMIN_PSC_MAX_DIV           0xFFFFU
 #define ATIM_PWMIN_TICKS_OFFSET      1U
 
 typedef void (*atim_isr_hook_t)(void);
@@ -77,7 +77,7 @@ void atim_timx_npwm_chy_init(uint16_t arr, uint16_t psc)
     g_atim_npwm_handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     g_atim_npwm_handle.Init.Period            = arr;
     g_atim_npwm_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-    g_atim_npwm_handle.Init.RepetitionCounter = ATIM_REPETITION_COUNTER;
+    g_atim_npwm_handle.Init.RepetitionCounter = ATIM_REPETITION_COUNT;
     HAL_TIM_PWM_Init(&g_atim_npwm_handle);
 
     oc.OCMode     = TIM_OCMODE_PWM1;
@@ -112,14 +112,14 @@ static void atim_npwm_isr(void)
         return;
     }
 
-    if (g_atim_npwm_remain >= ATIM_NPWM_BATCH)
+    if (g_atim_npwm_remain >= ATIM_NPWM_BATCH_COUNT)
     {
-        g_atim_npwm_remain -= ATIM_NPWM_BATCH;
-        npwm = ATIM_NPWM_BATCH;
+        g_atim_npwm_remain -= ATIM_NPWM_BATCH_COUNT;
+        npwm = ATIM_NPWM_BATCH_COUNT;
     }
-    else if ((g_atim_npwm_remain % ATIM_NPWM_BATCH) != 0U)
+    else if ((g_atim_npwm_remain % ATIM_NPWM_BATCH_COUNT) != 0U)
     {
-        npwm = (uint16_t)(g_atim_npwm_remain % ATIM_NPWM_BATCH);
+        npwm = (uint16_t)(g_atim_npwm_remain % ATIM_NPWM_BATCH_COUNT);
         g_atim_npwm_remain = 0;
     }
 
@@ -166,19 +166,19 @@ void atim_timx_comp_pwm_init(uint16_t arr, uint16_t psc)
     oc.OCMode     = TIM_OCMODE_TOGGLE;
     oc.OCPolarity = TIM_OCPOLARITY_HIGH;
 
-    oc.Pulse = ATIM_OC_COMPARE_CH1 - 1U;
+    oc.Pulse = ATIM_OC_COMPARE_CH1_TICK - 1U;
     HAL_TIM_OC_ConfigChannel(&g_atim_comp_handle, &oc, TIM_CHANNEL_1);
     __HAL_TIM_ENABLE_OCxPRELOAD(&g_atim_comp_handle, TIM_CHANNEL_1);
 
-    oc.Pulse = ATIM_OC_COMPARE_CH2 - 1U;
+    oc.Pulse = ATIM_OC_COMPARE_CH2_TICK - 1U;
     HAL_TIM_OC_ConfigChannel(&g_atim_comp_handle, &oc, TIM_CHANNEL_2);
     __HAL_TIM_ENABLE_OCxPRELOAD(&g_atim_comp_handle, TIM_CHANNEL_2);
 
-    oc.Pulse = ATIM_OC_COMPARE_CH3 - 1U;
+    oc.Pulse = ATIM_OC_COMPARE_CH3_TICK - 1U;
     HAL_TIM_OC_ConfigChannel(&g_atim_comp_handle, &oc, TIM_CHANNEL_3);
     __HAL_TIM_ENABLE_OCxPRELOAD(&g_atim_comp_handle, TIM_CHANNEL_3);
 
-    oc.Pulse        = ATIM_OC_COMPARE_CH4 - 1U;
+    oc.Pulse        = ATIM_OC_COMPARE_CH4_TICK - 1U;
     oc.OCIdleState  = TIM_OCIDLESTATE_RESET;
     HAL_TIM_OC_ConfigChannel(&g_atim_comp_handle, &oc, TIM_CHANNEL_4);
     __HAL_TIM_ENABLE_OCxPRELOAD(&g_atim_comp_handle, TIM_CHANNEL_4);
@@ -307,9 +307,9 @@ void atim_timx_pwmin_chy_init(void)
     HAL_GPIO_Init(GPIOC, &gpio_init);
 
     g_atim_pwmin_handle.Instance         = TIM8;
-    g_atim_pwmin_handle.Init.Prescaler   = ATIM_PWMIN_PSC_DEFAULT;
+    g_atim_pwmin_handle.Init.Prescaler   = ATIM_PWMIN_PSC_DEFAULT_DIV;
     g_atim_pwmin_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    g_atim_pwmin_handle.Init.Period      = ATIM_PWMIN_ARR;
+    g_atim_pwmin_handle.Init.Period      = ATIM_PWMIN_ARR_TICK;
     HAL_TIM_IC_Init(&g_atim_pwmin_handle);
 
     slave.SlaveMode       = TIM_SLAVEMODE_RESET;
@@ -343,8 +343,8 @@ void atim_timx_pwmin_chy_restart(void)
     {
         g_atim_pwmin_sm = ATIM_PWMIN_SM_IDLE;
     }
-    g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
-    __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, ATIM_PWMIN_PSC_DEFAULT);
+    g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT_DIV;
+    __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, ATIM_PWMIN_PSC_DEFAULT_DIV);
     __HAL_TIM_SET_COUNTER(&g_atim_pwmin_handle, 0);
     __HAL_TIM_ENABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
     __HAL_TIM_ENABLE_IT(&g_atim_pwmin_handle, TIM_IT_UPDATE);
@@ -379,7 +379,7 @@ static void atim_pwmin_process(void)
 {
     if (g_atim_pwmin_sm == ATIM_PWMIN_SM_DONE)
     {
-        g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
+        g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT_DIV;
         __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
         __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
         __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
@@ -395,21 +395,21 @@ static void atim_pwmin_process(void)
         {
             g_atim_pwmin_sm = ATIM_PWMIN_SM_IDLE;
 
-            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
+            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT_DIV)
             {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_FIRST;
+                g_atim_pwmin_psc = ATIM_PWMIN_PSC_FIRST_DIV;
             }
-            else if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_MAX)
+            else if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_MAX_DIV)
             {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
+                g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT_DIV;
             }
-            else if (g_atim_pwmin_psc > ATIM_PWMIN_PSC_DOUBLE_LIMIT)
+            else if (g_atim_pwmin_psc > ATIM_PWMIN_PSC_DOUBLE_LIMIT_DIV)
             {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_MAX;
+                g_atim_pwmin_psc = ATIM_PWMIN_PSC_MAX_DIV;
             }
             else
             {
-                g_atim_pwmin_psc = (uint16_t)(g_atim_pwmin_psc * ATIM_PWMIN_PSC_STEP);
+                g_atim_pwmin_psc = (uint16_t)(g_atim_pwmin_psc * ATIM_PWMIN_PSC_STEP_DIV);
             }
 
             __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, g_atim_pwmin_psc);
@@ -443,7 +443,7 @@ static void atim_pwmin_process(void)
             g_atim_pwmin_sm  = ATIM_PWMIN_SM_DONE;
             g_atim_pwmin_psc = (uint16_t)__HAL_TIM_GET_PRESCALER(&g_atim_pwmin_handle);
 
-            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
+            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT_DIV)
             {
                 g_atim_pwmin_hval++;
                 g_atim_pwmin_cval++;

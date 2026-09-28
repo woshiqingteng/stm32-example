@@ -5,24 +5,24 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define ATIM_OC_ARR     1000U
-#define ATIM_OC_PSC     180U
-#define ATIM_OC_CCR_CH1 250U
-#define ATIM_OC_CCR_CH2 500U
-#define ATIM_OC_CCR_CH3 750U
-#define ATIM_OC_CCR_CH4 1000U
+#define ATIM_OC_ARR_TICK     1000U
+#define ATIM_OC_PSC_DIV     180U
+#define ATIM_OC_CCR_CH1_TICK 250U
+#define ATIM_OC_CCR_CH2_TICK 500U
+#define ATIM_OC_CCR_CH3_TICK 750U
+#define ATIM_OC_CCR_CH4_TICK 1000U
 #define ATIM_OC_LOOP_MS 500U
 
 int main(void)
 {
     bsp_init();
     printf(APP_BANNER "\r\n");
-    atim_timx_comp_pwm_init(ATIM_OC_ARR - 1U, ATIM_OC_PSC - 1U);
+    atim_timx_comp_pwm_init(ATIM_OC_ARR_TICK - 1U, ATIM_OC_PSC_DIV - 1U);
 
-    atim_timx_comp_pwm_set(ATIM_CH1, ATIM_OC_CCR_CH1 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH2, ATIM_OC_CCR_CH2 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH3, ATIM_OC_CCR_CH3 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH4, ATIM_OC_CCR_CH4 - 1U);
+    atim_timx_comp_pwm_set(ATIM_CH1, ATIM_OC_CCR_CH1_TICK - 1U);
+    atim_timx_comp_pwm_set(ATIM_CH2, ATIM_OC_CCR_CH2_TICK - 1U);
+    atim_timx_comp_pwm_set(ATIM_CH3, ATIM_OC_CCR_CH3_TICK - 1U);
+    atim_timx_comp_pwm_set(ATIM_CH4, ATIM_OC_CCR_CH4_TICK - 1U);
 
     for (;;)
     {

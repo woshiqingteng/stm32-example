@@ -235,9 +235,9 @@ void DMA2_Stream1_IRQHandler(void)
 
 /* ---- One-shot JPEG capture ------------------------------------------------- */
 
-#define DCMI_JPEG_LINE_WORDS  512U   /* per-line DMA staging buffer (32-bit words) */
+#define DCMI_JPEG_LINE_WORD_COUNT  512U   /* per-line DMA staging buffer (32-bit words) */
 
-static uint32_t          s_jpeg_line[2][DCMI_JPEG_LINE_WORDS];
+static uint32_t          s_jpeg_line[2][DCMI_JPEG_LINE_WORD_COUNT];
 static uint32_t         *s_jpeg_dst;
 static uint32_t          s_jpeg_max_words;
 static volatile uint32_t s_jpeg_len;
@@ -262,7 +262,7 @@ static void dcmi_jpeg_rx_cb(void)
 
     dst = s_jpeg_dst + s_jpeg_len;
 
-    for (i = 0U; i < DCMI_JPEG_LINE_WORDS; i++)
+    for (i = 0U; i < DCMI_JPEG_LINE_WORD_COUNT; i++)
     {
         if ((s_jpeg_len + i) >= s_jpeg_max_words)
         {
@@ -272,7 +272,7 @@ static void dcmi_jpeg_rx_cb(void)
         dst[i] = src[i];
     }
 
-    s_jpeg_len += DCMI_JPEG_LINE_WORDS;
+    s_jpeg_len += DCMI_JPEG_LINE_WORD_COUNT;
 
     if (s_jpeg_len >= s_jpeg_max_words)
     {
@@ -294,7 +294,7 @@ static void dcmi_jpeg_frame_cb(void)
 
     __HAL_DMA_DISABLE(&g_dma_dcmi_handle);
 
-    rlen = (uint16_t)(DCMI_JPEG_LINE_WORDS - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
+    rlen = (uint16_t)(DCMI_JPEG_LINE_WORD_COUNT - __HAL_DMA_GET_COUNTER(&g_dma_dcmi_handle));
     dst  = s_jpeg_dst + s_jpeg_len;
     src  = ((g_dma_dcmi_handle.Instance->CR & DMA_SxCR_CT) != 0U) ? s_jpeg_line[1] : s_jpeg_line[0];
 
@@ -325,7 +325,7 @@ void dcmi_jpeg_begin(void)
     s_jpeg_len   = 0U;
     s_jpeg_state = DCMI_JPEG_CAPTURING;
 
-    dcmi_dma_init((uint32_t)s_jpeg_line[0], (uint32_t)s_jpeg_line[1], DCMI_JPEG_LINE_WORDS,
+    dcmi_dma_init((uint32_t)s_jpeg_line[0], (uint32_t)s_jpeg_line[1], DCMI_JPEG_LINE_WORD_COUNT,
                   DMA_MDATAALIGN_WORD, DMA_MINC_ENABLE);
     dcmi_rx_callback    = dcmi_jpeg_rx_cb;
     dcmi_frame_callback = dcmi_jpeg_frame_cb;

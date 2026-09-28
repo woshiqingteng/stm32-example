@@ -9,7 +9,7 @@
 #include "delay.h"
 
 #define AP3216C_RESET_DELAY_MS  50U
-#define AP3216C_DATA_LEN        6U
+#define AP3216C_DATA_LEN_BYTE        6U
 
 uint8_t ap3216c_write_one_byte(uint8_t reg, uint8_t data)
 {
@@ -72,10 +72,10 @@ uint8_t ap3216c_init(void)
 
 void ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als)
 {
-    uint8_t buf[AP3216C_DATA_LEN];
+    uint8_t buf[AP3216C_DATA_LEN_BYTE];
     uint8_t i;
 
-    for (i = 0U; i < AP3216C_DATA_LEN; i++)
+    for (i = 0U; i < AP3216C_DATA_LEN_BYTE; i++)
     {
         buf[i] = ap3216c_read_one_byte((uint8_t)(AP3216C_DATA_REG + i));
     }

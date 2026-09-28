@@ -9,13 +9,13 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define TOUCH_POINT_SIZE  2U
+#define TOUCH_POINT_SIZE_PIXEL  2U
 #define TOUCH_SAMPLE_MS   5U
-#define TOUCH_LED_DIV     40U
+#define TOUCH_LED_COUNT     40U
 #define TOUCH_TEXT_X      10U
-#define TOUCH_TEXT_WIDTH  400U
-#define TOUCH_RST_W       24U
-#define TOUCH_RST_H       20U
+#define TOUCH_TEXT_WIDTH_PIXEL  400U
+#define TOUCH_RST_WIDTH_PIXEL       24U
+#define TOUCH_RST_HEIGHT_PIXEL       20U
 
 static const uint16_t g_touch_point_color[] =
 {
@@ -28,9 +28,9 @@ static void touch_draw_point(uint16_t x, uint16_t y, uint16_t color)
     uint8_t dx;
     uint8_t dy;
 
-    for (dy = 0U; dy < TOUCH_POINT_SIZE; dy++)
+    for (dy = 0U; dy < TOUCH_POINT_SIZE_PIXEL; dy++)
     {
-        for (dx = 0U; dx < TOUCH_POINT_SIZE; dx++)
+        for (dx = 0U; dx < TOUCH_POINT_SIZE_PIXEL; dx++)
         {
             lcd_draw_point((uint16_t)(x + dx), (uint16_t)(y + dy), color);
         }
@@ -70,9 +70,9 @@ int main(void)
 {
     uint16_t x;
     uint16_t y;
-    uint16_t last_x[TOUCH_MAX_POINTS] = { 0U };
-    uint16_t last_y[TOUCH_MAX_POINTS] = { 0U };
-    bool     have_last[TOUCH_MAX_POINTS] = { false };
+    uint16_t last_x[TOUCH_MAX_POINT_COUNT] = { 0U };
+    uint16_t last_y[TOUCH_MAX_POINT_COUNT] = { 0U };
+    bool     have_last[TOUCH_MAX_POINT_COUNT] = { false };
     uint8_t  i;
     uint8_t  n;
     uint32_t tick = 0U;
@@ -84,20 +84,20 @@ int main(void)
     lcd_display_dir(LTDC_DIR_LANDSCAPE);
 
     lcd_clear(WHITE);
-    lcd_show_string(TOUCH_TEXT_X, 10U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(TOUCH_TEXT_X, 30U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16, "TOUCH TEST", RED);
-    lcd_show_string(TOUCH_TEXT_X, 50U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+    lcd_show_string(TOUCH_TEXT_X, 10U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16, "STM32", RED);
+    lcd_show_string(TOUCH_TEXT_X, 30U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16, "TOUCH TEST", RED);
+    lcd_show_string(TOUCH_TEXT_X, 50U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16,
                     "ATOM@ALIENTEK", RED);
 
     if (touch_init() != 0U)
     {
-        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16,
                         "Touch Init Failed!", RED);
         printf("touch init failed\r\n");
     }
     else
     {
-        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH, 16U, LCD_FONT_SIZE_16,
+        lcd_show_string(TOUCH_TEXT_X, 80U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16,
                         "Touch Ready!", BLUE);
         printf("touch ready\r\n");
     }
@@ -121,11 +121,11 @@ int main(void)
                 if ((x < lcd_get_width()) && (y < lcd_get_height()))
                 {
                     /* Top-right reset area clears the trail. */
-                    if ((x > (uint16_t)(lcd_get_width() - TOUCH_RST_W)) && (y < TOUCH_RST_H))
+                    if ((x > (uint16_t)(lcd_get_width() - TOUCH_RST_WIDTH_PIXEL)) && (y < TOUCH_RST_HEIGHT_PIXEL))
                     {
                         lcd_clear(WHITE);
 
-                        for (k = 0U; k < TOUCH_MAX_POINTS; k++)
+                        for (k = 0U; k < TOUCH_MAX_POINT_COUNT; k++)
                         {
                             have_last[k] = false;
                         }
@@ -144,7 +144,7 @@ int main(void)
                 }
             }
 
-            for (i = n; i < TOUCH_MAX_POINTS; i++)
+            for (i = n; i < TOUCH_MAX_POINT_COUNT; i++)
             {
                 have_last[i] = false;
             }
@@ -153,7 +153,7 @@ int main(void)
         }
         else
         {
-            for (i = 0U; i < TOUCH_MAX_POINTS; i++)
+            for (i = 0U; i < TOUCH_MAX_POINT_COUNT; i++)
             {
                 have_last[i] = false;
             }
@@ -161,7 +161,7 @@ int main(void)
 
         tick++;
 
-        if ((tick % TOUCH_LED_DIV) == 0U)
+        if ((tick % TOUCH_LED_COUNT) == 0U)
         {
             led_toggle(LED0);
         }

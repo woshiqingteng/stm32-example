@@ -18,7 +18,7 @@
 /* Max consecutive SysTick->VAL reads without a change before delay_us() gives
  * up, so a stopped SysTick cannot hang the caller. In normal operation the
  * counter advances within a few reads, so timing is unaffected. */
-#define DELAY_US_STALL_LIMIT 1000000U
+#define DELAY_US_STALL_LIMIT_COUNT 1000000U
 
 static uint32_t g_fac_us = 0;
 
@@ -98,7 +98,7 @@ void delay_us(uint32_t nus)
                 break;
             }
         }
-        else if (++stalled >= DELAY_US_STALL_LIMIT)
+        else if (++stalled >= DELAY_US_STALL_LIMIT_COUNT)
         {
             break;
         }

@@ -11,11 +11,11 @@
 #define RTC_BKP_FLAG_LSE    0x5050U
 #define RTC_BKP_FLAG_LSI    0x5051U
 
-#define RTC_LSE_RETRY       200U
+#define RTC_LSE_RETRY_COUNT       200U
 #define RTC_LSE_POLL_MS     5U
 
-#define RTC_ASYNC_PREDIV    0x7FU
-#define RTC_SYNC_PREDIV     0xFFU
+#define RTC_ASYNC_PREDIV_DIV    0x7FU
+#define RTC_SYNC_PREDIV_DIV     0xFFU
 
 #define RTC_WKUP_IRQ_PRIORITY    2U
 #define RTC_WKUP_IRQ_SUBPRIORITY 2U
@@ -148,7 +148,7 @@ static void rtc_clock_config(void)
 {
     RCC_OscInitTypeDef       osc  = {0};
     RCC_PeriphCLKInitTypeDef pclk = {0};
-    uint16_t                 retry = RTC_LSE_RETRY;
+    uint16_t                 retry = RTC_LSE_RETRY_COUNT;
 
     /* Start LSE and probe for it to decide the RTC clock source. */
     __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
@@ -190,8 +190,8 @@ rtc_status_t rtc_init(void)
 {
     g_rtc_handle.Instance          = RTC;
     g_rtc_handle.Init.HourFormat   = RTC_HOURFORMAT_24;
-    g_rtc_handle.Init.AsynchPrediv = RTC_ASYNC_PREDIV;
-    g_rtc_handle.Init.SynchPrediv  = RTC_SYNC_PREDIV;
+    g_rtc_handle.Init.AsynchPrediv = RTC_ASYNC_PREDIV_DIV;
+    g_rtc_handle.Init.SynchPrediv  = RTC_SYNC_PREDIV_DIV;
     g_rtc_handle.Init.OutPut       = RTC_OUTPUT_DISABLE;
     g_rtc_handle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
     g_rtc_handle.Init.OutPutType     = RTC_OUTPUT_TYPE_OPENDRAIN;

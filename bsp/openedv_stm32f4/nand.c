@@ -43,7 +43,7 @@ uint8_t nand_readstatus(void)
     volatile uint8_t data;
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_READSTA;
-    nand_delay(NAND_TWHR_DELAY);
+    nand_delay(NAND_TWHR_DELAY_COUNT);
     data = *(volatile uint8_t *)NAND_ADDRESS;
 
     return data;
@@ -251,7 +251,7 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
         return NSTA_TIMEOUT;
     }
 
-    if ((numbyte_to_read % NAND_ECC_SECTOR_SIZE) != 0U)
+    if ((numbyte_to_read % NAND_ECC_SECTOR_SIZE_BYTE) != 0U)
     {
         /* Not a whole number of ECC sectors: raw read, no ECC. */
         for (i = 0U; i < numbyte_to_read; i++)
@@ -261,15 +261,15 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
     }
     else
     {
-        eccnum   = (uint8_t)(numbyte_to_read / NAND_ECC_SECTOR_SIZE);
-        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE);
+        eccnum   = (uint8_t)(numbyte_to_read / NAND_ECC_SECTOR_SIZE_BYTE);
+        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE_BYTE);
         p        = pbuffer;
 
         for (sect = 0U; sect < eccnum; sect++)
         {
             FMC_Bank2_3->PCR3 |= 1U << 6;                       /* enable ECC */
 
-            for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+            for (i = 0U; i < NAND_ECC_SECTOR_SIZE_BYTE; i++)
             {
                 *pbuffer++ = *(volatile uint8_t *)NAND_ADDRESS;
             }
@@ -283,13 +283,13 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
         }
 
         i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
-        nand_delay(NAND_TRHW_DELAY);
+        nand_delay(NAND_TRHW_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x05; /* random data output */
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(i >> 8);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0xE0;
 
-        nand_delay(NAND_TWHR_DELAY);
+        nand_delay(NAND_TWHR_DELAY_COUNT);
         pbuffer = (uint8_t *)&nand_dev.ecc_rdbuf[eccstart];
 
         for (i = 0U; i < (4U * eccnum); i++)                    /* read stored ECC */
@@ -305,7 +305,7 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
                 printf("eccnum,eccstart:%d,%d\r\n", eccnum, eccstart);
                 printf("PageNum,ColNum:%d,%d\r\n", (int)pagenum, (int)colnum);
 
-                if (nand_ecc_correction(p + NAND_ECC_SECTOR_SIZE * i,
+                if (nand_ecc_correction(p + NAND_ECC_SECTOR_SIZE_BYTE * i,
                                         nand_dev.ecc_rdbuf[i + eccstart],
                                         nand_dev.ecc_hdbuf[i + eccstart]) != 0U)
                 {
@@ -385,9 +385,9 @@ uint8_t nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)pagenum;
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(pagenum >> 8);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(pagenum >> 16);
-    nand_delay(NAND_TADL_DELAY);
+    nand_delay(NAND_TADL_DELAY_COUNT);
 
-    if ((numbyte_to_write % NAND_ECC_SECTOR_SIZE) != 0U)
+    if ((numbyte_to_write % NAND_ECC_SECTOR_SIZE_BYTE) != 0U)
     {
         for (i = 0U; i < numbyte_to_write; i++)
         {
@@ -396,18 +396,18 @@ uint8_t nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
     }
     else
     {
-        eccnum   = (uint8_t)(numbyte_to_write / NAND_ECC_SECTOR_SIZE);
-        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE);
+        eccnum   = (uint8_t)(numbyte_to_write / NAND_ECC_SECTOR_SIZE_BYTE);
+        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE_BYTE);
 
         for (res = 0U; res < eccnum; res++)
         {
             FMC_Bank2_3->PCR3 |= 1U << 6;
 
-            for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+            for (i = 0U; i < NAND_ECC_SECTOR_SIZE_BYTE; i++)
             {
                 *(volatile uint8_t *)NAND_ADDRESS = pbuffer[i];
             }
-            pbuffer += NAND_ECC_SECTOR_SIZE;
+            pbuffer += NAND_ECC_SECTOR_SIZE_BYTE;
 
             while ((FMC_Bank2_3->SR3 & (1U << 6)) == 0U)
             {
@@ -418,11 +418,11 @@ uint8_t nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
         }
 
         i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
-        nand_delay(NAND_TADL_DELAY);
+        nand_delay(NAND_TADL_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x85U; /* write spare */
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(i >> 8);
-        nand_delay(NAND_TADL_DELAY);
+        nand_delay(NAND_TADL_DELAY_COUNT);
 
         eccsrc = (uint8_t *)&nand_dev.ecc_hdbuf[eccstart];
         for (i = 0U; i < eccnum; i++)
@@ -435,7 +435,7 @@ uint8_t nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
     }
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_WRITE_TURE1;
-    delay_us(NAND_TPROG_DELAY);
+    delay_us(NAND_TPROG_DELAY_US);
 
     if (nand_wait_for_ready() != NSTA_READY)
     {
@@ -455,7 +455,7 @@ uint8_t nand_write_pageconst(uint32_t pagenum, uint16_t colnum, uint32_t cval, u
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)pagenum;
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(pagenum >> 8);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(pagenum >> 16);
-    nand_delay(NAND_TADL_DELAY);
+    nand_delay(NAND_TADL_DELAY_COUNT);
 
     for (i = 0U; i < numbyte_to_write; i++)
     {
@@ -463,7 +463,7 @@ uint8_t nand_write_pageconst(uint32_t pagenum, uint16_t colnum, uint32_t cval, u
     }
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_WRITE_TURE1;
-    delay_us(NAND_TPROG_DELAY);
+    delay_us(NAND_TPROG_DELAY_US);
 
     if (nand_wait_for_ready() != NSTA_READY)
     {
@@ -520,7 +520,7 @@ uint8_t nand_eraseblock(uint32_t blocknum)
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(blocknum >> 16);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_ERASE1;
 
-    delay_ms(NAND_TBERS_DELAY);
+    delay_ms(NAND_TBERS_DELAY_MS);
 
     if (nand_wait_for_ready() != NSTA_READY)
     {
@@ -575,7 +575,7 @@ uint8_t nand_copypage_withoutwrite(uint32_t source_pagenum, uint32_t dest_pagenu
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 8);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 16);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD3;
-    delay_us(NAND_TPROG_DELAY);
+    delay_us(NAND_TPROG_DELAY_US);
 
     if (nand_wait_for_ready() != NSTA_READY)
     {
@@ -624,9 +624,9 @@ uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)dest_pagenum;
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 8);
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(dest_pagenum >> 16);
-    nand_delay(NAND_TADL_DELAY);
+    nand_delay(NAND_TADL_DELAY_COUNT);
 
-    if ((numbyte_to_write % NAND_ECC_SECTOR_SIZE) != 0U)
+    if ((numbyte_to_write % NAND_ECC_SECTOR_SIZE_BYTE) != 0U)
     {
         for (i = 0U; i < numbyte_to_write; i++)
         {
@@ -635,14 +635,14 @@ uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, 
     }
     else
     {
-        eccnum   = (uint8_t)(numbyte_to_write / NAND_ECC_SECTOR_SIZE);
-        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE);
+        eccnum   = (uint8_t)(numbyte_to_write / NAND_ECC_SECTOR_SIZE_BYTE);
+        eccstart = (uint8_t)(colnum / NAND_ECC_SECTOR_SIZE_BYTE);
 
         for (sect = 0U; sect < eccnum; sect++)
         {
             FMC_Bank2_3->PCR3 |= 1U << 6;
 
-            for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+            for (i = 0U; i < NAND_ECC_SECTOR_SIZE_BYTE; i++)
             {
                 *(volatile uint8_t *)NAND_ADDRESS = *pbuffer++;
             }
@@ -656,11 +656,11 @@ uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, 
         }
 
         i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
-        nand_delay(NAND_TADL_DELAY);
+        nand_delay(NAND_TADL_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x85;
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)(i >> 8);
-        nand_delay(NAND_TADL_DELAY);
+        nand_delay(NAND_TADL_DELAY_COUNT);
 
         pbuffer = (uint8_t *)&nand_dev.ecc_hdbuf[eccstart];
 
@@ -674,7 +674,7 @@ uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, 
     }
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_MOVEDATA_CMD3;
-    delay_us(NAND_TPROG_DELAY);
+    delay_us(NAND_TPROG_DELAY_US);
 
     if (nand_wait_for_ready() != NSTA_READY)
     {

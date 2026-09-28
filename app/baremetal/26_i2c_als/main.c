@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define SAMPLE_PERIOD   120U
+#define SAMPLE_PERIOD_MS   120U
 
 int main(void)
 {
@@ -36,6 +36,6 @@ int main(void)
         printf("IR:%u PS:%u ALS:%u\r\n", (unsigned)ir, (unsigned)ps, (unsigned)als);
 
         led_toggle(LED0);
-        delay_ms(SAMPLE_PERIOD);
+        delay_ms(SAMPLE_PERIOD_MS);
     }
 }

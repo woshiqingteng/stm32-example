@@ -13,10 +13,10 @@
 
 #define GTIM_NVIC_PRIORITY     1U
 #define GTIM_NVIC_SUBPRIORITY  3U
-#define GTIM_TIMER_MODULUS     0x10000U
+#define GTIM_TIMER_MODULUS_TICK     0x10000U
 #define GTIM_TIMER_MAX_COUNT   0xFFFFU
 #define GTIM_PWM_HALF_DUTY_DIV 2U
-#define GTIM_CAP_MAX_OVERFLOW  63U
+#define GTIM_CAP_MAX_OVERFLOW_COUNT  63U
 #define GTIM_CAP_INVALID_VALUE 0xFFFFU
 
 /* ---- TIM3 update interrupt ---- */
@@ -143,7 +143,7 @@ uint32_t gtim_timx_cap_chy_value(void)
     uint32_t value;
 
     sys_intx_disable();
-    value = (g_gtim_cap_overflows * GTIM_TIMER_MODULUS) + g_gtim_cap_value;
+    value = (g_gtim_cap_overflows * GTIM_TIMER_MODULUS_TICK) + g_gtim_cap_value;
     sys_intx_enable();
 
     return value;
@@ -188,7 +188,7 @@ void TIM5_IRQHandler(void)
         if (g_gtim_cap_state == GTIM_CAP_RISING)
         {
             g_gtim_cap_overflows++;
-            if (g_gtim_cap_overflows >= GTIM_CAP_MAX_OVERFLOW)
+            if (g_gtim_cap_overflows >= GTIM_CAP_MAX_OVERFLOW_COUNT)
             {
                 TIM_RESET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1);
                 TIM_SET_CAPTUREPOLARITY(&g_gtim_cap_handle, TIM_CHANNEL_1, TIM_ICPOLARITY_RISING);
@@ -243,7 +243,7 @@ uint32_t gtim_timx_cnt_chy_get_count(void)
     uint32_t count;
 
     sys_intx_disable();
-    count = (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
+    count = (g_gtim_cnt_overflows * GTIM_TIMER_MODULUS_TICK) + __HAL_TIM_GET_COUNTER(&g_gtim_cnt_handle);
     sys_intx_enable();
 
     return count;
@@ -270,8 +270,8 @@ void TIM2_IRQHandler(void)
 #define GTIM_FRAME_TIMX                  TIM14
 #define GTIM_FRAME_TIMX_IRQN             TIM8_TRG_COM_TIM14_IRQn
 /* 90 MHz / (9000 * 10000) = 1 Hz. */
-#define GTIM_FRAME_PRESCALER             9000U
-#define GTIM_FRAME_PERIOD                10000U
+#define GTIM_FRAME_PRESCALER_DIV             9000U
+#define GTIM_FRAME_PERIOD_TICK                10000U
 
 static TIM_HandleTypeDef g_gtim_frame_handle;
 
@@ -288,9 +288,9 @@ void gtim_frame_init(void)
     HAL_NVIC_EnableIRQ(GTIM_FRAME_TIMX_IRQN);
 
     g_gtim_frame_handle.Instance           = GTIM_FRAME_TIMX;
-    g_gtim_frame_handle.Init.Prescaler     = GTIM_FRAME_PRESCALER - 1U;
+    g_gtim_frame_handle.Init.Prescaler     = GTIM_FRAME_PRESCALER_DIV - 1U;
     g_gtim_frame_handle.Init.CounterMode   = TIM_COUNTERMODE_UP;
-    g_gtim_frame_handle.Init.Period        = GTIM_FRAME_PERIOD - 1U;
+    g_gtim_frame_handle.Init.Period        = GTIM_FRAME_PERIOD_TICK - 1U;
     g_gtim_frame_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     (void)HAL_TIM_Base_Init(&g_gtim_frame_handle);
     (void)HAL_TIM_Base_Start_IT(&g_gtim_frame_handle);

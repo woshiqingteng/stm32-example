@@ -11,12 +11,12 @@
 #define IAP_FRAME_HEAD0        0x5AU
 #define IAP_FRAME_HEAD1        0xA5U
 #define IAP_RX_TIMEOUT_MS      5000U
-#define IAP_MAX_IMAGE_SIZE     (960U * 1024U)
+#define IAP_MAX_IMAGE_SIZE_BYTE     (960U * 1024U)
 
 /* STM32F429IG sector layout (1 MB): 0-3 = 16K, 4 = 64K, 5-11 = 128K. */
-#define IAP_SECTOR_16K         0x4000U
-#define IAP_SECTOR_64K         0x10000U
-#define IAP_SECTOR_128K        0x20000U
+#define IAP_SECTOR_SIZE_16K_BYTE         0x4000U
+#define IAP_SECTOR_SIZE_64K_BYTE         0x10000U
+#define IAP_SECTOR_SIZE_128K_BYTE        0x20000U
 
 static uint8_t g_iap_buf[2048];
 
@@ -24,15 +24,15 @@ static uint32_t iap_sector_of(uint32_t addr)
 {
     uint32_t off = addr - FLASH_BASE;
 
-    if (off < (4U * IAP_SECTOR_16K))
+    if (off < (4U * IAP_SECTOR_SIZE_16K_BYTE))
     {
-        return off / IAP_SECTOR_16K;
+        return off / IAP_SECTOR_SIZE_16K_BYTE;
     }
-    if (off < (4U * IAP_SECTOR_16K) + IAP_SECTOR_64K)
+    if (off < (4U * IAP_SECTOR_SIZE_16K_BYTE) + IAP_SECTOR_SIZE_64K_BYTE)
     {
         return 4U;
     }
-    return 5U + ((off - (4U * IAP_SECTOR_16K) - IAP_SECTOR_64K) / IAP_SECTOR_128K);
+    return 5U + ((off - (4U * IAP_SECTOR_SIZE_16K_BYTE) - IAP_SECTOR_SIZE_64K_BYTE) / IAP_SECTOR_SIZE_128K_BYTE);
 }
 
 static int iap_rx_byte(uint8_t *byte)
@@ -46,7 +46,7 @@ iap_status_t iap_erase_app(uint32_t addr, uint32_t len)
     uint32_t               sector_error = 0U;
     uint32_t               end = addr + len;
 
-    if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE)))
+    if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE_BYTE)))
     {
         return IAP_ERR_PARAM;
     }
@@ -73,7 +73,7 @@ iap_status_t iap_write_appbin(uint32_t addr, const uint8_t *buf, uint32_t len)
     uint32_t end = addr + len;
     uint32_t i;
 
-    if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE)))
+    if ((addr < IAP_APP_ADDR) || (end > (IAP_APP_ADDR + IAP_MAX_IMAGE_SIZE_BYTE)))
     {
         return IAP_ERR_PARAM;
     }
@@ -157,7 +157,7 @@ iap_status_t iap_receive_usart(void)
     if ((iap_rx_byte(&byte) != 0)) { return IAP_ERR_TIMEOUT; }
     len |= (uint16_t)((uint16_t)byte << 8);
 
-    if ((len == 0U) || (len > IAP_MAX_IMAGE_SIZE)) { return IAP_ERR_PARAM; }
+    if ((len == 0U) || (len > IAP_MAX_IMAGE_SIZE_BYTE)) { return IAP_ERR_PARAM; }
 
     if (iap_erase_app(IAP_APP_ADDR, len) != IAP_OK) { return IAP_ERR_ERASE; }
 

@@ -5,10 +5,10 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define GTIM_PWM_ARR        500U
-#define GTIM_PWM_PSC        90U
-#define GTIM_PWM_DUTY_MAX   300
-#define GTIM_PWM_DUTY_STEP  1
+#define GTIM_PWM_ARR_TICK        500U
+#define GTIM_PWM_PSC_DIV        90U
+#define GTIM_PWM_DUTY_MAX_TICK   300
+#define GTIM_PWM_DUTY_STEP_TICK  1
 #define GTIM_PWM_DELAY_MS   10U
 
 /** @brief PWM duty ramp direction. */
@@ -25,17 +25,17 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_pwm_chy_init(GTIM_PWM_ARR - 1U, GTIM_PWM_PSC - 1U);
+    gtim_timx_pwm_chy_init(GTIM_PWM_ARR_TICK - 1U, GTIM_PWM_PSC_DIV - 1U);
 
     for (;;)
     {
         delay_ms(GTIM_PWM_DELAY_MS);
 
-        duty += (ramp == GTIM_PWM_RAMP_UP) ? (int16_t)GTIM_PWM_DUTY_STEP
-                                           : -(int16_t)GTIM_PWM_DUTY_STEP;
-        if (duty > GTIM_PWM_DUTY_MAX)
+        duty += (ramp == GTIM_PWM_RAMP_UP) ? (int16_t)GTIM_PWM_DUTY_STEP_TICK
+                                           : -(int16_t)GTIM_PWM_DUTY_STEP_TICK;
+        if (duty > GTIM_PWM_DUTY_MAX_TICK)
         {
-            duty = GTIM_PWM_DUTY_MAX;
+            duty = GTIM_PWM_DUTY_MAX_TICK;
             ramp = GTIM_PWM_RAMP_DOWN;
         }
         else if (duty == 0)

@@ -5,18 +5,18 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define ATIM_CPLM_ARR     1000U
-#define ATIM_CPLM_PSC     180U
-#define ATIM_CPLM_CCR     300U
-#define ATIM_CPLM_DTG     100U
+#define ATIM_CPLM_ARR_TICK     1000U
+#define ATIM_CPLM_PSC_DIV     180U
+#define ATIM_CPLM_CCR_TICK     300U
+#define ATIM_CPLM_DTG_RAW     100U
 #define ATIM_CPLM_LOOP_MS 500U
 
 int main(void)
 {
     bsp_init();
     printf(APP_BANNER "\r\n");
-    atim_timx_cplm_pwm_init(ATIM_CPLM_ARR - 1U, ATIM_CPLM_PSC - 1U);
-    atim_timx_cplm_pwm_set(ATIM_CPLM_CCR, ATIM_CPLM_DTG);
+    atim_timx_cplm_pwm_init(ATIM_CPLM_ARR_TICK - 1U, ATIM_CPLM_PSC_DIV - 1U);
+    atim_timx_cplm_pwm_set(ATIM_CPLM_CCR_TICK, ATIM_CPLM_DTG_RAW);
 
     for (;;)
     {

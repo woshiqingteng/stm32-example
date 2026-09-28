@@ -17,8 +17,8 @@
 #define ST480MC_BURST_MODE      0x1FU   /* burst mode read (zxyt) */
 #define ST480MC_SINGLE_MODE     0x3FU   /* single-shot read (zxyt) */
 
-#define ST480MC_SENS_XY         667U    /* X/Y sensitivity, LSB/Gauss */
-#define ST480MC_SENS_Z          400U    /* Z sensitivity, LSB/Gauss */
+#define ST480MC_SENS_XY_LSB_PER_GAUSS         667U    /* X/Y sensitivity, LSB/Gauss */
+#define ST480MC_SENS_Z_LSB_PER_GAUSS          400U    /* Z sensitivity, LSB/Gauss */
 
 /** @brief  Reset the ST480MC and probe its IIC address. 0 on success. */
 uint8_t  st480mc_init(void);

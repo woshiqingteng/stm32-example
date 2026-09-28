@@ -12,7 +12,7 @@
 #include "bsp.h"
 #define EEPROM_TEST_ADDR   0U
 #define EEPROM_BYTE_COUNT  16U
-#define EEPROM_STR_LEN     14U
+#define EEPROM_STR_LEN_BYTE     14U
 #define EEPROM_STR_ADDR    (EEPROM_TEST_ADDR + EEPROM_BYTE_COUNT)
 
 static const uint8_t g_pattern[EEPROM_BYTE_COUNT] =
@@ -21,7 +21,7 @@ static const uint8_t g_pattern[EEPROM_BYTE_COUNT] =
     0x88U, 0x99U, 0xAAU, 0xBBU, 0xCCU, 0xDDU, 0xEEU, 0xFFU
 };
 
-static const char g_text[EEPROM_STR_LEN] = "STM32 IIC TEST";
+static const char g_text[EEPROM_STR_LEN_BYTE] = "STM32 IIC TEST";
 
 static uint8_t g_readback[EEPROM_BYTE_COUNT];
 
@@ -30,7 +30,7 @@ int main(void)
     uint8_t i;
     bool byte_ok = true;
     bool text_ok;
-    char text_read[EEPROM_STR_LEN + 1U];
+    char text_read[EEPROM_STR_LEN_BYTE + 1U];
 
     bsp_init();
     eeprom_init();
@@ -47,11 +47,11 @@ int main(void)
     }
 
     eeprom_write(EEPROM_TEST_ADDR, (uint8_t *)g_pattern, EEPROM_BYTE_COUNT);
-    eeprom_write(EEPROM_STR_ADDR, (uint8_t *)g_text, EEPROM_STR_LEN);
+    eeprom_write(EEPROM_STR_ADDR, (uint8_t *)g_text, EEPROM_STR_LEN_BYTE);
 
     eeprom_read(EEPROM_TEST_ADDR, g_readback, EEPROM_BYTE_COUNT);
-    eeprom_read(EEPROM_STR_ADDR, (uint8_t *)text_read, EEPROM_STR_LEN);
-    text_read[EEPROM_STR_LEN] = '\0';
+    eeprom_read(EEPROM_STR_ADDR, (uint8_t *)text_read, EEPROM_STR_LEN_BYTE);
+    text_read[EEPROM_STR_LEN_BYTE] = '\0';
 
     for (i = 0U; i < EEPROM_BYTE_COUNT; i++)
     {
@@ -61,7 +61,7 @@ int main(void)
         }
     }
 
-    text_ok = (strncmp(text_read, g_text, EEPROM_STR_LEN) == 0);
+    text_ok = (strncmp(text_read, g_text, EEPROM_STR_LEN_BYTE) == 0);
 
     printf("Bytes: %s\r\n", byte_ok ? "OK" : "FAIL");
     printf("String: %s (%s)\r\n", text_read, text_ok ? "OK" : "FAIL");

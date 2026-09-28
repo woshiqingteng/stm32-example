@@ -19,7 +19,7 @@
 /* Small landing buffer for the usart driver: its presence enables RX IT. */
 static uint8_t g_rs485_it_buf[8];
 
-static uint8_t  g_rs485_rx_buf[RS485_REC_LEN];
+static uint8_t  g_rs485_rx_buf[RS485_REC_LEN_BYTE];
 static uint16_t g_rs485_rx_cnt;
 
 static void rs485_rx_byte_hook(uint8_t byte);
@@ -98,7 +98,7 @@ void rs485_rx_clear(void)
 
 static void rs485_rx_byte_hook(uint8_t byte)
 {
-    if (g_rs485_rx_cnt < RS485_REC_LEN)
+    if (g_rs485_rx_cnt < RS485_REC_LEN_BYTE)
     {
         g_rs485_rx_buf[g_rs485_rx_cnt++] = byte;
     }

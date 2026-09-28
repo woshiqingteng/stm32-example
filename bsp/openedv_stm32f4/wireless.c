@@ -41,7 +41,7 @@
 #define NRF24L01_CHECK_BYTE     0xA5U
 #define NRF24L01_RF_CHANNEL     40U
 #define NRF24L01_RF_SETUP_VAL   0x0FU
-#define NRF24L01_TX_TIMEOUT     0xFFFFFFFFU
+#define NRF24L01_TX_TIMEOUT_COUNT     0xFFFFFFFFU
 
 static const uint8_t g_tx_address[NRF24L01_TX_ADR_WIDTH] = {0x34U, 0x43U, 0x10U, 0x10U, 0x01U};
 static const uint8_t g_rx_address[NRF24L01_RX_ADR_WIDTH] = {0x34U, 0x43U, 0x10U, 0x10U, 0x01U};
@@ -165,7 +165,7 @@ uint8_t wireless_tx_packet(uint8_t *ptxbuf)
 {
     uint8_t status;
     uint8_t rval = 0xFFU;
-    uint32_t timeout = NRF24L01_TX_TIMEOUT;
+    uint32_t timeout = NRF24L01_TX_TIMEOUT_COUNT;
 
     NRF24L01_CE_LOW();
     (void)wireless_write_buf(NRF24L01_WR_TX_PLOAD, ptxbuf, NRF24L01_TX_PLOAD_WIDTH);

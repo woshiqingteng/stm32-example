@@ -15,8 +15,8 @@
 #include "videoplayer.h"
 #define DRIVE       "0:"
 #define TEXT_X      30U
-#define TEXT_WIDTH  320U
-#define FONT_SIZE   16U
+#define TEXT_WIDTH_PIXEL  320U
+#define FONT_SIZE_PIXEL   16U
 #define VIDEO_START_DELAY_MS 1200U
 #define LOOP_DELAY_MS 500U
 
@@ -29,17 +29,17 @@ static void app_font_prepare(void)
     }
 
     printf("font store missing, updating from SD\r\n");
-    lcd_show_string(TEXT_X, 60U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+    lcd_show_string(TEXT_X, 60U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                     "Font Updating...", RED);
 
-    if (fonts_update_font(TEXT_X, 90U, FONT_SIZE, (uint8_t *)DRIVE, RED) == 0U)
+    if (fonts_update_font(TEXT_X, 90U, FONT_SIZE_PIXEL, (uint8_t *)DRIVE, RED) == 0U)
     {
         (void)fonts_init();
         printf("font update done\r\n");
     }
     else
     {
-        lcd_show_string(TEXT_X, 90U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+        lcd_show_string(TEXT_X, 90U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                         "Font Update Failed!", RED);
     }
 }
@@ -60,14 +60,14 @@ int main(void)
 
     printf("48_video ready\r\n");
 
-    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "STM32 VIDEO", RED);
-    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+    lcd_show_string(TEXT_X, 30U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, "STM32 VIDEO", RED);
+    lcd_show_string(TEXT_X, 50U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                     "KEY0:NEXT KEY2:PREV", RED);
-    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16, "KEY1:REW WK_UP:FF", RED);
+    lcd_show_string(TEXT_X, 70U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16, "KEY1:REW WK_UP:FF", RED);
 
     if (sdio_init() != 0U)
     {
-        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+        lcd_show_string(TEXT_X, 110U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                         "SD Card Error!", RED);
         printf("SD init failed\r\n");
     }
@@ -79,7 +79,7 @@ int main(void)
         if (res != FR_OK)
         {
             printf("mount failed (%d)\r\n", (int)res);
-            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH, FONT_SIZE, LCD_FONT_SIZE_16,
+            lcd_show_string(TEXT_X, 110U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                             "Mount failed", RED);
         }
         else

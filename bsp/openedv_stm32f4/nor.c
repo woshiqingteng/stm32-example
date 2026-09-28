@@ -29,7 +29,7 @@
 
 uint16_t g_nor_type = BY25Q256;
 
-static uint8_t g_nor_buf[NOR_SECTOR_SIZE];
+static uint8_t g_nor_buf[NOR_SECTOR_SIZE_BYTE];
 
 static uint8_t nor_spi_rw(uint8_t data)
 {
@@ -190,7 +190,7 @@ static void nor_write_page(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
 
 static void nor_write_nocheck(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
 {
-    uint16_t pageremain = (uint16_t)(NOR_PAGE_SIZE - (addr % NOR_PAGE_SIZE));
+    uint16_t pageremain = (uint16_t)(NOR_PAGE_SIZE_BYTE - (addr % NOR_PAGE_SIZE_BYTE));
 
     if (datalen <= pageremain)
     {
@@ -209,7 +209,7 @@ static void nor_write_nocheck(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
         pbuf      += pageremain;
         addr      += pageremain;
         datalen   -= pageremain;
-        pageremain = (datalen > NOR_PAGE_SIZE) ? NOR_PAGE_SIZE : datalen;
+        pageremain = (datalen > NOR_PAGE_SIZE_BYTE) ? NOR_PAGE_SIZE_BYTE : datalen;
     }
 }
 
@@ -220,9 +220,9 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
     uint16_t secremain;
     uint16_t i;
 
-    secpos    = addr / NOR_SECTOR_SIZE;
-    secoff    = (uint16_t)(addr % NOR_SECTOR_SIZE);
-    secremain = (uint16_t)(NOR_SECTOR_SIZE - secoff);
+    secpos    = addr / NOR_SECTOR_SIZE_BYTE;
+    secoff    = (uint16_t)(addr % NOR_SECTOR_SIZE_BYTE);
+    secremain = (uint16_t)(NOR_SECTOR_SIZE_BYTE - secoff);
 
     if (datalen <= secremain)
     {
@@ -231,7 +231,7 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
 
     for (;;)
     {
-        nor_read(g_nor_buf, secpos * NOR_SECTOR_SIZE, NOR_SECTOR_SIZE);
+        nor_read(g_nor_buf, secpos * NOR_SECTOR_SIZE_BYTE, NOR_SECTOR_SIZE_BYTE);
 
         for (i = 0U; i < secremain; i++)
         {
@@ -250,7 +250,7 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
                 g_nor_buf[i + secoff] = pbuf[i];
             }
 
-            nor_write_nocheck(g_nor_buf, secpos * NOR_SECTOR_SIZE, NOR_SECTOR_SIZE);
+            nor_write_nocheck(g_nor_buf, secpos * NOR_SECTOR_SIZE_BYTE, NOR_SECTOR_SIZE_BYTE);
         }
         else
         {
@@ -267,13 +267,13 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
         pbuf   += secremain;
         addr   += secremain;
         datalen -= secremain;
-        secremain = (datalen > NOR_SECTOR_SIZE) ? NOR_SECTOR_SIZE : datalen;
+        secremain = (datalen > NOR_SECTOR_SIZE_BYTE) ? NOR_SECTOR_SIZE_BYTE : datalen;
     }
 }
 
 void nor_erase_sector(uint32_t saddr)
 {
-    saddr *= NOR_SECTOR_SIZE;
+    saddr *= NOR_SECTOR_SIZE_BYTE;
 
     nor_write_enable();
     nor_wait_busy();

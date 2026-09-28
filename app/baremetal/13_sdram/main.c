@@ -8,11 +8,11 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define SDRAM_SIZE_BYTES    (32U * 1024U * 1024U)
-#define SDRAM_BLOCK_STEP    (16U * 1024U)
-#define SDRAM_DATA_WORDS    250000U
+#define SDRAM_SIZE_BYTE    (32U * 1024U * 1024U)
+#define SDRAM_BLOCK_STEP_BYTE    (16U * 1024U)
+#define SDRAM_DATA_WORD_COUNT    250000U
 #define SDRAM_LOOP_MS       10U
-#define SDRAM_LED_TICKS     20U
+#define SDRAM_LED_TICK_COUNT     20U
 
 static uint16_t *const g_sdram = (uint16_t *)SDRAM_BASE_ADDR;
 
@@ -20,7 +20,7 @@ static void sdram_prefill(void)
 {
     uint32_t t;
 
-    for (t = 0U; t < SDRAM_DATA_WORDS; t++)
+    for (t = 0U; t < SDRAM_DATA_WORD_COUNT; t++)
     {
         g_sdram[t] = (uint16_t)t;
     }
@@ -35,13 +35,13 @@ static void sdram_capacity_test(void)
     uint32_t           cap_kb = 0U;
     char               buf[32];
 
-    for (i = 0U; i < SDRAM_SIZE_BYTES; i += SDRAM_BLOCK_STEP)
+    for (i = 0U; i < SDRAM_SIZE_BYTE; i += SDRAM_BLOCK_STEP_BYTE)
     {
         base[i / 4U] = temp;
         temp++;
     }
 
-    for (i = 0U; i < SDRAM_SIZE_BYTES; i += SDRAM_BLOCK_STEP)
+    for (i = 0U; i < SDRAM_SIZE_BYTE; i += SDRAM_BLOCK_STEP_BYTE)
     {
         temp = base[i / 4U];
 
@@ -54,7 +54,7 @@ static void sdram_capacity_test(void)
             break;
         }
 
-        cap_kb = (temp - sval + 1U) * (SDRAM_BLOCK_STEP / 1024U);
+        cap_kb = (temp - sval + 1U) * (SDRAM_BLOCK_STEP_BYTE / 1024U);
     }
 
     (void)sprintf(buf, "Ex Memory Test:%5luKB", (unsigned long)cap_kb);
@@ -66,7 +66,7 @@ static void sdram_data_dump(void)
 {
     uint32_t t;
 
-    for (t = 0U; t < SDRAM_DATA_WORDS; t++)
+    for (t = 0U; t < SDRAM_DATA_WORD_COUNT; t++)
     {
         printf("testsdram[%lu]:%u\r\n", (unsigned long)t, (unsigned)g_sdram[t]);
     }
@@ -110,7 +110,7 @@ int main(void)
         }
 
         blink++;
-        if (blink >= SDRAM_LED_TICKS)
+        if (blink >= SDRAM_LED_TICK_COUNT)
         {
             blink = 0U;
             led_toggle(LED0);

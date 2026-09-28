@@ -12,7 +12,7 @@
 #include "stm32f4xx_hal.h"
 
 #define INTERNAL_FLASH_BASE        0x08000000U /*!< start of the 1 MB internal flash */
-#define INTERNAL_FLASH_SIZE        0x100000U   /*!< STM32F429IG flash size */
+#define INTERNAL_FLASH_SIZE_BYTE        0x100000U   /*!< STM32F429IG flash size */
 
 /* Sector 4 (64 KB @ 0x08010000) reserved for the EEPROM-style demo. */
 #define INTERNAL_FLASH_EEPROM_ADDR 0x08010000U

@@ -98,11 +98,11 @@ uint8_t get_sd_card_state(void)
 uint8_t sd_read_disk(uint8_t *pbuf, uint32_t saddr, uint32_t cnt)
 {
     uint8_t  sta = (uint8_t)HAL_OK;
-    uint32_t timeout = SD_TIMEOUT;
+    uint32_t timeout = SD_TIMEOUT_COUNT;
     long long lsector = (long long)saddr;
 
     sys_intx_disable();
-    sta = (uint8_t)HAL_SD_ReadBlocks(&g_sdcard_handle, pbuf, lsector, cnt, SD_TIMEOUT);
+    sta = (uint8_t)HAL_SD_ReadBlocks(&g_sdcard_handle, pbuf, lsector, cnt, SD_TIMEOUT_COUNT);
 
     while (get_sd_card_state() != SD_TRANSFER_OK)
     {
@@ -120,11 +120,11 @@ uint8_t sd_read_disk(uint8_t *pbuf, uint32_t saddr, uint32_t cnt)
 uint8_t sd_write_disk(uint8_t *pbuf, uint32_t saddr, uint32_t cnt)
 {
     uint8_t  sta = (uint8_t)HAL_OK;
-    uint32_t timeout = SD_TIMEOUT;
+    uint32_t timeout = SD_TIMEOUT_COUNT;
     long long lsector = (long long)saddr;
 
     sys_intx_disable();
-    sta = (uint8_t)HAL_SD_WriteBlocks(&g_sdcard_handle, pbuf, lsector, cnt, SD_TIMEOUT);
+    sta = (uint8_t)HAL_SD_WriteBlocks(&g_sdcard_handle, pbuf, lsector, cnt, SD_TIMEOUT_COUNT);
 
     while (get_sd_card_state() != SD_TRANSFER_OK)
     {

@@ -380,3 +380,31 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 - [x] 修改 `usart.c/.h`（重命名、P1、USART2 TX/RX DMA、IDLE+TE 清标志）
 - [x] 构建对应文件（`04_usart`/`28_rs485`/`19_dma`/`22_1_dac`/`35`/`38`，无告警）+ 04 HIL（2 passed）
 
+---
+
+## 命名约定（宏）
+
+适用于手写代码（`app/`、`bsp/`、`lib/`、`port/`）；`platform/`、`module/` 等第三方保持原样。
+
+### 物理量单位后缀（单数）
+| 类别 | 后缀 | 示例 |
+|---|---|---|
+| 时间 | `_MS` / `_US` / `_S` | `BTIM_LOOP_MS` |
+| 频率 | `_HZ` / `_KHZ` / `_MHZ` | `BSP_SYSCLK_MHZ` |
+| 字节/字 | `_BYTE` / `_WORD` | `DMA_TX_CHUNK_BYTE` |
+| 计数 | `_COUNT` / `_PULSE` / `_SAMPLE` / `_TICK` | `ADC_AVG_COUNT` |
+| 像素/几何 | `_PX` / `_PIXEL` / `_LINE` | `LTDC_PANEL_WIDTH_PX` |
+| 电压/温度 | `_VOLT` / `_MV` / `_DEGC` | `ADC_TEMP_OFFSET_DEGC` |
+| 比例/分频 | `_DIV` / `_RATIO` / `_PERCENT` | `PWMDAC_ARR_TICK` |
+| 波特率 | `_BAUD` | `RS485_BAUD` |
+
+- 复数一律改单数：`_BYTES→_BYTE`、`_WORDS→_WORD`、`_TICKS→_TICK`、`_SAMPLES→_SAMPLE`、`_TIMES→_COUNT`、`_PULSES→_PULSE_COUNT`。
+- 仅**单位相关**宏在行尾加 `/*!< 物理含义 + 单位 */` 说明；无单位类（instance/port/pin/IRQ/flag/color/address/magic）不加单位后缀。
+
+### 寄存器值命名（不暴露原始值，仅命名）
+- `ARR / CCR / RLR / COUNTER / WINDOW / MODULUS` → 加 `_TICK`
+- `PSC / PREDIV / DIVR` → 加 `_DIV`
+- 其它原始字段（`DTG`、`PLLN/M/P/Q`、`SDRAM_TIMING_*`、阈值/过滤等）→ 加 `_RAW`
+- 纯枚举选择器（`PVD_LEVEL`、`RTC_WAKEUP_*`）→ 不改名，仅加注释
+- **仅改名+注释，不改数值、不做换算**。
+

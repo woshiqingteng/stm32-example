@@ -27,7 +27,7 @@
 /* Transfer clock divider: SDIO clock = 48 MHz / (div + 2). */
 #define SDIO_TRANSF_CLK_DIV   1
 
-#define SD_TIMEOUT             ((uint32_t)100000000)
+#define SD_TIMEOUT_COUNT             ((uint32_t)100000000)
 #define SD_TRANSFER_OK         ((uint8_t)0x00)
 #define SD_TRANSFER_BUSY       ((uint8_t)0x01)
 

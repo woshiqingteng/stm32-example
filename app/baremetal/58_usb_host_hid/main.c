@@ -20,7 +20,7 @@
 #define LOOP_DELAY_MS       10U
 #define MOUSE_MAX_X         799
 #define MOUSE_MAX_Y         479
-#define KBD_LINE_MAX        64U
+#define KBD_LINE_MAX_BYTE        64U
 #define RECONNECT_TIMEOUT_MS 2000U
 
 static bool    g_hid_ready = false;
@@ -28,7 +28,7 @@ static uint32_t g_lost_tick;
 
 static int32_t g_mouse_x = 400;
 static int32_t g_mouse_y = 240;
-static char    g_kbd_line[KBD_LINE_MAX];
+static char    g_kbd_line[KBD_LINE_MAX_BYTE];
 static uint16_t g_kbd_len;
 
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
@@ -93,7 +93,7 @@ static void usbh_hid_demo(void)
                     printf("KBD: %s\r\n", g_kbd_line);
                 }
             }
-            else if ((c >= 0x20U) && (c <= 0x7EU) && (g_kbd_len < (KBD_LINE_MAX - 1U)))
+            else if ((c >= 0x20U) && (c <= 0x7EU) && (g_kbd_len < (KBD_LINE_MAX_BYTE - 1U)))
             {
                 g_kbd_line[g_kbd_len++] = (char)c;
                 g_kbd_line[g_kbd_len] = '\0';

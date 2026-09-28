@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define BTIM_ARR_500MS 5000U
-#define BTIM_PSC_500MS 9000U
+#define BTIM_ARR_TICK 5000U
+#define BTIM_PSC_DIV 9000U
 #define BTIM_LOOP_MS   200U
 
 static void on_tim6(void)
@@ -20,7 +20,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
 
     btim_timx_int_register(on_tim6);
-    btim_timx_int_init(BTIM_ARR_500MS - 1U, BTIM_PSC_500MS - 1U);
+    btim_timx_int_init(BTIM_ARR_TICK - 1U, BTIM_PSC_DIV - 1U);
 
     for (;;)
     {

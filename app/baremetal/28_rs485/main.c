@@ -9,21 +9,21 @@
 #include <string.h>
 
 #include "bsp.h"
-#define RS485_BAUDRATE      9600U
+#define RS485_BAUD      9600U
 #define RS485_PERIOD_MS     500U
 
-#define RX_MAX              32U
+#define RX_MAX_BYTE              32U
 
 int main(void)
 {
     uint8_t  txbuf[16];
-    uint8_t  rxbuf[RX_MAX];
+    uint8_t  rxbuf[RX_MAX_BYTE];
     uint16_t rxlen;
     uint32_t count = 0U;
     uint8_t  i;
 
     bsp_init();
-    rs485_init(RS485_BAUDRATE);
+    rs485_init(RS485_BAUD);
 
     printf(APP_BANNER "\r\n");
 
@@ -33,12 +33,12 @@ int main(void)
         printf("TX: %s", (char *)txbuf);
         rs485_send(txbuf, (uint16_t)strlen((char *)txbuf));
 
-        rxlen = rs485_receive(rxbuf, RX_MAX);
+        rxlen = rs485_receive(rxbuf, RX_MAX_BYTE);
 
         if (rxlen > 0U)
         {
-            rxbuf[(rxlen < RX_MAX) ? rxlen : (RX_MAX - 1U)] = '\0';
-            for (i = 0U; (i < rxlen) && (i < (RX_MAX - 1U)); i++)
+            rxbuf[(rxlen < RX_MAX_BYTE) ? rxlen : (RX_MAX_BYTE - 1U)] = '\0';
+            for (i = 0U; (i < rxlen) && (i < (RX_MAX_BYTE - 1U)); i++)
             {
                 if ((rxbuf[i] < 0x20U) || (rxbuf[i] > 0x7EU))
                 {

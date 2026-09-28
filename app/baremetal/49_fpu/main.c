@@ -9,11 +9,11 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define FPU_ITERATION   128U
+#define FPU_ITERATION_COUNT   128U
 #define FPU_REAL_CONST  0.285f
 #define FPU_IMG_CONST   0.01f
-#define FPU_ROW_MAX     800U
-#define FPU_TIMER_PSC   (9000U - 1U) /* 90 MHz / 9000 = 10 kHz (0.1 ms) */
+#define FPU_ROW_COUNT     800U
+#define FPU_TIMER_PSC_DIV   (9000U - 1U) /* 90 MHz / 9000 = 10 kHz (0.1 ms) */
 
 #if defined(__FPU_USED) && (__FPU_USED == 1)
 #define FPU_MODE_TEXT "FPU On"
@@ -30,8 +30,8 @@ static const uint16_t g_zoom_tbl[] =
 };
 #define FPU_ZOOM_COUNT (sizeof(g_zoom_tbl) / sizeof(g_zoom_tbl[0]))
 
-static uint16_t g_color_map[FPU_ITERATION];
-static uint16_t g_row[FPU_ROW_MAX];
+static uint16_t g_color_map[FPU_ITERATION_COUNT];
+static uint16_t g_row[FPU_ROW_COUNT];
 static volatile uint8_t g_timeout;
 
 static void on_tim6(void)
@@ -46,11 +46,11 @@ static void julia_clut_init(void)
     uint16_t green;
     uint16_t blue;
 
-    for (i = 0U; i < FPU_ITERATION; i++)
+    for (i = 0U; i < FPU_ITERATION_COUNT; i++)
     {
-        red   = (uint16_t)(((i * 8U * 256U / FPU_ITERATION) % 256U) >> 3U);
-        green = (uint16_t)(((i * 6U * 256U / FPU_ITERATION) % 256U) >> 2U);
-        blue  = (uint16_t)(((i * 4U * 256U / FPU_ITERATION) % 256U) >> 3U);
+        red   = (uint16_t)(((i * 8U * 256U / FPU_ITERATION_COUNT) % 256U) >> 3U);
+        green = (uint16_t)(((i * 6U * 256U / FPU_ITERATION_COUNT) % 256U) >> 2U);
+        blue  = (uint16_t)(((i * 4U * 256U / FPU_ITERATION_COUNT) % 256U) >> 3U);
 
         g_color_map[i] = (uint16_t)((red << 11U) | (green << 5U) | blue);
     }
@@ -74,7 +74,7 @@ static void julia_row(uint16_t y, uint16_t size_x, uint16_t offset_x,
         i        = 0U;
         radius   = 0.0f;
 
-        while ((i < (FPU_ITERATION - 1U)) && (radius < 4.0f))
+        while ((i < (FPU_ITERATION_COUNT - 1U)) && (radius < 4.0f))
         {
             tmp1     = num_real * num_real;
             tmp2     = num_img * num_img;
@@ -115,15 +115,15 @@ int main(void)
     lcd_clear(BLACK);
     julia_clut_init();
 
-    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
+    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC_DIV);
     btim_timx_int_register(on_tim6);
 
     width  = lcd_get_width();
     height = lcd_get_height();
 
-    if (width > FPU_ROW_MAX)
+    if (width > FPU_ROW_COUNT)
     {
-        width = FPU_ROW_MAX;
+        width = FPU_ROW_COUNT;
     }
 
     lcd_show_string(30U, 50U, 200U, 16U, LCD_FONT_SIZE_16, "STM32", RED);

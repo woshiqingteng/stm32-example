@@ -9,14 +9,14 @@
 #include <stdbool.h>
 #include "ir.h"
 
-#define IR_PRESCALER        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
-#define IR_PERIOD           10000U
+#define IR_PRESCALER_DIV        (180U - 1U) /* 1 tick = 1 us at 180 MHz */
+#define IR_PERIOD_TICK           10000U
 #define IR_IC_FILTER        0x03U
 #define IR_NVIC_PREEMP      1U
 #define IR_NVIC_UP_SUB      3U
 #define IR_NVIC_CC_SUB      2U
 
-#define IR_REPEAT_MAX       14U
+#define IR_REPEAT_MAX_COUNT       14U
 
 /** @brief  NEC decoder state. */
 typedef enum
@@ -25,14 +25,14 @@ typedef enum
     IR_STATE_FRAME = 1   /*!< leader seen, decoding the 32 bits */
 } ir_state_t;
 
-#define IR_BIT0_MIN         300U
-#define IR_BIT0_MAX         800U
-#define IR_BIT1_MIN         1400U
-#define IR_BIT1_MAX         1800U
-#define IR_REPEAT_MIN       2000U
-#define IR_REPEAT_MAX_VAL   3000U
-#define IR_LEAD_MIN         4200U
-#define IR_LEAD_MAX         4700U
+#define IR_BIT0_MIN_US         300U
+#define IR_BIT0_MAX_US         800U
+#define IR_BIT1_MIN_US         1400U
+#define IR_BIT1_MAX_US         1800U
+#define IR_REPEAT_MIN_US       2000U
+#define IR_REPEAT_MAX_VAL_US   3000U
+#define IR_LEAD_MIN_US         4200U
+#define IR_LEAD_MAX_US         4700U
 
 static TIM_HandleTypeDef g_ir_handle;
 static ir_state_t        g_ir_state;
@@ -65,9 +65,9 @@ void ir_init(void)
     /* ---- MSP end ---- */
 
     g_ir_handle.Instance               = IR_IN_TIMX;
-    g_ir_handle.Init.Prescaler         = IR_PRESCALER;
+    g_ir_handle.Init.Prescaler         = IR_PRESCALER_DIV;
     g_ir_handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    g_ir_handle.Init.Period            = IR_PERIOD;
+    g_ir_handle.Init.Period            = IR_PERIOD_TICK;
     g_ir_handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
     g_ir_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     (void)HAL_TIM_IC_Init(&g_ir_handle);
@@ -100,7 +100,7 @@ static void ir_update_isr(void)
             g_ir_key_pending = true;
         }
 
-        if (g_ir_timeout < IR_REPEAT_MAX)
+        if (g_ir_timeout < IR_REPEAT_MAX_COUNT)
         {
             g_ir_timeout++;
         }
@@ -135,17 +135,17 @@ static void ir_capture_isr(void)
         {
             if (g_ir_state == IR_STATE_FRAME)
             {
-                if ((dval > IR_BIT0_MIN) && (dval < IR_BIT0_MAX))
+                if ((dval > IR_BIT0_MIN_US) && (dval < IR_BIT0_MAX_US))
                 {
                     g_ir_data >>= 1;
                     g_ir_data &= ~(0x80000000U);
                 }
-                else if ((dval > IR_BIT1_MIN) && (dval < IR_BIT1_MAX))
+                else if ((dval > IR_BIT1_MIN_US) && (dval < IR_BIT1_MAX_US))
                 {
                     g_ir_data >>= 1;
                     g_ir_data |= 0x80000000U;
                 }
-                else if ((dval > IR_REPEAT_MIN) && (dval < IR_REPEAT_MAX_VAL))
+                else if ((dval > IR_REPEAT_MIN_US) && (dval < IR_REPEAT_MAX_VAL_US))
                 {
                     g_ir_cnt++;
                     g_ir_timeout = 0U;
@@ -155,7 +155,7 @@ static void ir_capture_isr(void)
                     /* out-of-range pulse: ignore */
                 }
             }
-            else if ((dval > IR_LEAD_MIN) && (dval < IR_LEAD_MAX))
+            else if ((dval > IR_LEAD_MIN_US) && (dval < IR_LEAD_MAX_US))
             {
                 g_ir_state = IR_STATE_FRAME;
                 g_ir_cnt   = 0U;

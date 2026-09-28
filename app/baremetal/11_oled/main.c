@@ -13,7 +13,7 @@
 #define OLED_ASCII_X       36U
 #define OLED_CODE_LABEL_X  64U
 #define OLED_CODE_X        94U
-#define OLED_CODE_DIGITS   3U
+#define OLED_CODE_DIGIT_COUNT   3U
 #define OLED_REFRESH_MS    500U
 #define OLED_CHAR_FIRST    ((uint8_t)' ')
 #define OLED_CHAR_LAST     ((uint8_t)'~')
@@ -42,7 +42,7 @@ int main(void)
         ascii[0] = (char)t;
         ascii[1] = '\0';
         oled_show_string(OLED_ASCII_X, OLED_INFO_Y, ascii, OLED_FONT_12X6);
-        oled_show_num(OLED_CODE_X, OLED_INFO_Y, t, OLED_CODE_DIGITS, OLED_FONT_12X6);
+        oled_show_num(OLED_CODE_X, OLED_INFO_Y, t, OLED_CODE_DIGIT_COUNT, OLED_FONT_12X6);
         oled_refresh();
 
         printf("ASCII:%c CODE:%u\r\n", (int)t, (unsigned)t);

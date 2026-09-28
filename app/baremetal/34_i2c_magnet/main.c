@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "bsp.h"
-#define SAMPLE_PERIOD   200U
+#define SAMPLE_PERIOD_MS   200U
 
 static int16_t g_magx_offset;
 static int16_t g_magy_offset;
@@ -170,6 +170,6 @@ int main(void)
             led_toggle(LED0);
         }
 
-        delay_ms(SAMPLE_PERIOD);
+        delay_ms(SAMPLE_PERIOD_MS);
     }
 }

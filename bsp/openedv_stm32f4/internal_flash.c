@@ -8,8 +8,8 @@
 #include "stm32f4xx_hal.h"
 #include "internal_flash.h"
 
-#define INTERNAL_FLASH_TIMEOUT      50000U
-#define INTERNAL_FLASH_WORD_SIZE    4U
+#define INTERNAL_FLASH_TIMEOUT_MS      50000U
+#define INTERNAL_FLASH_WORD_SIZE_BYTE    4U
 
 #define INTERNAL_FLASH_SECTOR_COUNT 24U
 
@@ -40,7 +40,7 @@ static uint32_t internal_flash_sector_of(uint32_t addr)
 
 static bool internal_flash_addr_valid(uint32_t addr)
 {
-    return (addr >= INTERNAL_FLASH_BASE) && (addr < (INTERNAL_FLASH_BASE + INTERNAL_FLASH_SIZE));
+    return (addr >= INTERNAL_FLASH_BASE) && (addr < (INTERNAL_FLASH_BASE + INTERNAL_FLASH_SIZE_BYTE));
 }
 
 uint32_t internal_flash_read_word(uint32_t addr)
@@ -74,13 +74,13 @@ bool internal_flash_erase_sector(uint32_t addr)
 
 void internal_flash_write_word(uint32_t addr, uint32_t data)
 {
-    if (!internal_flash_addr_valid(addr) || ((addr % INTERNAL_FLASH_WORD_SIZE) != 0U))
+    if (!internal_flash_addr_valid(addr) || ((addr % INTERNAL_FLASH_WORD_SIZE_BYTE) != 0U))
     {
         return;
     }
 
     HAL_FLASH_Unlock();
-    (void)FLASH_WaitForLastOperation(INTERNAL_FLASH_TIMEOUT);
+    (void)FLASH_WaitForLastOperation(INTERNAL_FLASH_TIMEOUT_MS);
     (void)HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t)data);
     HAL_FLASH_Lock();
 }
@@ -93,7 +93,7 @@ void internal_flash_write_halfword(uint32_t addr, uint16_t data)
     }
 
     HAL_FLASH_Unlock();
-    (void)FLASH_WaitForLastOperation(INTERNAL_FLASH_TIMEOUT);
+    (void)FLASH_WaitForLastOperation(INTERNAL_FLASH_TIMEOUT_MS);
     (void)HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, addr, (uint64_t)data);
     HAL_FLASH_Lock();
 }
@@ -104,7 +104,7 @@ void internal_flash_read(uint32_t addr, uint32_t *buf, uint32_t words)
 
     for (i = 0U; i < words; i++)
     {
-        buf[i] = internal_flash_read_word(addr + (i * INTERNAL_FLASH_WORD_SIZE));
+        buf[i] = internal_flash_read_word(addr + (i * INTERNAL_FLASH_WORD_SIZE_BYTE));
     }
 }
 
@@ -117,12 +117,12 @@ void internal_flash_write(uint32_t addr, const uint32_t *buf, uint32_t words)
         return;
     }
 
-    if (!internal_flash_addr_valid(addr) || ((addr % INTERNAL_FLASH_WORD_SIZE) != 0U))
+    if (!internal_flash_addr_valid(addr) || ((addr % INTERNAL_FLASH_WORD_SIZE_BYTE) != 0U))
     {
         return;
     }
 
-    if (!internal_flash_addr_valid(addr + ((words - 1U) * INTERNAL_FLASH_WORD_SIZE)))
+    if (!internal_flash_addr_valid(addr + ((words - 1U) * INTERNAL_FLASH_WORD_SIZE_BYTE)))
     {
         return;
     }
@@ -130,7 +130,7 @@ void internal_flash_write(uint32_t addr, const uint32_t *buf, uint32_t words)
     /* Erase the target sector once if it still holds programmed data. */
     for (i = 0U; i < words; i++)
     {
-        if (internal_flash_read_word(addr + (i * INTERNAL_FLASH_WORD_SIZE)) != 0xFFFFFFFFU)
+        if (internal_flash_read_word(addr + (i * INTERNAL_FLASH_WORD_SIZE_BYTE)) != 0xFFFFFFFFU)
         {
             (void)internal_flash_erase_sector(addr);
             break;
@@ -141,7 +141,7 @@ void internal_flash_write(uint32_t addr, const uint32_t *buf, uint32_t words)
 
     for (i = 0U; i < words; i++)
     {
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + (i * INTERNAL_FLASH_WORD_SIZE),
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + (i * INTERNAL_FLASH_WORD_SIZE_BYTE),
                               (uint64_t)buf[i]) != HAL_OK)
         {
             break;

@@ -14,10 +14,10 @@
 #define LCD_FONT_BITS       8U
 
 /* Packed bytes per glyph for each supported raster. */
-#define LCD_FONT_1206_BYTES 12U
-#define LCD_FONT_1608_BYTES 16U
-#define LCD_FONT_2412_BYTES 36U
-#define LCD_FONT_3216_BYTES 128U
+#define LCD_FONT_1206_BYTE 12U
+#define LCD_FONT_1608_BYTE 16U
+#define LCD_FONT_2412_BYTE 36U
+#define LCD_FONT_3216_BYTE 128U
 
 typedef struct
 {
@@ -28,10 +28,10 @@ typedef struct
 
 static const lcd_font_desc_t g_lcd_fonts[] =
 {
-    { LCD_FONT_SIZE_12, (const uint8_t *)asc2_1206, LCD_FONT_1206_BYTES },
-    { LCD_FONT_SIZE_16, (const uint8_t *)asc2_1608, LCD_FONT_1608_BYTES },
-    { LCD_FONT_SIZE_24, (const uint8_t *)asc2_2412, LCD_FONT_2412_BYTES },
-    { LCD_FONT_SIZE_32, (const uint8_t *)asc2_3216, LCD_FONT_3216_BYTES }
+    { LCD_FONT_SIZE_12, (const uint8_t *)asc2_1206, LCD_FONT_1206_BYTE },
+    { LCD_FONT_SIZE_16, (const uint8_t *)asc2_1608, LCD_FONT_1608_BYTE },
+    { LCD_FONT_SIZE_24, (const uint8_t *)asc2_2412, LCD_FONT_2412_BYTE },
+    { LCD_FONT_SIZE_32, (const uint8_t *)asc2_3216, LCD_FONT_3216_BYTE }
 };
 
 #define LCD_FONT_COUNT (sizeof(g_lcd_fonts) / sizeof(g_lcd_fonts[0]))

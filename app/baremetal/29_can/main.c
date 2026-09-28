@@ -9,7 +9,7 @@
 
 #include "bsp.h"
 #define CAN_TEST_ID         0x12U
-#define CAN_TEST_LEN        8U
+#define CAN_TEST_LEN_BYTE        8U
 #define CAN_PERIOD_MS       500U
 
 static uint32_t g_can_mode = CAN_MODE_LOOPBACK;
@@ -21,8 +21,8 @@ static uint8_t can_reinit(void)
 
 int main(void)
 {
-    uint8_t txbuf[CAN_TEST_LEN];
-    uint8_t rxbuf[CAN_TEST_LEN];
+    uint8_t txbuf[CAN_TEST_LEN_BYTE];
+    uint8_t rxbuf[CAN_TEST_LEN_BYTE];
     uint8_t count = 0U;
     uint8_t i;
     uint8_t rxlen;
@@ -62,12 +62,12 @@ int main(void)
             }
         }
 
-        for (i = 0U; i < CAN_TEST_LEN; i++)
+        for (i = 0U; i < CAN_TEST_LEN_BYTE; i++)
         {
             txbuf[i] = (uint8_t)(count + i);
         }
 
-        if (can_send(CAN_TEST_ID, txbuf, CAN_TEST_LEN) != 0U)
+        if (can_send(CAN_TEST_ID, txbuf, CAN_TEST_LEN_BYTE) != 0U)
         {
             printf("CAN TX failed\r\n");
         }
@@ -76,7 +76,7 @@ int main(void)
             rxlen = can_receive(CAN_TEST_ID, rxbuf);
             printf("TX %02X... RX len:%u\r\n", txbuf[0], (unsigned)rxlen);
 
-            if (rxlen == CAN_TEST_LEN)
+            if (rxlen == CAN_TEST_LEN_BYTE)
             {
                 printf("RX: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
                        rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3],

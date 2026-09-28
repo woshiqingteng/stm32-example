@@ -182,7 +182,7 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
 
     (void)HAL_DMA2D_Start(&g_dma2d_handle, ltdc_expand_color(color), addr,
                           (pex - psx + 1U), (pey - psy + 1U));
-    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT);
+    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT_COUNT);
 }
 
 void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color)
@@ -230,7 +230,7 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
 
     (void)HAL_DMA2D_Start(&g_dma2d_handle, (uint32_t)color, addr,
                           (pex - psx + 1U), (pey - psy + 1U));
-    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT);
+    (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT_COUNT);
 }
 
 void ltdc_clear(uint32_t color)
@@ -323,15 +323,15 @@ void ltdc_init(void)
 
     if (ltdcid == LTDC_PANEL_ID_4384)
     {
-        lcdltdc.pwidth = LTDC_PANEL_WIDTH;
-        lcdltdc.pheight = LTDC_PANEL_HEIGHT;
+        lcdltdc.pwidth = LTDC_PANEL_WIDTH_PX;
+        lcdltdc.pheight = LTDC_PANEL_HEIGHT_PX;
         lcdltdc.hbp = LTDC_PANEL_HBP;
         lcdltdc.hfp = LTDC_PANEL_HFP;
         lcdltdc.hsw = LTDC_PANEL_HSW;
         lcdltdc.vbp = LTDC_PANEL_VBP;
         lcdltdc.vfp = LTDC_PANEL_VFP;
         lcdltdc.vsw = LTDC_PANEL_VSW;
-        (void)ltdc_clk_set(LTDC_PLLSAIN, LTDC_PLLSAIR, LTDC_PLLSAIDIVR);
+        (void)ltdc_clk_set(LTDC_PLLSAIN_RAW, LTDC_PLLSAIR_RAW, LTDC_PLLSAIDIVR_RAW);
     }
     else
     {
@@ -342,7 +342,7 @@ void ltdc_init(void)
     lcdltdc.height = (uint16_t)lcdltdc.pheight;
 
     g_ltdc_framebuf[0] = (uint32_t *)LTDC_FRAME_BUF_ADDR;
-    lcdltdc.pixsize = LTDC_PIXSIZE;
+    lcdltdc.pixsize = LTDC_PIXSIZE_BYTE;
 
     /* ---- MSP begin ---- */
     __HAL_RCC_LTDC_CLK_ENABLE();

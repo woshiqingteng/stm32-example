@@ -18,7 +18,7 @@ typedef enum
 } dac_channel_t;
 
 /** @brief 12-bit full-scale DAC code. */
-#define DAC_FULL_SCALE 4095U
+#define DAC_FULL_SCALE_COUNT 4095U
 
 /** @brief  Initialise DAC1 channels 1 and 2 for software-triggered output. */
 void dac_init(void);

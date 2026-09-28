@@ -40,8 +40,8 @@ int main(void)
         delay_ms(500);
     }
 
-    backbuf = (uint8_t *)mymalloc(SRAMIN, NAND_ECC_SECTOR_SIZE);
-    buf     = (uint8_t *)mymalloc(SRAMIN, NAND_ECC_SECTOR_SIZE);
+    backbuf = (uint8_t *)mymalloc(SRAMIN, NAND_ECC_SECTOR_SIZE_BYTE);
+    buf     = (uint8_t *)mymalloc(SRAMIN, NAND_ECC_SECTOR_SIZE_BYTE);
 
     if ((backbuf == 0) || (buf == 0))
     {
@@ -60,7 +60,7 @@ int main(void)
                  (uint32_t)nand_dev.block_pagenum));
 
     /* Keep a pristine copy of sector 2 so KEY2 can restore it. */
-    (void)ftl_read_sectors(backbuf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE, 1U);
+    (void)ftl_read_sectors(backbuf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE_BYTE, 1U);
 
     for (;;)
     {
@@ -69,13 +69,13 @@ int main(void)
         switch (key)
         {
             case KEY0:                                          /* read sector */
-                ok = ftl_read_sectors(buf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE, 1U);
+                ok = ftl_read_sectors(buf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE_BYTE, 1U);
 
                 if (ok == 0U)
                 {
                     printf("Sector %u data is:\r\n", (unsigned int)TEST_SECTOR);
 
-                    for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+                    for (i = 0U; i < NAND_ECC_SECTOR_SIZE_BYTE; i++)
                     {
                         printf("%x ", buf[i]);
                     }
@@ -85,17 +85,17 @@ int main(void)
                 break;
 
             case KEY1:                                          /* write sector */
-                for (i = 0U; i < NAND_ECC_SECTOR_SIZE; i++)
+                for (i = 0U; i < NAND_ECC_SECTOR_SIZE_BYTE; i++)
                 {
                     buf[i] = (uint8_t)(i + t);
                 }
 
-                ok = ftl_write_sectors(buf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE, 1U);
+                ok = ftl_write_sectors(buf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE_BYTE, 1U);
                 printf(ok == 0U ? "Write data successed\r\n" : "Write data failed\r\n");
                 break;
 
             case KEY2:                                          /* restore sector */
-                ok = ftl_write_sectors(backbuf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE, 1U);
+                ok = ftl_write_sectors(backbuf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE_BYTE, 1U);
                 printf(ok == 0U ? "Recovering data OK\r\n" : "Recovering data failed\r\n");
                 break;
 

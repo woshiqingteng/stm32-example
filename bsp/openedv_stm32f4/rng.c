@@ -7,7 +7,7 @@
 #include "delay.h"
 #include "rng.h"
 
-#define RNG_READY_RETRY        10000U
+#define RNG_READY_RETRY_COUNT        10000U
 #define RNG_POLL_US            10U
 #define RNG_RANGE_SPAN_OFFSET  1U
 
@@ -27,13 +27,13 @@ void rng_init(void)
     (void)HAL_RNG_Init(&g_rng_handle);
 
     while ((__HAL_RNG_GET_FLAG(&g_rng_handle, RNG_FLAG_DRDY) == RESET) &&
-           (retry < RNG_READY_RETRY))
+           (retry < RNG_READY_RETRY_COUNT))
     {
         retry++;
         delay_us(RNG_POLL_US);
     }
 
-    g_rng_ready = (retry < RNG_READY_RETRY) ? RNG_READY : RNG_NOT_READY;
+    g_rng_ready = (retry < RNG_READY_RETRY_COUNT) ? RNG_READY : RNG_NOT_READY;
 }
 
 rng_status_t rng_is_ready(void)

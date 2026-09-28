@@ -45,9 +45,9 @@ typedef enum
 
 /* Bytes per pixel implied by the selected LTDC pixel format. */
 #if (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_ARGB8888_ID) || (LTDC_PIXFORMAT_ID == LTDC_PIXFORMAT_RGB888_ID)
-#define LTDC_PIXSIZE 4U
+#define LTDC_PIXSIZE_BYTE 4U
 #else
-#define LTDC_PIXSIZE 2U
+#define LTDC_PIXSIZE_BYTE 2U
 #endif
 
 /** @brief  Frame buffer base address inside the on-board SDRAM. */
@@ -82,8 +82,8 @@ typedef enum
 
 /** @brief  Supported panel: 4.3 inch, native 800x480 raster (id 0x4384). */
 #define LTDC_PANEL_ID_4384  0x4384U
-#define LTDC_PANEL_WIDTH    800U
-#define LTDC_PANEL_HEIGHT   480U
+#define LTDC_PANEL_WIDTH_PX    800U
+#define LTDC_PANEL_HEIGHT_PX   480U
 #define LTDC_IDX_4384       4U
 
 /* Panel raster timing. */
@@ -95,9 +95,9 @@ typedef enum
 #define LTDC_PANEL_VFP      13U
 
 /* LTDC pixel clock PLL. */
-#define LTDC_PLLSAIN        396U
-#define LTDC_PLLSAIR        3U
-#define LTDC_PLLSAIDIVR     RCC_PLLSAIDIVR_4
+#define LTDC_PLLSAIN_RAW        396U
+#define LTDC_PLLSAIR_RAW        3U
+#define LTDC_PLLSAIDIVR_RAW     RCC_PLLSAIDIVR_4
 
 /* Panel id strap bit positions. */
 #define LTDC_IDX_SHIFT_0    0U
@@ -116,7 +116,7 @@ typedef enum
 #define LTDC_COLOR_GREEN_SHIFT 8U
 
 /* DMA2D transfer poll timeout (ms). */
-#define LTDC_DMA2D_TIMEOUT  0x1FFFFFU
+#define LTDC_DMA2D_TIMEOUT_COUNT  0x1FFFFFU
 
 /** @brief  Panel orientation: 0 swaps the native raster, 1 keeps it. */
 typedef enum

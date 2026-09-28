@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 /** @brief  Maximum simultaneous touches reported by the driver. */
-#define TOUCH_MAX_POINTS    5U
+#define TOUCH_MAX_POINT_COUNT    5U
 
 /** @brief  touch_dev_t.type bit set when the panel is capacitive. */
 #define TOUCH_TYPE_CAPACITIVE 0x80U
@@ -22,8 +22,8 @@ typedef struct
     uint8_t  type;                     /*!< panel capability flags */
     uint8_t  count;                    /*!< valid touch points in x[]/y[] */
     bool     pressed;                  /*!< true while a finger is down */
-    uint16_t x[TOUCH_MAX_POINTS];      /*!< logical X coordinates */
-    uint16_t y[TOUCH_MAX_POINTS];      /*!< logical Y coordinates */
+    uint16_t x[TOUCH_MAX_POINT_COUNT];      /*!< logical X coordinates */
+    uint16_t y[TOUCH_MAX_POINT_COUNT];      /*!< logical Y coordinates */
 } touch_dev_t;
 
 extern touch_dev_t g_touch;

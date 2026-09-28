@@ -11,11 +11,11 @@
 #include "bsp.h"
 #define SD_TEST_SECTOR  1000U
 #define SD_TEST_COUNT   1U
-#define SD_BLOCK_LEN    512U
+#define SD_BLOCK_LEN_BYTE    512U
 #define BLINK_PERIOD_MS 500U
 
-static uint8_t g_wbuf[SD_BLOCK_LEN];
-static uint8_t g_rbuf[SD_BLOCK_LEN];
+static uint8_t g_wbuf[SD_BLOCK_LEN_BYTE];
+static uint8_t g_rbuf[SD_BLOCK_LEN_BYTE];
 
 int main(void)
 {
@@ -41,7 +41,7 @@ int main(void)
                (unsigned long)info.total_size_mb,
                (unsigned long)info.block_size);
 
-        for (i = 0U; i < SD_BLOCK_LEN; i++)
+        for (i = 0U; i < SD_BLOCK_LEN_BYTE; i++)
         {
             g_wbuf[i] = (uint8_t)(i * 3U + 1U);
         }
@@ -50,7 +50,7 @@ int main(void)
         {
             (void)sd_read_disk(g_rbuf, SD_TEST_SECTOR, SD_TEST_COUNT);
 
-            for (i = 0U; i < SD_BLOCK_LEN; i++)
+            for (i = 0U; i < SD_BLOCK_LEN_BYTE; i++)
             {
                 if (g_rbuf[i] != g_wbuf[i])
                 {
@@ -60,7 +60,7 @@ int main(void)
         }
         else
         {
-            errors = SD_BLOCK_LEN;
+            errors = SD_BLOCK_LEN_BYTE;
         }
 
         printf("SD R/W @%u: %s (%lu err)\r\n", (unsigned)SD_TEST_SECTOR,

@@ -35,7 +35,7 @@
 #define GT9XXX_TP_REG_STEP      0x0008U
 
 #define GT9XXX_IIC_DELAY_US     2U
-#define GT9XXX_ACK_TIMEOUT      250U
+#define GT9XXX_ACK_TIMEOUT_COUNT      250U
 #define GT9XXX_RESET_DELAY_MS   10U
 #define GT9XXX_PROBE_DELAY_MS   100U
 #define GT9XXX_CTRL_RESET       0x02U
@@ -54,7 +54,7 @@
 
 touch_dev_t g_touch;
 
-static const uint16_t g_gt_tp_reg[TOUCH_MAX_POINTS] =
+static const uint16_t g_gt_tp_reg[TOUCH_MAX_POINT_COUNT] =
 {
     GT9XXX_TP1_REG,
     GT9XXX_TP1_REG + GT9XXX_TP_REG_STEP,
@@ -123,7 +123,7 @@ static uint8_t ct_iic_wait_ack(void)
     {
         waittime++;
 
-        if (waittime > GT9XXX_ACK_TIMEOUT)
+        if (waittime > GT9XXX_ACK_TIMEOUT_COUNT)
         {
             ct_iic_stop();
             rack = 1;
@@ -350,13 +350,13 @@ bool touch_scan(bool mode)
 
     count = (uint8_t)(status & GT9XXX_STATUS_COUNT_MSK);
 
-    if (((status & GT9XXX_STATUS_READY) != 0U) && (count <= TOUCH_MAX_POINTS))
+    if (((status & GT9XXX_STATUS_READY) != 0U) && (count <= TOUCH_MAX_POINT_COUNT))
     {
         uint8_t clear = 0U;
         gt9xxx_wr_reg(GT9XXX_GSTID_REG, &clear, 1U);
     }
 
-    if ((count != 0U) && (count <= TOUCH_MAX_POINTS) && ((status & GT9XXX_STATUS_READY) != 0U))
+    if ((count != 0U) && (count <= TOUCH_MAX_POINT_COUNT) && ((status & GT9XXX_STATUS_READY) != 0U))
     {
         for (i = 0U; i < count; i++)
         {

@@ -11,8 +11,8 @@
 #define DHT11_DQ_LOW()      HAL_GPIO_WritePin(DHT11_DQ_GPIO_PORT, DHT11_DQ_GPIO_PIN, GPIO_PIN_RESET)
 #define DHT11_DQ_READ()     HAL_GPIO_ReadPin(DHT11_DQ_GPIO_PORT, DHT11_DQ_GPIO_PIN)
 
-#define DHT11_RESPONSE_TIMEOUT  100U
-#define DHT11_DATA_BYTES        5U
+#define DHT11_RESPONSE_TIMEOUT_COUNT  100U
+#define DHT11_DATA_BYTE_COUNT        5U
 
 static void dht11_reset(void)
 {
@@ -27,13 +27,13 @@ uint8_t dht11_check(void)
     uint8_t retry = 0U;
     uint8_t rval  = 0U;
 
-    while ((DHT11_DQ_READ() != GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT))
+    while ((DHT11_DQ_READ() != GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT_COUNT))
     {
         retry++;
         delay_us(1U);
     }
 
-    if (retry >= DHT11_RESPONSE_TIMEOUT)
+    if (retry >= DHT11_RESPONSE_TIMEOUT_COUNT)
     {
         rval = 1U;
     }
@@ -41,13 +41,13 @@ uint8_t dht11_check(void)
     {
         retry = 0U;
 
-        while ((DHT11_DQ_READ() == GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT))
+        while ((DHT11_DQ_READ() == GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT_COUNT))
         {
             retry++;
             delay_us(1U);
         }
 
-        if (retry >= DHT11_RESPONSE_TIMEOUT)
+        if (retry >= DHT11_RESPONSE_TIMEOUT_COUNT)
         {
             rval = 1U;
         }
@@ -60,7 +60,7 @@ static uint8_t dht11_read_bit(void)
 {
     uint8_t retry = 0U;
 
-    while ((DHT11_DQ_READ() != GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT))
+    while ((DHT11_DQ_READ() != GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT_COUNT))
     {
         retry++;
         delay_us(1U);
@@ -68,7 +68,7 @@ static uint8_t dht11_read_bit(void)
 
     retry = 0U;
 
-    while ((DHT11_DQ_READ() == GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT))
+    while ((DHT11_DQ_READ() == GPIO_PIN_RESET) && (retry < DHT11_RESPONSE_TIMEOUT_COUNT))
     {
         retry++;
         delay_us(1U);
@@ -95,7 +95,7 @@ static uint8_t dht11_read_byte(void)
 
 uint8_t dht11_read_data(uint8_t *temp, uint8_t *humi)
 {
-    uint8_t buf[DHT11_DATA_BYTES];
+    uint8_t buf[DHT11_DATA_BYTE_COUNT];
     uint8_t i;
 
     dht11_reset();
@@ -105,7 +105,7 @@ uint8_t dht11_read_data(uint8_t *temp, uint8_t *humi)
         return 1U;
     }
 
-    for (i = 0U; i < DHT11_DATA_BYTES; i++)
+    for (i = 0U; i < DHT11_DATA_BYTE_COUNT; i++)
     {
         buf[i] = dht11_read_byte();
     }

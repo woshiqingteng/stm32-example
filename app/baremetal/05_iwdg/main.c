@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include "bsp.h"
-#define IWDG_RELOAD          500U
+#define IWDG_RELOAD_TICK          500U
 #define IWDG_START_DELAY_MS  100U
 #define KEY_POLL_MS          10U
 
@@ -14,7 +14,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     delay_ms(IWDG_START_DELAY_MS);
-    iwdg_init(IWDG_PRESCALER_64, IWDG_RELOAD);
+    iwdg_init(IWDG_PRESCALER_64, IWDG_RELOAD_TICK);
     led_on(LED0);
 
     for (;;)

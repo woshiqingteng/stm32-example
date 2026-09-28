@@ -7,12 +7,12 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define ATIM_PWMIN_TEST_ARR      10U
-#define ATIM_PWMIN_TEST_PSC      90U
-#define ATIM_PWMIN_TEST_CCR      2U
+#define ATIM_PWMIN_TEST_ARR_TICK      10U
+#define ATIM_PWMIN_TEST_PSC_DIV      90U
+#define ATIM_PWMIN_TEST_CCR_TICK      2U
 #define ATIM_PWMIN_TIMER_CLK_MHZ 180U
 #define ATIM_PWMIN_US_PER_SECOND 1000000U
-#define ATIM_PWMIN_BLINK_DIV     20U
+#define ATIM_PWMIN_BLINK_COUNT     20U
 #define ATIM_PWMIN_LOOP_MS       10U
 
 int main(void)
@@ -22,14 +22,14 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    gtim_timx_pwm_chy_init(ATIM_PWMIN_TEST_ARR - 1U, ATIM_PWMIN_TEST_PSC - 1U);
-    gtim_timx_pwm_chy_set(ATIM_PWMIN_TEST_CCR);
+    gtim_timx_pwm_chy_init(ATIM_PWMIN_TEST_ARR_TICK - 1U, ATIM_PWMIN_TEST_PSC_DIV - 1U);
+    gtim_timx_pwm_chy_set(ATIM_PWMIN_TEST_CCR_TICK);
 
     atim_timx_pwmin_chy_init();
 
     for (;;)
     {
-        if ((blink % ATIM_PWMIN_BLINK_DIV) == 0U)
+        if ((blink % ATIM_PWMIN_BLINK_COUNT) == 0U)
         {
             if (atim_timx_pwmin_chy_state() == ATIM_PWMIN_DONE)
             {

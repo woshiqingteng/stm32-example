@@ -18,16 +18,16 @@
 
 #define SDRAM_REFRESH_COUNT       730U  /* 64 ms / 8192 rows @ SDCLK 96 MHz */
 #define SDRAM_CLK_ENABLE_DELAY_US 500U
-#define SDRAM_COMMAND_TIMEOUT     0x1000U
+#define SDRAM_COMMAND_TIMEOUT_COUNT     0x1000U
 
 /* FMC timing parameters, in SDCLK cycles. */
-#define SDRAM_TIMING_TMRD 2U  /* Load-to-active delay */
-#define SDRAM_TIMING_TXSR 7U  /* Exit self-refresh delay */
-#define SDRAM_TIMING_TRAS 6U  /* Self-refresh time */
-#define SDRAM_TIMING_TRC  6U  /* Row cycle delay */
-#define SDRAM_TIMING_TWR  2U  /* Write recovery time */
-#define SDRAM_TIMING_TRP  2U  /* Row precharge delay */
-#define SDRAM_TIMING_TRCD 2U  /* Row-to-column delay */
+#define SDRAM_TIMING_TMRD_RAW 2U  /* Load-to-active delay */
+#define SDRAM_TIMING_TXSR_RAW 7U  /* Exit self-refresh delay */
+#define SDRAM_TIMING_TRAS_RAW 6U  /* Self-refresh time */
+#define SDRAM_TIMING_TRC_RAW  6U  /* Row cycle delay */
+#define SDRAM_TIMING_TWR_RAW  2U  /* Write recovery time */
+#define SDRAM_TIMING_TRP_RAW  2U  /* Row precharge delay */
+#define SDRAM_TIMING_TRCD_RAW 2U  /* Row-to-column delay */
 
 /* FMC commands issued during the initialisation sequence. */
 typedef enum
@@ -95,7 +95,7 @@ static void sdram_send_command(sdram_command_t command, sdram_refresh_t refresh,
     cmd.AutoRefreshNumber      = (uint32_t)refresh;
     cmd.ModeRegisterDefinition = mode;
 
-    (void)HAL_SDRAM_SendCommand(&g_sdram_handle, &cmd, SDRAM_COMMAND_TIMEOUT);
+    (void)HAL_SDRAM_SendCommand(&g_sdram_handle, &cmd, SDRAM_COMMAND_TIMEOUT_COUNT);
 }
 
 static void sdram_initialization_sequence(void)
@@ -129,13 +129,13 @@ void sdram_init(void)
     g_sdram_handle.Init.ReadBurst           = FMC_SDRAM_RBURST_ENABLE;
     g_sdram_handle.Init.ReadPipeDelay       = FMC_SDRAM_RPIPE_DELAY_1;
 
-    timing.LoadToActiveDelay    = SDRAM_TIMING_TMRD;
-    timing.ExitSelfRefreshDelay = SDRAM_TIMING_TXSR;
-    timing.SelfRefreshTime      = SDRAM_TIMING_TRAS;
-    timing.RowCycleDelay        = SDRAM_TIMING_TRC;
-    timing.WriteRecoveryTime    = SDRAM_TIMING_TWR;
-    timing.RPDelay              = SDRAM_TIMING_TRP;
-    timing.RCDDelay             = SDRAM_TIMING_TRCD;
+    timing.LoadToActiveDelay    = SDRAM_TIMING_TMRD_RAW;
+    timing.ExitSelfRefreshDelay = SDRAM_TIMING_TXSR_RAW;
+    timing.SelfRefreshTime      = SDRAM_TIMING_TRAS_RAW;
+    timing.RowCycleDelay        = SDRAM_TIMING_TRC_RAW;
+    timing.WriteRecoveryTime    = SDRAM_TIMING_TWR_RAW;
+    timing.RPDelay              = SDRAM_TIMING_TRP_RAW;
+    timing.RCDDelay             = SDRAM_TIMING_TRCD_RAW;
 
     (void)HAL_SDRAM_Init(&g_sdram_handle, &timing);
     sdram_initialization_sequence();

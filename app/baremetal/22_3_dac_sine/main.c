@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define SIN_TIMER_ARR   9U
+#define SIN_TIMER_ARR_TICK   9U
 
 static const uint16_t g_sin_psc[] = { 29U, 2U };
 static const char *const g_sin_label[] = { "~3kHz", "~30kHz" };
@@ -28,7 +28,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
     adc_init();
 
-    dac_sine_init(SIN_TIMER_ARR, g_sin_psc[idx]);
+    dac_sine_init(SIN_TIMER_ARR_TICK, g_sin_psc[idx]);
     dac_sine_start();
 
     printf("22_3_dac_sine ready (KEY0 switches frequency)\r\n");
@@ -41,7 +41,7 @@ int main(void)
             idx ^= 1U;
 
             dac_sine_stop();
-            dac_sine_init(SIN_TIMER_ARR, g_sin_psc[idx]);
+            dac_sine_init(SIN_TIMER_ARR_TICK, g_sin_psc[idx]);
             dac_sine_start();
 
             dac_sine_show(idx);

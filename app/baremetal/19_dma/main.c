@@ -10,23 +10,23 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define DMA_TX_BUF_SIZE       (6U * 1024U)
-#define DMA_TX_CHUNK          1024U
+#define DMA_TX_BUF_SIZE_BYTE       (6U * 1024U)
+#define DMA_TX_CHUNK_BYTE          1024U
 
-#define DMA_TX_LINE_TERM_LEN  1U
-#define DMA_TX_PROGRESS_SCALE 100U
+#define DMA_TX_LINE_TERM_LEN_BYTE  1U
+#define DMA_TX_PROGRESS_SCALE_PERCENT 100U
 #define DMA_TX_POLL_DELAY_MS  1U
 #define DMA_TX_LOOP_DELAY_MS  100U
 
 static const char DMA_TX_LINE[] = "STM32F429 USART1 TX DMA demo - 0123456789\r\n";
-static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE];
+static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE_BYTE];
 
 static uint16_t dma_fill_buffer(void)
 {
-    uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - DMA_TX_LINE_TERM_LEN);
+    uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - DMA_TX_LINE_TERM_LEN_BYTE);
     uint16_t i = 0U;
 
-    while (((uint32_t)i + line_len) <= DMA_TX_BUF_SIZE)
+    while (((uint32_t)i + line_len) <= DMA_TX_BUF_SIZE_BYTE)
     {
         uint16_t k;
 
@@ -67,9 +67,9 @@ int main(void)
             {
                 uint16_t chunk = (uint16_t)(len - offset);
 
-                if (chunk > DMA_TX_CHUNK)
+                if (chunk > DMA_TX_CHUNK_BYTE)
                 {
-                    chunk = DMA_TX_CHUNK;
+                    chunk = DMA_TX_CHUNK_BYTE;
                 }
 
                 (void)usart_write(USART_ID_1, &g_tx_buf[offset], chunk);
@@ -81,7 +81,7 @@ int main(void)
 
                 offset = (uint16_t)(offset + chunk);
                 printf("progress: %u%%\r\n",
-                       (unsigned)(((uint32_t)offset * DMA_TX_PROGRESS_SCALE) / len));
+                       (unsigned)(((uint32_t)offset * DMA_TX_PROGRESS_SCALE_PERCENT) / len));
             }
 
             printf("DMA TX finished\r\n");

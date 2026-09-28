@@ -10,14 +10,14 @@
 
 #include "bsp.h"
 #define NOR_TEST_SECTOR    0U
-#define NOR_TEST_ADDR      (NOR_TEST_SECTOR * NOR_SECTOR_SIZE)
-#define NOR_TEST_LEN       32U
+#define NOR_TEST_ADDR      (NOR_TEST_SECTOR * NOR_SECTOR_SIZE_BYTE)
+#define NOR_TEST_LEN_BYTE       32U
 
 int main(void)
 {
     char     line[48];
-    uint8_t  pattern[NOR_TEST_LEN];
-    uint8_t  readback[NOR_TEST_LEN];
+    uint8_t  pattern[NOR_TEST_LEN_BYTE];
+    uint8_t  readback[NOR_TEST_LEN_BYTE];
     uint16_t id;
     uint8_t  i;
     bool     ok = true;
@@ -37,16 +37,16 @@ int main(void)
     }
     else
     {
-        for (i = 0U; i < NOR_TEST_LEN; i++)
+        for (i = 0U; i < NOR_TEST_LEN_BYTE; i++)
         {
             pattern[i] = (uint8_t)((i * 3U) + 1U);
         }
 
         nor_erase_sector(NOR_TEST_SECTOR);
-        nor_write(pattern, NOR_TEST_ADDR, NOR_TEST_LEN);
-        nor_read(readback, NOR_TEST_ADDR, NOR_TEST_LEN);
+        nor_write(pattern, NOR_TEST_ADDR, NOR_TEST_LEN_BYTE);
+        nor_read(readback, NOR_TEST_ADDR, NOR_TEST_LEN_BYTE);
 
-        for (i = 0U; i < NOR_TEST_LEN; i++)
+        for (i = 0U; i < NOR_TEST_LEN_BYTE; i++)
         {
             if (readback[i] != pattern[i])
             {

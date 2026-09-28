@@ -17,15 +17,15 @@
 #define NAND_RB              HAL_GPIO_ReadPin(NAND_RB_GPIO_PORT, NAND_RB_GPIO_PIN)
 
 /* Upper bound for the largest page (main + spare). */
-#define NAND_MAX_PAGE_SIZE      4096
-#define NAND_ECC_SECTOR_SIZE    512
+#define NAND_MAX_PAGE_SIZE_BYTE      4096
+#define NAND_ECC_SECTOR_SIZE_BYTE    512
 
 /* Timing delays, in loop iterations / microseconds as noted. */
-#define NAND_TADL_DELAY         30
-#define NAND_TWHR_DELAY         25
-#define NAND_TRHW_DELAY         35
-#define NAND_TPROG_DELAY        200
-#define NAND_TBERS_DELAY        4
+#define NAND_TADL_DELAY_COUNT         30
+#define NAND_TWHR_DELAY_COUNT         25
+#define NAND_TRHW_DELAY_COUNT         35
+#define NAND_TPROG_DELAY_US        200
+#define NAND_TBERS_DELAY_MS        4
 
 /* FMC NAND bank3 address window and register offsets. */
 #define NAND_ADDRESS            0x80000000UL
@@ -74,8 +74,8 @@ typedef struct
     uint32_t  id;               /* device ID */
     uint16_t *lut;              /* logical -> physical block table */
     uint32_t  ecc_hard;         /* last hardware ECC value */
-    uint32_t  ecc_hdbuf[NAND_MAX_PAGE_SIZE / NAND_ECC_SECTOR_SIZE]; /* computed ECC per sector */
-    uint32_t  ecc_rdbuf[NAND_MAX_PAGE_SIZE / NAND_ECC_SECTOR_SIZE]; /* ECC read back from spare */
+    uint32_t  ecc_hdbuf[NAND_MAX_PAGE_SIZE_BYTE / NAND_ECC_SECTOR_SIZE_BYTE]; /* computed ECC per sector */
+    uint32_t  ecc_rdbuf[NAND_MAX_PAGE_SIZE_BYTE / NAND_ECC_SECTOR_SIZE_BYTE]; /* ECC read back from spare */
 } nand_attriute;
 
 extern NAND_HandleTypeDef g_nand_handle;

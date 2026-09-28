@@ -17,7 +17,7 @@
 #define USART_PROMPT_PERIOD_MS 2000U
 #define USART_BLINK_PERIOD_MS  300U
 
-#define LINE_MAX 199U
+#define LINE_MAX_BYTE 199U
 
 typedef enum
 {
@@ -28,7 +28,7 @@ typedef enum
 } line_state_t;
 
 static uint8_t               s_rx_buf[128];
-static uint8_t               g_line[LINE_MAX + 1U];
+static uint8_t               g_line[LINE_MAX_BYTE + 1U];
 static volatile line_state_t g_line_state = LINE_STATE_IDLE;
 static volatile uint16_t     g_line_len;
 
@@ -53,7 +53,7 @@ static void line_feed(uint8_t byte)
         {
             g_line_state = LINE_STATE_CR;
         }
-        else if (g_line_len < LINE_MAX)
+        else if (g_line_len < LINE_MAX_BYTE)
         {
             g_line[g_line_len++] = byte;
         }

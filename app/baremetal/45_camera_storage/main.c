@@ -19,30 +19,30 @@
 #include "jpeg_dec.h"
 #include "bmp.h"
 #include "ltdc.h"
-#define CAM_OUT_WIDTH    800U
-#define CAM_OUT_HEIGHT   464U
+#define CAM_OUT_WIDTH_PIXEL    800U
+#define CAM_OUT_HEIGHT_PIXEL   464U
 #define CAM_TOP          16U
 #define CAM_FPS_INVALID  0xFFFFFFFFU
 
 #define STATUS_X         4U
-#define STATUS_WIDTH     700U
-#define STATUS_HEIGHT    16U
+#define STATUS_WIDTH_PIXEL     700U
+#define STATUS_HEIGHT_PIXEL    16U
 
 #define CAM_LOOP_MS      20U
 #define CAM_OUTSIZE_OFFSET_X 4U   /* sensor output window X offset */
 #define PHOTO_DIR        "0:/PHOTO"
 
-#define JPEG_SIZE_W      2592U
-#define JPEG_SIZE_H      1944U
+#define JPEG_SIZE_WIDTH_PIXEL      2592U
+#define JPEG_SIZE_HEIGHT_PIXEL      1944U
 #define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + \
-                          ((uint32_t)LTDC_PANEL_WIDTH * LTDC_PANEL_HEIGHT * 2U))
-#define JPEG_BUF_WORDS   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
+                          ((uint32_t)LTDC_PANEL_WIDTH_PX * LTDC_PANEL_HEIGHT_PX * 2U))
+#define JPEG_BUF_WORD_COUNT   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
 #define JPEG_CAPTURE_TIMEOUT_MS 3000U
 
 static volatile bool g_paused;
 static char          g_last_path[32];
 
-static uint32_t         g_line_buf[2][CAM_OUT_WIDTH / 2U];
+static uint32_t         g_line_buf[2][CAM_OUT_WIDTH_PIXEL / 2U];
 static volatile uint16_t g_cam_curline;
 
 static void cam_line_cb(void)
@@ -58,9 +58,9 @@ static void cam_line_cb(void)
         pbuf = (uint16_t *)g_line_buf[1];
     }
 
-    if (g_cam_curline < (uint16_t)(CAM_TOP + CAM_OUT_HEIGHT))
+    if (g_cam_curline < (uint16_t)(CAM_TOP + CAM_OUT_HEIGHT_PIXEL))
     {
-        lcd_color_fill(0U, g_cam_curline, (uint16_t)(CAM_OUT_WIDTH - 1U), g_cam_curline, pbuf);
+        lcd_color_fill(0U, g_cam_curline, (uint16_t)(CAM_OUT_WIDTH_PIXEL - 1U), g_cam_curline, pbuf);
         g_cam_curline++;
     }
 }
@@ -77,12 +77,12 @@ static void cam_status(uint32_t fps, bool sd_ok)
     char line[64];
 
     (void)sprintf(line, "OV5640 %ux%u FPS:%u SD:%s%s",
-                  (unsigned int)CAM_OUT_WIDTH, (unsigned int)CAM_OUT_HEIGHT,
+                  (unsigned int)CAM_OUT_WIDTH_PIXEL, (unsigned int)CAM_OUT_HEIGHT_PIXEL,
                   (unsigned int)fps, sd_ok ? "OK" : "ERR",
                   g_paused ? " PAUSE" : "");
 
-    lcd_fill(STATUS_X, 0U, (uint16_t)(STATUS_X + STATUS_WIDTH), STATUS_HEIGHT - 1U, BLACK);
-    lcd_show_string(STATUS_X, 0U, STATUS_WIDTH, STATUS_HEIGHT, LCD_FONT_SIZE_16, line, GREEN);
+    lcd_fill(STATUS_X, 0U, (uint16_t)(STATUS_X + STATUS_WIDTH_PIXEL), STATUS_HEIGHT_PIXEL - 1U, BLACK);
+    lcd_show_string(STATUS_X, 0U, STATUS_WIDTH_PIXEL, STATUS_HEIGHT_PIXEL, LCD_FONT_SIZE_16, line, GREEN);
 }
 
 static void cam_next_path(char *path, const char *ext)
@@ -153,10 +153,10 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
     cam_next_path(g_last_path, "jpg");
 
     ov5640_jpeg_mode();
-    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, JPEG_SIZE_W, JPEG_SIZE_H);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, JPEG_SIZE_WIDTH_PIXEL, JPEG_SIZE_HEIGHT_PIXEL);
 
     dcmi_init();
-    dcmi_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORDS);
+    dcmi_jpeg_init((uint32_t *)JPEG_BUF_ADDR, JPEG_BUF_WORD_COUNT);
     captured = dcmi_jpeg_capture(JPEG_CAPTURE_TIMEOUT_MS);
 
     fr = f_open(&f, g_last_path, FA_CREATE_ALWAYS | FA_WRITE);
@@ -187,14 +187,14 @@ static uint8_t cam_save_native_jpeg(bool sd_ok)
 
     /* Restore the RGB565 live view. */
     ov5640_rgb565_mode();
-    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
+    (void)ov5640_outsize_set(CAM_OUTSIZE_OFFSET_X, 0U, CAM_OUT_WIDTH_PIXEL, CAM_OUT_HEIGHT_PIXEL);
 
     dcmi_init();
     dcmi_switch_ov5640();
     dcmi_rx_callback    = cam_line_cb;
     dcmi_frame_callback = cam_frame_cb;
     dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
-                  (uint16_t)(CAM_OUT_WIDTH / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
+                  (uint16_t)(CAM_OUT_WIDTH_PIXEL / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
     g_cam_curline = CAM_TOP;
     dcmi_start();
 
@@ -215,7 +215,7 @@ static uint8_t cam_save_bmp(bool sd_ok)
     dcmi_switch_sdcard();
     cam_next_path(path, "bmp");
 
-    (void)bmp_encode((uint8_t *)path, 0U, CAM_TOP, CAM_OUT_WIDTH, CAM_OUT_HEIGHT, 0);
+    (void)bmp_encode((uint8_t *)path, 0U, CAM_TOP, CAM_OUT_WIDTH_PIXEL, CAM_OUT_HEIGHT_PIXEL, 0);
 
     dcmi_switch_ov5640();
     dcmi_start();
@@ -283,7 +283,7 @@ int main(void)
 
     while (ov5640_init() != 0U)
     {
-        lcd_show_string(30U, 30U, 240U, STATUS_HEIGHT, LCD_FONT_SIZE_16, "OV5640 ERROR", RED);
+        lcd_show_string(30U, 30U, 240U, STATUS_HEIGHT_PIXEL, LCD_FONT_SIZE_16, "OV5640 ERROR", RED);
         printf("OV5640 error\r\n");
         delay_ms(200U);
         lcd_fill(30U, 30U, 269U, 45U, BLACK);
@@ -306,10 +306,10 @@ int main(void)
     dcmi_rx_callback    = cam_line_cb;
     dcmi_frame_callback = cam_frame_cb;
     dcmi_dma_init((uint32_t)g_line_buf[0], (uint32_t)g_line_buf[1],
-                  (uint16_t)(CAM_OUT_WIDTH / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
+                  (uint16_t)(CAM_OUT_WIDTH_PIXEL / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 
     g_cam_curline = CAM_TOP;
-    (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH, CAM_OUT_HEIGHT);
+    (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH_PIXEL, CAM_OUT_HEIGHT_PIXEL);
 
     gtim_frame_init();
     cam_status(0U, sd_ok);
