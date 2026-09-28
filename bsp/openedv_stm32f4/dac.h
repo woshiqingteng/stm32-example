@@ -9,8 +9,6 @@
 
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
-
 /** @brief DAC1 output channels: PA4 = channel 1, PA5 = channel 2. */
 typedef enum
 {

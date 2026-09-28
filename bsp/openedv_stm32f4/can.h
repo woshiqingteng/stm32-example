@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
-
 /** @brief Callback invoked for every received standard data frame. */
 typedef void (*can_rx_hook_t)(uint32_t id, const uint8_t *data, uint8_t len);
 

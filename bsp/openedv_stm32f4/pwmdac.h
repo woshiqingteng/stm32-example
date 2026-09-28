@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
-
 /** @brief PWM DAC reference voltage in mV (full-scale duty). */
 #define PWMDAC_VREF_MV 3300U
 
