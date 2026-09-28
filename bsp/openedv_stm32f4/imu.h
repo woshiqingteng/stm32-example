@@ -32,8 +32,12 @@
 
 /* Motion interrupt registers. */
 #define IMU_REG_INT_STATUS0      0x10U
+#define IMU_REG_INT_STATUS1      0x11U
+#define IMU_REG_INT_STATUS2      0x12U
+#define IMU_REG_TAP_STATUS       0x14U
 #define IMU_REG_INT_EN0          0x40U
 #define IMU_REG_INT_EN1          0x41U
+#define IMU_REG_INT_CONFIG       0x44U
 #define IMU_REG_ACT_AXIS         0x4FU
 #define IMU_REG_TAP_AXIS         0x50U
 #define IMU_REG_TAP_THR          0x51U

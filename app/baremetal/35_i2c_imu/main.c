@@ -15,7 +15,7 @@
 #include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U
-#define REPORT_TICKS        50U        /* 50 * 10 ms = 500 ms report period */
+#define REPORT_TICKS        200U       /* 200 * 10 ms = 2 s report period */
 #define PI_F                3.14159265f
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
 #define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
@@ -53,7 +53,7 @@ int main(void)
     bool     imu_ok;
     bool     mag_ok;
     bool     fifo_on = false;
-    uint8_t  p5_prev = 0U;
+    uint8_t  st_prev = 0U;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
@@ -83,11 +83,6 @@ int main(void)
         printf("ST480MC ready\r\n");
     }
 
-    if (io_expand_init() != 0U)
-    {
-        printf("PCF8574 check failed\r\n");
-    }
-
     if (imu_ok)
     {
         imu_motion_int_enable();
@@ -98,32 +93,25 @@ int main(void)
 
     for (;;)
     {
-        /* Motion interrupt: the SH3001 INT pin drives PCF8574 P5 (active high). */
+        /* SH3001 motion engine: poll the latched interrupt status register. */
         {
-            uint8_t pcf = io_expand_read_byte();
-            uint8_t p5  = (uint8_t)((pcf >> PCF8574_MPU_INT_IO) & 0x01U);
+            uint8_t st = imu_motion_int_status();
+            uint8_t nb = (uint8_t)(st & (uint8_t)~st_prev);
 
-            if ((p5 != 0U) && (p5_prev == 0U))
+            if ((nb & IMU_STATUS_TAP) != 0U)
             {
-                uint8_t st = imu_motion_int_status();
-
-                printf("INT p5=%u st=0x%02X\r\n", (unsigned)p5, (unsigned)st);
-
-                if ((st & IMU_STATUS_TAP) != 0U)
-                {
-                    printf("EVENT: TAP\r\n");
-                }
-                if ((st & IMU_STATUS_FREEFALL) != 0U)
-                {
-                    printf("EVENT: FREE-FALL\r\n");
-                }
-                if ((st & IMU_STATUS_ACTIVITY) != 0U)
-                {
-                    printf("EVENT: ACTIVITY\r\n");
-                }
+                printf("EVENT: TAP\r\n");
+            }
+            if ((nb & IMU_STATUS_FREEFALL) != 0U)
+            {
+                printf("EVENT: FREE-FALL\r\n");
+            }
+            if ((nb & IMU_STATUS_ACTIVITY) != 0U)
+            {
+                printf("EVENT: ACTIVITY\r\n");
             }
 
-            p5_prev = p5;
+            st_prev = st;
         }
 
         if (imu_ok)

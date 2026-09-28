@@ -301,12 +301,10 @@ float imu_read_temperature(void)
 
 void imu_motion_int_enable(void)
 {
-    uint8_t reg;
-
-    /* Tap: X/Y/Z, thresholds chosen empirically. */
+    /* Tap: X/Y/Z, |acc|/64 above 0x51 within 0x52 ms. */
     (void)imu_write_byte(IMU_REG_TAP_AXIS, 0x0EU);
-    (void)imu_write_byte(IMU_REG_TAP_THR, 0x40U);
-    (void)imu_write_byte(IMU_REG_TAP_DUR, 0x20U);
+    (void)imu_write_byte(IMU_REG_TAP_THR, 0x10U);
+    (void)imu_write_byte(IMU_REG_TAP_DUR, 0x50U);
     (void)imu_write_byte(IMU_REG_TAP_LAT, 0x40U);
     (void)imu_write_byte(IMU_REG_TAP_WIN, 0x80U);
 
@@ -320,16 +318,25 @@ void imu_motion_int_enable(void)
     (void)imu_write_byte(IMU_REG_ACT_THR, 0x20U);
     (void)imu_write_byte(IMU_REG_ACT_TIME, 0x03U);
 
-    reg = imu_read_byte(IMU_REG_INT_EN0);
-    (void)imu_write_byte(IMU_REG_INT_EN0, (uint8_t)(reg | IMU_INT_TAP_ENABLE | IMU_INT_ACTIVITY_ENABLE));
+    /* Interrupt config: latched, active high, normal output (cleared by
+     * reading the interrupt status register). */
+    (void)imu_write_byte(IMU_REG_INT_CONFIG, 0x05U);
 
-    reg = imu_read_byte(IMU_REG_INT_EN1);
-    (void)imu_write_byte(IMU_REG_INT_EN1, (uint8_t)(reg | IMU_INT_FREEFALL_ENABLE));
+    /* The SH3001 keeps its configuration across an MCU reset, so write the
+     * enable registers with absolute values rather than read-modify-write. */
+    (void)imu_write_byte(IMU_REG_INT_EN0, IMU_INT_TAP_ENABLE | IMU_INT_ACTIVITY_ENABLE);
+    (void)imu_write_byte(IMU_REG_INT_EN1, IMU_INT_FREEFALL_ENABLE);
 }
 
 uint8_t imu_motion_int_status(void)
 {
-    return imu_read_byte(IMU_REG_INT_STATUS0);
+    uint8_t status0 = imu_read_byte(IMU_REG_INT_STATUS0);
+
+    (void)imu_read_byte(IMU_REG_INT_STATUS1);
+    (void)imu_read_byte(IMU_REG_INT_STATUS2);
+    (void)imu_read_byte(IMU_REG_TAP_STATUS);
+
+    return status0;
 }
 
 void imu_fifo_init(void)
