@@ -24,7 +24,8 @@
 #define SD_CMD_GPIO_PORT   GPIOD
 #define SD_CMD_GPIO_PIN    GPIO_PIN_2
 
-/* Transfer clock divider: SDIO clock = 48 MHz / (div + 2). */
+/* Transfer clock divider: SDIO clock = 48 MHz / (div + 2) = 16 MHz. The <400 kHz
+ * identification phase is handled by the SDIO init sequence, not this value. */
 #define SDIO_TRANSF_CLK_DIV   1
 
 #define SD_TIMEOUT_COUNT             ((uint32_t)100000000)

@@ -20,7 +20,7 @@
 #define RTC_DEFAULT_DATE   1U
 #define RTC_DEFAULT_WEEK   1U
 #define RTC_PRINT_PERIOD_MS 1000U
-#define RTC_WAKEUP_CLOCK      0x4U    /* HAL RTC_WAKEUPCLOCK_CK_SPRE_16BITS */
+#define RTC_WAKEUP_CLOCK      0x4U    /*!< HAL clock-source enum (0x4 = CK_SPRE 16-bit, 1 Hz) */
 
 static volatile uint32_t g_wakeups;
 

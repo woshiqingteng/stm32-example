@@ -29,6 +29,7 @@ int main(void)
 
             pwr_enter_stop();
 
+            /* TODO: inline copy of bsp's PLL config; keep in sync with bsp_init(). */
             sys_clk_init(360U, 25U, 2U, 8U);
             led_off(LED1);
             printf("Woke from stop mode\r\n");

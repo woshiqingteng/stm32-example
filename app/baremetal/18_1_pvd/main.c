@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#define PVD_LEVEL  PWR_PVDLEVEL_7  /* 2.9 V */
+#define PVD_LEVEL  PWR_PVDLEVEL_7  /*!< HAL threshold selector (PWR_PVDLEVEL_7 = 2.9 V) */
 #define LOOP_DELAY_MS 10U
 
 static void pvd_hook(pwr_pvd_state_t state)

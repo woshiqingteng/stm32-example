@@ -27,7 +27,7 @@ int main(void)
     /* USB OTG FS needs an exact 48 MHz kernel clock: 336 / 7 = 48 MHz while
      * keeping the core at 168 MHz. */
     (void)sys_clk_reconfig(336U, 25U, 2U, 7U);
-    delay_init(168U);
+    delay_init(168U); /* matches the sys_clk_reconfig above (168 MHz core, 48 MHz USB) */
     usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1) });
 
     printf(APP_BANNER "\r\n");

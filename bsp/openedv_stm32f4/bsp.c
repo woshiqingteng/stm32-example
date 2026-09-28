@@ -11,7 +11,7 @@
 #define BSP_PLLN_RAW           360U
 #define BSP_PLLM_RAW           25U
 #define BSP_PLLP_RAW           2U
-#define BSP_PLLQ_RAW           8U
+#define BSP_PLLQ_RAW           8U   /* TODO: VCO/8 = 45 MHz; sys.c comment claims 48 MHz PLL48CK */
 
 void bsp_init(void)
 {

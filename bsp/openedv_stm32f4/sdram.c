@@ -16,11 +16,13 @@
 
 #define SDRAM_TARGET_BANK1       FMC_SDRAM_CMD_TARGET_BANK1
 
-#define SDRAM_REFRESH_COUNT       730U  /* 64 ms / 8192 rows @ SDCLK 96 MHz */
+/* TODO: value assumes SDCLK 96 MHz, but HCLK/2 = 90 MHz for the configured
+ * 180 MHz system clock; recompute when the FMC clock is confirmed. */
+#define SDRAM_REFRESH_COUNT       730U  /*!< 64 ms / 8192 rows */
 #define SDRAM_CLK_ENABLE_DELAY_US 500U
 #define SDRAM_COMMAND_TIMEOUT_COUNT     0x1000U
 
-/* FMC timing parameters, in SDCLK cycles. */
+/* FMC timing parameters, in SDCLK cycles (tuned for an assumed 96 MHz SDCLK). */
 #define SDRAM_TIMING_TMRD_RAW 2U  /* Load-to-active delay */
 #define SDRAM_TIMING_TXSR_RAW 7U  /* Exit self-refresh delay */
 #define SDRAM_TIMING_TRAS_RAW 6U  /* Self-refresh time */
