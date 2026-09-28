@@ -289,6 +289,7 @@ uint8_t video_play_mjpeg(char *pname)
             else
             {
                 video_info_show(&g_avix);
+                /* TIM7 (APB1): PSC=9000-1 -> 100 us/tick; ARR=SecPerFrame/100-1 -> one IRQ per frame. */
                 vtimer_init((uint16_t)(g_avix.SecPerFrame / 100U - 1U), 9000U - 1U);
 
                 offset = (uint16_t)avi_srarch_id(pbuf, AVI_VIDEO_BUF_SIZE, "movi");

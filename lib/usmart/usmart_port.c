@@ -93,6 +93,7 @@ void usmart_port_init(uint16_t tclk)
     {
         uint32_t pclk1    = HAL_RCC_GetPCLK1Freq();
         uint32_t tim_clk  = ((RCC->CFGR & RCC_CFGR_PPRE1) == RCC_CFGR_PPRE1_DIV1) ? pclk1 : (pclk1 * 2U);
+        /* PSC = f_TIM4CLK/1 MHz - 1 = 90 MHz/1 MHz - 1 = 89 -> 1 us tick. */
         uint16_t prescaler = (uint16_t)((tim_clk / USMART_TIMX_TICK_HZ) - 1U);
 
         (void)tclk; /* system clock in MHz; the TIM4 input clock is derived from RCC */

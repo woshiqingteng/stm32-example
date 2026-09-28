@@ -14,6 +14,7 @@
 #define RTC_LSE_RETRY_COUNT       200U
 #define RTC_LSE_POLL_MS     5U
 
+/* f = f_RTC_CLK/((ASYNC+1)(SYNC+1)); LSE: 32768/(128*256) = 1 Hz. */
 #define RTC_ASYNC_PREDIV    0x7FU
 #define RTC_SYNC_PREDIV     0xFFU
 

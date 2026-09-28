@@ -9,6 +9,7 @@
 static TIM_HandleTypeDef g_btim_handle;
 static btim_cb_t         g_btim_cb;
 
+/* TIM6 (APB1): f_TIM = 90 MHz; f_update = 90 MHz / ((PSC+1)*(ARR+1)). */
 void btim_timx_int_init(uint16_t arr, uint16_t psc)
 {
     /* ---- MSP begin: clock + NVIC ---- */

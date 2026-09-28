@@ -9,9 +9,10 @@
 /* Board-fixed watchdog configuration. */
 #define IWDG_PRESCALER      IWDG_PRESCALER_64  /*!< LSI ~32 kHz input */
 #define IWDG_RELOAD    500U               /*!< ~1.0 s timeout (500 * 64 / 32 kHz) */
-#define WWDG_PRESCALER      WWDG_PRESCALER_8   /*!< PCLK1/8 input */
+#define WWDG_PRESCALER      WWDG_PRESCALER_8   /*!< PCLK1/8 = 45 MHz/8 = 5.625 MHz */
 #define WWDG_COUNTER   0x7FU              /*!< T[6:0] counter reload */
 #define WWDG_WINDOW    0x5FU              /*!< W[5:0] refresh window */
+/* WWDG timeout ~= 4096*(T-W)/f_WWDG = 4096*32/5.625 MHz ~= 23 ms. */
 
 IWDG_HandleTypeDef g_iwdg_handle;
 WWDG_HandleTypeDef g_wwdg_handle;

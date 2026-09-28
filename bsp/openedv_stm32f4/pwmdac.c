@@ -18,6 +18,7 @@
 static TIM_HandleTypeDef g_pwmdac_handle;
 static uint16_t          g_pwmdac_arr;
 
+/* TIM9 (APB2): f_PWM = 180 MHz/((PSC+1)(ARR+1)). */
 void pwmdac_init(uint16_t arr, uint16_t psc)
 {
     GPIO_InitTypeDef   gpio_init = {0};

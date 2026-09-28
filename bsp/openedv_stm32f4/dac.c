@@ -130,6 +130,8 @@ static void dac_wave_dma_init(void)
     __HAL_LINKDMA(&g_dac_handle, DMA_Handle1, g_dac_dma_handle);
 }
 
+/* TIM6/TIM7 (APB1): sample rate = 90 MHz/((PSC+1)(ARR+1));
+ * wave frequency = sample rate / DAC_WAVE_SAMPLE_COUNT (100). */
 static void dac_wave_timer_init(TIM_TypeDef *instance, uint16_t arr, uint16_t psc)
 {
     TIM_MasterConfigTypeDef master_config = {0};

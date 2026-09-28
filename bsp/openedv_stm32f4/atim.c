@@ -52,6 +52,7 @@ static void atim_set_repetition(uint16_t n)
 static TIM_HandleTypeDef g_atim_npwm_handle;
 static uint32_t          g_atim_npwm_remain;
 
+/* TIM8 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); burst pulses = RCR+1. */
 void atim_timx_npwm_chy_init(uint16_t arr, uint16_t psc)
 {
     GPIO_InitTypeDef gpio_init = {0};
@@ -135,6 +136,7 @@ static void atim_npwm_isr(void)
 }
 
 /* ================= TIM8 output compare (PC6..PC9) ================= */
+/* TIM8 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); CHn toggles at tick CHn. */
 
 static TIM_HandleTypeDef g_atim_comp_handle;
 
@@ -209,6 +211,7 @@ void atim_timx_comp_pwm_set(atim_channel_t channel, uint16_t ccr)
 }
 
 /* ============ TIM1 complementary PWM + dead time (PE9/PE8/PE15) ============ */
+/* TIM1 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); ClockDivision DIV4 -> t_DTS = 4/180 MHz. */
 
 static TIM_HandleTypeDef                  g_atim_cplm_handle;
 static TIM_BreakDeadTimeConfigTypeDef     g_atim_cplm_break = {0};
@@ -269,6 +272,7 @@ void atim_timx_cplm_pwm_set(uint16_t ccr, uint8_t dtg)
 }
 
 /* ===================== TIM8 PWM input (PC6 / CH1) ===================== */
+/* TIM8 (APB2): f = 180 MHz; PSC auto-doubles at runtime to keep ARR in range. */
 
 typedef enum
 {

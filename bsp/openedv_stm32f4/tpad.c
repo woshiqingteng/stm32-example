@@ -80,6 +80,7 @@ static uint32_t tpad_get_maxval(uint8_t n)
     return maxval;
 }
 
+/* TIM2 (APB1): charge time = count * (PSC+1) / 90 MHz. */
 static void tpad_timx_cap_init(uint32_t arr, uint16_t psc)
 {
     GPIO_InitTypeDef gpio_init = {0};

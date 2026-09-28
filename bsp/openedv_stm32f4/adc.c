@@ -78,7 +78,7 @@ static void adc_instance_config(ADC_HandleTypeDef *hadc, FunctionalState scan,
                                 FunctionalState dma_continuous)
 {
     hadc->Instance = ADC_INSTANCE;
-    hadc->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV4;
+    hadc->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV4; /* f_ADC = PCLK2/4 = 90/4 = 22.5 MHz */
     hadc->Init.Resolution            = ADC_RESOLUTION_12B;
     hadc->Init.DataAlign             = ADC_DATAALIGN_RIGHT;
     hadc->Init.ScanConvMode          = scan;

@@ -18,7 +18,7 @@
 #define GTIM_CAP_MAX_OVERFLOW_COUNT  63U
 #define GTIM_CAP_INVALID_VALUE 0xFFFFU
 
-/* ---- TIM3 update interrupt ---- */
+/* ---- TIM3 update interrupt (APB1): f = 90 MHz/((PSC+1)(ARR+1)) ---- */
 static TIM_HandleTypeDef g_gtim_int_handle;
 static gtim_cb_t         g_gtim_int_cb;
 
@@ -53,7 +53,7 @@ void TIM3_IRQHandler(void)
     }
 }
 
-/* ---- TIM3_CH4 (PB1) PWM ---- */
+/* ---- TIM3_CH4 (PB1) PWM (APB1): f = 90 MHz/((PSC+1)(ARR+1)); duty = (arr/2)/(arr+1) ~ 50% ---- */
 static TIM_HandleTypeDef g_gtim_pwm_handle;
 
 void gtim_timx_pwm_chy_init(uint16_t arr, uint16_t psc)
@@ -89,7 +89,8 @@ void gtim_timx_pwm_chy_set(uint16_t ccr)
     __HAL_TIM_SET_COMPARE(&g_gtim_pwm_handle, TIM_CHANNEL_4, ccr);
 }
 
-/* ---- TIM5_CH1 (PA0) input capture ---- */
+/* ---- TIM5_CH1 (PA0) input capture (APB1): tick = (PSC+1)/90 MHz;
+ *      width = count*tick (1 us only when PSC=90) ---- */
 static TIM_HandleTypeDef g_gtim_cap_handle;
 static gtim_cap_state_t  g_gtim_cap_state;
 static uint32_t          g_gtim_cap_overflows;
@@ -198,7 +199,8 @@ void TIM5_IRQHandler(void)
     }
 }
 
-/* ---- TIM2_CH1 (PA0) external pulse counter ---- */
+/* ---- TIM2_CH1 (PA0) external pulse counter (APB1):
+ *      count = edges/(PSC+1); 16-bit overflow ---- */
 static TIM_HandleTypeDef g_gtim_cnt_handle;
 static uint32_t          g_gtim_cnt_overflows;
 
