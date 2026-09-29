@@ -212,6 +212,39 @@
 - `48_video`：经核查已通过 `lcd_color_fill`（DMA2D M2M）逐行搬运，**已达 DMA2D 路径**，无需改动（且行缓冲位于 SRAMIN，DMA 可访问；参考的 CCM 缓冲不宜作 DMA 源）。
 - **全量回归 73/73 通过**；`PLAN.md` 全部 P 项处理完毕。
 
+## 执行记录（Phase 2，第四批：显示驱动分层）
+- **11 OLED**：拆出 `oled_ssd1306`（SSD1306 协议 + 传输；`OLED_BUS` 宏，默认 8080、SPI 实装、I2C 占位）；`oled.c` 降为纯面板/图形。
+- **12/13/14 LCD**：拆出 `lcd_rgb`（RGB 面板驱动：ID strap + 时序/PLL，单面板硬编码 4.3"/`0x4384`）；`ltdc` 降为纯控制器（`ltdc_init(const lcd_rgb_cfg_t *)`）；`lcd.h` 与 `ltdc.h` 解耦（新增 `lcd_dir_t`；`ltdc` 不再依赖 `lcd`）。
+- 面板宏改名 `LTDC_PANEL_*` → `LCD_PANEL_*`；同步小改 `30_touch_screen`（`LCD_DIR_*`）、`38_camera_stream`/`45_camera_storage`（`LCD_PANEL_*`）、`touch.c`（含 `ltdc.h`）。
+
+## 执行记录（Phase 2，第五批：显示驱动瘦身/去冗余）
+- **对外接口简约化**：`lcd.h` 查询收敛为单一 `lcd_info()`（`lcd_info_t` 聚合 `pwidth/pheight/width/height/id/dir/pixsize/framebuf`）；删除 `lcd_get_width/height/id`、`_lcd_dev`、`g_point_color`/`g_back_color`（改为 `lcd_set/get_back_color()`）。
+- **颜色类型统一为 `uint32_t`**（`lcd_draw_point/clear/fill/show_char/num/string`），与 `_pic_phy` 函数指针一致，避免类型不匹配。
+- **删死代码**：`lcd_set_window`、`lcd_write_ram_prepare`、`lcd_show_xnum`、`lcd_draw_line/draw_circle/fill_circle`（0 调用）。
+- **去重复**：`ltdc.c` 抽 `ltdc_rect_addr()`（`ltdc_fill`/`ltdc_blit` 共用）；删冗余 DMA2D 时钟使能。`lcd_color_fill` → `lcd_blit`、`ltdc_color_fill` → `ltdc_blit`。
+- **健壮性**：`lcd_show_char` 增加字符范围检查（修 `text.c` 对 0x7F/0x80 的越界取字库）。
+- **R7 收敛**：`ltdc` 变为 bsp 内部；`lib`（`text/piclib/bmp/mjpeg/videoplayer`）与 `app`（12/14/30/38/44/45/49）改用 `lcd_*`/`lcd_info()`，不再包含 `ltdc.h`；`38/45` 的 JPEG 缓冲基址改用 `lcd_info()->framebuf`（编译期面板尺寸经 `lcd_rgb.h`）。
+
+## 执行记录（Phase 2，第六批：LVGL 8.3.11 移植）
+- **module/lvgl/8.3.11**：按版本目录惯例（同 `freertos/11.3.1`）；目标 `lvgl`（`EXCLUDE_FROM_ALL`，仅链 `drv_core`，**不依赖 FreeRTOS**）。
+- **配置分层（仿 FreeRTOS）**：公共 `module/lvgl/8.3.11/config/lv_conf_common.h`（由 `lv_conf_template.h` 生成，**每个 `#define LV_*` 均 `#ifndef` 守卫**）；单 app `app/freertos/lv_29_keyboard/lv_conf.h` 先覆盖再 `#include "lv_conf_common.h"`。
+- **tick**：`LV_TICK_CUSTOM` 走 `lvgl_tick.h`/`lvgl_tick_ms()`（OS 无关）；实现 `port/openedv_stm32f4/lvgl/lv_port_tick.c`，用 `#if USE_FREERTOS` 切换：FreeRTOS=`xTaskGetTickCount()`，裸机=`HAL_GetTick()`。
+- **port**：`port/openedv_stm32f4/lvgl` → `lvgl_port`（`lv_port_disp.c` flush=`lcd_blit`、`lv_port_indev.c`=`touch_*`、`lv_port_tick.c`）；链 `lvgl bsp_lcd bsp_touch bsp_delay`。`lib_wrapper(lib_lvgl lvgl_port)`。
+- **app**：`app/freertos/lv_29_keyboard`（`add_freertos_app`；`BSP lcd touch sdram`；`LIB lvgl`）：`lv_keyboard` 键盘示例 + LED 心跳任务；`FreeRTOSConfig.h` 覆盖 `configTOTAL_HEAP_SIZE=48KB`。
+- **内存**：SDRAM `0xC0000000` 帧缓冲 / `0xC0100000` LVGL 池(512KB) / `0xC0200000` draw buffer(64KB/40 行)；FreeRTOS 堆 48KB（内部 SRAM）。
+- 裸机复用同一套 module/port/配置（`USE_FREERTOS=0` 时 tick 自动走 `HAL_GetTick`），无需改动。
+- **tick 注入（无反向依赖）**：`lvgl` 模块内定义 `g_lvgl_tick_fn`（`config/lvgl_tick.c`），`lv_conf_common.h` 的 `LV_TICK_CUSTOM_SYS_TIME_EXPR=(g_lvgl_tick_fn())`；由 **port** 的 `lv_port_tick_init()` 注入（`#if USE_FREERTOS` → `xTaskGetTickCount()`，否则 `HAL_GetTick()`）。依赖严格下行（`lvgl→drv_core`；`lvgl_port→lvgl/bsp_*`），**无 module→port 反向边**。
+- **验证（`lv_29_keyboard`，自动）**：`build` RC=0（text≈211KB / bss≈55KB；`-Wall` 仅 LVGL 上游 5 条告警：`extra/libs/qrcode/qrcodegen.c`×2、`misc/lv_tlsf.c`×3）。串口横幅 `app_freertos_lv_29_keyboard`；`g_lvgl_tick_fn=0x08003ad9(=&tick_read) ≠ &lvgl_tick_default`；`xTickCount` **580→1578ms**（Δ≈1000ms/1s，tick 前进）；帧缓冲 `0xC0000000` **非空**（`f7be…`，UI 已绘制）；`PC` 位于 idle 任务（**非 HardFault**）。触摸交互未自动核验（GT9147 需真实触摸）。
+
+## 执行记录（Phase 2，第七批：审查发现修复）
+- **F1 字号 32 字库步长**：`lcdfont.h` `asc2_3216[95][128]→[95][64]`、`lcd.c` `LCD_FONT_3216_BYTE 128U→64U`（重构把 `font->bytes` 当尺寸+步长；数据实为 64B/字形，参考实现 csize=64）。节省 **6080B** 常量（`nm` 实测 `asc2_3216=0x17c0`）。`43_font` 增加内置 ASCII-32 示例行以便目视。
+- **F2（先删后修）**：`module/lvgl` 依赖回退为 `drv_core`（lvgl **可**依赖 HAL；**不**直接依赖 `soc_${MCU_FAMILY}`）；移除 drv_core 会导致 lvgl 丢失 FPU ABI 编译选项而链接失败。
+- **F3 撤销**：保留 app 侧 `target_include_directories(lvgl PUBLIC ...)` 注入（与 `add_freertos_app` 对 `freertos` 的做法一致；每 app 独立 CMake 树，无冲突），不用 `LV_CONF_PATH`。
+- **F4 SDRAM 布局**：`lv_conf.h` pool `0xC0100000→0xC0400000`、`lv_port_disp.c` draw `0xC0200000→0xC0480000`（帧缓冲 0xC0000000 预留 4MB）；`lv_port_disp_init()` 加帧缓冲越界 `printf` 防呆。
+- **F5**：删除 `lv_29_keyboard` 自定义键盘回调（v8 中 `LV_SYMBOL_KEYBOARD` 内置为 CANCEL；模式切换用内置键 `1#`/`abc`/`ABC`）。
+- **F6**：对 `qrcodegen.c` 加 `-Wno-type-limits`、`lv_tlsf.c` 加 `-Wno-unused-parameter`（定向抑制上游告警）。
+- **验证**：`build all` / `build all-freertos` RC=0、**0 告警**；`43_font` 烧录运行（`page 0: GBK FONT OK`）；`lv_29_keyboard` 自动核验：`g_lvgl_tick_fn=&tick_read`、`xTickCount` **689→1695ms**、帧缓冲非空、非 HardFault。
+
 ---
 
 # 计划：`test/` pytest 硬件在环全自动验证（01–10）

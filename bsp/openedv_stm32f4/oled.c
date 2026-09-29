@@ -1,102 +1,17 @@
 /**
  * @file    oled.c
- * @brief   SSD1306 128x64 OLED driver over the 8080 8-bit parallel bus.
+ * @brief   SSD1306 128x64 OLED panel: graphics and frame buffer.
  *
- * Only the 8080 parallel interface is wired; the SPI path is not implemented.
+ * Bus and controller independent: rendering works on a local frame buffer and
+ * is handed to the SSD1306 controller layer (oled_ssd1306.h) on refresh.
  */
 
 #include <stdbool.h>
 
-#include "stm32f4xx_hal.h"
 #include "oled.h"
 #include "oledfont.h"
-#include "delay.h"
 #include "sys.h"
-
-/* 8080 parallel bus control pins. */
-#define OLED_RST_PORT   GPIOA
-#define OLED_RST_PIN    GPIO_PIN_15
-
-#define OLED_CS_PORT    GPIOB
-#define OLED_CS_PIN     GPIO_PIN_7
-
-#define OLED_RS_PORT    GPIOB
-#define OLED_RS_PIN     GPIO_PIN_4
-
-#define OLED_WR_PORT    GPIOH
-#define OLED_WR_PIN     GPIO_PIN_8
-
-#define OLED_RD_PORT    GPIOB
-#define OLED_RD_PIN     GPIO_PIN_3
-
-/* Data bus: D0-D7 -> PC6, PC7, PC8, PC9, PC11, PD3, PB8, PB9. */
-#define OLED_D0_PORT    GPIOC
-#define OLED_D0_PIN     GPIO_PIN_6
-#define OLED_D1_PORT    GPIOC
-#define OLED_D1_PIN     GPIO_PIN_7
-#define OLED_D2_PORT    GPIOC
-#define OLED_D2_PIN     GPIO_PIN_8
-#define OLED_D3_PORT    GPIOC
-#define OLED_D3_PIN     GPIO_PIN_9
-#define OLED_D4_PORT    GPIOC
-#define OLED_D4_PIN     GPIO_PIN_11
-#define OLED_D5_PORT    GPIOD
-#define OLED_D5_PIN     GPIO_PIN_3
-#define OLED_D6_PORT    GPIOB
-#define OLED_D6_PIN     GPIO_PIN_8
-#define OLED_D7_PORT    GPIOB
-#define OLED_D7_PIN     GPIO_PIN_9
-
-/* MSP init groups (per GPIO port). */
-#define OLED_GPIOB_PORT GPIOB
-#define OLED_GPIOB_PINS (OLED_CS_PIN | OLED_RS_PIN | OLED_RD_PIN | OLED_D6_PIN | OLED_D7_PIN)
-#define OLED_GPIOC_PORT GPIOC
-#define OLED_GPIOC_PINS (OLED_D0_PIN | OLED_D1_PIN | OLED_D2_PIN | OLED_D3_PIN | OLED_D4_PIN)
-#define OLED_GPIOD_PORT GPIOD
-#define OLED_GPIOD_PINS (OLED_D5_PIN)
-
-#define OLED_DATA_BIT(data, bit, port, pin) \
-    HAL_GPIO_WritePin((port), (pin), ((((data) >> (bit)) & 0x01U) != 0U) ? \
-                      GPIO_PIN_SET : GPIO_PIN_RESET)
-
-/* Data bus: D0-D3 -> PC6-PC9, D4 -> PC11, D5 -> PD3, D6-D7 -> PB8-PB9. */
-
-/* SSD1306 command bytes. */
-typedef enum
-{
-    OLED_CMD_DISPLAY_OFF    = 0xAE,
-    OLED_CMD_CLK_DIV        = 0xD5,
-    OLED_CMD_MULTIPLEX      = 0xA8,
-    OLED_CMD_DISPLAY_OFFSET = 0xD3,
-    OLED_CMD_START_LINE     = 0x40,
-    OLED_CMD_CHARGE_PUMP    = 0x8D,
-    OLED_CMD_MEMORY_MODE    = 0x20,
-    OLED_CMD_SEG_REMAP      = 0xA1,
-    OLED_CMD_COM_SCAN_DIR   = 0xC8,
-    OLED_CMD_COM_PINS       = 0xDA,
-    OLED_CMD_CONTRAST       = 0x81,
-    OLED_CMD_PRECHARGE      = 0xD9,
-    OLED_CMD_VCOMH          = 0xDB,
-    OLED_CMD_ENTIRE_ON      = 0xA4,
-    OLED_CMD_NORMAL_DISPLAY = 0xA6,
-    OLED_CMD_DISPLAY_ON     = 0xAF,
-    OLED_CMD_LOW_COLUMN     = 0x00,
-    OLED_CMD_HIGH_COLUMN    = 0x10,
-    OLED_CMD_PAGE_ADDR      = 0xB0
-} oled_cmd_t;
-
-/* SSD1306 command parameters. */
-#define OLED_CLK_DIV_VALUE       0x50U
-#define OLED_MULTIPLEX_VALUE     0x3FU
-#define OLED_OFFSET_VALUE        0x00U
-#define OLED_START_LINE_VALUE    0x40U
-#define OLED_CHARGE_PUMP_ENABLE  0x14U
-#define OLED_CHARGE_PUMP_DISABLE 0x10U
-#define OLED_MEMORY_MODE_PAGE    0x02U
-#define OLED_COM_PINS_VALUE      0x12U
-#define OLED_CONTRAST_VALUE      0xEFU
-#define OLED_PRECHARGE_VALUE     0xF1U
-#define OLED_VCOMH_VALUE         0x30U
+#include "oled_ssd1306.h"
 
 /* Panel geometry. */
 #define OLED_WIDTH_PX     128U
@@ -105,21 +20,9 @@ typedef enum
 #define OLED_PAGE_COUNT     (OLED_HEIGHT_PX / OLED_PAGE_BIT_COUNT)
 
 /* Character metrics. */
-#define OLED_6X8_WIDTH_PX          6U
-#define OLED_8X16_WIDTH_PX         8U
 #define OLED_ASCII_FIRST        0x20U
 #define OLED_ASCII_LAST         0x7EU
-#define OLED_FONT_ROW_COUNT          8U
-#define OLED_8X16_BYTE_PER_COL 2U
 #define OLED_DECIMAL_BASE       10U
-
-#define OLED_RESET_DELAY_MS     100U
-
-typedef enum
-{
-    OLED_ARG_CMD  = 0,
-    OLED_ARG_DATA = 1
-} oled_arg_t;
 
 /* Leading-zero suppression state used by oled_show_num(). */
 typedef enum
@@ -129,35 +32,6 @@ typedef enum
 } oled_leading_t;
 
 static uint8_t g_oled_gram[OLED_WIDTH_PX][OLED_PAGE_COUNT];
-
-static void oled_wr_byte(uint8_t data, oled_arg_t arg);
-static void oled_draw_point(uint8_t x, uint8_t y, bool dot);
-static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size);
-
-static void oled_data_out(uint8_t data)
-{
-    OLED_DATA_BIT(data, 0U, OLED_D0_PORT, OLED_D0_PIN);
-    OLED_DATA_BIT(data, 1U, OLED_D1_PORT, OLED_D1_PIN);
-    OLED_DATA_BIT(data, 2U, OLED_D2_PORT, OLED_D2_PIN);
-    OLED_DATA_BIT(data, 3U, OLED_D3_PORT, OLED_D3_PIN);
-    OLED_DATA_BIT(data, 4U, OLED_D4_PORT, OLED_D4_PIN);
-    OLED_DATA_BIT(data, 5U, OLED_D5_PORT, OLED_D5_PIN);
-    OLED_DATA_BIT(data, 6U, OLED_D6_PORT, OLED_D6_PIN);
-    OLED_DATA_BIT(data, 7U, OLED_D7_PORT, OLED_D7_PIN);
-}
-
-static void oled_wr_byte(uint8_t data, oled_arg_t arg)
-{
-    oled_data_out(data);
-
-    HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN,
-                      (arg != OLED_ARG_CMD) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
-}
 
 static void oled_draw_point(uint8_t x, uint8_t y, bool dot)
 {
@@ -269,34 +143,17 @@ static void oled_show_char(uint8_t x, uint8_t y, uint8_t chr, oled_font_t size)
 
 void oled_refresh(void)
 {
-    uint8_t page;
-    uint8_t col;
-
-    for (page = 0; page < OLED_PAGE_COUNT; page++)
-    {
-        oled_wr_byte((uint8_t)(OLED_CMD_PAGE_ADDR + page), OLED_ARG_CMD);
-        oled_wr_byte(OLED_CMD_LOW_COLUMN, OLED_ARG_CMD);
-        oled_wr_byte(OLED_CMD_HIGH_COLUMN, OLED_ARG_CMD);
-
-        for (col = 0; col < OLED_WIDTH_PX; col++)
-        {
-            oled_wr_byte(g_oled_gram[col][page], OLED_ARG_DATA);
-        }
-    }
+    oled_ssd1306_flush((const uint8_t *)g_oled_gram, OLED_WIDTH_PX, OLED_PAGE_COUNT);
 }
 
 void oled_display_on(void)
 {
-    oled_wr_byte(OLED_CMD_CHARGE_PUMP, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CHARGE_PUMP_ENABLE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_DISPLAY_ON, OLED_ARG_CMD);
+    oled_ssd1306_display_on();
 }
 
 void oled_display_off(void)
 {
-    oled_wr_byte(OLED_CMD_CHARGE_PUMP, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CHARGE_PUMP_DISABLE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_DISPLAY_OFF, OLED_ARG_CMD);
+    oled_ssd1306_display_off();
 }
 
 void oled_clear(void)
@@ -369,69 +226,6 @@ void oled_show_num(uint8_t x, uint8_t y, uint32_t num, uint8_t len, oled_font_t 
 
 void oled_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
-
-    /* ---- MSP begin ---- */
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-    __HAL_RCC_GPIOH_CLK_ENABLE();
-
-    gpio.Mode  = GPIO_MODE_OUTPUT_PP;
-    gpio.Pull  = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-
-    gpio.Pin = OLED_RST_PIN;
-    HAL_GPIO_Init(OLED_RST_PORT, &gpio);
-
-    gpio.Pin = OLED_GPIOB_PINS;
-    HAL_GPIO_Init(OLED_GPIOB_PORT, &gpio);
-
-    gpio.Pin = OLED_GPIOC_PINS;
-    HAL_GPIO_Init(OLED_GPIOC_PORT, &gpio);
-
-    gpio.Pin = OLED_GPIOD_PINS;
-    HAL_GPIO_Init(OLED_GPIOD_PORT, &gpio);
-
-    gpio.Pin = OLED_WR_PIN;
-    HAL_GPIO_Init(OLED_WR_PORT, &gpio);
-
-    HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(OLED_RD_PORT, OLED_RD_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(OLED_CS_PORT, OLED_CS_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(OLED_RS_PORT, OLED_RS_PIN, GPIO_PIN_SET);
-    /* ---- MSP end ---- */
-
-    HAL_GPIO_WritePin(OLED_RST_PORT, OLED_RST_PIN, GPIO_PIN_RESET);
-    delay_ms(OLED_RESET_DELAY_MS);
-    HAL_GPIO_WritePin(OLED_RST_PORT, OLED_RST_PIN, GPIO_PIN_SET);
-
-    oled_wr_byte(OLED_CMD_DISPLAY_OFF, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_CLK_DIV, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CLK_DIV_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_MULTIPLEX, OLED_ARG_CMD);
-    oled_wr_byte(OLED_MULTIPLEX_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_DISPLAY_OFFSET, OLED_ARG_CMD);
-    oled_wr_byte(OLED_OFFSET_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_START_LINE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_CHARGE_PUMP, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CHARGE_PUMP_ENABLE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_MEMORY_MODE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_MEMORY_MODE_PAGE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_SEG_REMAP, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_COM_SCAN_DIR, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_COM_PINS, OLED_ARG_CMD);
-    oled_wr_byte(OLED_COM_PINS_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_CONTRAST, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CONTRAST_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_PRECHARGE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_PRECHARGE_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_VCOMH, OLED_ARG_CMD);
-    oled_wr_byte(OLED_VCOMH_VALUE, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_ENTIRE_ON, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_NORMAL_DISPLAY, OLED_ARG_CMD);
-    oled_wr_byte(OLED_CMD_DISPLAY_ON, OLED_ARG_CMD);
-
+    oled_ssd1306_init();
     oled_clear();
 }

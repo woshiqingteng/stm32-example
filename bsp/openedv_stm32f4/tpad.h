@@ -6,7 +6,6 @@
 #ifndef BSP_TPAD_H
 #define BSP_TPAD_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 /** @brief  Touch-key driver status. */
@@ -16,10 +15,13 @@ typedef enum
     TPAD_ERROR = 1
 } tpad_status_t;
 
-/** @brief  Calibrate the touch key. @param psc Prescaler. */
+/** @brief  Calibrate the touch key. @param psc Counter divider (>= 1). */
 tpad_status_t tpad_init(uint16_t psc);
 
-/** @brief  Scan the touch key. @param continuous true to allow repeat. @return true if touched. */
-bool tpad_scan(bool continuous);
+/** @brief  Calibrated no-touch baseline (raw capture count). */
+uint32_t tpad_baseline(void);
+
+/** @brief  Raw measurement: max of n charge-time samples. */
+uint32_t tpad_get_maxval(uint8_t n);
 
 #endif /* BSP_TPAD_H */

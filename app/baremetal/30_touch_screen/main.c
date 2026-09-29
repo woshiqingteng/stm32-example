@@ -85,7 +85,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
     sdram_init();
     lcd_init();
-    lcd_display_dir(LTDC_DIR_LANDSCAPE);
+    lcd_display_dir(LCD_DIR_LANDSCAPE);
 
     lcd_clear(WHITE);
     lcd_show_string(TOUCH_TEXT_X, 10U, TOUCH_TEXT_WIDTH_PIXEL, 16U, LCD_FONT_SIZE_16, "STM32", RED);
@@ -122,10 +122,10 @@ int main(void)
                 x = g_touch.x[i];
                 y = g_touch.y[i];
 
-                if ((x < lcd_get_width()) && (y < lcd_get_height()))
+                if ((x < lcd_info()->width) && (y < lcd_info()->height))
                 {
                     /* Top-right reset area clears the trail. */
-                    if ((x > (uint16_t)(lcd_get_width() - TOUCH_RST_WIDTH_PIXEL)) && (y < TOUCH_RST_HEIGHT_PIXEL))
+                    if ((x > (uint16_t)(lcd_info()->width - TOUCH_RST_WIDTH_PIXEL)) && (y < TOUCH_RST_HEIGHT_PIXEL))
                     {
                         lcd_clear(WHITE);
 

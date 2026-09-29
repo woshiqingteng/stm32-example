@@ -1,6 +1,11 @@
 /**
  * @file    tpad.c
  * @brief   Capacitive touch key driver (TIM2_CH1 / PA5, polling).
+ *
+ * The pad is discharged, then released to the capture input and charged through
+ * an external resistor; input capture times the charge until the threshold.
+ * Touching the pad adds capacitance, so the count grows. The driver only
+ * returns raw counts; the touch decision/latch lives in the application.
  */
 
 #include <stdio.h>
@@ -13,20 +18,21 @@
 #define TPAD_GPIO_PIN    GPIO_PIN_5
 #define TPAD_GPIO_AF     GPIO_AF1_TIM2
 
-#define TPAD_GATE_VAL    50U
-#define TPAD_ARR_MAX_VAL 0xFFFFFFFFUL
+#define TPAD_ARR_MAX_VAL      0xFFFFFFFFUL
+#define TPAD_DISCHARGE_MS     5U
+#define TPAD_TIMEOUT_MARGIN   500U
+#define TPAD_SAMPLE_PERIOD_MS 10U
+
 #define TPAD_CAL_SAMPLES 10U
 #define TPAD_CAL_TRIM_FIRST 2U
 #define TPAD_CAL_TRIM_LAST  8U
 #define TPAD_CAL_TRIM_COUNT (TPAD_CAL_TRIM_LAST - TPAD_CAL_TRIM_FIRST)
-#define TPAD_SCAN_SAMPLE 3U
-#define TPAD_SCAN_SAMPLE_CONT 6U
-#define TPAD_LOCK_COUNT  3U
 
 volatile uint16_t g_tpad_default_val;
 
 static TIM_HandleTypeDef g_tpad_handle;
 
+/* Discharge the pad (drive it low), then release it to the capture input. */
 static void tpad_reset(void)
 {
     GPIO_InitTypeDef gpio_init = {0};
@@ -38,7 +44,7 @@ static void tpad_reset(void)
     HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
 
     HAL_GPIO_WritePin(TPAD_GPIO_PORT, TPAD_GPIO_PIN, GPIO_PIN_RESET);
-    delay_ms(5);
+    delay_ms(TPAD_DISCHARGE_MS);
 
     __HAL_TIM_CLEAR_FLAG(&g_tpad_handle, TIM_FLAG_UPDATE | TIM_FLAG_CC1);
     __HAL_TIM_SET_COUNTER(&g_tpad_handle, 0U);
@@ -49,13 +55,14 @@ static void tpad_reset(void)
     HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
 }
 
+/* One charge-time measurement: captured count, or CNT when it times out. */
 static uint32_t tpad_get_val(void)
 {
     tpad_reset();
 
     while (__HAL_TIM_GET_FLAG(&g_tpad_handle, TIM_FLAG_CC1) == RESET)
     {
-        if (__HAL_TIM_GET_COUNTER(&g_tpad_handle) > (TPAD_ARR_MAX_VAL - 500U))
+        if (__HAL_TIM_GET_COUNTER(&g_tpad_handle) > (TPAD_ARR_MAX_VAL - TPAD_TIMEOUT_MARGIN))
         {
             return __HAL_TIM_GET_COUNTER(&g_tpad_handle);
         }
@@ -64,7 +71,8 @@ static uint32_t tpad_get_val(void)
     return __HAL_TIM_GET_COMPARE(&g_tpad_handle, TIM_CHANNEL_1);
 }
 
-static uint32_t tpad_get_maxval(uint8_t n)
+/* Max of n charge-time measurements (a finger adds capacitance -> larger). */
+uint32_t tpad_get_maxval(uint8_t n)
 {
     uint32_t maxval = 0;
 
@@ -80,7 +88,7 @@ static uint32_t tpad_get_maxval(uint8_t n)
     return maxval;
 }
 
-/* TIM2 (APB1): charge time = count * (PSC+1) / 90 MHz. */
+/* TIM2 (APB1): charge time = count * psc / 90 MHz (psc is the counter divider). */
 static void tpad_timx_cap_init(uint32_t arr, uint16_t psc)
 {
     GPIO_InitTypeDef gpio_init = {0};
@@ -111,6 +119,7 @@ static void tpad_timx_cap_init(uint32_t arr, uint16_t psc)
     HAL_TIM_IC_Start(&g_tpad_handle, TIM_CHANNEL_1);
 }
 
+/* Calibrate the no-touch baseline. psc is the counter divider (>= 1). */
 tpad_status_t tpad_init(uint16_t psc)
 {
     uint16_t buf[TPAD_CAL_SAMPLES];
@@ -123,14 +132,17 @@ tpad_status_t tpad_init(uint16_t psc)
         return TPAD_ERROR;
     }
 
+    /* The timer register holds psc-1, so the effective divider is psc. */
     tpad_timx_cap_init(TPAD_ARR_MAX_VAL, (uint16_t)(psc - 1U));
 
+    /* Sample the untouched pad. */
     for (i = 0; i < TPAD_CAL_SAMPLES; i++)
     {
         buf[i] = tpad_get_val();
-        delay_ms(10);
+        delay_ms(TPAD_SAMPLE_PERIOD_MS);
     }
 
+    /* Sort, then average the middle samples (drop the extremes). */
     for (i = 0; i < TPAD_CAL_SAMPLES - 1U; i++)
     {
         for (j = i + 1U; j < TPAD_CAL_SAMPLES; j++)
@@ -152,7 +164,8 @@ tpad_status_t tpad_init(uint16_t psc)
     g_tpad_default_val = (uint16_t)(sum / TPAD_CAL_TRIM_COUNT);
     printf("g_tpad_default_val:%d\r\n", (int)g_tpad_default_val);
 
-    if ((uint32_t)g_tpad_default_val > (TPAD_ARR_MAX_VAL / 2U))
+    /* A baseline above half the 16-bit range means the pad is stuck. */
+    if (g_tpad_default_val > ((uint16_t)TPAD_ARR_MAX_VAL / 2U))
     {
         return TPAD_ERROR;
     }
@@ -160,42 +173,8 @@ tpad_status_t tpad_init(uint16_t psc)
     return TPAD_OK;
 }
 
-bool tpad_scan(bool continuous)
+/* Calibrated no-touch baseline (raw count). */
+uint32_t tpad_baseline(void)
 {
-    static bool    key_pressed = false;   /* press latch: report a touch once */
-    static uint8_t release_lock = 0U;     /* release lock countdown */
-    bool     touched = false;
-    uint8_t  sample = TPAD_SCAN_SAMPLE;
-    uint32_t rval;
-
-    if (continuous)
-    {
-        sample = TPAD_SCAN_SAMPLE_CONT;
-        key_pressed  = false;
-        release_lock = 0U;
-    }
-
-    rval = tpad_get_maxval(sample);
-
-    if (rval > (uint16_t)(g_tpad_default_val + TPAD_GATE_VAL))
-    {
-        if (!key_pressed)
-        {
-            touched = true;
-        }
-        key_pressed  = true;
-        release_lock = TPAD_LOCK_COUNT;
-    }
-
-    if (release_lock != 0U)
-    {
-        release_lock--;
-
-        if (release_lock == 0U)
-        {
-            key_pressed = false;
-        }
-    }
-
-    return touched;
+    return g_tpad_default_val;
 }

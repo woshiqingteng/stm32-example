@@ -52,8 +52,7 @@ int main(void)
     sdram_init();
     lcd_init();
 
-    g_point_color = RED;
-    sprintf(lcd_id, "LCD ID:%04X", (unsigned int)lcd_get_id());
+    sprintf(lcd_id, "LCD ID:%04X", (unsigned int)lcd_info()->id);
     printf("12_tftlcd ready (RGB screen), %s\r\n", lcd_id);
 
     for (;;)

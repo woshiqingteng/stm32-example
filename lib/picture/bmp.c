@@ -433,9 +433,9 @@ uint8_t bmp_encode(uint8_t *filename, uint16_t x, uint16_t y, uint16_t width, ui
 
     if (width == 0 || height == 0)return PIC_WINDOW_ERR;
 
-    if ((x + width - 1) > lcd_get_width())return PIC_WINDOW_ERR;
+    if ((x + width - 1) > lcd_info()->width)return PIC_WINDOW_ERR;
 
-    if ((y + height - 1) > lcd_get_height())return PIC_WINDOW_ERR;
+    if ((y + height - 1) > lcd_info()->height)return PIC_WINDOW_ERR;
 
 #if BMP_USE_MALLOC == 1
 

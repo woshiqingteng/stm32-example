@@ -4,7 +4,7 @@
  *
  * The frame lives in a caller supplied memory buffer (a chunk of the AVI
  * "movi" stream). LibJPEG decompresses it scanline by scanline; each RGB
- * scanline is packed to RGB565 and pushed to the panel with lcd_color_fill().
+ * scanline is packed to RGB565 and pushed to the panel with lcd_blit().
  */
 
 #include <stdio.h>
@@ -112,7 +112,7 @@ static void mem_src_attach(j_decompress_ptr cinfo, uint8_t *buf, uint32_t size)
 
 mjpeg_status_t mjpegdec_init(uint16_t offx, uint16_t offy)
 {
-    p_linebuf = mymalloc(SRAMIN, lcd_get_width() * 2U);
+    p_linebuf = mymalloc(SRAMIN, lcd_info()->width * 2U);
 
     if (p_linebuf == NULL)
     {
@@ -166,14 +166,14 @@ mjpeg_status_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
     w = s_cinfo.output_width;
     h = s_cinfo.output_height;
 
-    if ((uint32_t)g_imgoffx + w > lcd_get_width())
+    if ((uint32_t)g_imgoffx + w > lcd_info()->width)
     {
-        w = (uint32_t)lcd_get_width() - g_imgoffx;
+        w = (uint32_t)lcd_info()->width - g_imgoffx;
     }
 
-    if ((uint32_t)g_imgoffy + h > lcd_get_height())
+    if ((uint32_t)g_imgoffy + h > lcd_info()->height)
     {
-        h = (uint32_t)lcd_get_height() - g_imgoffy;
+        h = (uint32_t)lcd_info()->height - g_imgoffy;
     }
 
     rowbuf = mymalloc(SRAMIN, s_cinfo.output_width * 3U);
@@ -201,7 +201,7 @@ mjpeg_status_t mjpegdec_decode(uint8_t *buf, uint32_t bsize)
                                       (uint16_t)(p[2] >> 3));
         }
 
-        lcd_color_fill(g_imgoffx, (uint16_t)(g_imgoffy + row),
+        lcd_blit(g_imgoffx, (uint16_t)(g_imgoffy + row),
                        (uint16_t)(g_imgoffx + w - 1U), (uint16_t)(g_imgoffy + row),
                        p_linebuf);
     }

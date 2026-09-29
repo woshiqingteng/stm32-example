@@ -99,14 +99,19 @@ bsp_library(bsp_sdio
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
 
 # display
+bsp_library(bsp_lcd_rgb
+    lcd_rgb.c)
 bsp_library(bsp_ltdc
     ltdc.c)
 target_link_libraries(bsp_ltdc PUBLIC drv_ltdc drv_dma2d)
 bsp_library(bsp_lcd
     lcd.c)
-target_link_libraries(bsp_lcd PUBLIC bsp_ltdc)
+target_link_libraries(bsp_lcd PUBLIC bsp_ltdc bsp_lcd_rgb)
+bsp_library(bsp_oled_ssd1306
+    oled_ssd1306.c)
 bsp_library(bsp_oled
     oled.c)
+target_link_libraries(bsp_oled PUBLIC bsp_oled_ssd1306)
 bsp_library(bsp_touch
     touch.c)
 target_link_libraries(bsp_touch PUBLIC bsp_ltdc)
@@ -168,7 +173,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_can bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
     bsp_internal_flash bsp_sdram bsp_nand bsp_ftl bsp_nor bsp_eeprom bsp_sdio
-    bsp_ltdc bsp_lcd bsp_oled bsp_touch bsp_tpad
+    bsp_ltdc bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
     bsp_ap3216c bsp_imu bsp_st480mc bsp_ds18b20 bsp_dht11

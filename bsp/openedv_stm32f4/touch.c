@@ -280,14 +280,14 @@ static uint8_t gt9xxx_check_id(void)
 
 static void touch_map_raw(uint8_t idx, uint16_t raw_x, uint16_t raw_y)
 {
-    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
+    if (lcd_info()->dir == LCD_DIR_LANDSCAPE)
     {
         g_touch.x[idx] = raw_x;
         g_touch.y[idx] = raw_y;
     }
     else
     {
-        g_touch.x[idx] = (uint16_t)(lcd_get_width() - raw_y);
+        g_touch.x[idx] = (uint16_t)(lcd_info()->width - raw_y);
         g_touch.y[idx] = raw_x;
     }
 }

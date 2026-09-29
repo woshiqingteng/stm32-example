@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include "stm32f4xx_hal.h"
+#include "lcd_rgb.h"
 
 /* Pixel formats. The _ID macros keep the values visible to the preprocessor so
  * the pixel-size and drawing code below can be selected at compile time; the
@@ -81,30 +82,6 @@ typedef enum
               HAL_GPIO_WritePin(LTDC_BL_PORT, LTDC_BL_PIN, GPIO_PIN_RESET); \
     } while (0)
 
-/** @brief  Supported panel: 4.3 inch, native 800x480 raster (id 0x4384). */
-#define LTDC_PANEL_ID_4384  0x4384U
-#define LTDC_PANEL_WIDTH_PX    800U
-#define LTDC_PANEL_HEIGHT_PX   480U
-#define LTDC_IDX_4384       4U
-
-/* Panel raster timing. */
-#define LTDC_PANEL_HSW      48U
-#define LTDC_PANEL_HBP      88U
-#define LTDC_PANEL_HFP      40U
-#define LTDC_PANEL_VSW      3U
-#define LTDC_PANEL_VBP      32U
-#define LTDC_PANEL_VFP      13U
-
-/* LTDC pixel clock PLL. */
-#define LTDC_PLLSAIN_RAW        396U
-#define LTDC_PLLSAIR_RAW        3U
-#define LTDC_PLLSAIDIVR_RAW     RCC_PLLSAIDIVR_4
-
-/* Panel id strap bit positions. */
-#define LTDC_IDX_SHIFT_0    0U
-#define LTDC_IDX_SHIFT_1    1U
-#define LTDC_IDX_SHIFT_2    2U
-
 /* Layer defaults. Blending factors are passed as HAL LTDC_BLENDING_FACTORx_* enums. */
 #define LTDC_LAYER_ALPHA            255U
 #define LTDC_LAYER_ALPHA0           0U
@@ -170,13 +147,12 @@ void ltdc_display_dir(ltdc_dir_t dir);
 void ltdc_draw_point(uint16_t x, uint16_t y, uint32_t color);
 uint32_t ltdc_read_point(uint16_t x, uint16_t y);
 void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);
-void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color);
+void ltdc_blit(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, const uint16_t *src);
 void ltdc_clear(uint32_t color);
 uint8_t ltdc_clk_set(uint32_t pllsain, uint32_t pllsair, uint32_t pllsaidivr);
 void ltdc_layer_window_config(ltdc_layer_t layerx, uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
 void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, ltdc_pixformat_t pixformat, uint8_t alpha,
                                  uint8_t alpha0, uint32_t bfac1, uint32_t bfac2, uint32_t bkcolor);
-uint16_t ltdc_panelid_read(void);
-void ltdc_init(void);
+void ltdc_init(const lcd_rgb_cfg_t *panel);
 
 #endif /* BSP_LTDC_H */

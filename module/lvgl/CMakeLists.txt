@@ -1,0 +1,2 @@
+set(MODULE_LVGL_VERSION 8.3.11)
+add_subdirectory(${MODULE_LVGL_VERSION})

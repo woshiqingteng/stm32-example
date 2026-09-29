@@ -6,15 +6,12 @@
  */
 
 #include "piclib.h"
-#include "ltdc.h"
 #include "lcd.h"
 #include "malloc.h"
 #include "exfuns.h"
 
 _pic_info picinfo;
 _pic_phy  pic_phy;
-
-extern uint32_t *g_ltdc_framebuf[2];
 
 /** @brief  Horizontal line helper: the GIF decoder needs one and the RGB panel
  *          only offers a rectangle fill. */
@@ -31,36 +28,37 @@ static void piclib_draw_hline(uint16_t x0, uint16_t y0, uint16_t len, uint16_t c
 /** @brief  Fast colour fill straight into the LTDC frame buffer. */
 static void piclib_fill_color(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t *color)
 {
+    const lcd_info_t *li = lcd_info();
     uint16_t i, j;
 
-    if ((lcdltdc.pwidth != 0U) && (lcdltdc.dir == LTDC_DIR_PORTRAIT))
+    if ((li->pwidth != 0U) && (li->dir == LCD_DIR_PORTRAIT))
     {
         for (i = 0; i < height; i++)
         {
             for (j = 0; j < width; j++)
             {
-                *(uint16_t *)((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
-                              lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - j - 1) + y + i)) =
+                *(uint16_t *)(li->framebuf +
+                              (uint32_t)li->pixsize * (li->pwidth * (li->pheight - x - j - 1) + y + i)) =
                     color[i * width + j];
             }
         }
     }
     else
     {
-        lcd_color_fill(x, y, (uint16_t)(x + width - 1U), (uint16_t)(y + height - 1U), color);
+        lcd_blit(x, y, (uint16_t)(x + width - 1U), (uint16_t)(y + height - 1U), color);
     }
 }
 
 void piclib_init(void)
 {
-    pic_phy.read_point  = &ltdc_read_point;
+    pic_phy.read_point  = &lcd_read_point;
     pic_phy.draw_point  = &lcd_draw_point;
     pic_phy.fill        = &lcd_fill;
     pic_phy.draw_hline  = &piclib_draw_hline;
     pic_phy.fillcolor   = &piclib_fill_color;
 
-    picinfo.lcdwidth  = lcd_get_width();
-    picinfo.lcdheight = lcd_get_height();
+    picinfo.lcdwidth  = lcd_info()->width;
+    picinfo.lcdheight = lcd_info()->height;
 
     picinfo.ImgWidth  = 0;
     picinfo.ImgHeight = 0;
@@ -151,8 +149,8 @@ pic_status_t piclib_ai_load_picfile(char *filename, uint16_t x, uint16_t y, uint
 
     if ((picinfo.S_Height == 0U) || (picinfo.S_Width == 0U))
     {
-        picinfo.S_Height = lcd_get_height();
-        picinfo.S_Width  = lcd_get_width();
+        picinfo.S_Height = lcd_info()->height;
+        picinfo.S_Width  = lcd_info()->width;
         return PIC_OK;
     }
 

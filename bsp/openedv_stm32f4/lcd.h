@@ -1,17 +1,12 @@
 /**
  * @file    lcd.h
- * @brief   RGB screen driver, ported from the vendor example (lcd.c) with the
- *          MCU (SSD1963/FMC) parts removed. The MCU-screen experiment reuses
- *          this RGB driver.
+ * @brief   RGB panel public API: geometry, pixels and text.
  */
 
 #ifndef BSP_LCD_H
 #define BSP_LCD_H
 
 #include <stdint.h>
-
-#include "stm32f4xx_hal.h"
-#include "ltdc.h"
 
 /* Common colours. */
 #define WHITE           0xFFFF
@@ -34,8 +29,7 @@
 #define LGRAYBLUE       0xA651
 #define LBBLUE          0x2B12
 
-/** @brief  Glyph background / leading-zero handling for lcd_show_char() and
- *          lcd_show_xnum(). */
+/** @brief  Glyph background / leading-zero handling for lcd_show_char(). */
 typedef enum
 {
     LCD_TEXT_BG_OVERWRITE          = 0, /* fill glyph cells, pad with ' '  */
@@ -53,35 +47,41 @@ typedef enum
     LCD_FONT_SIZE_32 = 32
 } lcd_font_size_t;
 
-/** @brief  LCD main parameters. */
+/** @brief  Panel orientation. */
+typedef enum
+{
+    LCD_DIR_PORTRAIT  = 0,
+    LCD_DIR_LANDSCAPE = 1
+} lcd_dir_t;
+
+/** @brief  Aggregated panel info (filled by lcd_init()/lcd_display_dir()). */
 typedef struct
 {
-    uint16_t   width;   /* LCD width  */
-    uint16_t   height;  /* LCD height */
-    uint16_t   id;      /* LCD id */
-    ltdc_dir_t dir;     /* 0 portrait, 1 landscape */
-} _lcd_dev;
+    uint16_t  pwidth;    /* native panel width  */
+    uint16_t  pheight;   /* native panel height */
+    uint16_t  width;     /* logical width  */
+    uint16_t  height;    /* logical height */
+    uint16_t  id;        /* panel id */
+    lcd_dir_t dir;       /* orientation */
+    uint8_t   pixsize;   /* bytes per pixel */
+    uint32_t  framebuf;  /* active layer frame buffer address */
+} lcd_info_t;
 
-extern uint32_t g_point_color; /* default point colour */
-extern uint32_t g_back_color;  /* default background colour */
+void              lcd_init(void);
+void              lcd_display_dir(lcd_dir_t dir);
+const lcd_info_t *lcd_info(void);
 
-void lcd_init(void);
-void lcd_display_dir(ltdc_dir_t dir);
-uint16_t lcd_get_width(void);
-uint16_t lcd_get_height(void);
-uint16_t lcd_get_id(void);
-void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color);
-void lcd_clear(uint16_t color);
-void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);
-void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color);
-void lcd_draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-void lcd_draw_circle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color);
-void lcd_fill_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color);
-void lcd_set_window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height);
-void lcd_write_ram_prepare(void);
-void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color);
-void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint16_t color);
-void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color);
-void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint16_t color);
+void              lcd_set_back_color(uint32_t color);
+uint32_t          lcd_get_back_color(void);
+
+void              lcd_clear(uint32_t color);
+void              lcd_draw_point(uint16_t x, uint16_t y, uint32_t color);
+uint32_t          lcd_read_point(uint16_t x, uint16_t y);
+void              lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color);
+void              lcd_blit(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, const uint16_t *src);
+
+void              lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint32_t color);
+void              lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint32_t color);
+void              lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint32_t color);
 
 #endif /* BSP_LCD_H */

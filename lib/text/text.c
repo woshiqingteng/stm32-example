@@ -83,6 +83,7 @@ void text_show_font(uint16_t x, uint16_t y, uint8_t *font, uint8_t size, uint8_t
     uint16_t y0 = y;
     uint8_t *dzk;
     uint8_t csize = (size / 8 + ((size % 8) ? 1 : 0)) * (size);
+    uint32_t bg = lcd_get_back_color();
 
     if (size != 12 && size != 16 && size != 24 && size != 32)
     {
@@ -110,7 +111,7 @@ void text_show_font(uint16_t x, uint16_t y, uint8_t *font, uint8_t size, uint8_t
             }
             else if (mode == 0)
             {
-                lcd_draw_point(x, y, g_back_color);
+                lcd_draw_point(x, y, bg);
             }
 
             temp <<= 1;
@@ -203,11 +204,11 @@ void text_show_string_middle(uint16_t x, uint16_t y, char *str, uint8_t size, ui
 
     if (strlenth > width)
     {
-        text_show_string(x, y, lcd_get_width(), lcd_get_height(), str, size, 1, color);
+        text_show_string(x, y, lcd_info()->width, lcd_info()->height, str, size, 1, color);
     }
     else
     {
         strlenth = (uint16_t)((width - strlenth) / 2);
-        text_show_string((uint16_t)(strlenth + x), y, lcd_get_width(), lcd_get_height(), str, size, 1, color);
+        text_show_string((uint16_t)(strlenth + x), y, lcd_info()->width, lcd_info()->height, str, size, 1, color);
     }
 }

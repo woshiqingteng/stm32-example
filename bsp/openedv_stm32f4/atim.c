@@ -14,10 +14,17 @@
 #define __HAL_TIM_GET_PRESCALER(__HANDLE__) ((__HANDLE__)->Instance->PSC)
 #endif
 
+/* This HAL release has no repetition-counter (RCR) setter macro. */
+#ifndef __HAL_TIM_SET_REPETITIONCOUNTER
+#define __HAL_TIM_SET_REPETITIONCOUNTER(__HANDLE__, __REPET__) \
+    ((__HANDLE__)->Instance->RCR = (__REPET__))
+#endif
+
 #define ATIM_NPWM_BATCH_COUNT              256U
 #define ATIM_NPWM_DEFAULT_PULSE_DIV  2U
 #define ATIM_REPETITION_COUNT      0U
 
+/* Default compare ticks; the app overrides them via atim_timx_comp_pwm_set(). */
 #define ATIM_OC_COMPARE_CH1_TICK          250U
 #define ATIM_OC_COMPARE_CH2_TICK          500U
 #define ATIM_OC_COMPARE_CH3_TICK          750U
@@ -120,10 +127,9 @@ static void atim_npwm_isr(void)
 
     if (npwm != 0U)
     {
-        /* RCR = npwm-1 -> npwm pulses before the next update; F4 HAL has no
-         * RCR setter. The forced UEV reloads RCR and resets CNT so the batch
-         * starts now. */
-        g_atim_npwm_handle.Instance->RCR = (uint16_t)(npwm - 1U);
+        /* RCR = npwm-1 -> npwm pulses before the next update. The forced UEV
+         * reloads RCR and resets CNT so the batch starts now. */
+        __HAL_TIM_SET_REPETITIONCOUNTER(&g_atim_npwm_handle, (uint16_t)(npwm - 1U));
         HAL_TIM_GenerateEvent(&g_atim_npwm_handle, TIM_EVENTSOURCE_UPDATE);
         __HAL_TIM_ENABLE(&g_atim_npwm_handle);
     }
@@ -137,7 +143,8 @@ static void atim_npwm_isr(void)
 }
 
 /* ================= TIM8 output compare (PC6..PC9) ================= */
-/* TIM8 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); CHn toggles at tick CHn. */
+/* TIM8 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); CHn = toggle, 50% duty, edge
+ * (phase) at tick CHn; output frequency = half the counter rate. */
 
 static TIM_HandleTypeDef g_atim_comp_handle;
 
@@ -189,30 +196,36 @@ void atim_timx_comp_pwm_init(uint16_t arr, uint16_t psc)
     HAL_TIM_OC_Start(&g_atim_comp_handle, TIM_CHANNEL_4);
 }
 
-static uint32_t atim_channel_hal(atim_channel_t channel)
+void atim_timx_comp_pwm_set(atim_channel_t channel, uint16_t ccr)
 {
+    uint32_t hal_channel;
+
     switch (channel)
     {
         case ATIM_CH1:
-            return TIM_CHANNEL_1;
+            hal_channel = TIM_CHANNEL_1;
+            break;
         case ATIM_CH2:
-            return TIM_CHANNEL_2;
+            hal_channel = TIM_CHANNEL_2;
+            break;
         case ATIM_CH3:
-            return TIM_CHANNEL_3;
+            hal_channel = TIM_CHANNEL_3;
+            break;
         case ATIM_CH4:
-            return TIM_CHANNEL_4;
+            hal_channel = TIM_CHANNEL_4;
+            break;
         default:
-            return TIM_CHANNEL_1;
+            hal_channel = TIM_CHANNEL_1;
+            break;
     }
-}
 
-void atim_timx_comp_pwm_set(atim_channel_t channel, uint16_t ccr)
-{
-    __HAL_TIM_SET_COMPARE(&g_atim_comp_handle, atim_channel_hal(channel), ccr);
+    __HAL_TIM_SET_COMPARE(&g_atim_comp_handle, hal_channel, ccr);
 }
 
 /* ============ TIM1 complementary PWM + dead time (PE9/PE8/PE15) ============ */
-/* TIM1 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); ClockDivision DIV4 -> t_DTS = 4/180 MHz. */
+/* TIM1 (APB2): f = 180 MHz/((PSC+1)(ARR+1)); ClockDivision DIV4 -> t_DTS = 4/180 MHz.
+ * OCPolarity/OCNPolarity = LOW -> OC1/OC1N active-low (inverted), keep both equal
+ * to stay complementary; OCIdleState = SET -> both high at MOE=0. */
 
 static TIM_HandleTypeDef                  g_atim_cplm_handle;
 static TIM_BreakDeadTimeConfigTypeDef     g_atim_cplm_break = {0};
@@ -277,16 +290,15 @@ void atim_timx_cplm_pwm_set(uint16_t ccr, uint8_t dtg)
 
 typedef enum
 {
-    ATIM_PWMIN_SM_IDLE = 0,  /*!< waiting for the first capture */
-    ATIM_PWMIN_SM_ARMED = 1, /*!< first capture discarded, measuring */
-    ATIM_PWMIN_SM_DONE = 2,  /*!< high and cycle times available */
-} atim_pwmin_sm_t;
+    ATIM_PWMIN_IDLE = 0,  /*!< waiting for the first capture */
+    ATIM_PWMIN_ARMED = 1, /*!< first capture discarded, measuring */
+    ATIM_PWMIN_DONE = 2,  /*!< high and cycle times available */
+} atim_pwmin_state_t;
 
 static TIM_HandleTypeDef g_atim_pwmin_handle;
-static atim_pwmin_sm_t   g_atim_pwmin_sm;
+static atim_pwmin_state_t   g_atim_pwmin_state;
 static uint16_t          g_atim_pwmin_psc;
-static uint32_t          g_atim_pwmin_hval;
-static uint32_t          g_atim_pwmin_cval;
+static atim_pwmin_cb_t   g_atim_pwmin_cb;
 
 void atim_timx_pwmin_chy_init(void)
 {
@@ -330,6 +342,7 @@ void atim_timx_pwmin_chy_init(void)
     ic.ICSelection = TIM_ICSELECTION_INDIRECTTI;
     HAL_TIM_IC_ConfigChannel(&g_atim_pwmin_handle, &ic, TIM_CHANNEL_2);
 
+    g_atim_pwmin_cb = 0;
     g_atim_up_hook = atim_pwmin_process;
     g_atim_cc_hook = atim_pwmin_process;
 
@@ -338,136 +351,137 @@ void atim_timx_pwmin_chy_init(void)
     HAL_TIM_IC_Start_IT(&g_atim_pwmin_handle, TIM_CHANNEL_2);
 }
 
-void atim_timx_pwmin_chy_restart(void)
+void atim_timx_pwmin_chy_register(atim_pwmin_cb_t cb)
 {
-    sys_intx_disable();
-    if (g_atim_pwmin_sm == ATIM_PWMIN_SM_DONE)
+    g_atim_pwmin_cb = cb;
+}
+
+/* Clear the capture/update flags. */
+static void atim_pwmin_clear_flags(void)
+{
+    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
+    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
+    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
+}
+
+/* Advance the ranging prescaler (0->1, x2, cap at MAX then wrap to 0) and apply. */
+static void atim_pwmin_advance_psc(void)
+{
+    if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
     {
-        g_atim_pwmin_sm = ATIM_PWMIN_SM_IDLE;
+        g_atim_pwmin_psc = ATIM_PWMIN_PSC_FIRST;
     }
+    else if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_MAX)
+    {
+        g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
+    }
+    else if (g_atim_pwmin_psc > ATIM_PWMIN_PSC_DOUBLE_LIMIT)
+    {
+        g_atim_pwmin_psc = ATIM_PWMIN_PSC_MAX;
+    }
+    else
+    {
+        g_atim_pwmin_psc = (uint16_t)(g_atim_pwmin_psc * ATIM_PWMIN_PSC_STEP);
+    }
+
+    __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, g_atim_pwmin_psc);
+    __HAL_TIM_SET_COUNTER(&g_atim_pwmin_handle, 0);
+}
+
+/* Rearm acquisition; call with interrupts masked (or from the ISR). */
+static void atim_pwmin_rearm(void)
+{
+    if (g_atim_pwmin_state == ATIM_PWMIN_DONE)
+    {
+        g_atim_pwmin_state = ATIM_PWMIN_IDLE;
+    }
+
     g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
     __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, ATIM_PWMIN_PSC_DEFAULT);
     __HAL_TIM_SET_COUNTER(&g_atim_pwmin_handle, 0);
     __HAL_TIM_ENABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
     __HAL_TIM_ENABLE_IT(&g_atim_pwmin_handle, TIM_IT_UPDATE);
     __HAL_TIM_ENABLE(&g_atim_pwmin_handle);
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
+    atim_pwmin_clear_flags();
+}
+
+void atim_timx_pwmin_chy_restart(void)
+{
+    sys_intx_disable();
+    atim_pwmin_rearm();
     sys_intx_enable();
 }
 
-atim_pwmin_state_t atim_timx_pwmin_chy_state(void)
+/* Stop acquisition and publish one measurement. */
+static void atim_pwmin_finish(uint16_t psc, uint32_t hval, uint32_t cval)
 {
-    return (g_atim_pwmin_sm == ATIM_PWMIN_SM_DONE) ? ATIM_PWMIN_DONE : ATIM_PWMIN_IDLE;
-}
+    g_atim_pwmin_state = ATIM_PWMIN_DONE;
+    __HAL_TIM_DISABLE(&g_atim_pwmin_handle);
+    __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
+    __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC2);
+    __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_UPDATE);
+    atim_pwmin_clear_flags();
 
-uint16_t atim_timx_pwmin_chy_psc(void)
-{
-    return g_atim_pwmin_psc;
-}
-
-uint32_t atim_timx_pwmin_chy_hval(void)
-{
-    return g_atim_pwmin_hval;
-}
-
-uint32_t atim_timx_pwmin_chy_cval(void)
-{
-    return g_atim_pwmin_cval;
+    if (g_atim_pwmin_cb != 0)
+    {
+        g_atim_pwmin_cb(psc, hval, cval);
+    }
 }
 
 static void atim_pwmin_process(void)
 {
-    if (g_atim_pwmin_sm == ATIM_PWMIN_SM_DONE)
+    uint32_t upd = __HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
+    uint32_t cc1 = __HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
+
+    switch (g_atim_pwmin_state)
     {
-        g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-        __HAL_TIM_SET_COUNTER(&g_atim_pwmin_handle, 0);
-        return;
-    }
-
-    if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE))
-    {
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-
-        if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1) == 0)
-        {
-            g_atim_pwmin_sm = ATIM_PWMIN_SM_IDLE;
-
-            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
-            {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_FIRST;
-            }
-            else if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_MAX)
-            {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
-            }
-            else if (g_atim_pwmin_psc > ATIM_PWMIN_PSC_DOUBLE_LIMIT)
-            {
-                g_atim_pwmin_psc = ATIM_PWMIN_PSC_MAX;
-            }
-            else
-            {
-                g_atim_pwmin_psc = (uint16_t)(g_atim_pwmin_psc * ATIM_PWMIN_PSC_STEP);
-            }
-
-            __HAL_TIM_SET_PRESCALER(&g_atim_pwmin_handle, g_atim_pwmin_psc);
+        case ATIM_PWMIN_DONE:
+            g_atim_pwmin_psc = ATIM_PWMIN_PSC_DEFAULT;
             __HAL_TIM_SET_COUNTER(&g_atim_pwmin_handle, 0);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-            return;
-        }
-    }
+            break;
 
-    if (g_atim_pwmin_sm != ATIM_PWMIN_SM_ARMED)
-    {
-        if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1))
-        {
-            g_atim_pwmin_sm = ATIM_PWMIN_SM_ARMED;
-        }
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-        __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-        return;
-    }
-
-    if (__HAL_TIM_GET_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1))
-    {
-        g_atim_pwmin_hval = HAL_TIM_ReadCapturedValue(&g_atim_pwmin_handle, TIM_CHANNEL_2) + ATIM_PWMIN_TICKS_OFFSET;
-        g_atim_pwmin_cval = HAL_TIM_ReadCapturedValue(&g_atim_pwmin_handle, TIM_CHANNEL_1) + ATIM_PWMIN_TICKS_OFFSET;
-
-        if (g_atim_pwmin_hval < g_atim_pwmin_cval)
-        {
-            g_atim_pwmin_sm  = ATIM_PWMIN_SM_DONE;
-            g_atim_pwmin_psc = (uint16_t)__HAL_TIM_GET_PRESCALER(&g_atim_pwmin_handle);
-
-            if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
+        case ATIM_PWMIN_IDLE:
+            if (cc1)
             {
-                g_atim_pwmin_hval++;
-                g_atim_pwmin_cval++;
+                g_atim_pwmin_state = ATIM_PWMIN_ARMED;  /* discard the first edge */
             }
+            else if (upd)
+            {
+                atim_pwmin_advance_psc();               /* timeout -> widen range */
+            }
+            break;
 
-            __HAL_TIM_DISABLE(&g_atim_pwmin_handle);
-            __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC1);
-            __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_CC2);
-            __HAL_TIM_DISABLE_IT(&g_atim_pwmin_handle, TIM_IT_UPDATE);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-            __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
-        }
-        else
-        {
-            atim_timx_pwmin_chy_restart();
-        }
+        case ATIM_PWMIN_ARMED:
+            if (cc1)
+            {
+                uint32_t hval = HAL_TIM_ReadCapturedValue(&g_atim_pwmin_handle, TIM_CHANNEL_2) + ATIM_PWMIN_TICKS_OFFSET;
+                uint32_t cval = HAL_TIM_ReadCapturedValue(&g_atim_pwmin_handle, TIM_CHANNEL_1) + ATIM_PWMIN_TICKS_OFFSET;
+
+                if (hval < cval)
+                {
+                    if (g_atim_pwmin_psc == ATIM_PWMIN_PSC_DEFAULT)
+                    {
+                        hval++;
+                        cval++;
+                    }
+                    atim_pwmin_finish(g_atim_pwmin_psc, hval, cval);
+                }
+                else
+                {
+                    atim_pwmin_rearm();                 /* glitch -> re-measure */
+                }
+            }
+            else if (upd)
+            {
+                atim_pwmin_advance_psc();               /* timeout -> widen range */
+            }
+            break;
+
+        default:
+            break;
     }
 
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC1);
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_CC2);
-    __HAL_TIM_CLEAR_FLAG(&g_atim_pwmin_handle, TIM_FLAG_UPDATE);
+    atim_pwmin_clear_flags();
 }
 
 /* ===================== shared TIM8 handlers ===================== */

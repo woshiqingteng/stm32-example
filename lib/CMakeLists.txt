@@ -29,6 +29,8 @@ lib_wrapper(lib_stm32_usb_host_msc
     stm32_usb_host stm32_usb_host_conf_port stm32_usb_host_msc_port)
 lib_wrapper(lib_dsp
     cmsis_dsp)
+lib_wrapper(lib_lvgl
+    lvgl_port)
 
 # lib all
 function(lib_dir name)

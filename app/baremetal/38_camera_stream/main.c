@@ -21,7 +21,7 @@
 #include "lcd.h"
 #include "ov5640.h"
 #include "sdram.h"
-#include "ltdc.h"
+#include "lcd_rgb.h"
 
 /** @brief  Current camera mode. */
 typedef enum
@@ -35,13 +35,13 @@ uint16_t   g_curline = 0;                 /* current capture line (RGB mode) */
 uint16_t   g_yoffset = 0;                 /* vertical offset (RGB mode) */
 
 #define JPEG_BUF_WORD_COUNT   (1U * 1024U * 1024U)               /* 4 MB JPEG buffer (words) */
-#define RGB_LINE_WORD_COUNT   (LTDC_PANEL_WIDTH_PX / 2U)            /* per-line DMA buffer (words) */
+#define RGB_LINE_WORD_COUNT   (LCD_PANEL_WIDTH_PX / 2U)            /* per-line DMA buffer (words) */
 #define CAM_OUTSIZE_OFFSET_X 4U                              /* sensor output window X offset */
 
 /* The RGB565 panel frame buffer occupies the start of SDRAM; the JPEG capture
  * buffer is placed right after it. */
-#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + \
-                          ((uint32_t)LTDC_PANEL_WIDTH_PX * LTDC_PANEL_HEIGHT_PX * 2U))
+#define JPEG_BUF_ADDR    (lcd_info()->framebuf + \
+                          ((uint32_t)LCD_PANEL_WIDTH_PX * LCD_PANEL_HEIGHT_PX * 2U))
 
 static uint32_t g_dcmi_line_buf[2][RGB_LINE_WORD_COUNT];
 
@@ -78,9 +78,9 @@ void rgblcd_dcmi_rx_callback(void)
         pbuf = (uint16_t *)g_dcmi_line_buf[1];
     }
 
-    if (g_curline < lcd_get_height())
+    if (g_curline < lcd_info()->height)
     {
-        lcd_color_fill(0U, g_curline, (uint16_t)(lcd_get_width() - 1U), g_curline, pbuf);
+        lcd_blit(0U, g_curline, (uint16_t)(lcd_info()->width - 1U), g_curline, pbuf);
         g_curline++;
     }
 }
@@ -268,13 +268,13 @@ static void rgb565_test(void)
     dcmi_rx_callback    = &rgblcd_dcmi_rx_callback;
     dcmi_frame_callback = &rgb_frame_cb;
     dcmi_dma_init((uint32_t)g_dcmi_line_buf[0], (uint32_t)g_dcmi_line_buf[1],
-                  (uint16_t)(lcd_get_width() / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
+                  (uint16_t)(lcd_info()->width / 2U), DMA_MDATAALIGN_HALFWORD, DMA_MINC_ENABLE);
 
     g_yoffset   = 0U;
-    outputheight = lcd_get_height();
+    outputheight = lcd_info()->height;
     g_curline    = g_yoffset;
 
-    (void)ov5640_outsize_set(4U, 0U, lcd_get_width(), outputheight);
+    (void)ov5640_outsize_set(4U, 0U, lcd_info()->width, outputheight);
     dcmi_start();
 
     lcd_clear(WHITE);
@@ -318,11 +318,11 @@ static void rgb565_test(void)
                     scale = (uint8_t)(scale == 0U ? 1U : 0U);
                     if (scale == 0U)
                     {
-                        (void)ov5640_outsize_set(0U, 0U, lcd_get_width(), outputheight);
+                        (void)ov5640_outsize_set(0U, 0U, lcd_info()->width, outputheight);
                     }
                     else
                     {
-                        (void)ov5640_outsize_set(4U, 0U, lcd_get_width(), outputheight);
+                        (void)ov5640_outsize_set(4U, 0U, lcd_info()->width, outputheight);
                     }
                     break;
 

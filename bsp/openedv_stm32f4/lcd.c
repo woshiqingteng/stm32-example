@@ -1,11 +1,13 @@
 /**
  * @file    lcd.c
- * @brief   RGB screen driver, ported from the vendor example (lcd.c) with all
- *          MCU (SSD1963/FMC) code and branches removed. Every lcd_* call is
- *          forwarded to the LTDC driver.
+ * @brief   RGB panel layer: geometry, pixels and ASCII text over an LTDC panel.
+ *
+ * All panel access goes through the LTDC controller (ltdc.h); image/decoder
+ * code uses only this lcd_* API.
  */
 
 #include "lcd.h"
+#include "ltdc.h"
 #include "lcdfont.h"
 #include "sys.h"
 
@@ -17,7 +19,7 @@
 #define LCD_FONT_1206_BYTE 12U
 #define LCD_FONT_1608_BYTE 16U
 #define LCD_FONT_2412_BYTE 36U
-#define LCD_FONT_3216_BYTE 128U
+#define LCD_FONT_3216_BYTE 64U
 
 typedef struct
 {
@@ -36,9 +38,8 @@ static const lcd_font_desc_t g_lcd_fonts[] =
 
 #define LCD_FONT_COUNT (sizeof(g_lcd_fonts) / sizeof(g_lcd_fonts[0]))
 
-static _lcd_dev lcddev;
-uint32_t g_point_color = 0xFF000000U;
-uint32_t g_back_color  = 0xFFFFFFFFU;
+static lcd_info_t g_lcd_info;
+static uint32_t   g_lcd_back_color = 0xFFFFFFFFU;
 
 static const lcd_font_desc_t *lcd_font_get(lcd_font_size_t size)
 {
@@ -61,33 +62,54 @@ static uint8_t glyph_bit(uint8_t byte, uint8_t row)
     return (uint8_t)((byte >> (7U - row)) & 1U);
 }
 
+/* Refresh the cached info from the LTDC controller state. */
+static void lcd_sync_info(void)
+{
+    g_lcd_info.pwidth   = (uint16_t)lcdltdc.pwidth;
+    g_lcd_info.pheight  = (uint16_t)lcdltdc.pheight;
+    g_lcd_info.width    = (uint16_t)lcdltdc.width;
+    g_lcd_info.height   = (uint16_t)lcdltdc.height;
+    g_lcd_info.pixsize  = (uint8_t)lcdltdc.pixsize;
+    g_lcd_info.framebuf = (uint32_t)g_ltdc_framebuf[lcdltdc.activelayer];
+}
+
+const lcd_info_t *lcd_info(void)
+{
+    return &g_lcd_info;
+}
+
+void lcd_set_back_color(uint32_t color)
+{
+    g_lcd_back_color = color;
+}
+
+uint32_t lcd_get_back_color(void)
+{
+    return g_lcd_back_color;
+}
+
 void lcd_init(void)
 {
-    lcddev.id = ltdc_panelid_read();
+    const lcd_rgb_cfg_t *panel = lcd_rgb_probe();
 
-    if (lcddev.id != 0U)
+    g_lcd_info.id = (panel != 0) ? panel->id : 0U;
+
+    if (panel != 0)
     {
-        ltdc_init();
-        /* The vendor code leaves ltdc_display_dir() commented out, which
-         * leaves lcdltdc.width/height at 0 and makes ltdc_clear()/ltdc_fill()
-         * address nothing. Select the default orientation explicitly. */
-        lcd_display_dir(LTDC_DIR_PORTRAIT);
-    }
-    else
-    {
-        /* no RGB panel present. */
+        ltdc_init(panel);
+        lcd_display_dir(LCD_DIR_PORTRAIT);
     }
 }
 
-void lcd_display_dir(ltdc_dir_t dir)
+void lcd_display_dir(lcd_dir_t dir)
 {
-    lcddev.dir = dir;
+    g_lcd_info.dir = dir;
 
     if (lcdltdc.pwidth != 0U)
     {
-        ltdc_display_dir(dir);
-        lcddev.width  = (uint16_t)lcdltdc.width;
-        lcddev.height = (uint16_t)lcdltdc.height;
+        ltdc_display_dir((dir == LCD_DIR_LANDSCAPE) ? LTDC_DIR_LANDSCAPE : LTDC_DIR_PORTRAIT);
+        lcd_sync_info();
+        g_lcd_info.dir = dir;
     }
 }
 
@@ -99,22 +121,12 @@ void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color)
     }
 }
 
-uint16_t lcd_get_width(void)
+uint32_t lcd_read_point(uint16_t x, uint16_t y)
 {
-    return lcddev.width;
+    return ltdc_read_point(x, y);
 }
 
-uint16_t lcd_get_height(void)
-{
-    return lcddev.height;
-}
-
-uint16_t lcd_get_id(void)
-{
-    return lcddev.id;
-}
-
-void lcd_clear(uint16_t color)
+void lcd_clear(uint32_t color)
 {
     if (lcdltdc.pwidth != 0U)
     {
@@ -130,124 +142,15 @@ void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color
     }
 }
 
-void lcd_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color)
+void lcd_blit(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, const uint16_t *src)
 {
     if (lcdltdc.pwidth != 0U)
     {
-        ltdc_color_fill(sx, sy, ex, ey, color);
+        ltdc_blit(sx, sy, ex, ey, src);
     }
 }
 
-void lcd_draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
-{
-    int32_t  dx = (int32_t)x2 - (int32_t)x1;
-    int32_t  dy = (int32_t)y2 - (int32_t)y1;
-    int32_t  xerr = 0;
-    int32_t  yerr = 0;
-    int32_t  incx;
-    int32_t  incy;
-    int32_t  distance;
-    int32_t  t;
-    uint16_t row = x1;
-    uint16_t col = y1;
-
-    incx = (dx > 0) ? 1 : ((dx == 0) ? 0 : -1);
-    incy = (dy > 0) ? 1 : ((dy == 0) ? 0 : -1);
-
-    if (dx < 0) { dx = -dx; }
-    if (dy < 0) { dy = -dy; }
-
-    distance = (dx > dy) ? dx : dy;
-
-    for (t = 0; t <= (distance + 1); t++)
-    {
-        lcd_draw_point(row, col, color);
-        xerr += dx;
-        yerr += dy;
-
-        if (xerr > distance)
-        {
-            xerr -= distance;
-            row = (uint16_t)(row + incx);
-        }
-        if (yerr > distance)
-        {
-            yerr -= distance;
-            col = (uint16_t)(col + incy);
-        }
-    }
-}
-
-void lcd_draw_circle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color)
-{
-    int32_t a  = 0;
-    int32_t b  = r;
-    int32_t di = 3 - ((int32_t)r << 1);
-
-    while (a <= b)
-    {
-        lcd_draw_point((uint16_t)(x0 - b), (uint16_t)(y0 - a), color);
-        lcd_draw_point((uint16_t)(x0 + b), (uint16_t)(y0 - a), color);
-        lcd_draw_point((uint16_t)(x0 - a), (uint16_t)(y0 + b), color);
-        lcd_draw_point((uint16_t)(x0 + a), (uint16_t)(y0 + b), color);
-        lcd_draw_point((uint16_t)(x0 - a), (uint16_t)(y0 - b), color);
-        lcd_draw_point((uint16_t)(x0 + a), (uint16_t)(y0 - b), color);
-        lcd_draw_point((uint16_t)(x0 - b), (uint16_t)(y0 + a), color);
-        lcd_draw_point((uint16_t)(x0 + b), (uint16_t)(y0 + a), color);
-
-        a++;
-
-        if (di < 0)
-        {
-            di += (4 * a) + 6;
-        }
-        else
-        {
-            di += 10 + (4 * (a - b));
-            b--;
-        }
-    }
-}
-
-void lcd_fill_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
-{
-    uint32_t i;
-    uint32_t imax  = (((uint32_t)r * 707U) / 1000U) + 1U;
-    uint32_t sqmax = ((uint32_t)r * (uint32_t)r) + ((uint32_t)r / 2U);
-    uint32_t x     = r;
-
-    lcd_fill((uint16_t)(x0 - r), y0, (uint16_t)(x0 + r), y0, color);
-
-    for (i = 1U; i <= imax; i++)
-    {
-        if (((i * i) + (x * x)) > sqmax)
-        {
-            if (x > 0U)
-            {
-                x--;
-            }
-        }
-
-        lcd_fill((uint16_t)(x0 - x), (uint16_t)(y0 + i), (uint16_t)(x0 + x), (uint16_t)(y0 + i), color);
-        lcd_fill((uint16_t)(x0 - x), (uint16_t)(y0 - i), (uint16_t)(x0 + x), (uint16_t)(y0 - i), color);
-    }
-}
-
-void lcd_set_window(uint16_t sx, uint16_t sy, uint16_t width, uint16_t height)
-{
-    if (lcdltdc.pwidth != 0U)
-    {
-        ltdc_layer_window_config(lcdltdc.activelayer, sx, sy, width, height);
-    }
-}
-
-void lcd_write_ram_prepare(void)
-{
-    /* The RGB panel has no external GRAM: pixels are written straight into the
-     * frame buffer / via DMA2D, so there is no "prepare RAM write" step. */
-}
-
-void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)
+void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_text_mode_t mode, uint32_t color)
 {
     uint8_t t1;
     uint8_t t;
@@ -255,6 +158,11 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_t
     uint8_t csize;
     const uint8_t *pfont;
     const lcd_font_desc_t *font;
+
+    if ((chr < ' ') || (chr > '~'))
+    {
+        return;
+    }
 
     font = lcd_font_get(size);
 
@@ -276,12 +184,12 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_t
             }
             else if ((mode == LCD_TEXT_BG_OVERWRITE) || (mode == LCD_TEXT_BG_OVERWRITE_PAD_ZERO))
             {
-                lcd_draw_point(x, y, (uint16_t)g_back_color);
+                lcd_draw_point(x, y, g_lcd_back_color);
             }
 
             y++;
 
-            if (y >= lcddev.height)
+            if (y >= g_lcd_info.height)
             {
                 return;
             }
@@ -291,7 +199,7 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_t
                 y = y0;
                 x++;
 
-                if (x >= lcddev.width)
+                if (x >= g_lcd_info.width)
                 {
                     return;
                 }
@@ -302,7 +210,7 @@ void lcd_show_char(uint16_t x, uint16_t y, char chr, lcd_font_size_t size, lcd_t
     }
 }
 
-void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint16_t color)
+void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, uint32_t color)
 {
     uint8_t t;
     uint8_t temp;
@@ -331,40 +239,7 @@ void lcd_show_num(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_si
     }
 }
 
-void lcd_show_xnum(uint16_t x, uint16_t y, uint32_t num, uint8_t len, lcd_font_size_t size, lcd_text_mode_t mode, uint16_t color)
-{
-    uint8_t t;
-    uint8_t temp;
-    uint8_t enshow = 0;
-    char pad = ' ';
-
-    if ((mode == LCD_TEXT_BG_OVERWRITE_PAD_ZERO) || (mode == LCD_TEXT_TRANSPARENT_PAD_ZERO))
-    {
-        pad = '0';
-    }
-
-    for (t = 0; t < len; t++)
-    {
-        temp = (uint8_t)((num / bsp_pow(10U, (uint8_t)(len - t - 1U))) % 10U);
-
-        if ((enshow == 0U) && (t < (uint8_t)(len - 1U)))
-        {
-            if (temp == 0U)
-            {
-                lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, pad, size, mode, color);
-                continue;
-            }
-            else
-            {
-                enshow = 1U;
-            }
-        }
-
-        lcd_show_char((uint16_t)(x + (size / LCD_CHAR_WIDTH_DIV) * t), y, (char)temp + '0', size, mode, color);
-    }
-}
-
-void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint16_t color)
+void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lcd_font_size_t size, const char *p, uint32_t color)
 {
     uint16_t x0 = x;
 

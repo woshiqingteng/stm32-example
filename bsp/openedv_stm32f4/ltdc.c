@@ -9,7 +9,6 @@
  * GCC has no __attribute__((at(...))).
  */
 
-#include "lcd.h"
 #include "ltdc.h"
 
 _ltdc_dev lcdltdc;
@@ -134,14 +133,14 @@ static uint32_t ltdc_expand_color(uint32_t color)
 #endif
 }
 
-void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
+/* Map a logical rect to the frame-buffer address, line offset and size. */
+static void ltdc_rect_addr(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey,
+                           uint32_t *addr, uint16_t *offline, uint32_t *width, uint32_t *height)
 {
     uint32_t psx;
     uint32_t psy;
     uint32_t pex;
     uint32_t pey;
-    uint16_t offline;
-    uint32_t addr;
 
     if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
     {
@@ -151,6 +150,28 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
         pey = ey;
     }
     else
+    {
+        psx = sy;
+        psy = lcdltdc.pheight - ex - 1U;
+        pex = ey;
+        pey = lcdltdc.pheight - sx - 1U;
+    }
+
+    *offline = (uint16_t)(lcdltdc.pwidth - (pex - psx + 1U));
+    *addr    = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
+                lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
+    *width   = pex - psx + 1U;
+    *height  = pey - psy + 1U;
+}
+
+void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
+{
+    uint32_t addr;
+    uint32_t w;
+    uint32_t h;
+    uint16_t offline;
+
+    if (lcdltdc.dir == LTDC_DIR_PORTRAIT)
     {
         if (ex >= lcdltdc.pheight)
         {
@@ -161,18 +182,9 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
         {
             sx = lcdltdc.pheight - 1U;
         }
-
-        psx = sy;
-        psy = lcdltdc.pheight - ex - 1U;
-        pex = ey;
-        pey = lcdltdc.pheight - sx - 1U;
     }
 
-    offline = (uint16_t)(lcdltdc.pwidth - (pex - psx + 1U));
-    addr = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
-            lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
-
-    __HAL_RCC_DMA2D_CLK_ENABLE();
+    ltdc_rect_addr(sx, sy, ex, ey, &addr, &offline, &w, &h);
 
     g_dma2d_handle.Instance          = DMA2D;
     g_dma2d_handle.Init.Mode         = DMA2D_R2M;
@@ -180,40 +192,18 @@ void ltdc_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t colo
     g_dma2d_handle.Init.OutputOffset = offline;
     (void)HAL_DMA2D_Init(&g_dma2d_handle);
 
-    (void)HAL_DMA2D_Start(&g_dma2d_handle, ltdc_expand_color(color), addr,
-                          (pex - psx + 1U), (pey - psy + 1U));
+    (void)HAL_DMA2D_Start(&g_dma2d_handle, ltdc_expand_color(color), addr, w, h);
     (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT_COUNT);
 }
 
-void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t *color)
+void ltdc_blit(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, const uint16_t *src)
 {
-    uint32_t psx;
-    uint32_t psy;
-    uint32_t pex;
-    uint32_t pey;
-    uint16_t offline;
     uint32_t addr;
+    uint32_t w;
+    uint32_t h;
+    uint16_t offline;
 
-    if (lcdltdc.dir == LTDC_DIR_LANDSCAPE)
-    {
-        psx = sx;
-        psy = sy;
-        pex = ex;
-        pey = ey;
-    }
-    else
-    {
-        psx = sy;
-        psy = lcdltdc.pheight - ex - 1U;
-        pex = ey;
-        pey = lcdltdc.pheight - sx - 1U;
-    }
-
-    offline = (uint16_t)(lcdltdc.pwidth - (pex - psx + 1U));
-    addr = ((uint32_t)g_ltdc_framebuf[lcdltdc.activelayer] +
-            lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx));
-
-    __HAL_RCC_DMA2D_CLK_ENABLE();
+    ltdc_rect_addr(sx, sy, ex, ey, &addr, &offline, &w, &h);
 
     g_dma2d_handle.Instance          = DMA2D;
     g_dma2d_handle.Init.Mode         = DMA2D_M2M;
@@ -228,8 +218,7 @@ void ltdc_color_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_
     g_dma2d_handle.LayerCfg[DMA2D_FOREGROUND_LAYER].InputAlpha     = 0U;
     (void)HAL_DMA2D_ConfigLayer(&g_dma2d_handle, DMA2D_FOREGROUND_LAYER);
 
-    (void)HAL_DMA2D_Start(&g_dma2d_handle, (uint32_t)color, addr,
-                          (pex - psx + 1U), (pey - psy + 1U));
+    (void)HAL_DMA2D_Start(&g_dma2d_handle, (uint32_t)src, addr, w, h);
     (void)HAL_DMA2D_PollForTransfer(&g_dma2d_handle, LTDC_DMA2D_TIMEOUT_COUNT);
 }
 
@@ -285,57 +274,21 @@ void ltdc_layer_parameter_config(ltdc_layer_t layerx, uint32_t bufaddr, ltdc_pix
     (void)HAL_LTDC_ConfigLayer(&g_ltdc_handle, &playercfg, layerx);
 }
 
-uint16_t ltdc_panelid_read(void)
+void ltdc_init(const lcd_rgb_cfg_t *panel)
 {
     GPIO_InitTypeDef gpio_init_struct = {0};
-    uint8_t idx = 0;
 
-    __HAL_RCC_GPIOG_CLK_ENABLE();
-    __HAL_RCC_GPIOI_CLK_ENABLE();
-
-    gpio_init_struct.Pin = GPIO_PIN_6;
-    gpio_init_struct.Mode = GPIO_MODE_INPUT;
-    gpio_init_struct.Pull = GPIO_PULLUP;
-    gpio_init_struct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOG, &gpio_init_struct);
-
-    gpio_init_struct.Pin = GPIO_PIN_2 | GPIO_PIN_7;
-    HAL_GPIO_Init(GPIOI, &gpio_init_struct);
-
-    idx = (uint8_t)(HAL_GPIO_ReadPin(GPIOG, GPIO_PIN_6) << LTDC_IDX_SHIFT_0);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2) << LTDC_IDX_SHIFT_1);
-    idx |= (uint8_t)(HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_7) << LTDC_IDX_SHIFT_2);
-
-    if (idx == LTDC_IDX_4384)
+    if (panel != 0)
     {
-        return LTDC_PANEL_ID_4384;
-    }
-
-    return 0U;
-}
-
-void ltdc_init(void)
-{
-    GPIO_InitTypeDef gpio_init_struct = {0};
-    uint16_t ltdcid;
-
-    ltdcid = ltdc_panelid_read();
-
-    if (ltdcid == LTDC_PANEL_ID_4384)
-    {
-        lcdltdc.pwidth = LTDC_PANEL_WIDTH_PX;
-        lcdltdc.pheight = LTDC_PANEL_HEIGHT_PX;
-        lcdltdc.hbp = LTDC_PANEL_HBP;
-        lcdltdc.hfp = LTDC_PANEL_HFP;
-        lcdltdc.hsw = LTDC_PANEL_HSW;
-        lcdltdc.vbp = LTDC_PANEL_VBP;
-        lcdltdc.vfp = LTDC_PANEL_VFP;
-        lcdltdc.vsw = LTDC_PANEL_VSW;
-        (void)ltdc_clk_set(LTDC_PLLSAIN_RAW, LTDC_PLLSAIR_RAW, LTDC_PLLSAIDIVR_RAW);
-    }
-    else
-    {
-        /* other panels intentionally not implemented. */
+        lcdltdc.pwidth  = panel->pwidth;
+        lcdltdc.pheight = panel->pheight;
+        lcdltdc.hbp = panel->hbp;
+        lcdltdc.hfp = panel->hfp;
+        lcdltdc.hsw = panel->hsw;
+        lcdltdc.vbp = panel->vbp;
+        lcdltdc.vfp = panel->vfp;
+        lcdltdc.vsw = panel->vsw;
+        (void)ltdc_clk_set(panel->pllsain, panel->pllsair, panel->pllsaidivr);
     }
 
     lcdltdc.width = (uint16_t)lcdltdc.pwidth;
@@ -388,7 +341,7 @@ void ltdc_init(void)
     g_ltdc_handle.Init.HSPolarity = LTDC_HSPOLARITY_AL;
     g_ltdc_handle.Init.VSPolarity = LTDC_VSPOLARITY_AL;
     g_ltdc_handle.Init.DEPolarity = LTDC_DEPOLARITY_AL;
-    g_ltdc_handle.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
+    g_ltdc_handle.Init.PCPolarity = (panel != 0) ? panel->pcpolarity : LTDC_PCPOLARITY_IPC;
     g_ltdc_handle.Init.HorizontalSync = lcdltdc.hsw - 1U;
     g_ltdc_handle.Init.VerticalSync = lcdltdc.vsw - 1U;
     g_ltdc_handle.Init.AccumulatedHBP = lcdltdc.hsw + lcdltdc.hbp - 1U;

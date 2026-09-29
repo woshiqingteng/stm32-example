@@ -113,6 +113,9 @@ static void app_show_page(uint8_t page)
     text_show_string(TEXT_X, 150U, TEXT_WIDTH_PIXEL, 24U, (char *)"\xBA\xBA", 24U, 0, MAGENTA);
     text_show_string(TEXT_X, 200U, TEXT_WIDTH_PIXEL, 32U, (char *)"\xD7\xD6", 32U, 0, BLACK);
 
+    /* Built-in ASCII 32x16 raster (no SD font store needed). */
+    lcd_show_string(TEXT_X, 250U, TEXT_WIDTH_PIXEL, 32U, LCD_FONT_SIZE_32, "ASCII 32", BLACK);
+
     printf("page %u: %s\r\n", (unsigned int)page, g_sample_line2[page]);
 }
 

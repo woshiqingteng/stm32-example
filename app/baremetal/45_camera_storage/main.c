@@ -25,7 +25,7 @@
 #include "piclib.h"
 #include "jpeg_dec.h"
 #include "bmp.h"
-#include "ltdc.h"
+#include "lcd_rgb.h"
 
 #define CAM_OUT_WIDTH_PIXEL    800U
 #define CAM_OUT_HEIGHT_PIXEL   464U
@@ -42,8 +42,8 @@
 
 #define JPEG_SIZE_WIDTH_PIXEL      2592U
 #define JPEG_SIZE_HEIGHT_PIXEL      1944U
-#define JPEG_BUF_ADDR    (LTDC_FRAME_BUF_ADDR + \
-                          ((uint32_t)LTDC_PANEL_WIDTH_PX * LTDC_PANEL_HEIGHT_PX * 2U))
+#define JPEG_BUF_ADDR    (lcd_info()->framebuf + \
+                          ((uint32_t)LCD_PANEL_WIDTH_PX * LCD_PANEL_HEIGHT_PX * 2U))
 #define JPEG_BUF_WORD_COUNT   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
 #define JPEG_CAPTURE_TIMEOUT_MS 3000U
 
@@ -68,7 +68,7 @@ static void cam_line_cb(void)
 
     if (g_cam_curline < (uint16_t)(CAM_TOP + CAM_OUT_HEIGHT_PIXEL))
     {
-        lcd_color_fill(0U, g_cam_curline, (uint16_t)(CAM_OUT_WIDTH_PIXEL - 1U), g_cam_curline, pbuf);
+        lcd_blit(0U, g_cam_curline, (uint16_t)(CAM_OUT_WIDTH_PIXEL - 1U), g_cam_curline, pbuf);
         g_cam_curline++;
     }
 }
@@ -243,8 +243,8 @@ static void cam_show_jpeg(bool sd_ok)
     dcmi_stop();
     dcmi_switch_sdcard();
     lcd_clear(BLACK);
-    (void)piclib_ai_load_picfile(g_last_path, 0U, 0U, lcd_get_width(), lcd_get_height(), true);
-    text_show_string(2U, 2U, lcd_get_width(), 16U, g_last_path, 16U, 1U, RED);
+    (void)piclib_ai_load_picfile(g_last_path, 0U, 0U, lcd_info()->width, lcd_info()->height, true);
+    text_show_string(2U, 2U, lcd_info()->width, 16U, g_last_path, 16U, 1U, RED);
     delay_ms(2000U);
     lcd_clear(BLACK);
     dcmi_switch_ov5640();

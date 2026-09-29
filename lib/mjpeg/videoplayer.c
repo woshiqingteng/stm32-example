@@ -162,7 +162,7 @@ void video_time_show(void *favi, AVI_INFO *aviinfo)
         (void)sprintf(buf, "time:%02u:%02u:%02u/%02u:%02u:%02u",
                       (unsigned int)(cursec / 3600U), (unsigned int)((cursec % 3600U) / 60U), (unsigned int)(cursec % 60U),
                       (unsigned int)(totsec / 3600U), (unsigned int)((totsec % 3600U) / 60U), (unsigned int)(totsec % 60U));
-        text_show_string(10, 90, lcd_get_width() - 10, 16, buf, 16, 0, RED);
+        text_show_string(10, 90, lcd_info()->width - 10, 16, buf, 16, 0, RED);
     }
 }
 
@@ -172,10 +172,10 @@ void video_info_show(AVI_INFO *aviinfo)
 
     (void)sprintf(buf, "audio:%u, rate:%u", (unsigned int)aviinfo->Channels,
                   (unsigned int)(aviinfo->SampleRate * 10U));
-    text_show_string(10, 50, lcd_get_width() - 10, 16, buf, 16, 0, RED);
+    text_show_string(10, 50, lcd_info()->width - 10, 16, buf, 16, 0, RED);
 
     (void)sprintf(buf, "fps:%u", (unsigned int)(1000U / (aviinfo->SecPerFrame / 1000U)));
-    text_show_string(10, 70, lcd_get_width() - 10, 16, buf, 16, 0, RED);
+    text_show_string(10, 70, lcd_info()->width - 10, 16, buf, 16, 0, RED);
 }
 
 void video_bmsg_show(char *name, uint16_t index, uint16_t total)
@@ -183,10 +183,10 @@ void video_bmsg_show(char *name, uint16_t index, uint16_t total)
     char buf[80];
 
     (void)sprintf(buf, "file:%s", name);
-    text_show_string(10, 10, lcd_get_width() - 10, 16, buf, 16, 0, RED);
+    text_show_string(10, 10, lcd_info()->width - 10, 16, buf, 16, 0, RED);
 
     (void)sprintf(buf, "index:%u/%u", (unsigned int)index, (unsigned int)total);
-    text_show_string(10, 30, lcd_get_width() - 10, 16, buf, 16, 0, RED);
+    text_show_string(10, 30, lcd_info()->width - 10, 16, buf, 16, 0, RED);
 }
 
 void video_play(void)
@@ -298,8 +298,8 @@ uint8_t video_play_mjpeg(char *pname)
                 offset = (uint16_t)avi_srarch_id(pbuf, AVI_VIDEO_BUF_SIZE, "movi");
                 (void)avi_get_streaminfo(pbuf + offset + 4);
                 (void)f_lseek(favi, offset + 12);       /* skip to the first chunk payload */
-                (void)mjpegdec_init((uint16_t)((lcd_get_width() - g_avix.Width) / 2U),
-                                    (uint16_t)(110U + (lcd_get_height() - 110U - g_avix.Height) / 2U));
+                (void)mjpegdec_init((uint16_t)((lcd_info()->width - g_avix.Width) / 2U),
+                                    (uint16_t)(110U + (lcd_info()->height - 110U - g_avix.Height) / 2U));
 
                 if (g_avix.SampleRate != 0U)            /* initialise audio playback */
                 {

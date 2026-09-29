@@ -84,7 +84,7 @@ static void pic_show(uint16_t index)
     (void)sprintf(g_path, PIC_DIR "/%s", g_names[index]);
 
     lcd_clear(BLACK);
-    res = piclib_ai_load_picfile(g_path, 0U, 0U, lcd_get_width(), lcd_get_height(), true);
+    res = piclib_ai_load_picfile(g_path, 0U, 0U, lcd_info()->width, lcd_info()->height, true);
 
     if (res != 0U)
     {
@@ -92,7 +92,7 @@ static void pic_show(uint16_t index)
         lcd_show_string(20U, 20U, 400U, 16U, LCD_FONT_SIZE_16, "Decode failed", RED);
     }
 
-    text_show_string(2U, 2U, lcd_get_width(), 16U, g_path, 16U, 1U, RED);
+    text_show_string(2U, 2U, lcd_info()->width, 16U, g_path, 16U, 1U, RED);
     printf("show %s (%u/%u)\r\n", g_path, (unsigned int)(index + 1U), (unsigned int)g_count);
 }
 

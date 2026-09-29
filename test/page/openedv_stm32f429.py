@@ -198,11 +198,11 @@ class OpenEdvSTM32F429Page(BasePage):
         self.poke(self.TIM8_BASE + self.TIM_DIER, 0)
 
     def inject_pwmin(self, psc: int, hval: int, cval: int):
-        """09_4: inject a PWM-input measurement (state -> DONE)."""
-        self.poke16(self.symbol("g_atim_pwmin_psc"), psc)
-        self.poke(self.symbol("g_atim_pwmin_hval"), hval)
-        self.poke(self.symbol("g_atim_pwmin_cval"), cval)
-        self.poke(self.symbol("g_atim_pwmin_sm"), 2)  # ATIM_PWMIN_SM_DONE
+        """09_4: inject a completed measurement into the app report flag."""
+        self.poke16(self.symbol("g_report_psc"), psc)
+        self.poke(self.symbol("g_report_hval"), hval)
+        self.poke(self.symbol("g_report_cval"), cval)
+        self.poke8(self.symbol("g_report_ready"), 1)
 
     def inject_touch(self):
         """10: force a 'touch' by driving the capacitive baseline to 0."""

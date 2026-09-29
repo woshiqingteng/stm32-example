@@ -99,7 +99,7 @@ static void julia_draw(uint16_t size_x, uint16_t size_y, uint16_t zoom)
     for (y = 0U; y < size_y; y++)
     {
         julia_row(y, size_x, (uint16_t)(size_x / 2U), (uint16_t)(size_y / 2U), zoom);
-        lcd_color_fill(0U, y, (uint16_t)(size_x - 1U), y, g_row);
+        lcd_blit(0U, y, (uint16_t)(size_x - 1U), y, g_row);
     }
 }
 
@@ -123,8 +123,8 @@ int main(void)
     btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
     btim_timx_int_register(&on_tim6);
 
-    width  = lcd_get_width();
-    height = lcd_get_height();
+    width  = lcd_info()->width;
+    height = lcd_info()->height;
 
     if (width > FPU_ROW_COUNT)
     {
