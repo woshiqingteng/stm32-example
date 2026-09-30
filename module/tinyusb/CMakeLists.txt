@@ -1,0 +1,2 @@
+set(MODULE_TINYUSB_VERSION 0.21.0)
+add_subdirectory(${MODULE_TINYUSB_VERSION})
