@@ -48,8 +48,10 @@ static void ui_display_task(void *arg)
     {
         if (xQueueReceive(g_display_queue, line, portMAX_DELAY) == pdTRUE)
         {
-            lcd_fill(LWIP_DEMO_RX_X, LWIP_DEMO_RX_Y, LCD_WIDTH_PX - 5, LCD_HEIGHT_PX - 5, WHITE);
-            lcd_show_string(LWIP_DEMO_RX_X, LWIP_DEMO_RX_Y, LCD_WIDTH_PX - LWIP_DEMO_RX_X - 5,
+            uint16_t w = lcd_info()->width;
+
+            lcd_fill(LWIP_DEMO_RX_X, LWIP_DEMO_RX_Y, w - 5, lcd_info()->height - 5, WHITE);
+            lcd_show_string(LWIP_DEMO_RX_X, LWIP_DEMO_RX_Y, w - LWIP_DEMO_RX_X - 5,
                             16, LCD_FONT_SIZE_16, line, RED);
         }
     }
@@ -68,15 +70,17 @@ static void ui_led_task(void *arg)
 
 void lwip_demo_ui_start(const char *title)
 {
+    uint16_t w = lcd_info()->width;
+    uint16_t h = lcd_info()->height;
+
     g_display_queue = xQueueCreate(UI_Q_LEN, UI_Q_ITEM);
 
     lcd_show_string(6, 10, 200, 32, LCD_FONT_SIZE_32, "STM32", DARKBLUE);
-    lcd_show_string(6, 40, LCD_WIDTH_PX, 24, LCD_FONT_SIZE_24, title, DARKBLUE);
+    lcd_show_string(6, 40, w, 24, LCD_FONT_SIZE_24, title, DARKBLUE);
     lcd_show_string(6, 70, 200, 16, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", DARKBLUE);
     lcd_show_string(5, 110, 200, 16, LCD_FONT_SIZE_16, "lwIP Init Successed", MAGENTA);
     lcd_show_string(5, 170, 200, 16, LCD_FONT_SIZE_16, "KEY0:Send data", MAGENTA);
-    lcd_show_string(5, 190, LCD_WIDTH_PX - 30, LCD_HEIGHT_PX - 190,
-                    LCD_FONT_SIZE_16, "Receive Data:", BLUE);
+    lcd_show_string(5, 190, w - 30, h - 190, LCD_FONT_SIZE_16, "Receive Data:", BLUE);
 
     xTaskCreate(ui_key_task, "key", UI_KEY_STK, NULL, UI_KEY_PRIO, NULL);
     xTaskCreate(ui_display_task, "disp", UI_DISP_STK, NULL, UI_DISP_PRIO, NULL);
@@ -100,19 +104,19 @@ void lwip_demo_ui_retry(void)
 
 void lwip_demo_ui_state(const char *text, uint32_t color)
 {
-    lcd_fill(5, 90, LCD_WIDTH_PX - 5, 106, WHITE);
-    lcd_show_string(5, 90, LCD_WIDTH_PX - 10, 16, LCD_FONT_SIZE_16, text, color);
+    lcd_fill(5, 90, lcd_info()->width - 5, 106, WHITE);
+    lcd_show_string(5, 90, lcd_info()->width - 10, 16, LCD_FONT_SIZE_16, text, color);
 }
 
 void lwip_demo_ui_show(uint16_t x, uint16_t y, uint8_t size, const char *en, uint32_t color)
 {
-    lcd_show_string(x, y, LCD_WIDTH_PX - x - 5, size, (lcd_font_size_t)size, en, color);
+    lcd_show_string(x, y, lcd_info()->width - x - 5, size, (lcd_font_size_t)size, en, color);
 }
 
 void lwip_demo_ui_show_cn(uint16_t x, uint16_t y, uint8_t size, const char *gbk, uint32_t color)
 {
     if (g_lwip_font_ok)
     {
-        text_show_string(x, y, LCD_WIDTH_PX - x - 5, size, (char *)gbk, size, 1U, color);
+        text_show_string(x, y, lcd_info()->width - x - 5, size, (char *)gbk, size, 1U, color);
     }
 }

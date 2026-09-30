@@ -98,7 +98,7 @@ int main(void)
 
     sdram_init();
     lcd_init();
-    lcd_display_dir(LCD_DIR_LANDSCAPE);
+    lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
     g_lwip_font_ok = (fonts_init() == 0U) ? 1U : 0U;
 
