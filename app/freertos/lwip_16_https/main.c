@@ -1,28 +1,28 @@
 /**
  * @file    main.c
- * @brief   lwip_16_https: lwIP netconn HTTP server over FreeRTOS.
- *
- * Brings up the on-board Ethernet MAC + YT8512C PHY, obtains an address via
- * DHCP (with a static fallback) and serves a small HTML page on port 80.
+ * @brief   lwip_16_https: lwIP netconn HTTP server (ALIENTEK experiment 16).
  */
 
 #include <stdio.h>
 
 #include "bsp.h"
+#include "lcd.h"
+#include "sdram.h"
+#include "text.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include "lwip/opt.h"
 #include "lwip/api.h"
-#include "lwip/dhcp.h"
 #include "lwip/ip_addr.h"
 
 #include "lwip_comm.h"
+#include "lwip_demo_ui.h"
 
-#define HTTP_TASK_PRIO      4
-#define HTTP_TASK_STK_SIZE  512
-#define DHCP_WAIT_MS        10000
+#define DEMO_TASK_PRIO      11
+#define DEMO_TASK_STK_SIZE  1024
+#define LWIP_DEMO_PORT      80
 
 static const char s_http_hdr[] =
     "HTTP/1.1 200 OK\r\n"
@@ -56,54 +56,29 @@ static void http_serve(struct netconn *conn)
     netconn_close(conn);
 }
 
-static void http_task(void *pvParameters)
+static void demo_task(void *arg)
 {
     struct netconn *conn;
     struct netconn *newconn;
-    TickType_t start;
 
-    (void)pvParameters;
+    (void)arg;
 
-    if (g_lwipdev.dhcp_used)
-    {
-        start = xTaskGetTickCount();
-        while (!dhcp_supplied_address(&g_lwip_netif))
-        {
-            if ((xTaskGetTickCount() - start) > pdMS_TO_TICKS(DHCP_WAIT_MS))
-            {
-                printf("net: dhcp timeout, using static ip\r\n");
-                lwip_comm_fallback_ip();
-                vTaskDelay(pdMS_TO_TICKS(200));
-                break;
-            }
-            vTaskDelay(pdMS_TO_TICKS(200));
-        }
-    }
-
-    printf("net: link %s ip %s\r\n",
-           netif_is_link_up(&g_lwip_netif) ? "up" : "down",
-           ip4addr_ntoa(netif_ip4_addr(&g_lwip_netif)));
+    lwip_comm_wait_ip();
+    lwip_demo_ui_ip(ip4addr_ntoa(netif_ip4_addr(&g_lwip_netif)));
+    lwip_demo_ui_speed("Ethernet Speed:100M");
 
     conn = netconn_new(NETCONN_TCP);
-    if (conn == NULL)
-    {
-        printf("net: no memory\r\n");
-        for (;;)
-        {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
-    }
-
-    netconn_bind(conn, IP_ADDR_ANY, 80);
+    netconn_bind(conn, IP_ADDR_ANY, LWIP_DEMO_PORT);
     netconn_listen(conn);
-    printf("net: http server listening on port 80\r\n");
 
     for (;;)
     {
         if (netconn_accept(conn, &newconn) == ERR_OK)
         {
+            lwip_demo_ui_state("State:Connection Successful", BLUE);
             http_serve(newconn);
             netconn_delete(newconn);
+            lwip_demo_ui_state("State:Disconnect", BLUE);
         }
     }
 }
@@ -113,12 +88,16 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (lwip_comm_init() != 0U)
-    {
-        printf("net: init failed\r\n");
-    }
+    sdram_init();
+    lcd_init();
+    lcd_display_dir(LCD_DIR_LANDSCAPE);
+    lcd_clear(WHITE);
+    g_lwip_font_ok = (fonts_init() == 0U) ? 1U : 0U;
 
-    xTaskCreate(http_task, "http", HTTP_TASK_STK_SIZE, NULL, HTTP_TASK_PRIO, NULL);
+    lwip_comm_init();
+    lwip_demo_ui_start("lwIP HTTPS Test");
+
+    xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);
 
     vTaskStartScheduler();
 
