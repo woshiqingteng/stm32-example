@@ -4,7 +4,6 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 
 #include "bsp.h"
 #include "lcd.h"
@@ -13,9 +12,9 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
-#include "lwip/api.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netif.h"
+#include "lwip/api.h"
 
 #include "lwip_comm.h"
 #include "lwip_demo_ui.h"
@@ -39,6 +38,11 @@ static void demo_task(void *arg)
     lwip_demo_ui_speed("Ethernet Speed:100M");
 
     conn = netconn_new(NETCONN_TCP);
+    if (conn == NULL)
+    {
+        lwip_demo_ui_retry();
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
     netconn_bind(conn, IP_ADDR_ANY, LWIP_DEMO_PORT);
     netconn_listen(conn);
     conn->recv_timeout = LWIP_DEMO_RECV_TIMEOUT_MS;
@@ -61,8 +65,9 @@ static void demo_task(void *arg)
                 if (netconn_recv(newconn, &recvbuf) == ERR_OK)
                 {
                     char line[200];
-                    netbuf_copy(recvbuf, line, sizeof(line) - 1);
-                    line[sizeof(line) - 1] = '\0';
+                    u16_t n = netbuf_copy(recvbuf, line, sizeof(line) - 1);
+
+                    line[n] = '\0';
                     xQueueSend(g_display_queue, line, 0);
                     netbuf_delete(recvbuf);
                 }
@@ -91,7 +96,13 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    lwip_comm_init();
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
     lwip_demo_ui_start("lwIP TCPServer Test");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);

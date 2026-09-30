@@ -13,7 +13,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 
@@ -40,6 +39,12 @@ static void demo_task(void *arg)
     lwip_demo_ui_speed("Ethernet Speed:100M");
 
     s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(LWIP_DEMO_PORT);
@@ -79,7 +84,13 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    lwip_comm_init();
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
     lwip_demo_ui_start("lwIP UDP Test");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);

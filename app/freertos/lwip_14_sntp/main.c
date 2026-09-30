@@ -15,8 +15,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netif.h"
 #include "lwip/apps/sntp.h"
 
 #include "lwip_comm.h"
@@ -24,6 +24,19 @@
 
 #define DEMO_TASK_PRIO      11
 #define DEMO_TASK_STK_SIZE  1024
+
+static struct tm *lwip_utc8_gmtime(uint32_t utc_sec, struct tm *out)
+{
+    time_t t = (time_t)utc_sec + (time_t)(8 * 3600);
+    struct tm *g = gmtime(&t);
+
+    if (g != NULL)
+    {
+        *out = *g;
+    }
+
+    return out;
+}
 
 #define SNTP_SERVER_NAME    "ntp1.aliyun.com"
 
@@ -52,19 +65,20 @@ static void demo_task(void *arg)
     {
         if (g_sntp_time != 0U && g_sntp_time != last)
         {
-            time_t t = (time_t)g_sntp_time;
-            struct tm *ti = localtime(&t);
+            struct tm ti;
             char line[40];
 
             last = g_sntp_time;
 
-            rtc_set_date((uint8_t)(ti->tm_year + 1900 - 2000), (uint8_t)(ti->tm_mon + 1),
-                         (uint8_t)ti->tm_mday, (uint8_t)(ti->tm_wday + 1));
-            rtc_set_time((uint8_t)(ti->tm_hour + 8), (uint8_t)ti->tm_min, (uint8_t)ti->tm_sec, RTC_AM_24H);
+            lwip_utc8_gmtime(g_sntp_time, &ti);
+
+            rtc_set_date((uint8_t)(ti.tm_year + 1900 - 2000), (uint8_t)(ti.tm_mon + 1),
+                         (uint8_t)ti.tm_mday, (uint8_t)(ti.tm_wday + 1));
+            rtc_set_time((uint8_t)ti.tm_hour, (uint8_t)ti.tm_min, (uint8_t)ti.tm_sec, RTC_AM_24H);
 
             sprintf(line, "20%02d-%02d-%02d %02d:%02d:%02d",
-                    ti->tm_year % 100, ti->tm_mon + 1, ti->tm_mday,
-                    (ti->tm_hour + 8) % 24, ti->tm_min, ti->tm_sec);
+                    ti.tm_year % 100, ti.tm_mon + 1, ti.tm_mday,
+                    ti.tm_hour, ti.tm_min, ti.tm_sec);
             lwip_demo_ui_show(5, 150, 16, line, MAGENTA);
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -83,7 +97,13 @@ int main(void)
 
     rtc_init();
 
-    lwip_comm_init();
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
     lwip_demo_ui_start("lwIP SNTP Test");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);

@@ -2,8 +2,10 @@
  * @file    main.c
  * @brief   lwip_18_onenet_mqtt: OneNET MQTT client (ALIENTEK experiment 18).
  *
- * The OneNET-MQTTS authorization token is derived with the port's mbedTLS
- * helpers; temperature/humidity are random, as in the ALIENTEK demo.
+ * Plain MQTT (port 1883). The OneNET authorization token is derived with the
+ * port's mbedTLS helpers; temperature/humidity are random, as in the demo.
+ * (OneNET recommends TLS on mqtts.heclouds.com:8883 for production; this demo
+ * stays plaintext to mirror the ALIENTEK example.)
  *
  * The credentials below are PLACEHOLDERS - replace them with your own.
  */
@@ -20,14 +22,15 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netif.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/netdb.h"
 
 #include "lwip_comm.h"
 #include "lwip_crypto.h"
 #include "lwip_demo_ui.h"
+#include "lwip_mqtt_common.h"
 
 #define DEMO_TASK_PRIO      11
 #define DEMO_TASK_STK_SIZE  1024
@@ -39,7 +42,7 @@
 #define AUTH_VERSION        "2018-10-31"
 #define TOKEN_EXPIRE_ET     1893456000U           /* placeholder: 2030-01-01 UTC */
 
-#define HOST_NAME           "mqtts.heclouds.com"
+#define HOST_NAME           "mqtt.heclouds.com"
 #define HOST_PORT           1883
 #define METHOD              "sha1"
 #define ONENET_PUB_TOPIC    "$sys/"PRODUCT_ID"/"DEVICE_NAME"/thing/property/post"
@@ -47,7 +50,20 @@
 
 static mqtt_client_t *s_client;
 static ip_addr_t s_broker;
-static uint8_t s_publish_flag;
+
+static void ui_display(const char *text)
+{
+    char line[200];
+
+    strncpy(line, (text != NULL) ? text : "", sizeof(line) - 1);
+    line[sizeof(line) - 1] = '\0';
+    xQueueSend(g_display_queue, line, 0);
+}
+
+static void ui_state(const char *text)
+{
+    lwip_demo_ui_state(text, BLUE);
+}
 
 static void url_encode(char *sign)
 {
@@ -129,8 +145,11 @@ static int onenet_authorization(const char *ver, const char *res, unsigned int e
 
     olen = 0;
     memset(sign_buf, 0, sizeof(sign_buf));
-    lwip_base64_encode((uint8_t *)sign_buf, sizeof(sign_buf), &olen,
-                       (const uint8_t *)hmac_buf, LWIP_HMAC_SHA1_LEN);
+    if (lwip_base64_encode((uint8_t *)sign_buf, sizeof(sign_buf), &olen,
+                           (const uint8_t *)hmac_buf, LWIP_HMAC_SHA1_LEN) != 0)
+    {
+        return 1;
+    }
     url_encode(sign_buf);
 
     if (flag)
@@ -147,58 +166,12 @@ static int onenet_authorization(const char *ver, const char *res, unsigned int e
     return 0;
 }
 
-static void pub_cb(void *arg, err_t err)
-{
-    (void)arg;
-    if (err == ERR_OK)
-    {
-        xQueueSend(g_display_queue, "publish ok", 0);
-    }
-}
-
-static void sub_cb(void *arg, err_t err)
-{
-    (void)arg;
-    (void)err;
-}
-
-static void in_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags)
-{
-    (void)arg;
-    (void)data;
-    (void)flags;
-    (void)len;
-}
-
-static void in_pub_cb(void *arg, const char *topic, u32_t tot_len)
-{
-    (void)arg;
-    (void)tot_len;
-    xQueueSend(g_display_queue, (void *)(topic != NULL ? topic : ""), 0);
-}
-
-static void conn_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status)
-{
-    (void)arg;
-
-    if (status == MQTT_CONNECT_ACCEPTED)
-    {
-        lwip_demo_ui_state("State:Connection Successful", BLUE);
-        mqtt_set_inpub_callback(client, in_pub_cb, in_data_cb, NULL);
-        mqtt_subscribe(client, ONENET_SUB_TOPIC, 1, sub_cb, NULL);
-        s_publish_flag = 1U;
-    }
-    else
-    {
-        lwip_demo_ui_state("State:Disconnect", BLUE);
-    }
-}
-
 static void demo_task(void *arg)
 {
     struct hostent *he;
     struct mqtt_connect_client_info_t ci;
     static char token[256];
+    lwip_mqtt_cfg_t cfg;
 
     (void)arg;
 
@@ -210,24 +183,17 @@ static void demo_task(void *arg)
     if (he == NULL)
     {
         lwip_demo_ui_retry();
-        for (;;)
-        {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
     }
     memcpy(&s_broker, he->h_addr, he->h_length);
 
-    (void)onenet_authorization(AUTH_VERSION, PRODUCT_ID, TOKEN_EXPIRE_ET,
-                               DEVICE_KEY, DEVICE_NAME, token, sizeof(token), 0);
-
-    if (token[0] == '\0')   /* placeholder/invalid key: cannot build a token */
+    if (onenet_authorization(AUTH_VERSION, PRODUCT_ID, TOKEN_EXPIRE_ET,
+                             DEVICE_KEY, DEVICE_NAME, token, sizeof(token), 0) != 0
+        || token[0] == '\0')   /* placeholder/invalid key: cannot build a token */
     {
         printf("mqtt: token build failed (set PRODUCT_ID/DEVICE_NAME/DEVICE_KEY)\r\n");
         lwip_demo_ui_retry();
-        for (;;)
-        {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
     }
 
     memset(&ci, 0, sizeof(ci));
@@ -237,23 +203,24 @@ static void demo_task(void *arg)
     ci.keep_alive  = 60;
 
     s_client = mqtt_client_new();
-    mqtt_client_connect(s_client, &s_broker, HOST_PORT, conn_cb, NULL, &ci);
+    if (s_client == NULL)
+    {
+        lwip_demo_ui_retry();
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
+    cfg.sub_topic = ONENET_SUB_TOPIC;
+    cfg.pub_topic = ONENET_PUB_TOPIC;
+    cfg.display   = ui_display;
+    cfg.state     = ui_state;
+    lwip_mqtt_init(&cfg);
+
+    mqtt_client_connect(s_client, &s_broker, HOST_PORT, lwip_mqtt_conn_cb, NULL, &ci);
 
     for (;;)
     {
-        if (s_publish_flag && mqtt_client_is_connected(s_client))
+        if (lwip_mqtt_poll(s_client))
         {
-            char payload[128];
-            int temp = 30 + rand() % 10 + 1;
-            int humi10 = 548 + (rand() % 100);
-
-            sprintf(payload,
-                    "{\"params\":{\"CurrentTemperature\":+%d.0,\"RelativeHumidity\":%d.%d},"
-                    "\"method\":\"thing.event.property.post\"}",
-                    temp, humi10 / 10, humi10 % 10);
-
-            mqtt_publish(s_client, ONENET_PUB_TOPIC, payload, strlen(payload), 1, 0, pub_cb, NULL);
-            xQueueSend(g_display_queue, payload, 0);
             vTaskDelay(pdMS_TO_TICKS(5000));
         }
         else
@@ -273,7 +240,13 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    lwip_comm_init();
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
     lwip_demo_ui_start("lwIP MQTTOneNET");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);

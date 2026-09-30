@@ -15,7 +15,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
 #include "lwip/sys.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
@@ -25,9 +24,10 @@
 
 #define DEMO_TASK_PRIO      11
 #define DEMO_TASK_STK_SIZE  1024
-#define CLIENT_PRIO         11
-#define CLIENT_STK_SIZE     512
 #define LWIP_DEMO_PORT      8080
+
+#define CLIENT_PRIO         11
+#define CLIENT_STK_SIZE     2048
 
 static const char s_sendbuf[] = "ALIENTEK DATA\r\n";
 
@@ -35,10 +35,11 @@ static void client_task(void *arg)
 {
     int c = (int)(intptr_t)arg;
     char line[200];
-    int n;
 
     for (;;)
     {
+        int n;
+
         if ((g_lwip_send_flag & LWIP_SEND_DATA) == LWIP_SEND_DATA)
         {
             (void)send(c, s_sendbuf, sizeof(s_sendbuf) - 1, 0);
@@ -66,7 +67,6 @@ static void client_task(void *arg)
 static void demo_task(void *arg)
 {
     int s;
-    int c;
     struct sockaddr_in local;
     struct sockaddr_in remote;
     socklen_t addr_len;
@@ -78,6 +78,12 @@ static void demo_task(void *arg)
     lwip_demo_ui_speed("Ethernet Speed:100M");
 
     s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
     memset(&local, 0, sizeof(local));
     local.sin_family = AF_INET;
     local.sin_port = htons(LWIP_DEMO_PORT);
@@ -87,12 +93,14 @@ static void demo_task(void *arg)
 
     for (;;)
     {
+        int c;
+
         addr_len = sizeof(remote);
         c = accept(s, (struct sockaddr *)&remote, &addr_len);
         if (c >= 0)
         {
-            sys_thread_new("client", client_task, (void *)(intptr_t)c,
-                           CLIENT_STK_SIZE, CLIENT_PRIO);
+            (void)sys_thread_new("client", client_task, (void *)(intptr_t)c,
+                                 CLIENT_STK_SIZE, CLIENT_PRIO);
         }
     }
 }
@@ -107,8 +115,14 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    lwip_comm_init();
-    lwip_demo_ui_start("lwIP TCPServer MUTLienk Test");
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
+    lwip_demo_ui_start("lwIP TCPServer Multi Test");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);
 

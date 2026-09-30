@@ -13,7 +13,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "lwip/opt.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 
@@ -23,6 +22,7 @@
 #define DEMO_TASK_PRIO      11
 #define DEMO_TASK_STK_SIZE  1024
 #define LWIP_DEMO_PORT      8080
+
 #define GROUP_IP            "224.0.1.0"
 
 static const char s_sendbuf[] = "ALIENTEK DATA\r\n";
@@ -43,6 +43,12 @@ static void demo_task(void *arg)
     lwip_demo_ui_speed("Ethernet Speed:100M");
 
     s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
     memset(&local, 0, sizeof(local));
     local.sin_family = AF_INET;
     local.sin_port = htons(LWIP_DEMO_PORT);
@@ -93,8 +99,14 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    lwip_comm_init();
-    lwip_demo_ui_start("lwIP UDPBroadcastTest");
+    if (lwip_comm_init() != 0)
+    {
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+        }
+    }
+    lwip_demo_ui_start("lwIP UDPMulticastTest");
 
     xTaskCreate(demo_task, "demo", DEMO_TASK_STK_SIZE, NULL, DEMO_TASK_PRIO, NULL);
 

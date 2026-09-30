@@ -72,6 +72,10 @@ void lwip_demo_ui_start(const char *title)
     uint16_t h = lcd_info()->height;
 
     g_display_queue = xQueueCreate(UI_Q_LEN, UI_Q_ITEM);
+    if (g_display_queue == NULL)
+    {
+        return;
+    }
 
     lcd_show_string(6, 10, 200, 32, LCD_FONT_SIZE_32, "STM32", DARKBLUE);
     lcd_show_string(6, 40, w, 24, LCD_FONT_SIZE_24, title, DARKBLUE);

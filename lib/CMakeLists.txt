@@ -44,7 +44,7 @@ function(lib_dir name)
     set(LIB_ALL_TARGET ${_all} PARENT_SCOPE)
 endfunction()
 
-foreach(_d usmart malloc text picture audio mjpeg)
+foreach(_d usmart malloc text picture audio mjpeg lwip_mqtt_common)
     lib_dir(${_d})
 endforeach()
 
