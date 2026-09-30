@@ -48,7 +48,6 @@ static const char *const g_sample_line2[] =
     "TEXT MIDDLEWARE",
 };
 
-static BYTE  g_work[FF_MAX_SS];
 static char  g_line[64];
 
 /* GBK sweep state: walk 0xB0A1..0xF7FE at a selectable raster. */
@@ -65,35 +64,32 @@ static uint8_t g_size_idx = 1U;   /* 16 */
 static uint8_t g_lo = GBK_LO_FIRST;
 static uint8_t g_hi = GBK_HI_FIRST;
 
-/** @brief  Prepare the font store: reuse the NOR flash copy when valid, else
- *  copy it from the SD card. Returns 0 on success. */
-static uint8_t app_font_prepare(void)
-{
-    uint8_t key;
+/* Whether the GBK font store in the NOR flash is valid (Chinese needs it). */
+static uint8_t g_font_ok = 0U;
 
-    if (fonts_init() == 0U)
-    {
-        printf("font store ready\r\n");
-        return 0U;
-    }
+/** @brief  Copy the GBK font store from the SD card into the NOR flash. The
+ *  card must already be mounted. Returns 0 when the store is valid afterwards. */
+static uint8_t app_font_update(void)
+{
+    uint8_t res;
 
     printf("font store missing, updating from SD\r\n");
     lcd_show_string(TEXT_X, 60U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                     "Font Updating...", RED);
 
-    key = fonts_update_font(TEXT_X, 90U, FONT_SIZE_PIXEL, (uint8_t *)DRIVE, RED);
+    res = fonts_update_font(TEXT_X, 90U, FONT_SIZE_PIXEL, (uint8_t *)DRIVE, RED);
 
-    if (key != 0U)
+    if (res != 0U)
     {
-        printf("font update failed (%u)\r\n", (unsigned int)key);
+        printf("font update failed (%u)\r\n", (unsigned int)res);
         lcd_show_string(TEXT_X, 90U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
                         "Font Update Failed!", RED);
         return 1U;
     }
 
-    (void)fonts_init();
     printf("font update done\r\n");
-    return 0U;
+
+    return (fonts_init() == 0U) ? 0U : 1U;
 }
 
 static void app_show_page(uint8_t page)
@@ -134,6 +130,10 @@ int main(void)
 
     printf("43_font ready\r\n");
 
+    /* Chinese glyphs come from the GBK font store in the on-board NOR flash. */
+    g_font_ok = (fonts_init() == 0U) ? 1U : 0U;
+    printf("gbk font store %s\r\n", (g_font_ok != 0U) ? "ready" : "missing");
+
     if (sdio_init() != 0U)
     {
         lcd_show_string(TEXT_X, 40U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
@@ -145,17 +145,6 @@ int main(void)
         (void)exfuns_init();
         res = f_mount(fs[0], DRIVE, 1);
 
-        if (res == FR_NO_FILESYSTEM)
-        {
-            printf("no filesystem, formatting %s\r\n", DRIVE);
-            res = f_mkfs(DRIVE, 0, g_work, sizeof(g_work));
-
-            if (res == FR_OK)
-            {
-                res = f_mount(fs[0], DRIVE, 1);
-            }
-        }
-
         if (res != FR_OK)
         {
             (void)sprintf(g_line, "mount failed (%d)", (int)res);
@@ -166,14 +155,25 @@ int main(void)
         {
             printf("SD mounted\r\n");
 
-            if (app_font_prepare() != 0U)
+            /* Refresh the store from the card only when it is missing. */
+            if (g_font_ok == 0U)
             {
-                lcd_show_string(TEXT_X, 130U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
-                                "Font Error!", RED);
+                g_font_ok = (app_font_update() == 0U) ? 1U : 0U;
             }
-
-            app_show_page(page);
         }
+    }
+
+    if (g_font_ok != 0U)
+    {
+        app_show_page(page);
+    }
+    else
+    {
+        lcd_show_string(TEXT_X, 70U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
+                        "No GBK font store.", RED);
+        lcd_show_string(TEXT_X, 90U, TEXT_WIDTH_PIXEL, FONT_SIZE_PIXEL, LCD_FONT_SIZE_16,
+                        "Copy /SYSTEM/FONT to SD.", RED);
+        printf("gbk font store unavailable, Chinese not drawn\r\n");
     }
 
     for (;;)
@@ -204,9 +204,15 @@ int main(void)
         }
         else if (key == KEY_WKUP)
         {
-            printf("font store fontok=0x%02X\r\n", (unsigned int)ftinfo.fontok);
+            printf("fontok=0x%02X ugbk=%lu+%lu f12=%lu+%lu f16=%lu+%lu f24=%lu+%lu f32=%lu+%lu\r\n",
+                   (unsigned int)ftinfo.fontok,
+                   (unsigned long)ftinfo.ugbkaddr, (unsigned long)ftinfo.ugbksize,
+                   (unsigned long)ftinfo.f12addr, (unsigned long)ftinfo.gbk12size,
+                   (unsigned long)ftinfo.f16addr, (unsigned long)ftinfo.gbk16size,
+                   (unsigned long)ftinfo.f24addr, (unsigned long)ftinfo.gbk24size,
+                   (unsigned long)ftinfo.f32addr, (unsigned long)ftinfo.gbk32size);
         }
-        if (g_sweep)
+        if (g_sweep && (g_font_ok != 0U))
         {
             char    gbk[3];
             uint8_t size = g_font_sizes[g_size_idx];
