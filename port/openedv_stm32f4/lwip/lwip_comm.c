@@ -9,6 +9,7 @@
 #include "lwip/opt.h"
 #include "lwip/tcpip.h"
 #include "lwip/dhcp.h"
+#include "lwip/dns.h"
 #include "lwip/ip_addr.h"
 #include "lwip/netifapi.h"
 
@@ -23,9 +24,10 @@
 lwip_dev_t g_lwipdev =
 {
     .mac          = { 0x02, 0x00, 0x00, 0x12, 0x34, 0x56 },
-    .ip           = { 192, 168, 1, 100 },
+    .ip           = { 192, 168, 2, 100 },
     .netmask      = { 255, 255, 255, 0 },
-    .gateway      = { 192, 168, 1, 1 },
+    .gateway      = { 192, 168, 2, 1 },
+    .dns          = { 192, 168, 2, 1 },
     .dhcp_used    = 1U,
     .dhcp_status  = LWIP_DHCP_OFF,
     .link_up      = 0U,
@@ -53,6 +55,12 @@ uint8_t lwip_comm_init(void)
 
     netif_set_default(&g_lwip_netif);
     netif_set_up(&g_lwip_netif);
+
+    {   /* static DNS; overwritten by DHCP if it succeeds */
+        ip_addr_t dns;
+        IP_ADDR4(&dns, g_lwipdev.dns[0], g_lwipdev.dns[1], g_lwipdev.dns[2], g_lwipdev.dns[3]);
+        dns_setserver(0, &dns);
+    }
 
     if (g_lwipdev.dhcp_used)
     {

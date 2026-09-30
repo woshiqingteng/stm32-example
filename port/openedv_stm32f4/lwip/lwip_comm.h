@@ -23,6 +23,7 @@ typedef struct
     uint8_t ip[4];          /* local address (or DHCP result) */
     uint8_t netmask[4];
     uint8_t gateway[4];
+    uint8_t dns[4];         /* static DNS server (used until DHCP overrides) */
     uint8_t dhcp_used;      /* 1: start DHCP after netif up */
     uint8_t dhcp_status;    /* one of LWIP_DHCP_* */
     uint8_t link_up;

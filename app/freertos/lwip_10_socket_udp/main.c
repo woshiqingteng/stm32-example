@@ -43,7 +43,7 @@ static void demo_task(void *arg)
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(LWIP_DEMO_PORT);
-    addr.sin_addr.s_addr = inet_addr("192.168.1.111");
+    addr.sin_addr.s_addr = inet_addr("192.168.2.8");
     connect(s, (struct sockaddr *)&addr, sizeof(addr));
 
     tv.tv_sec = 0;

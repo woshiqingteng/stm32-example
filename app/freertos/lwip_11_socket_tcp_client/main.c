@@ -43,7 +43,7 @@ static void demo_task(void *arg)
     memset(&remote, 0, sizeof(remote));
     remote.sin_family = AF_INET;
     remote.sin_port = htons(LWIP_DEMO_PORT);
-    remote.sin_addr.s_addr = inet_addr("192.168.1.111");
+    remote.sin_addr.s_addr = inet_addr("192.168.2.8");
 
     if (connect(s, (struct sockaddr *)&remote, sizeof(remote)) == 0)
     {

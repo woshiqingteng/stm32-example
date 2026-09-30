@@ -220,6 +220,16 @@ static void demo_task(void *arg)
     (void)onenet_authorization(AUTH_VERSION, PRODUCT_ID, TOKEN_EXPIRE_ET,
                                DEVICE_KEY, DEVICE_NAME, token, sizeof(token), 0);
 
+    if (token[0] == '\0')   /* placeholder/invalid key: cannot build a token */
+    {
+        printf("mqtt: token build failed (set PRODUCT_ID/DEVICE_NAME/DEVICE_KEY)\r\n");
+        lwip_demo_ui_retry();
+        for (;;)
+        {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
+
     memset(&ci, 0, sizeof(ci));
     ci.client_id   = DEVICE_NAME;
     ci.client_user = PRODUCT_ID;

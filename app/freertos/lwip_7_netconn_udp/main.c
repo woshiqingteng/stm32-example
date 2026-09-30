@@ -28,8 +28,8 @@
 
 #define DEST_IP_ADDR0       192
 #define DEST_IP_ADDR1       168
-#define DEST_IP_ADDR2       1
-#define DEST_IP_ADDR3       111
+#define DEST_IP_ADDR2       2
+#define DEST_IP_ADDR3       8
 #define LWIP_DEMO_PORT      8080
 
 static const char s_sendbuf[] = "ALIENTEK DATA\r\n";
