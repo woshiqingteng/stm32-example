@@ -1,5 +1,6 @@
 # The lwip sources resolve "lwipopts.h" and "arch/cc.h" from this port dir.
-target_include_directories(lwip PUBLIC
+# PRIVATE: do not leak the port's config headers into the module's interface.
+target_include_directories(lwip PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(lwip_port STATIC EXCLUDE_FROM_ALL

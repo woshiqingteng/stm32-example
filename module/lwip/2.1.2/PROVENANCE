@@ -1,0 +1,14 @@
+lwIP 2.1.2 (vendored)
+
+Source: STMicroelectronics STM32CubeF4 middleware lwIP, which tracks the
+upstream lwIP 2.1.2 release (http://savannah.nongnu.org/projects/lwip/).
+
+Notes:
+- This tree was first vendored as "2.2.1" and then corrected to the actual
+  2.1.2 sources; the version macros in src/include/lwip/init.h were adjusted
+  accordingly in the same change. The compiled stack is genuine lwIP 2.1.2.
+- Only the sources required by the examples are compiled (see CMakeLists.txt):
+  core, core/ipv4, core/ipv6, api, netif, apps/mqtt and apps/sntp.
+  The apps/altcp_tls sources are present but not built (TLS is disabled).
+- Build integration and options live in the port
+  (port/openedv_stm32f4/lwip/lwipopts.h), not in this vendored tree.
