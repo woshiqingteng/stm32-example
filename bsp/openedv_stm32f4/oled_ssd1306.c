@@ -275,35 +275,36 @@ typedef enum
 #define SSD1306_PRECHARGE_VALUE     0xF1U
 #define SSD1306_VCOMH_VALUE         0x30U
 
+static const uint8_t s_ssd1306_init_seq[] =
+{
+    SSD1306_CMD_DISPLAY_OFF,
+    SSD1306_CMD_CLK_DIV,        SSD1306_CLK_DIV_VALUE,
+    SSD1306_CMD_MULTIPLEX,      SSD1306_MULTIPLEX_VALUE,
+    SSD1306_CMD_DISPLAY_OFFSET, SSD1306_OFFSET_VALUE,
+    SSD1306_CMD_START_LINE,
+    SSD1306_CMD_CHARGE_PUMP,    SSD1306_CHARGE_PUMP_ENABLE,
+    SSD1306_CMD_MEMORY_MODE,    SSD1306_MEMORY_MODE_PAGE,
+    SSD1306_CMD_SEG_REMAP,
+    SSD1306_CMD_COM_SCAN_DIR,
+    SSD1306_CMD_COM_PINS,       SSD1306_COM_PINS_VALUE,
+    SSD1306_CMD_CONTRAST,       SSD1306_CONTRAST_VALUE,
+    SSD1306_CMD_PRECHARGE,      SSD1306_PRECHARGE_VALUE,
+    SSD1306_CMD_VCOMH,          SSD1306_VCOMH_VALUE,
+    SSD1306_CMD_ENTIRE_ON,
+    SSD1306_CMD_NORMAL_DISPLAY,
+    SSD1306_CMD_DISPLAY_ON,
+};
+
 void oled_ssd1306_init(void)
 {
+    uint32_t i;
+
     oled_bus_init();
 
-    oled_bus_write(SSD1306_CMD_DISPLAY_OFF, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_CLK_DIV, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CLK_DIV_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_MULTIPLEX, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_MULTIPLEX_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_DISPLAY_OFFSET, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_OFFSET_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_START_LINE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_CHARGE_PUMP, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CHARGE_PUMP_ENABLE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_MEMORY_MODE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_MEMORY_MODE_PAGE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_SEG_REMAP, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_COM_SCAN_DIR, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_COM_PINS, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_COM_PINS_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_CONTRAST, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CONTRAST_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_PRECHARGE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_PRECHARGE_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_VCOMH, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_VCOMH_VALUE, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_ENTIRE_ON, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_NORMAL_DISPLAY, OLED_ARG_CMD);
-    oled_bus_write(SSD1306_CMD_DISPLAY_ON, OLED_ARG_CMD);
+    for (i = 0U; i < sizeof(s_ssd1306_init_seq); i++)
+    {
+        oled_bus_write(s_ssd1306_init_seq[i], OLED_ARG_CMD);
+    }
 }
 
 void oled_ssd1306_display_on(void)
