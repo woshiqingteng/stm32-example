@@ -14,7 +14,7 @@ target_include_directories(lwip_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch)
 
 target_link_libraries(lwip_port PUBLIC
-    lwip bsp_eth bsp_delay mbedtls)
+    lwip bsp_eth bsp_delay mbedtls drv_rng)
 
 # The port is FreeRTOS-only; freertos is absent on bare-metal builds, where this
 # target is never linked.

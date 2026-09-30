@@ -533,3 +533,36 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 - 纯枚举选择器（`PVD_LEVEL`、`RTC_WAKEUP_*`）→ 不改名，仅加注释
 - **仅改名+注释，不改数值、不做换算**。
 
+
+---
+
+# 记录：lwIP 移植与整理
+
+## 结构
+- `module/lwip/2.1.2`：ST 版 lwIP 2.1.2 源码（core/api/netif/apps mqtt+sntp），目标 `lwip`（`EXCLUDE_FROM_ALL`，链 `drv_core`）。见同目录 `PROVENANCE`。
+- `port/openedv_stm32f4/lwip`：`sys_arch.c`（上游 raw-FreeRTOS 端口，非 CMSIS-OS）、`ethernetif.c`（零拷贝）、`lwip_comm.c`（netif/DHCP/回退/静态 DNS）、`lwip_crypto.c`（HMAC-SHA1/Base64，走 mbedTLS）、`lwipopts.h`、`arch/`。
+- `bsp/openedv_stm32f4`：`eth.c`（MAC/RMII）、`eth_phy.c`（功能层，扫 MDIO）、`eth_phy_yt8512c.c`（芯片层）。
+- `lib/lwip_mqtt_common`：17/18 共用的 MQTT 回调与传感器上报。
+- `app/freertos/lwip_*`：15 个例程（6/7/8/9/10/10-1/10-2/11/12/12-1/13/14/16/17/18）。
+
+## 配置要点
+- `NO_SYS=0`、netconn/socket、DHCP/DNS/ICMP/IGMP、`LWIP_ALTCP`+`LWIP_MQTT`、SNTP（`SNTP_SET_SYSTEM_TIME` → app hook）；**无 TLS**（`LWIP_ALTCP_TLS*` 关闭，mbedTLS 仅 MD/SHA1/Base64）。
+- 硬件校验和：`CHECKSUM_*_IP/UDP/TCP/ICMP = 0`（MAC 卸载）。
+- 静态回退：`192.168.2.100/24`，gw/dns `192.168.2.1`；客户端例程目标 PC `192.168.2.8`。
+
+## 关键修复
+- **调度器前 ETH 中断（致命）**：`HAL_ETH_Start_IT()` 原在 `low_level_init()`（`netif_add` 内、调度器前）调用，插网线时 RX 中断触发 `FromISR` → `configASSERT` → HardFault、白屏。改为在 `eth_rx` 任务里启动。
+
+## 本轮整理（A–C）
+- A：`port` 对 `lwip` 的 include 改 PRIVATE（不再污染模块接口）；删孤儿构建文件（mbedtls `library/include/CMakeLists.txt`、lwip `Filelists.cmake`、`arch/init.h`）；补 `PROVENANCE`。
+- B：`lib/lwip_mqtt_common`；各 app 内联自己的 bring-up（不共享启动源）、本地常量；`lwip_demo_ui` 建队判空；netconn 接收按实长截断；8/11 断线重连；标题修正（10-1/10-2/12-1）；`lwip_16_https → lwip_16_http`；18 主机 `mqtt.heclouds.com`。
+- C：`eth_init` 失败传播；TX 超时清信号量；DHCP 回退等地址落地；`LWIP_RAND` 用 STM32 RNG；NTP/SNTP 先对 epoch `+8h` 再 `gmtime`（正确翻日）；线程栈加大；`CHECKSUM_CHECK_ICMP=0`。
+
+## 未完成 / 环境
+- DHCP 未在测试路由器上成功（用静态回退；路由器侧未排查）。
+- 17/18 仅占位凭据，只验证 DNS/TCP 连通性。
+- **TLS 属可选增强（未实现）**：若需要，另建示例 `lwip_19_..._tls`（mbedTLS TLS 客户端配置 + altcp_tls + 熵/分配器/时间/CA）。
+- 未启用 FreeRTOS 栈溢出检查（缺全局 hook）。
+
+## 测试
+- HIL：`test/hil/`（`hil_run.py` 等），结果见 `test/hil/report.md`；入口 `tool/hil.sh`。

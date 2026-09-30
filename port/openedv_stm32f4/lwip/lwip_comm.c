@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stm32f4xx_hal.h"
-
 #include "lwip/opt.h"
 #include "lwip/tcpip.h"
 #include "lwip/dhcp.h"
@@ -25,32 +23,41 @@
 
 #define LWIP_DHCP_WAIT_MS   10000U
 
-/* LWIP_RAND(): use the STM32 RNG when available, else fall back to rand(). */
-static uint8_t s_rng_ready;
+/* LWIP_RAND(): hardware RNG by default, C library rand() when disabled. */
+#if LWIP_RAND_USE_HW
+
+#include "stm32f4xx_hal.h"
+
+static RNG_HandleTypeDef s_rng;
+static uint8_t           s_rng_state;   /* 0 = unknown, 1 = unavailable, 2 = ready */
 
 unsigned int lwip_rand(void)
 {
-    uint32_t i;
+    uint32_t r;
 
-    if (s_rng_ready == 0U)
+    if (s_rng_state == 0U)
     {
         __HAL_RCC_RNG_CLK_ENABLE();
-        RNG->CR |= RNG_CR_RNGEN;
-        s_rng_ready = 1U;
+        s_rng.Instance = RNG;
+        s_rng_state = (HAL_RNG_Init(&s_rng) == HAL_OK) ? 2U : 1U;
     }
 
-    for (i = 0; i < 1000U; i++)
+    if (s_rng_state == 2U && HAL_RNG_GenerateRandomNumber(&s_rng, &r) == HAL_OK)
     {
-        if ((RNG->SR & RNG_SR_DRDY) != 0U)
-        {
-            return (unsigned int)RNG->DR;
-        }
+        return (unsigned int)r;
     }
-
-    RNG->SR &= ~(RNG_SR_SEIS | RNG_SR_CEIS);   /* clear seed/clock error flags */
 
     return (unsigned int)rand();
 }
+
+#else
+
+unsigned int lwip_rand(void)
+{
+    return (unsigned int)rand();
+}
+
+#endif /* LWIP_RAND_USE_HW */
 
 lwip_dev_t g_lwipdev =
 {

@@ -63,6 +63,12 @@ void lwip_sntp_set_time(uint32_t sec);
 #define LWIP_NETIF_API                  1
 #define LWIP_COMPAT_MUTEX               0
 
+/* LWIP_RAND() source (used for TCP ISN, DHCP/DNS IDs): 1 = STM32 hardware
+ * RNG (drv_rng), 0 = C library rand(). Default: hardware. */
+#ifndef LWIP_RAND_USE_HW
+#define LWIP_RAND_USE_HW                1
+#endif
+
 /* STM32F4xx ETH MAC checksum offload. */
 #define CHECKSUM_BY_HARDWARE            1
 #ifdef CHECKSUM_BY_HARDWARE
