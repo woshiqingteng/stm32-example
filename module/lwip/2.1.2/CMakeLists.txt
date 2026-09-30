@@ -3,7 +3,9 @@ file(GLOB LWIP_SRC CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ipv4/*.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/ipv6/*.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/api/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/netif/*.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/netif/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/apps/mqtt/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/apps/sntp/*.c)
 
 add_library(lwip STATIC EXCLUDE_FROM_ALL ${LWIP_SRC})
 

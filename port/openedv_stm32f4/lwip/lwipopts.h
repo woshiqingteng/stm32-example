@@ -9,18 +9,23 @@
 #ifndef LWIPOPTS_H
 #define LWIPOPTS_H
 
+#include <stdint.h>
+
+/* SNTP time hook, implemented by the port/app (see SNTP_SET_SYSTEM_TIME). */
+void lwip_sntp_set_time(uint32_t sec);
+
 /* The lwIP port uses the raw FreeRTOS port (no CMSIS-OS): NO_SYS=0. */
 #define NO_SYS                          0
 #define SYS_LIGHTWEIGHT_PROT            1
 
 #define MEM_ALIGNMENT                   4
-#define MEM_SIZE                        (16 * 1024)
+#define MEM_SIZE                        (24 * 1024)
 #define MEMP_NUM_PBUF                   16
 #define MEMP_NUM_UDP_PCB                8
-#define MEMP_NUM_TCP_PCB                8
+#define MEMP_NUM_TCP_PCB                10
 #define MEMP_NUM_TCP_PCB_LISTEN         4
 #define MEMP_NUM_TCP_SEG                120
-#define MEMP_NUM_SYS_TIMEOUT            8
+#define MEMP_NUM_SYS_TIMEOUT            12
 #define PBUF_POOL_SIZE                  8
 #define PBUF_POOL_BUFSIZE               LWIP_MEM_ALIGN_SIZE(TCP_MSS + 40 + PBUF_LINK_ENCAPSULATION_HLEN + PBUF_LINK_HLEN + 4)
 
@@ -38,6 +43,21 @@
 
 #define LWIP_DHCP                       1
 #define LWIP_DNS                        1
+
+/* Multicast (IGMP) and socket-level broadcast. */
+#define LWIP_IGMP                       1
+#define IP_SOF_BROADCAST                1
+#define IP_SOF_BROADCAST_RECV           1
+
+/* MQTT client (lwIP apps/mqtt). It uses the altcp layer; TLS is NOT enabled,
+ * the ALIENTEK examples connect in plain text. */
+#define LWIP_ALTCP                      1
+#define LWIP_MQTT                       1
+
+/* SNTP client with DNS-based server name. The app provides the hook. */
+#define LWIP_SNTP                       1
+#define SNTP_SERVER_DNS                 1
+#define SNTP_SET_SYSTEM_TIME            lwip_sntp_set_time
 
 #define LWIP_STATS                      0
 #define LWIP_NETIF_API                  1
