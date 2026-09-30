@@ -1,2 +1,2 @@
-set(MODULE_LWIP_VERSION 2.2.1)
+set(MODULE_LWIP_VERSION 2.1.2)
 add_subdirectory(${MODULE_LWIP_VERSION})

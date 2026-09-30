@@ -153,6 +153,16 @@ bsp_library(bsp_rng
     rng.c)
 target_link_libraries(bsp_rng PUBLIC drv_rng)
 
+# network
+bsp_library(bsp_eth_phy_yt8512c
+    eth_phy_yt8512c.c)
+bsp_library(bsp_eth_phy
+    eth_phy.c)
+target_link_libraries(bsp_eth_phy PUBLIC bsp_eth_phy_yt8512c)
+bsp_library(bsp_eth
+    eth.c)
+target_link_libraries(bsp_eth PUBLIC bsp_eth_phy bsp_io_expand bsp_delay drv_eth)
+
 # sensor
 bsp_library(bsp_als_ap3216c
     als_ap3216c.c)
@@ -206,6 +216,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
+    bsp_eth
     bsp_als_ap3216c bsp_als bsp_imu bsp_mag_st480mc bsp_mag bsp_temp_ds18b20 bsp_temp bsp_humi_dht11 bsp_humi
     bsp_exti bsp_pwr bsp_iap)
 

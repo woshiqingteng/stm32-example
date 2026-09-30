@@ -31,6 +31,10 @@ lib_wrapper(lib_dsp
     cmsis_dsp)
 lib_wrapper(lib_lvgl
     lvgl_port)
+lib_wrapper(lib_lwip
+    lwip_port)
+lib_wrapper(lib_mbedtls
+    mbedtls)
 
 # lib all
 function(lib_dir name)
