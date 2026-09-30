@@ -13,9 +13,10 @@ fault occurs.
 
 ## Configuration used
 - Board static fallback (permanent): **192.168.2.100/24, gw 192.168.2.1,
-  DNS 192.168.2.1** (the demos fall back to this when DHCP does not answer).
+  DNS 192.168.2.1** (used when DHCP does not answer).
 - Client demos (7/8/10/11) target the PC at **192.168.2.8**.
-- The router's DHCP did not answer the board; the static path was used.
+- For the board-initiated checks the PC firewall was opened for inbound
+  TCP/UDP 8080 (rules removed afterwards).
 
 ## Verified
 | check | result |
@@ -27,22 +28,24 @@ fault occurs.
 | KEY0 (7) | PH3 injection; write-watchpoint on `g_lwip_send_flag` hit with `0x80` |
 | NTP (13) | LCD `2026-09-30 22:57:12`; RTC `TR=0x00225729`, `DR=0x00268930` |
 | SNTP (14) | LCD `2026-09-30 22:58:00`; RTC `TR=0x00225815`, `DR=0x00268930` |
-| MQTT connectivity (18) | DNS resolves `mqtts.heclouds.com` and the TCP connect reaches the MQTT callback (`State:Disconnect`, expected with a placeholder key) |
+| MQTT connectivity (18) | DNS resolves `mqtts.heclouds.com`; TCP connect reaches the MQTT callback (`State:Disconnect`, expected with a placeholder key) |
 
-## Not fully exercised (environment)
-- **Board-initiated traffic** (TCP clients 8/11, UDP clients 7/10, broadcast
-  10-1, multicast 10-2): the Windows firewall drops unsolicited inbound to the
-  PC-side peer. Opening it needs an administrator rule:
-  ```
-  netsh advfirewall firewall add rule name="lwip-hil-udp" dir=in action=allow protocol=UDP localport=8080
-  netsh advfirewall firewall add rule name="lwip-hil-tcp" dir=in action=allow protocol=TCP localport=8080
-  ```
-  (delete afterwards with `... delete rule name="lwip-hil-udp"`).
-  The send trigger itself is confirmed (KEY0 watchpoint `0x80`).
-- **MQTT 17 (Aliyun)**: the composed host uses the placeholder ProductKey, so
-  it is NXDOMAIN; a real ProductKey is needed to test connectivity.
+### Board-initiated (PC firewall opened for the test)
+| app | peer | result |
+|---|---|---|
+| 7 netconn UDP | PC `udp-echo` | PC received `ALIENTEK DATA`; board RX echoed it |
+| 10 socket UDP | PC `udp-echo` | PC received; board RX echoed |
+| 8 netconn TCP client | PC `tcp-echo` | PC accepted the board; board RX echoed `ALIENTEK DATA` |
+| 11 socket TCP client | PC `tcp-echo` | PC accepted the board; board RX echoed |
+| 10-1 UDP broadcast | PC `udp-listen` | PC received `ALIENTEK DATA` |
+| 10-2 UDP multicast | PC `mcast-listen` (join on 192.168.2.8) | PC received `ALIENTEK DATA` |
+| 12 socket TCP server | PC connect | board RX showed `SERVER12-RX-TEST` |
+| 12-1 multi-connection | PC 2x connect | board RX showed `MULTI-A` |
+
+## Not exercised
+- **MQTT 17 (Aliyun)**: the composed host uses the placeholder ProductKey, so it
+  is NXDOMAIN; a real ProductKey is required to test connectivity.
 - **MQTT publish**: placeholder credentials, connectivity only.
-- Router DHCP was not granted; pktmon/netsh need administrator (denied).
 
 ## Tools
 `hil_fb_ocr.py`, `hil_key.py`, `pc_peer.py`, `hil_run.py` (see `README.md`).

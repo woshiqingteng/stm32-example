@@ -40,6 +40,7 @@ def udp_echo(port, seconds):
             try:
                 data, addr = s.recvfrom(2048)
                 print("rx %s from %s" % (data[:64], addr))
+                s.sendto(data, addr)
             except socket.timeout:
                 continue
 
@@ -50,13 +51,13 @@ def udp_listen(port, seconds):
     udp_echo(port, seconds)
 
 
-def mcast_listen(group, port, seconds):
+def mcast_listen(group, port, seconds, iface="0.0.0.0"):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("", port))
-    mreq = socket.inet_aton(group) + socket.inet_aton("0.0.0.0")
+    mreq = socket.inet_aton(group) + socket.inet_aton(iface)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    print("mcast-listen %s:%d" % (group, port))
+    print("mcast-listen %s:%d iface %s" % (group, port, iface))
 
     def loop():
         s.settimeout(0.5)
@@ -133,6 +134,7 @@ def main():
             args[1] if len(args) > 1 else "224.0.1.0",
             int(args[2]) if len(args) > 2 else 8080,
             seconds,
+            args[3] if len(args) > 3 else "0.0.0.0",
         )
     elif cmd == "tcp-echo":
         tcp_echo(int(args[1]) if len(args) > 1 else 8080, seconds)
