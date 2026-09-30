@@ -16,10 +16,10 @@
 #define ETH_PHY_SPEED_100M  100U
 
 /** @brief  MDIO register read: 0 on success, <0 on error. */
-typedef int32_t (*eth_phy_read_fn)(uint16_t reg, uint16_t *val);
+typedef int32_t (*eth_phy_read_fn)(uint8_t addr, uint16_t reg, uint16_t *val);
 
 /** @brief  MDIO register write: 0 on success, <0 on error. */
-typedef int32_t (*eth_phy_write_fn)(uint16_t reg, uint16_t val);
+typedef int32_t (*eth_phy_write_fn)(uint8_t addr, uint16_t reg, uint16_t val);
 
 /** @brief  Bind the MDIO accessors (called by eth_init()). */
 void eth_phy_bind(eth_phy_read_fn rd, eth_phy_write_fn wr);

@@ -17,11 +17,11 @@ ETH_HandleTypeDef g_eth_handle;
 static ETH_DMADescTypeDef s_eth_rx_desc[ETH_RX_DESC_CNT];
 static ETH_DMADescTypeDef s_eth_tx_desc[ETH_TX_DESC_CNT];
 
-static int32_t eth_phy_read(uint16_t reg, uint16_t *val)
+static int32_t eth_phy_read(uint8_t addr, uint16_t reg, uint16_t *val)
 {
     uint32_t tmp = 0;
 
-    if (HAL_ETH_ReadPHYRegister(&g_eth_handle, ETH_PHY_YT8512C_ADDR, reg, &tmp) != HAL_OK)
+    if (HAL_ETH_ReadPHYRegister(&g_eth_handle, addr, reg, &tmp) != HAL_OK)
     {
         return -1;
     }
@@ -30,9 +30,9 @@ static int32_t eth_phy_read(uint16_t reg, uint16_t *val)
     return 0;
 }
 
-static int32_t eth_phy_write(uint16_t reg, uint16_t val)
+static int32_t eth_phy_write(uint8_t addr, uint16_t reg, uint16_t val)
 {
-    if (HAL_ETH_WritePHYRegister(&g_eth_handle, ETH_PHY_YT8512C_ADDR, reg, val) != HAL_OK)
+    if (HAL_ETH_WritePHYRegister(&g_eth_handle, addr, reg, val) != HAL_OK)
     {
         return -1;
     }

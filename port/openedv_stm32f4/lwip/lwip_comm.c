@@ -72,7 +72,7 @@ void lwip_comm_fallback_ip(void)
 
     if (g_lwipdev.dhcp_used)
     {
-        dhcp_stop(&g_lwip_netif);
+        netifapi_dhcp_stop(&g_lwip_netif);
         g_lwipdev.dhcp_status = LWIP_DHCP_OFF;
     }
 

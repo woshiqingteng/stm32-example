@@ -26,6 +26,7 @@
 #include "eth_phy.h"
 
 #define TIME_WAITING_FOR_INPUT       (portMAX_DELAY)
+#define ETH_TX_TIMEOUT_MS            (50)
 #define INTERFACE_THREAD_STACK_SIZE  (512)
 #define NETIF_IN_TASK_PRIORITY       (2)
 
@@ -66,6 +67,7 @@ static void low_level_init(struct netif *netif)
 {
     uint32_t duplex = ETH_FULLDUPLEX_MODE;
     uint32_t speed  = ETH_SPEED_100M;
+    uint8_t  link_up;
     ETH_MACConfigTypeDef macconf = {0};
 
     eth_init(g_lwipdev.mac);
@@ -88,11 +90,12 @@ static void low_level_init(struct netif *netif)
     sys_thread_new("eth_rx", ethernetif_input, netif,
                    INTERFACE_THREAD_STACK_SIZE, NETIF_IN_TASK_PRIORITY);
 
-    if (eth_phy_link_up())
+    link_up = eth_phy_link_up();
+
+    if (link_up)
     {
         speed  = (eth_phy_speed() == ETH_PHY_SPEED_100M) ? ETH_SPEED_100M : ETH_SPEED_10M;
         duplex = eth_phy_full_duplex() ? ETH_FULLDUPLEX_MODE : ETH_HALFDUPLEX_MODE;
-        g_lwipdev.link_up = 1U;
     }
 
     HAL_ETH_GetMACConfig(&g_eth_handle, &macconf);
@@ -100,6 +103,16 @@ static void low_level_init(struct netif *netif)
     macconf.Speed = speed;
     HAL_ETH_SetMACConfig(&g_eth_handle, &macconf);
     HAL_ETH_Start_IT(&g_eth_handle);
+
+    if (link_up)
+    {
+        g_lwipdev.link_up = 1U;
+        netif_set_link_up(netif);
+    }
+    else
+    {
+        netif_set_link_down(netif);
+    }
 
     if (HAL_GetREVID() == 0x1000U)
     {
@@ -139,10 +152,17 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
     s_tx_config.pData    = p;
 
     pbuf_ref(p);
-    HAL_ETH_Transmit_IT(&g_eth_handle, &s_tx_config);
 
-    while (xSemaphoreTake(s_tx_semaphore, TIME_WAITING_FOR_INPUT) != pdTRUE)
+    if (HAL_ETH_Transmit_IT(&g_eth_handle, &s_tx_config) != HAL_OK)
     {
+        pbuf_free(p);
+        return ERR_IF;
+    }
+
+    if (xSemaphoreTake(s_tx_semaphore, pdMS_TO_TICKS(ETH_TX_TIMEOUT_MS)) != pdTRUE)
+    {
+        HAL_ETH_ReleaseTxPacket(&g_eth_handle);
+        return ERR_TIMEOUT;
     }
 
     HAL_ETH_ReleaseTxPacket(&g_eth_handle);
