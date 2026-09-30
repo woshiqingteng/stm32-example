@@ -5,6 +5,10 @@
  * The FMC bring-up is device independent; the concrete device parameters
  * (geometry, timing, mode register) come from a chip header such as
  * sdram_w9825g6kh.h.
+ *
+ * Prerequisite: configure the system clock before calling sdram_init(); the
+ * timing cycle counts and the refresh counter are derived from the current
+ * HCLK at call time. Re-run sdram_init() if the clock changes afterwards.
  */
 
 #ifndef BSP_SDRAM_H
@@ -27,13 +31,13 @@ typedef struct
     uint32_t cas_latency;     /*!< FMC_SDRAM_CAS_LATENCY_x */
     uint32_t sdclk_div;       /*!< FMC SDCLK = HCLK / sdclk_div (2 or 3) */
 
-    uint16_t tmrd;            /*!< load-to-active delay, SDCLK cycles */
-    uint16_t txsr;            /*!< exit self-refresh delay, SDCLK cycles */
-    uint16_t tras;            /*!< active-to-precharge (self-refresh) time */
-    uint16_t trc;             /*!< row cycle delay, SDCLK cycles */
-    uint16_t twr;             /*!< write recovery time, SDCLK cycles */
-    uint16_t trp;             /*!< row precharge delay, SDCLK cycles */
-    uint16_t trcd;            /*!< row-to-column delay, SDCLK cycles */
+    uint16_t tmrd_cycle;      /*!< load-to-active delay, in tCK */
+    uint16_t twr_cycle;       /*!< write recovery time, in tCK */
+    uint16_t txsr_ns;         /*!< exit self-refresh delay, ns */
+    uint16_t tras_ns;         /*!< active-to-precharge (self-refresh) time, ns */
+    uint16_t trc_ns;          /*!< row cycle delay, ns */
+    uint16_t trp_ns;          /*!< row precharge delay, ns */
+    uint16_t trcd_ns;         /*!< row-to-column delay, ns */
 
     uint16_t refresh_period_ms; /*!< tREF, device refresh period */
     uint16_t rows;              /*!< number of rows for the refresh counter */

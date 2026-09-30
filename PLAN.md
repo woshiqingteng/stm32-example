@@ -314,6 +314,13 @@
 - **刷新重算**：改为运行期公式 `count = tREF*(HAL_RCC_GetHCLKFreq()/div/1000)/rows − 20` → 90MHz 得 **683**（原写死 730/96MHz 的 TODO 删除）。
 - **验证**：`build all`/`all-freertos` RC=0、0 告警；烧录 `13_sdram`（`SDRAM Capacity:32768KB`、`KEY1` 图案 `0000 0001 …`）、`12_lcd_mcu`（`LCD ID:4384`，帧缓冲 `0xC0000000=ffffffff`）、`lv_29_keyboard`（横幅，帧缓冲 `f7be…`）均正常。
 
+## 执行记录（Phase 2，第十七批：SDRAM 时序按 ns 存、运行期换算）
+- **动机**：原时序是写死的周期数（按 90MHz），换钟（如 PLLN=336/392）会失配；改为**绝对时间存 ns、相对时间存 tCK**，运行期按实际 SDCLK 换算。
+- **`sdram_cfg_t`**：`tmrd_cycle`/`twr_cycle`（相对，tCK）+ `trcd_ns`/`trp_ns`/`trc_ns`/`tras_ns`/`txsr_ns`（绝对，ns）。
+- **`sdram.c`**：`#include <stdio.h>`；新增 `ns_to_cycle(ns, sdclk_hz)`（`ceil(ns*f)`、夹取 1..16，`>16` 打印告警并夹取）；`sdclk_hz=HAL_RCC_GetHCLKFreq()/div` 在组装前读取；`TRC ≥ TRAS+TRP` 守卫；刷新沿用同一 `sdclk_hz`。前提写入头注释：**先配时钟、后 `sdram_init()`**。
+- **预期换算**（PLLM=25、PLLP=2、AHB/1、SDCLK=HCLK/2）：PLLN360(HCLK180/SDCLK90)→`2/2/2/2/6/4/7`+683；PLLN336(168/84)→同周期+636；PLLN392(超频 196/98)→`trcd2/trp2/trc6/tras5/txsr8`+745（全部 ≤16、COUNT ≤8191）。
+- **验证**：`build all`/`all-freertos` RC=0、0 告警；默认钟（180MHz/SDCLK90）烧录 `13_sdram`（`32768KB`+干净图案）、`12_lcd_mcu`（帧缓冲 `0xC0000000=ffffffff`）无回归。
+
 ---
 
 # 计划：`test/` pytest 硬件在环全自动验证（01–10）

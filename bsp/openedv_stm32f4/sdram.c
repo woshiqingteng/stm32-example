@@ -5,6 +5,8 @@
  *          chip header (sdram_w9825g6kh.h -> W9825G6KH-6, 8192x512x16, 32 MB).
  */
 
+#include <stdio.h>
+
 #include "sdram.h"
 #include "sdram_w9825g6kh.h"
 #include "delay.h"
@@ -92,6 +94,26 @@ static void sdram_initialization_sequence(const sdram_cfg_t *cfg)
     sdram_send_command(SDRAM_CMD_LOAD_MODE, SDRAM_REFRESH_SINGLE, cfg->mode_register);
 }
 
+/* Convert a nanosecond time to the FMC cycle count (ceil), clamped to the
+ * 1..16 range that the FMC SDTR fields accept. */
+static uint32_t ns_to_cycle(uint16_t ns, uint32_t sdclk_hz)
+{
+    uint32_t n = ((uint32_t)ns * (sdclk_hz / 1000000U) + 999U) / 1000U;
+
+    if (n < 1U)
+    {
+        n = 1U;
+    }
+
+    if (n > 16U)
+    {
+        printf("sdram: timing over 16 cycles, clamped\r\n");
+        n = 16U;
+    }
+
+    return n;
+}
+
 void sdram_init(void)
 {
     const sdram_cfg_t *cfg = &g_sdram_w9825g6kh;
@@ -114,19 +136,27 @@ void sdram_init(void)
     g_sdram_handle.Init.ReadBurst           = FMC_SDRAM_RBURST_ENABLE;
     g_sdram_handle.Init.ReadPipeDelay       = FMC_SDRAM_RPIPE_DELAY_1;
 
-    timing.LoadToActiveDelay    = cfg->tmrd;
-    timing.ExitSelfRefreshDelay = cfg->txsr;
-    timing.SelfRefreshTime      = cfg->tras;
-    timing.RowCycleDelay        = cfg->trc;
-    timing.WriteRecoveryTime    = cfg->twr;
-    timing.RPDelay              = cfg->trp;
-    timing.RCDDelay             = cfg->trcd;
+    /* SDCLK from the clock configured before this call (see the header). */
+    sdclk_hz = HAL_RCC_GetHCLKFreq() / cfg->sdclk_div;
+
+    timing.LoadToActiveDelay    = cfg->tmrd_cycle;
+    timing.ExitSelfRefreshDelay = ns_to_cycle(cfg->txsr_ns, sdclk_hz);
+    timing.SelfRefreshTime      = ns_to_cycle(cfg->tras_ns, sdclk_hz);
+    timing.RowCycleDelay        = ns_to_cycle(cfg->trc_ns, sdclk_hz);
+    timing.WriteRecoveryTime    = cfg->twr_cycle;
+    timing.RPDelay              = ns_to_cycle(cfg->trp_ns, sdclk_hz);
+    timing.RCDDelay             = ns_to_cycle(cfg->trcd_ns, sdclk_hz);
+
+    /* The FMC requires TRC >= TRAS + TRP. */
+    if (timing.RowCycleDelay < (timing.SelfRefreshTime + timing.RPDelay))
+    {
+        timing.RowCycleDelay = timing.SelfRefreshTime + timing.RPDelay;
+    }
 
     (void)HAL_SDRAM_Init(&g_sdram_handle, &timing);
     sdram_initialization_sequence(cfg);
 
     /* COUNT = (tREF / rows) * f_SDCLK - 20 (STM32 FMC refresh counter). */
-    sdclk_hz = HAL_RCC_GetHCLKFreq() / cfg->sdclk_div;
     refresh_count = (((uint32_t)cfg->refresh_period_ms * (sdclk_hz / 1000U)) / cfg->rows) - 20U;
     (void)HAL_SDRAM_ProgramRefreshRate(&g_sdram_handle, refresh_count);
 }

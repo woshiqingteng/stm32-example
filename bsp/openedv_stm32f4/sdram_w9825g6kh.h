@@ -3,9 +3,9 @@
  * @brief   Winbond W9825G6KH-6 SDRAM device parameters.
  *
  * 4 banks x 8192 rows x 512 columns x 16-bit = 32 MB, 8K refresh / 64 ms.
- * Timings are SDCLK cycle counts at 90 MHz (tCK = 11.1 ns) taken from the
- * -6 grade datasheet:
- *   tRCD 18 ns, tRP 18 ns, tRC 60 ns, tRAS 42 ns, tWR 2 tCK, tXSR 72 ns.
+ * Timings from the -6 grade datasheet: absolute values in ns (tRCD 18, tRP 18,
+ * tRC 60, tRAS 42, tXSR 72) and relative values in tCK (tMRD 2, tWR 2); the
+ * FMC cycle counts are computed at run time from the actual SDCLK.
  * Included by sdram.c only.
  */
 
@@ -23,13 +23,13 @@ static const sdram_cfg_t g_sdram_w9825g6kh =
     .cas_latency = FMC_SDRAM_CAS_LATENCY_3,
     .sdclk_div  = 2U,                            /* SDCLK = HCLK / 2 */
 
-    .tmrd = 2U,          /* 2 tCK */
-    .txsr = 7U,          /* > 72 ns @ 90 MHz */
-    .tras = 4U,          /* > 42 ns @ 90 MHz */
-    .trc  = 6U,          /* > 60 ns @ 90 MHz */
-    .twr  = 2U,          /* 2 tCK */
-    .trp  = 2U,          /* > 18 ns @ 90 MHz */
-    .trcd = 2U,          /* > 18 ns @ 90 MHz */
+    .tmrd_cycle = 2U,    /* 2 tCK */
+    .twr_cycle  = 2U,    /* 2 tCK */
+    .txsr_ns = 72U,
+    .tras_ns = 42U,
+    .trc_ns  = 60U,
+    .trp_ns  = 18U,
+    .trcd_ns = 18U,
 
     .refresh_period_ms = 64U,
     .rows = 8192U,
