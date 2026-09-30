@@ -38,4 +38,8 @@ uint8_t lwip_comm_init(void);
 /** @brief  Stop DHCP and apply the built-in static address (DHCP fallback). */
 void    lwip_comm_fallback_ip(void);
 
+/** @brief  Block until an address is ready (DHCP, with a static fallback).
+ *  Call from a task after the scheduler has started. */
+void    lwip_comm_wait_ip(void);
+
 #endif /* PORT_LWIP_COMM_H */

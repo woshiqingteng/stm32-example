@@ -3,6 +3,7 @@
  * @brief   lwIP stack/network interface bring-up.
  */
 
+#include <stdio.h>
 #include <string.h>
 
 #include "lwip/opt.h"
@@ -11,8 +12,13 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netifapi.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "lwip_comm.h"
 #include "ethernetif.h"
+
+#define LWIP_DHCP_WAIT_MS   10000U
 
 lwip_dev_t g_lwipdev =
 {
@@ -81,4 +87,24 @@ void lwip_comm_fallback_ip(void)
     IP4_ADDR(&gateway, g_lwipdev.gateway[0], g_lwipdev.gateway[1], g_lwipdev.gateway[2], g_lwipdev.gateway[3]);
 
     netifapi_netif_set_addr(&g_lwip_netif, &ip, &netmask, &gateway);
+}
+
+void lwip_comm_wait_ip(void)
+{
+    if (g_lwipdev.dhcp_used)
+    {
+        TickType_t start = xTaskGetTickCount();
+
+        while (!dhcp_supplied_address(&g_lwip_netif))
+        {
+            if ((xTaskGetTickCount() - start) > pdMS_TO_TICKS(LWIP_DHCP_WAIT_MS))
+            {
+                printf("net: dhcp timeout, using static ip\r\n");
+                lwip_comm_fallback_ip();
+                vTaskDelay(pdMS_TO_TICKS(200));
+                break;
+            }
+            vTaskDelay(pdMS_TO_TICKS(200));
+        }
+    }
 }

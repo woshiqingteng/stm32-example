@@ -6,14 +6,14 @@ add_library(lwip_port STATIC EXCLUDE_FROM_ALL
     ${CMAKE_CURRENT_SOURCE_DIR}/sys_arch.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ethernetif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/lwip_comm.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls_rng.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lwip_crypto.c)
 
 target_include_directories(lwip_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/arch)
 
 target_link_libraries(lwip_port PUBLIC
-    lwip bsp_eth bsp_delay bsp_rng mbedtls)
+    lwip bsp_eth bsp_delay mbedtls)
 
 # The port is FreeRTOS-only; freertos is absent on bare-metal builds, where this
 # target is never linked.
