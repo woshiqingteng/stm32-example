@@ -7,7 +7,6 @@
 
 #include "bsp.h"
 #include "lcd.h"
-#include "text.h"
 
 #define UI_KEY_PRIO     5
 #define UI_DISP_PRIO    5
@@ -22,7 +21,6 @@
 
 QueueHandle_t    g_display_queue;
 uint8_t          g_lwip_send_flag;
-volatile uint8_t g_lwip_font_ok;
 
 static void ui_key_task(void *arg)
 {
@@ -111,12 +109,4 @@ void lwip_demo_ui_state(const char *text, uint32_t color)
 void lwip_demo_ui_show(uint16_t x, uint16_t y, uint8_t size, const char *en, uint32_t color)
 {
     lcd_show_string(x, y, lcd_info()->width - x - 5, size, (lcd_font_size_t)size, en, color);
-}
-
-void lwip_demo_ui_show_cn(uint16_t x, uint16_t y, uint8_t size, const char *gbk, uint32_t color)
-{
-    if (g_lwip_font_ok)
-    {
-        text_show_string(x, y, lcd_info()->width - x - 5, size, (char *)gbk, size, 1U, color);
-    }
 }

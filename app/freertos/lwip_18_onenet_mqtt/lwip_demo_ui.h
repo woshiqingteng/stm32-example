@@ -20,7 +20,6 @@
 
 extern QueueHandle_t    g_display_queue;
 extern uint8_t          g_lwip_send_flag;
-extern volatile uint8_t g_lwip_font_ok;   /* 1 when the GBK font store is valid */
 
 /** @brief  Draw the fixed UI header and start the key/display/LED tasks. */
 void lwip_demo_ui_start(const char *title);
@@ -39,8 +38,5 @@ void lwip_demo_ui_state(const char *text, uint32_t color);
 
 /** @brief  Draw one ASCII string (EN) at (x, y). */
 void lwip_demo_ui_show(uint16_t x, uint16_t y, uint8_t size, const char *en, uint32_t color);
-
-/** @brief  Draw one GBK string (CN) at (x, y); no-op without the font store. */
-void lwip_demo_ui_show_cn(uint16_t x, uint16_t y, uint8_t size, const char *gbk, uint32_t color);
 
 #endif /* LWIP_DEMO_UI_H */

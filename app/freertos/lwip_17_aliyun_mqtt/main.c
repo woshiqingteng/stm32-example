@@ -16,7 +16,6 @@
 #include "bsp.h"
 #include "lcd.h"
 #include "sdram.h"
-#include "text.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -179,7 +178,6 @@ int main(void)
     lcd_init();
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
-    g_lwip_font_ok = (fonts_init() == 0U) ? 1U : 0U;
 
     lwip_comm_init();
     lwip_demo_ui_start("lwIP MQTTAliyun");
