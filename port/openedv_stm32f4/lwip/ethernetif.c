@@ -102,7 +102,9 @@ static void low_level_init(struct netif *netif)
     macconf.DuplexMode = duplex;
     macconf.Speed = speed;
     HAL_ETH_SetMACConfig(&g_eth_handle, &macconf);
-    HAL_ETH_Start_IT(&g_eth_handle);
+    /* NOTE: HAL_ETH_Start_IT() is deferred to the eth_rx task so the ETH
+     * interrupt cannot fire (and call FreeRTOS FromISR APIs) before the
+     * scheduler is running (low_level_init runs during netif_add). */
 
     if (link_up)
     {
@@ -188,6 +190,9 @@ static void ethernetif_input(void *argument)
     struct pbuf *p;
 
     s_netif = netif;
+
+    /* Enable the MAC RX/TX interrupts only once the scheduler is running. */
+    HAL_ETH_Start_IT(&g_eth_handle);
 
     for (;;)
     {
