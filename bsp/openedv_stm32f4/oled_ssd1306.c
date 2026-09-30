@@ -59,10 +59,10 @@ typedef enum
 #define OLED_D7_PORT    GPIOB
 #define OLED_D7_PIN     GPIO_PIN_9
 
-/* MSP init groups (per GPIO port). */
-#define OLED_GPIOB_PINS (OLED_CS_PIN | OLED_RS_PIN | OLED_RD_PIN | OLED_D6_PIN | OLED_D7_PIN)
-#define OLED_GPIOC_PINS (OLED_D0_PIN | OLED_D1_PIN | OLED_D2_PIN | OLED_D3_PIN | OLED_D4_PIN)
-#define OLED_GPIOD_PINS (OLED_D5_PIN)
+/* Data bus init groups (per GPIO port). */
+#define OLED_DATA_GPIOB_PINS (OLED_D6_PIN | OLED_D7_PIN)
+#define OLED_DATA_GPIOC_PINS (OLED_D0_PIN | OLED_D1_PIN | OLED_D2_PIN | OLED_D3_PIN | OLED_D4_PIN)
+#define OLED_DATA_GPIOD_PINS (OLED_D5_PIN)
 
 #define OLED_DATA_BIT(data, bit, port, pin) \
     HAL_GPIO_WritePin((port), (pin), ((((data) >> (bit)) & 0x01U) != 0U) ? \
@@ -94,20 +94,27 @@ static void oled_bus_init(void)
     gpio.Pull  = GPIO_PULLUP;
     gpio.Speed = GPIO_SPEED_FREQ_HIGH;
 
+    /* Reset line first. */
     gpio.Pin = SSD1306_RST_PIN;
     HAL_GPIO_Init(SSD1306_RST_PORT, &gpio);
 
-    gpio.Pin = OLED_GPIOB_PINS;
+    /* Control lines. */
+    gpio.Pin = OLED_CS_PIN;
     HAL_GPIO_Init(OLED_CS_PORT, &gpio);
-
-    gpio.Pin = OLED_GPIOC_PINS;
-    HAL_GPIO_Init(OLED_D0_PORT, &gpio);
-
-    gpio.Pin = OLED_GPIOD_PINS;
-    HAL_GPIO_Init(OLED_D5_PORT, &gpio);
-
+    gpio.Pin = OLED_RS_PIN;
+    HAL_GPIO_Init(OLED_RS_PORT, &gpio);
+    gpio.Pin = OLED_RD_PIN;
+    HAL_GPIO_Init(OLED_RD_PORT, &gpio);
     gpio.Pin = OLED_WR_PIN;
     HAL_GPIO_Init(OLED_WR_PORT, &gpio);
+
+    /* Data bus: D0-D7 (GPIOB/C/D). */
+    gpio.Pin = OLED_DATA_GPIOB_PINS;
+    HAL_GPIO_Init(OLED_D6_PORT, &gpio);
+    gpio.Pin = OLED_DATA_GPIOC_PINS;
+    HAL_GPIO_Init(OLED_D0_PORT, &gpio);
+    gpio.Pin = OLED_DATA_GPIOD_PINS;
+    HAL_GPIO_Init(OLED_D5_PORT, &gpio);
 
     HAL_GPIO_WritePin(OLED_WR_PORT, OLED_WR_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(OLED_RD_PORT, OLED_RD_PIN, GPIO_PIN_SET);
