@@ -1,10 +1,12 @@
 /**
- * @file    eeprom_at24cxx.h
- * @brief   AT24Cxx series I2C EEPROM (chip driver): address encoding + access.
+ * @file    eeprom_at24c02.h
+ * @brief   AT24C02 I2C EEPROM (chip driver): address encoding + access.
+ *
+ * The address-encoding branch below also covers the wider AT24Cxx series.
  */
 
-#ifndef BSP_EEPROM_AT24CXX_H
-#define BSP_EEPROM_AT24CXX_H
+#ifndef BSP_EEPROM_AT24C02_H
+#define BSP_EEPROM_AT24C02_H
 
 #include <stdint.h>
 
@@ -22,12 +24,12 @@
 #define EE_TYPE     AT24C02
 
 /** @brief  Bring up the shared software IIC bus. */
-void eeprom_at24cxx_init(void);
+void eeprom_at24c02_init(void);
 
 /** @brief  Probe the device (write 0x55 to the last address, read it back). */
-uint8_t eeprom_at24cxx_check(void);
+uint8_t eeprom_at24c02_check(void);
 
-uint8_t eeprom_at24cxx_read_one_byte(uint16_t addr);
-void    eeprom_at24cxx_write_one_byte(uint16_t addr, uint8_t data);
+uint8_t eeprom_at24c02_read_one_byte(uint16_t addr);
+void    eeprom_at24c02_write_one_byte(uint16_t addr, uint8_t data);
 
-#endif /* BSP_EEPROM_AT24CXX_H */
+#endif /* BSP_EEPROM_AT24C02_H */

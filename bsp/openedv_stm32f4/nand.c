@@ -8,11 +8,18 @@
 
 #include <stdio.h>
 
+#include "stm32f4xx_hal.h"
 #include "nand.h"
+#include "nand_mt29f4g08.h"
 #include "delay.h"
 
-NAND_HandleTypeDef g_nand_handle;
-nand_attriute      nand_dev;
+/* Ready/Busy pin (board-level). */
+#define NAND_RB_GPIO_PORT    GPIOD
+#define NAND_RB_GPIO_PIN     GPIO_PIN_6
+#define NAND_RB              HAL_GPIO_ReadPin(NAND_RB_GPIO_PORT, NAND_RB_GPIO_PIN)
+
+static NAND_HandleTypeDef g_nand_handle;
+nand_attriute             nand_dev;
 
 void nand_delay(volatile uint32_t i)
 {
@@ -120,6 +127,7 @@ uint8_t nand_init(void)
     GPIO_InitTypeDef          gpio_init = {0};
     FMC_NAND_PCC_TimingTypeDef com_timing = {0};
     FMC_NAND_PCC_TimingTypeDef att_timing = {0};
+    const nand_device_t      *dev;
 
     /* ---- MSP begin: FMC + PD/PE/PG NAND pins ---- */
     __HAL_RCC_FMC_CLK_ENABLE();
@@ -174,55 +182,22 @@ uint8_t nand_init(void)
     nand_dev.id = nand_readid();
     (void)nand_modeset(4);
 
-    if (nand_dev.id == MT29F16G08ABABA)
-    {
-        nand_dev.page_totalsize = 4320;
-        nand_dev.page_mainsize  = 4096;
-        nand_dev.page_sparesize = 224;
-        nand_dev.block_pagenum  = 128;
-        nand_dev.plane_blocknum = 2048;
-        nand_dev.block_totalnum = 4096;
-    }
-    else if (nand_dev.id == MT29F4G08ABADA)
-    {
-        nand_dev.page_totalsize = 2112;
-        nand_dev.page_mainsize  = 2048;
-        nand_dev.page_sparesize = 64;
-        nand_dev.block_pagenum  = 64;
-        nand_dev.plane_blocknum = 2048;
-        nand_dev.block_totalnum = 4096;
-    }
-    else if (nand_dev.id == FSNS8B004G)
-    {
-        nand_dev.page_totalsize = 4160;
-        nand_dev.page_mainsize  = 4096;
-        nand_dev.page_sparesize = 64;
-        nand_dev.block_pagenum  = 64;
-        nand_dev.plane_blocknum = 1024;
-        nand_dev.block_totalnum = 2048;
-    }
-    else
+    dev = nand_mt29f4g08_probe(nand_dev.id);
+
+    if (dev == 0)
     {
         return 1U;
     }
 
+    nand_dev.page_totalsize   = dev->page_totalsize;
+    nand_dev.page_mainsize    = dev->page_mainsize;
+    nand_dev.page_sparesize   = dev->page_sparesize;
+    nand_dev.block_pagenum    = dev->block_pagenum;
+    nand_dev.plane_blocknum   = dev->plane_blocknum;
+    nand_dev.block_totalnum   = dev->block_totalnum;
+    nand_dev.spare_ecc_offset = dev->spare_ecc_offset;
+
     return 0U;
-}
-
-void nand_get_info(nand_info_t *info)
-{
-    if (info == 0)
-    {
-        return;
-    }
-
-    info->id              = nand_dev.id;
-    info->page_mainsize   = nand_dev.page_mainsize;
-    info->block_pagenum   = nand_dev.block_pagenum;
-    info->block_totalnum  = nand_dev.block_totalnum;
-    info->size_mb         = ((uint32_t)nand_dev.block_totalnum / 1024U) *
-                            ((uint32_t)nand_dev.page_mainsize / 1024U) *
-                            (uint32_t)nand_dev.block_pagenum;
 }
 
 uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint16_t numbyte_to_read)
@@ -283,7 +258,7 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
             FMC_Bank2_3->PCR3 &= ~(1U << 6);                    /* disable ECC */
         }
 
-        i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
+        i = (uint16_t)(nand_dev.page_mainsize + nand_dev.spare_ecc_offset + eccstart * 4U);
         nand_delay(NAND_TRHW_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x05; /* random data output */
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
@@ -302,7 +277,7 @@ uint8_t nand_readpage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint1
         {
             if (nand_dev.ecc_rdbuf[i + eccstart] != nand_dev.ecc_hdbuf[i + eccstart])
             {
-                printf("err hd,rd:0x%x,0x%x\r\n", nand_dev.ecc_hdbuf[i + eccstart], nand_dev.ecc_rdbuf[i + eccstart]);
+                printf("err hd,rd:0x%x,0x%x\r\n", (unsigned int)nand_dev.ecc_hdbuf[i + eccstart], (unsigned int)nand_dev.ecc_rdbuf[i + eccstart]);
                 printf("eccnum,eccstart:%d,%d\r\n", eccnum, eccstart);
                 printf("PageNum,ColNum:%d,%d\r\n", (int)pagenum, (int)colnum);
 
@@ -418,7 +393,7 @@ uint8_t nand_writepage(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uint
             FMC_Bank2_3->PCR3 &= ~(1U << 6);
         }
 
-        i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
+        i = (uint16_t)(nand_dev.page_mainsize + nand_dev.spare_ecc_offset + eccstart * 4U);
         nand_delay(NAND_TADL_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x85U; /* write spare */
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;
@@ -502,18 +477,7 @@ uint8_t nand_writespare(uint32_t pagenum, uint16_t colnum, uint8_t *pbuffer, uin
 
 uint8_t nand_eraseblock(uint32_t blocknum)
 {
-    if (nand_dev.id == MT29F16G08ABABA)
-    {
-        blocknum <<= 7;
-    }
-    else if (nand_dev.id == MT29F4G08ABADA)
-    {
-        blocknum <<= 6;
-    }
-    else if (nand_dev.id == FSNS8B004G)
-    {
-        blocknum <<= 6;
-    }
+    blocknum *= nand_dev.block_pagenum;
 
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD) = NAND_ERASE0;
     *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)blocknum;
@@ -656,7 +620,7 @@ uint8_t nand_copypage_withwrite(uint32_t source_pagenum, uint32_t dest_pagenum, 
             FMC_Bank2_3->PCR3 &= ~(1U << 6);
         }
 
-        i = (uint16_t)(nand_dev.page_mainsize + 0x10U + eccstart * 4U);
+        i = (uint16_t)(nand_dev.page_mainsize + nand_dev.spare_ecc_offset + eccstart * 4U);
         nand_delay(NAND_TADL_DELAY_COUNT);
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_CMD)  = 0x85;
         *(volatile uint8_t *)(NAND_ADDRESS | NAND_ADDR) = (uint8_t)i;

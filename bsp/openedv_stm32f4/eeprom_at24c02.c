@@ -1,6 +1,6 @@
 /**
- * @file    eeprom_at24cxx.c
- * @brief   AT24Cxx series I2C EEPROM (chip driver).
+ * @file    eeprom_at24c02.c
+ * @brief   AT24C02 I2C EEPROM (chip driver).
  *
  * Address encoding follows the vendor driver: devices larger than 24C16 send a
  * 16-bit address as two bytes, smaller ones fold the upper address bits into
@@ -9,18 +9,18 @@
 
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
-#include "eeprom_at24cxx.h"
+#include "eeprom_at24c02.h"
 #include "delay.h"
 
-#define AT24CXX_WRITE_DELAY_MS 10U
-#define AT24CXX_CHECK_VALUE    0x55U
+#define AT24C02_WRITE_DELAY_MS 10U
+#define AT24C02_CHECK_VALUE    0x55U
 
-void eeprom_at24cxx_init(void)
+void eeprom_at24c02_init(void)
 {
     i2c_init();
 }
 
-uint8_t eeprom_at24cxx_read_one_byte(uint16_t addr)
+uint8_t eeprom_at24c02_read_one_byte(uint16_t addr)
 {
     uint8_t temp = 0;
 
@@ -50,7 +50,7 @@ uint8_t eeprom_at24cxx_read_one_byte(uint16_t addr)
     return temp;
 }
 
-void eeprom_at24cxx_write_one_byte(uint16_t addr, uint8_t data)
+void eeprom_at24c02_write_one_byte(uint16_t addr, uint8_t data)
 {
     i2c_start();
 
@@ -73,23 +73,23 @@ void eeprom_at24cxx_write_one_byte(uint16_t addr, uint8_t data)
     i2c_wait_ack();
     i2c_stop();
 
-    delay_ms(AT24CXX_WRITE_DELAY_MS);
+    delay_ms(AT24C02_WRITE_DELAY_MS);
 }
 
-uint8_t eeprom_at24cxx_check(void)
+uint8_t eeprom_at24c02_check(void)
 {
     uint8_t temp;
     uint16_t addr = EE_TYPE;
 
-    temp = eeprom_at24cxx_read_one_byte(addr);
+    temp = eeprom_at24c02_read_one_byte(addr);
 
-    if (temp == AT24CXX_CHECK_VALUE)
+    if (temp == AT24C02_CHECK_VALUE)
     {
         return 0;
     }
 
-    eeprom_at24cxx_write_one_byte(addr, AT24CXX_CHECK_VALUE);
-    temp = eeprom_at24cxx_read_one_byte(addr);
+    eeprom_at24c02_write_one_byte(addr, AT24C02_CHECK_VALUE);
+    temp = eeprom_at24c02_read_one_byte(addr);
 
-    return (temp == AT24CXX_CHECK_VALUE) ? 0U : 1U;
+    return (temp == AT24C02_CHECK_VALUE) ? 0U : 1U;
 }

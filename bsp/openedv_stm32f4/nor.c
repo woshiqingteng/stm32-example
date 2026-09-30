@@ -1,16 +1,13 @@
 /**
  * @file    nor.c
- * @brief   W25Qxx SPI NOR flash driver, ported from the vendor NORFLASH example
- *          and re-based onto the shared spi driver (SPI_BUS_NORFLASH, CS = PF6).
+ * @brief   SPI NOR flash storage: device-independent command algorithms
+ *          (read / page program / sector erase) over the chip driver
+ *          (nor_w25q256jv, which owns the SPI bus and chip select).
  */
 
-#include "stm32f4xx_hal.h"
-#include "spi.h"
 #include "nor.h"
+#include "nor_w25q256jv.h"
 #include "delay.h"
-
-#define NOR_CS_HIGH()  HAL_GPIO_WritePin(NOR_CS_GPIO_PORT, NOR_CS_GPIO_PIN, GPIO_PIN_SET)
-#define NOR_CS_LOW()   HAL_GPIO_WritePin(NOR_CS_GPIO_PORT, NOR_CS_GPIO_PIN, GPIO_PIN_RESET)
 
 /* Command set. */
 #define FLASH_WriteEnable       0x06U
@@ -21,19 +18,22 @@
 #define FLASH_ReadData          0x03U
 #define FLASH_PageProgram       0x02U
 #define FLASH_SectorErase       0x20U
-#define FLASH_ManufactDeviceID  0x90U
 #define FLASH_Enable4ByteAddr   0xB7U
 
 #define FLASH_SR3_ADP_BIT       0x02U
 #define FLASH_SR1_BUSY_BIT      0x01U
 
-uint16_t g_nor_type = BY25Q256;
+#define NOR_4BYTE_MODE_ADDR_BYTES   4U
+#define NOR_4BYTE_MODE_SETTLE_MS    20U
 
 static uint8_t g_nor_buf[NOR_SECTOR_SIZE_BYTE];
 
+#define NOR_CS_LOW()   nor_w25q256jv_cs_low()
+#define NOR_CS_HIGH()  nor_w25q256jv_cs_high()
+
 static uint8_t nor_spi_rw(uint8_t data)
 {
-    return spi_read_write_byte(SPI_BUS_NORFLASH, data);
+    return nor_w25q256jv_spi_rw(data);
 }
 
 /** @brief  Read one of the three status registers (1..3). */
@@ -80,7 +80,7 @@ static void nor_write_enable(void)
 
 static void nor_send_address(uint32_t address)
 {
-    if ((g_nor_type == W25Q256) || (g_nor_type == BY25Q256))
+    if (nor_w25q256jv_addr_bytes() == NOR_4BYTE_MODE_ADDR_BYTES)
     {
         (void)nor_spi_rw((uint8_t)(address >> 24));
     }
@@ -100,26 +100,10 @@ static void nor_write_status_reg3(uint8_t sr)
 
 void nor_init(void)
 {
-    GPIO_InitTypeDef gpio_init = {0};
+    nor_w25q256jv_dev_init();
+    (void)nor_w25q256jv_probe();
 
-    /* ---- MSP begin: CS clock + pin ---- */
-    __HAL_RCC_GPIOF_CLK_ENABLE();
-
-    gpio_init.Pin   = NOR_CS_GPIO_PIN;
-    gpio_init.Mode  = GPIO_MODE_OUTPUT_PP;
-    gpio_init.Pull  = GPIO_PULLUP;
-    gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(NOR_CS_GPIO_PORT, &gpio_init);
-    /* ---- MSP end ---- */
-
-    NOR_CS_HIGH();
-
-    spi_init(SPI_BUS_NORFLASH);
-    spi_set_speed(SPI_BUS_NORFLASH, SPI_BAUDRATEPRESCALER_2);
-
-    g_nor_type = nor_read_id();
-
-    if ((g_nor_type == W25Q256) || (g_nor_type == BY25Q256))
+    if (nor_w25q256jv_addr_bytes() == NOR_4BYTE_MODE_ADDR_BYTES)
     {
         uint8_t sr3 = nor_read_sr(3);
 
@@ -128,7 +112,7 @@ void nor_init(void)
             nor_write_enable();
             sr3 |= FLASH_SR3_ADP_BIT;
             nor_write_status_reg3(sr3);
-            delay_ms(20U);
+            delay_ms(NOR_4BYTE_MODE_SETTLE_MS);
 
             NOR_CS_LOW();
             (void)nor_spi_rw(FLASH_Enable4ByteAddr);
@@ -139,18 +123,7 @@ void nor_init(void)
 
 uint16_t nor_read_id(void)
 {
-    uint16_t deviceid;
-
-    NOR_CS_LOW();
-    (void)nor_spi_rw(FLASH_ManufactDeviceID);
-    (void)nor_spi_rw(0x00U);
-    (void)nor_spi_rw(0x00U);
-    (void)nor_spi_rw(0x00U);
-    deviceid  = (uint16_t)(nor_spi_rw(0xFFU) << 8);
-    deviceid |= nor_spi_rw(0xFFU);
-    NOR_CS_HIGH();
-
-    return deviceid;
+    return nor_w25q256jv_probe();
 }
 
 void nor_read(uint8_t *pbuf, uint32_t addr, uint16_t datalen)

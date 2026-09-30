@@ -85,21 +85,26 @@ target_link_libraries(bsp_internal_flash PUBLIC drv_flash)
 bsp_library(bsp_sdram
     sdram.c)
 target_link_libraries(bsp_sdram PUBLIC drv_fmc)
+bsp_library(bsp_nand_mt29f4g08
+    nand_mt29f4g08.c)
 bsp_library(bsp_nand
     nand.c)
-target_link_libraries(bsp_nand PUBLIC drv_fmc)
+target_link_libraries(bsp_nand PUBLIC drv_fmc bsp_nand_mt29f4g08)
 bsp_library(bsp_ftl
     ftl.c)
 target_link_libraries(bsp_ftl PUBLIC bsp_nand)
+bsp_library(bsp_nor_w25q256jv
+    nor_w25q256jv.c)
+target_link_libraries(bsp_nor_w25q256jv PUBLIC bsp_spi bsp_delay)
 bsp_library(bsp_nor
     nor.c)
-target_link_libraries(bsp_nor PUBLIC bsp_spi)
-bsp_library(bsp_eeprom_at24cxx
-    eeprom_at24cxx.c)
-target_link_libraries(bsp_eeprom_at24cxx PUBLIC bsp_i2c bsp_delay)
+target_link_libraries(bsp_nor PUBLIC bsp_nor_w25q256jv)
+bsp_library(bsp_eeprom_at24c02
+    eeprom_at24c02.c)
+target_link_libraries(bsp_eeprom_at24c02 PUBLIC bsp_i2c bsp_delay)
 bsp_library(bsp_eeprom
     eeprom.c)
-target_link_libraries(bsp_eeprom PUBLIC bsp_eeprom_at24cxx)
+target_link_libraries(bsp_eeprom PUBLIC bsp_eeprom_at24c02)
 bsp_library(bsp_sdio
     sdio.c)
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
@@ -149,34 +154,34 @@ bsp_library(bsp_rng
 target_link_libraries(bsp_rng PUBLIC drv_rng)
 
 # sensor
-bsp_library(bsp_ap3216c
-    ap3216c.c)
-target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
+bsp_library(bsp_als_ap3216c
+    als_ap3216c.c)
+target_link_libraries(bsp_als_ap3216c PUBLIC bsp_i2c)
 bsp_library(bsp_als
     als.c)
-target_link_libraries(bsp_als PUBLIC bsp_ap3216c)
+target_link_libraries(bsp_als PUBLIC bsp_als_ap3216c)
 bsp_library(bsp_imu_sh3001
     imu_sh3001.c)
 target_link_libraries(bsp_imu_sh3001 PUBLIC bsp_i2c)
 bsp_library(bsp_imu
     imu.c)
 target_link_libraries(bsp_imu PUBLIC bsp_imu_sh3001 m bsp_delay)
-bsp_library(bsp_st480mc
-    st480mc.c)
-target_link_libraries(bsp_st480mc PUBLIC bsp_i2c)
+bsp_library(bsp_mag_st480mc
+    mag_st480mc.c)
+target_link_libraries(bsp_mag_st480mc PUBLIC bsp_i2c)
 bsp_library(bsp_mag
     mag.c)
-target_link_libraries(bsp_mag PUBLIC bsp_st480mc)
-bsp_library(bsp_ds18b20
-    ds18b20.c)
+target_link_libraries(bsp_mag PUBLIC bsp_mag_st480mc)
+bsp_library(bsp_temp_ds18b20
+    temp_ds18b20.c)
 bsp_library(bsp_temp
     temp.c)
-target_link_libraries(bsp_temp PUBLIC bsp_ds18b20)
-bsp_library(bsp_dht11
-    dht11.c)
+target_link_libraries(bsp_temp PUBLIC bsp_temp_ds18b20)
+bsp_library(bsp_humi_dht11
+    humi_dht11.c)
 bsp_library(bsp_humi
     humi.c)
-target_link_libraries(bsp_humi PUBLIC bsp_dht11)
+target_link_libraries(bsp_humi PUBLIC bsp_humi_dht11)
 
 # misc
 bsp_library(bsp_exti
@@ -201,7 +206,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
-    bsp_ap3216c bsp_als bsp_imu bsp_st480mc bsp_mag bsp_ds18b20 bsp_temp bsp_dht11 bsp_humi
+    bsp_als_ap3216c bsp_als bsp_imu bsp_mag_st480mc bsp_mag bsp_temp_ds18b20 bsp_temp bsp_humi_dht11 bsp_humi
     bsp_exti bsp_pwr bsp_iap)
 
 function(bsp_resolve out)

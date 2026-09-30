@@ -1,21 +1,15 @@
 /**
  * @file    nand.h
- * @brief   NAND FLASH driver over FMC (bank3, 8-bit bus), ported from the
- *          vendor NAND example. Hardware ECC is disabled; raw page access is
- *          provided for the NAND experiment and the FatFs port.
+ * @brief   NAND FLASH driver over FMC (bank3, 8-bit bus): device-independent
+ *          ONFI command, page and ECC algorithms. Device geometry comes from
+ *          the chip header (nand_mt29f4g08.h) and is filled into nand_dev by
+ *          nand_init().
  */
 
 #ifndef BSP_NAND_H
 #define BSP_NAND_H
 
 #include <stdint.h>
-
-#include "stm32f4xx_hal.h"
-
-/* Ready/Busy pin. */
-#define NAND_RB_GPIO_PORT    GPIOD
-#define NAND_RB_GPIO_PIN     GPIO_PIN_6
-#define NAND_RB              HAL_GPIO_ReadPin(NAND_RB_GPIO_PORT, NAND_RB_GPIO_PIN)
 
 /* Upper bound for the largest page (main + spare). */
 #define NAND_MAX_PAGE_SIZE_BYTE      4096
@@ -56,11 +50,6 @@
 #define NSTA_ECC1BITERR         0x03
 #define NSTA_ECC2BITERR         0x04
 
-/* Supported device IDs. */
-#define MT29F4G08ABADA          0xDC909556UL
-#define MT29F16G08ABABA         0x48002689UL
-#define FSNS8B004G              0xDC00A262UL
-
 /** @brief  NAND device geometry / state. */
 typedef struct
 {
@@ -72,6 +61,7 @@ typedef struct
     uint16_t  block_totalnum;   /* total blocks */
     uint16_t  good_blocknum;    /* good blocks found */
     uint16_t  valid_blocknum;   /* logical blocks in use */
+    uint16_t  spare_ecc_offset; /* spare-area offset of the ECC bytes */
     uint32_t  id;               /* device ID */
     uint16_t *lut;              /* logical -> physical block table */
     uint32_t  ecc_hard;         /* last hardware ECC value */
@@ -79,21 +69,7 @@ typedef struct
     uint32_t  ecc_rdbuf[NAND_MAX_PAGE_SIZE_BYTE / NAND_ECC_SECTOR_SIZE_BYTE]; /* ECC read back from spare */
 } nand_attriute;
 
-extern NAND_HandleTypeDef g_nand_handle;
-extern nand_attriute      nand_dev;
-
-/** @brief  NAND geometry exposed to applications (no vendor types). */
-typedef struct
-{
-    uint32_t id;              /* device ID */
-    uint32_t size_mb;         /* total capacity, in MB */
-    uint16_t page_mainsize;   /* main area bytes per page */
-    uint16_t block_pagenum;   /* pages per block */
-    uint16_t block_totalnum;  /* total blocks */
-} nand_info_t;
-
-/** @brief  Copy the geometry of the initialised device into @p info. */
-void     nand_get_info(nand_info_t *info);
+extern nand_attriute nand_dev;
 
 uint8_t  nand_init(void);
 uint8_t  nand_modeset(uint8_t mode);

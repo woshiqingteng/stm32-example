@@ -323,6 +323,17 @@
 
 ---
 
+## 执行记录（Phase 2，第十八批：存储/传感器驱动拆分 + 命名统一）
+- **EEPROM 重命名**：`eeprom_at24cxx.{c,h}`→`eeprom_at24c02.{c,h}`（函数/宏/头保护/CMake `bsp_eeprom_at24c02`）；保留 `AT24C01..AT24C256` 表与 `EE_TYPE=AT24C02`；`eeprom.c` 转发改名。
+- **NOR 拆分（A 式，芯片持总线）**：`nor.h`（功能）仅留尺寸宏 + `nor_init/nor_read_id/nor_read/nor_write/nor_erase_sector`（去 CS/ID 宏、`g_nor_type`、HAL）；新增 `nor_w25q256jv.{c,h}`（芯片：CS(PF6)、`_cs_low/high`、`_spi_rw`、`_probe`(0x90)、`_addr_bytes`(=4)、`_dev_init` 含 4 字节模式）；`nor.c` 算法经芯片 cs/spi。CMake `bsp_nor_w25q256jv`(PUBLIC `bsp_spi bsp_delay`) → `bsp_nor`。
+- **NAND 拆分（A 式，功能 + 器件）**：`nand.h` 删 `nand_info_t`/`nand_get_info`、器件 ID 宏、`extern g_nand_handle`、`NAND_RB_*`、HAL include；新增 `nand_mt29f4g08.{c,h}`（`nand_device_t`+`nand_mt29f4g08_probe(id)`，仅 `<stdint.h>`）；`nand.c` 加 HAL、`NAND_RB_*` 内移、`g_nand_handle` static、`nand_init` 用 probe 填 `nand_dev`（未知→返回 1）、`nand_eraseblock`→`blocknum*nand_dev.block_pagenum`、spare 偏移用器件值；`ftl` 不动。CMake `bsp_nand_mt29f4g08` → `bsp_nand`。
+- **传感器命名统一（4 组，含器件内部宏前缀）**：`dht11→humi_dht11`、`ds18b20→temp_ds18b20`、`ap3216c→als_ap3216c`、`st480mc→mag_st480mc`（文件/库/函数/头保护/器件宏 `HUMI_DHT11_*`/`TEMP_DS18B20_*`/`ALS_AP3216C_*`/`MAG_ST480MC_*`）；`imu_sh3001` 内部宏 `IMU_ADDR/IMU_REG_*/IMU_CHIP_ID_VAL`→`IMU_SH3001_*`（`imu.h` 的 `IMU_STATUS_*/IMU_FIFO_*` 等保留）。
+- **`bsp_all`**：保持“全部”语义（feature + 芯片），仅同步被重命名的 4 个传感器芯片目标名。
+- **不改**：`fatfs_*`、`stm32_usb_device_msc`、`lib/text`、app 的 `nor/nand/ftl/eeprom/humi/temp/als/mag/imu` 名称。
+- **验证**：`build all`/`all-freertos` RC=0、0 告警（`ftl.c` 有 6 处历史遗留 `-Wsign-compare`/`-Wformat`，按“ftl 不动”未触及）；真机 `27_spi_nor`（ID `0xEF18`、Write/Read OK）、`41_nand`（4096 块/512MB、FTL OK）、`42_fatfs`（SD/NOR/NAND 三盘挂载+读写 OK）、`54_usb_device_msc`（启动）、`24_i2c_eeprom`（24C02 ready）、`26_i2c_als`/`34_i2c_magnet`/`35_i2c_imu`（数据正常）、`33_1wire_humi`/`32_1wire_temp`（外部 1-wire 传感器未接，探测路径正常，与改名无关）。
+
+---
+
 # 计划：`test/` pytest 硬件在环全自动验证（01–10）
 
 ## 目标
