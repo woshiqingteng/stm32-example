@@ -15,8 +15,11 @@
 #define SDRAM_DATA_WORD_COUNT    250000U
 #define SDRAM_LOOP_MS       10U
 #define SDRAM_LED_TICK_COUNT     20U
+#define SDRAM_DUMP_PER_LINE   8U
+#define SDRAM_DUMP_PER_PAGE   128U
 
 static uint16_t *const g_sdram = (uint16_t *)SDRAM_BASE_ADDR;
+static uint32_t g_dump_pos = 0U;   /* next value index to dump */
 
 static void sdram_prefill(void)
 {
@@ -63,11 +66,39 @@ static void sdram_capacity_test(void)
 
 static void sdram_data_dump(void)
 {
-    uint32_t t;
+    char     line[SDRAM_DUMP_PER_LINE * 6U + 16U];
+    uint32_t end = g_dump_pos + SDRAM_DUMP_PER_PAGE;
+    uint32_t i;
+    uint32_t j;
+    int      n;
 
-    for (t = 0U; t < SDRAM_DATA_WORD_COUNT; t++)
+    if (end > SDRAM_DATA_WORD_COUNT)
     {
-        printf("testsdram[%lu]:%u\r\n", (unsigned long)t, (unsigned)g_sdram[t]);
+        end = SDRAM_DATA_WORD_COUNT;
+    }
+
+    printf("dump [%lu..%lu) @0x%08lX\r\n",
+           (unsigned long)g_dump_pos, (unsigned long)end,
+           (unsigned long)(SDRAM_BASE_ADDR + (g_dump_pos * 2U)));
+
+    for (i = g_dump_pos; i < end; i += SDRAM_DUMP_PER_LINE)
+    {
+        n = snprintf(line, sizeof(line), "%08lX:", (unsigned long)i);
+
+        for (j = 0U; (j < SDRAM_DUMP_PER_LINE) && ((i + j) < end); j++)
+        {
+            n += snprintf(line + n, sizeof(line) - (size_t)n, " %04X",
+                          (unsigned)g_sdram[i + j]);
+        }
+
+        printf("%s\r\n", line);
+    }
+
+    g_dump_pos = (end >= SDRAM_DATA_WORD_COUNT) ? 0U : end;
+
+    if (g_dump_pos == 0U)
+    {
+        printf("dump complete\r\n");
     }
 }
 
@@ -90,6 +121,7 @@ int main(void)
 
         if (key == KEY0)
         {
+            printf("capacity test running...\r\n");
             sdram_capacity_test();
         }
         else if (key == KEY1)
