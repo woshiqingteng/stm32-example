@@ -1,6 +1,10 @@
 /**
  * @file    sdram.h
- * @brief   On-board SDRAM (FMC bank5/6) driver.
+ * @brief   On-board SDRAM (FMC SDRAM bank1) interface.
+ *
+ * The FMC bring-up is device independent; the concrete device parameters
+ * (geometry, timing, mode register) come from a chip header such as
+ * sdram_w9825g6kh.h.
  */
 
 #ifndef BSP_SDRAM_H
@@ -10,10 +14,34 @@
 
 #include "stm32f4xx_hal.h"
 
-/** @brief  SDRAM base address (FMC bank5). */
+/** @brief  SDRAM base address (FMC SDRAM bank1). */
 #define SDRAM_BASE_ADDR 0xC0000000UL
 
-/** @brief  Initialise the SDRAM controller and memory. */
+/** @brief  SDRAM device parameters (chip specific values, FMC generic type). */
+typedef struct
+{
+    uint32_t col_bits;        /*!< FMC_SDRAM_COLUMN_BITS_NUM_x */
+    uint32_t row_bits;        /*!< FMC_SDRAM_ROW_BITS_NUM_x */
+    uint32_t bank_num;        /*!< FMC_SDRAM_INTERN_BANKS_NUM_x */
+    uint32_t data_width;      /*!< FMC_SDRAM_MEM_BUS_WIDTH_x */
+    uint32_t cas_latency;     /*!< FMC_SDRAM_CAS_LATENCY_x */
+    uint32_t sdclk_div;       /*!< FMC SDCLK = HCLK / sdclk_div (2 or 3) */
+
+    uint16_t tmrd;            /*!< load-to-active delay, SDCLK cycles */
+    uint16_t txsr;            /*!< exit self-refresh delay, SDCLK cycles */
+    uint16_t tras;            /*!< active-to-precharge (self-refresh) time */
+    uint16_t trc;             /*!< row cycle delay, SDCLK cycles */
+    uint16_t twr;             /*!< write recovery time, SDCLK cycles */
+    uint16_t trp;             /*!< row precharge delay, SDCLK cycles */
+    uint16_t trcd;            /*!< row-to-column delay, SDCLK cycles */
+
+    uint16_t refresh_period_ms; /*!< tREF, device refresh period */
+    uint16_t rows;              /*!< number of rows for the refresh counter */
+
+    uint16_t mode_register;     /*!< SDRAM mode register value (CAS/burst) */
+} sdram_cfg_t;
+
+/** @brief  Initialise the FMC SDRAM controller and the device. */
 void sdram_init(void);
 
 /** @brief  Copy len bytes from src into SDRAM at byte offset. */

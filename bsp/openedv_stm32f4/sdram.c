@@ -1,35 +1,16 @@
 /**
  * @file    sdram.c
- * @brief   On-board SDRAM driver (FMC bank5, 32 MB, 16-bit bus).
+ * @brief   On-board SDRAM (FMC SDRAM bank1): generic FMC bring-up and
+ *          memory-mapped access. The concrete device parameters come from the
+ *          chip header (sdram_w9825g6kh.h -> W9825G6KH-6, 8192x512x16, 32 MB).
  */
 
 #include "sdram.h"
+#include "sdram_w9825g6kh.h"
 #include "delay.h"
 
-/* SDRAM mode-register fields (IS42S16400 style device). */
-#define SDRAM_MODE_BURST_LEN_1   0x0000U
-#define SDRAM_MODE_BURST_SEQ     0x0000U
-#define SDRAM_MODE_CAS_LATENCY_3 0x0030U
-#define SDRAM_MODE_STANDARD      0x0000U
-#define SDRAM_MODE_WRITEBURST_1  0x0200U
-#define SDRAM_MODE_NONE          0x0000U
-
-#define SDRAM_TARGET_BANK1       FMC_SDRAM_CMD_TARGET_BANK1
-
-/* TODO: value assumes SDCLK 96 MHz, but HCLK/2 = 90 MHz for the configured
- * 180 MHz system clock; recompute when the FMC clock is confirmed. */
-#define SDRAM_REFRESH_COUNT       730U  /*!< 64 ms / 8192 rows */
 #define SDRAM_CLK_ENABLE_DELAY_US 500U
 #define SDRAM_COMMAND_TIMEOUT_COUNT     0x1000U
-
-/* FMC timing parameters, in SDCLK cycles (tuned for an assumed 96 MHz SDCLK). */
-#define SDRAM_TIMING_TMRD_RAW 2U  /* Load-to-active delay */
-#define SDRAM_TIMING_TXSR_RAW 7U  /* Exit self-refresh delay */
-#define SDRAM_TIMING_TRAS_RAW 6U  /* Self-refresh time */
-#define SDRAM_TIMING_TRC_RAW  6U  /* Row cycle delay */
-#define SDRAM_TIMING_TWR_RAW  2U  /* Write recovery time */
-#define SDRAM_TIMING_TRP_RAW  2U  /* Row precharge delay */
-#define SDRAM_TIMING_TRCD_RAW 2U  /* Row-to-column delay */
 
 /* FMC commands issued during the initialisation sequence. */
 typedef enum
@@ -93,55 +74,61 @@ static void sdram_send_command(sdram_command_t command, sdram_refresh_t refresh,
     FMC_SDRAM_CommandTypeDef cmd = {0};
 
     cmd.CommandMode            = (uint32_t)command;
-    cmd.CommandTarget          = SDRAM_TARGET_BANK1;
+    cmd.CommandTarget          = FMC_SDRAM_CMD_TARGET_BANK1;
     cmd.AutoRefreshNumber      = (uint32_t)refresh;
     cmd.ModeRegisterDefinition = mode;
 
     (void)HAL_SDRAM_SendCommand(&g_sdram_handle, &cmd, SDRAM_COMMAND_TIMEOUT_COUNT);
 }
 
-static void sdram_initialization_sequence(void)
+static void sdram_initialization_sequence(const sdram_cfg_t *cfg)
 {
-    /* Burst length = 1, sequential burst order and standard (non-test) mode are
-     * all encoded as 0, so only the non-zero mode-register fields are ORed. */
-    uint16_t mode = SDRAM_MODE_CAS_LATENCY_3 | SDRAM_MODE_WRITEBURST_1;
-
-    sdram_send_command(SDRAM_CMD_CLK_ENABLE, SDRAM_REFRESH_SINGLE, SDRAM_MODE_NONE);
+    /* JEDEC power-up: clock enable, precharge all, 8 auto-refreshes, load the
+     * device mode register (burst length 1, sequential, CAS and write burst). */
+    sdram_send_command(SDRAM_CMD_CLK_ENABLE, SDRAM_REFRESH_SINGLE, 0U);
     delay_us(SDRAM_CLK_ENABLE_DELAY_US);
-    sdram_send_command(SDRAM_CMD_PALL, SDRAM_REFRESH_SINGLE, SDRAM_MODE_NONE);
-    sdram_send_command(SDRAM_CMD_AUTOREFRESH, SDRAM_AUTOREFRESH_BURST, SDRAM_MODE_NONE);
-    sdram_send_command(SDRAM_CMD_LOAD_MODE, SDRAM_REFRESH_SINGLE, mode);
+    sdram_send_command(SDRAM_CMD_PALL, SDRAM_REFRESH_SINGLE, 0U);
+    sdram_send_command(SDRAM_CMD_AUTOREFRESH, SDRAM_AUTOREFRESH_BURST, 0U);
+    sdram_send_command(SDRAM_CMD_LOAD_MODE, SDRAM_REFRESH_SINGLE, cfg->mode_register);
 }
 
 void sdram_init(void)
 {
+    const sdram_cfg_t *cfg = &g_sdram_w9825g6kh;
     FMC_SDRAM_TimingTypeDef timing = {0};
+    uint32_t sdclk_hz;
+    uint32_t refresh_count;
 
     sdram_gpio_init();
 
     g_sdram_handle.Instance                 = FMC_SDRAM_DEVICE;
     g_sdram_handle.Init.SDBank              = FMC_SDRAM_BANK1;
-    g_sdram_handle.Init.ColumnBitsNumber    = FMC_SDRAM_COLUMN_BITS_NUM_9;
-    g_sdram_handle.Init.RowBitsNumber       = FMC_SDRAM_ROW_BITS_NUM_13;
-    g_sdram_handle.Init.MemoryDataWidth     = FMC_SDRAM_MEM_BUS_WIDTH_16;
-    g_sdram_handle.Init.InternalBankNumber  = FMC_SDRAM_INTERN_BANKS_NUM_4;
-    g_sdram_handle.Init.CASLatency          = FMC_SDRAM_CAS_LATENCY_3;
+    g_sdram_handle.Init.ColumnBitsNumber    = cfg->col_bits;
+    g_sdram_handle.Init.RowBitsNumber       = cfg->row_bits;
+    g_sdram_handle.Init.MemoryDataWidth     = cfg->data_width;
+    g_sdram_handle.Init.InternalBankNumber  = cfg->bank_num;
+    g_sdram_handle.Init.CASLatency          = cfg->cas_latency;
     g_sdram_handle.Init.WriteProtection     = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
-    g_sdram_handle.Init.SDClockPeriod       = FMC_SDRAM_CLOCK_PERIOD_2;
+    g_sdram_handle.Init.SDClockPeriod       = (cfg->sdclk_div == 3U) ? FMC_SDRAM_CLOCK_PERIOD_3
+                                                                     : FMC_SDRAM_CLOCK_PERIOD_2;
     g_sdram_handle.Init.ReadBurst           = FMC_SDRAM_RBURST_ENABLE;
     g_sdram_handle.Init.ReadPipeDelay       = FMC_SDRAM_RPIPE_DELAY_1;
 
-    timing.LoadToActiveDelay    = SDRAM_TIMING_TMRD_RAW;
-    timing.ExitSelfRefreshDelay = SDRAM_TIMING_TXSR_RAW;
-    timing.SelfRefreshTime      = SDRAM_TIMING_TRAS_RAW;
-    timing.RowCycleDelay        = SDRAM_TIMING_TRC_RAW;
-    timing.WriteRecoveryTime    = SDRAM_TIMING_TWR_RAW;
-    timing.RPDelay              = SDRAM_TIMING_TRP_RAW;
-    timing.RCDDelay             = SDRAM_TIMING_TRCD_RAW;
+    timing.LoadToActiveDelay    = cfg->tmrd;
+    timing.ExitSelfRefreshDelay = cfg->txsr;
+    timing.SelfRefreshTime      = cfg->tras;
+    timing.RowCycleDelay        = cfg->trc;
+    timing.WriteRecoveryTime    = cfg->twr;
+    timing.RPDelay              = cfg->trp;
+    timing.RCDDelay             = cfg->trcd;
 
     (void)HAL_SDRAM_Init(&g_sdram_handle, &timing);
-    sdram_initialization_sequence();
-    (void)HAL_SDRAM_ProgramRefreshRate(&g_sdram_handle, SDRAM_REFRESH_COUNT);
+    sdram_initialization_sequence(cfg);
+
+    /* COUNT = (tREF / rows) * f_SDCLK - 20 (STM32 FMC refresh counter). */
+    sdclk_hz = HAL_RCC_GetHCLKFreq() / cfg->sdclk_div;
+    refresh_count = (((uint32_t)cfg->refresh_period_ms * (sdclk_hz / 1000U)) / cfg->rows) - 20U;
+    (void)HAL_SDRAM_ProgramRefreshRate(&g_sdram_handle, refresh_count);
 }
 
 void sdram_write_buffer(const uint8_t *src, uint32_t offset, uint32_t len)

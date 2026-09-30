@@ -307,6 +307,13 @@
 - **C 类（新增+统一）**：`05_iwdg`(`WKUP: feed watchdog`)、`08_4_gtim_cnt`(`KEY0: restart count`)、`41_nand`(`KEY0: read  KEY1: write  KEY2: restore`)、`55_usb_device_audio`(`KEY0: vol+  KEY2: vol-  WKUP: default vol`)。
 - **验证**：`build all`/`all-freertos` RC=0、0 告警；烧录抽查 `02_key`/`09_1`/`19_dma`/`22_1`/`29_can`/`35_i2c_imu`/`55_usb_device_audio` 串口均显示统一提示。
 
+## 执行记录（Phase 2，第十六批：SDRAM 通用/器件参数分离）
+- **方案 B（轻量抽常量）**：`sdram.h` 新增 `sdram_cfg_t`（FMC 几何/时序/CAS/刷新/mode 的通用类型）；新增 `sdram_w9825g6kh.h`（型号私有 `static const g_sdram_w9825g6kh`，仅 `sdram.c` 包含）；`sdram.c` 保留引脚+FMC 编程+JEDEC 序列+缓冲访问，改从 cfg 取值。对外 API/调用**不变**（app 与 `usmart_config.c` 免改）。
+- **注释纠正**：`sdram.c` “IS42S16400 style” → **“W9825G6KH-6 (8192×512×16, 32 MB)”**（含文件头 `@brief`）。依据芯片资料 `W9825G6KH.pdf`：阵列 8192×512×16、8K Refresh/64ms、-6 档 tRC60/tRAS42/tRCD18/tRP18/tWR2tCK/tXSR72。
+- **时序**：SDCLK=90MHz 下 TMRD=2、TXSR=7、**TRAS=4**（手册最小）、TRC=6、TWR=2、TRP=2、TRCD=2（均满足且 FMC 域范围 1..16、TRC≥TRAS+TRP）。
+- **刷新重算**：改为运行期公式 `count = tREF*(HAL_RCC_GetHCLKFreq()/div/1000)/rows − 20` → 90MHz 得 **683**（原写死 730/96MHz 的 TODO 删除）。
+- **验证**：`build all`/`all-freertos` RC=0、0 告警；烧录 `13_sdram`（`SDRAM Capacity:32768KB`、`KEY1` 图案 `0000 0001 …`）、`12_lcd_mcu`（`LCD ID:4384`，帧缓冲 `0xC0000000=ffffffff`）、`lv_29_keyboard`（横幅，帧缓冲 `f7be…`）均正常。
+
 ---
 
 # 计划：`test/` pytest 硬件在环全自动验证（01–10）
