@@ -58,12 +58,12 @@ expanded=()
 for app in "${apps[@]}"; do
     case "$app" in
         all)
-            for dir in "$root"/app/baremetal/[0-9]*; do
+            for dir in "$root"/app/baremetal/*/; do
                 expanded+=("baremetal/$(basename "$dir")")
             done
             ;;
         all-freertos)
-            for dir in "$root"/app/freertos/[0-9]*; do
+            for dir in "$root"/app/freertos/*/; do
                 expanded+=("freertos/$(basename "$dir")")
             done
             ;;
