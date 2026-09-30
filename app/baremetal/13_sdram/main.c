@@ -123,6 +123,7 @@ int main(void)
         {
             printf("capacity test running...\r\n");
             sdram_capacity_test();
+            sdram_prefill();          /* restore the prefill pattern for the dump */
         }
         else if (key == KEY1)
         {
