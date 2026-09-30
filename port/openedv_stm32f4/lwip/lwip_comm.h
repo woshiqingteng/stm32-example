@@ -14,6 +14,9 @@
 #define LWIP_DHCP_START             1U  /* DHCP discovery in progress */
 #define LWIP_DHCP_ADDRESS_ASSIGNED  2U  /* an address has been bound */
 
+/* Receive timeout applied by the demo apps (netconn recv_timeout / SO_RCVTIMEO). */
+#define LWIP_DEMO_RECV_TIMEOUT_MS   10U
+
 typedef struct
 {
     uint8_t mac[6];         /* station address */
@@ -27,9 +30,6 @@ typedef struct
 
 extern lwip_dev_t     g_lwipdev;
 extern struct netif   g_lwip_netif;
-
-/** @brief  Load the built-in default addresses into @p dev. */
-void    lwip_comm_default_ip_set(lwip_dev_t *dev);
 
 /** @brief  Initialise lwIP, add the netif and (optionally) start DHCP.
  *  @return 0 on success, 1 otherwise. */

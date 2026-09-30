@@ -40,11 +40,32 @@ static void demo_task(void *arg)
     {
         if (netconn_accept(conn, &newconn) == ERR_OK)
         {
-            while (netconn_recv(newconn, &buf) == ERR_OK)
+            err_t err;
+
+            newconn->recv_timeout = LWIP_DEMO_RECV_TIMEOUT_MS;
+
+            for (;;)
             {
-                netconn_write(newconn, buf->p->payload, buf->p->len, NETCONN_COPY);
-                netbuf_delete(buf);
+                void *data;
+                u16_t len;
+
+                err = netconn_recv(newconn, &buf);
+                if (err == ERR_OK)
+                {
+                    netbuf_data(buf, &data, &len);
+                    netconn_write(newconn, data, len, NETCONN_COPY);
+                    netbuf_delete(buf);
+                }
+                else if (err == ERR_TIMEOUT)
+                {
+                    continue;
+                }
+                else
+                {
+                    break; /* ERR_CLSD or fatal */
+                }
             }
+
             netconn_close(newconn);
             netconn_delete(newconn);
         }

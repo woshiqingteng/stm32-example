@@ -33,13 +33,6 @@ lwip_dev_t g_lwipdev =
 
 struct netif g_lwip_netif;
 
-void lwip_comm_default_ip_set(lwip_dev_t *dev)
-{
-    memcpy(dev->ip,      (const uint8_t[]){ 192, 168, 1, 100 }, 4);
-    memcpy(dev->netmask, (const uint8_t[]){ 255, 255, 255, 0 }, 4);
-    memcpy(dev->gateway, (const uint8_t[]){ 192, 168, 1, 1 }, 4);
-}
-
 uint8_t lwip_comm_init(void)
 {
     ip4_addr_t ip;
@@ -105,6 +98,11 @@ void lwip_comm_wait_ip(void)
                 break;
             }
             vTaskDelay(pdMS_TO_TICKS(200));
+        }
+
+        if (dhcp_supplied_address(&g_lwip_netif))
+        {
+            g_lwipdev.dhcp_status = LWIP_DHCP_ADDRESS_ASSIGNED;
         }
     }
 }
