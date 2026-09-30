@@ -300,6 +300,13 @@
 - **保留**：LCD/OLED 类横幅；所有源码注释（`35/fusion.c`、`39_malloc`、`lib/*`、`53_iap`、`ir.h`）。
 - **验证**：`build all`/`all-freertos` RC=0；**`24_i2c_eeprom` 的 `-Wunterminated-string-initialization` 告警消失**；烧录抽查 `19_dma`/`24_i2c_eeprom`(`String: IIC TEST (OK)`)/`37_internal_flash`(`"FLASH TEST"`)/`31_ir`(干净横幅)/`42_fatfs`(`FATFS.TXT`/`FATFS TEST`)/`56_usb_device_cdc`(USB CDC) 均无厂商/演示字样。
 
+## 执行记录（Phase 2，第十五批：按键/LED 提示统一）
+- **规则**：提示行统一 `KEY0: <a>  KEY1: <b>  WKUP: <c>`（冒号后 1 空格、条目间 2 空格、唤醒键统一 `WKUP`）；置于**所有外设初始化之后**；内嵌提示的 ready 行**整行删除**；LCD 类不改；`34_i2c_magnet` 保留其特定动作提示。
+- **A 类（改文案/去 ready）**：`18_2/18_3/18_4`（`WKUP` 标签）、`19_dma`(去 ready→`KEY0: send`)、`22_1/23`(`WKUP: +  KEY0: -`)、`22_3`(`KEY0: switch frequency`)、`29_can`(`WKUP: toggle mode`)、`35_i2c_imu`(`KEY0: recalibrate`)、`36_spi_wireless`(`KEY0: RX  KEY1: TX`)、`47_sai_record`、`50_2_dsp_fft`(`KEY0: run %u-point FFT`)、`53_iap`(`WKUP: receive+program  KEY1: run app`，frame 行独立)。
+- **B 类（LED 演示新增）**：`02_key`/`03_exti`（`... WKUP: both (opposite)`，WKUP 使两灯互补）、`09_1_atim_npwm`(`KEY0: reset pulse count`)。
+- **C 类（新增+统一）**：`05_iwdg`(`WKUP: feed watchdog`)、`08_4_gtim_cnt`(`KEY0: restart count`)、`41_nand`(`KEY0: read  KEY1: write  KEY2: restore`)、`55_usb_device_audio`(`KEY0: vol+  KEY2: vol-  WKUP: default vol`)。
+- **验证**：`build all`/`all-freertos` RC=0、0 告警；烧录抽查 `02_key`/`09_1`/`19_dma`/`22_1`/`29_can`/`35_i2c_imu`/`55_usb_device_audio` 串口均显示统一提示。
+
 ---
 
 # 计划：`test/` pytest 硬件在环全自动验证（01–10）

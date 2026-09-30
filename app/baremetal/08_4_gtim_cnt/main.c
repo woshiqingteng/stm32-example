@@ -46,6 +46,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
     gtim_timx_cnt_chy_init(GTIM_CNT_PSC);
     gtim_timx_cnt_chy_restart();
+    printf("KEY0: restart count\r\n");
 
     for (;;)
     {

@@ -19,7 +19,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
 
     pwr_wkup_key_init();
-    printf("KEY0: enter stop mode, WK_UP: wake\r\n");
+    printf("KEY0: enter stop  WKUP: wake\r\n");
 
     for (;;)
     {

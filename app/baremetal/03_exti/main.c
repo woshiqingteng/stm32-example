@@ -57,6 +57,7 @@ int main(void)
     exti_register(KEY1, &on_key1);
     exti_register(KEY2, &on_key2);
     exti_register(KEY_WKUP, &on_key_wkup);
+    printf("KEY0: both  KEY1: LED1  KEY2: LED0  WKUP: both (opposite)\r\n");
 
     for (;;)
     {

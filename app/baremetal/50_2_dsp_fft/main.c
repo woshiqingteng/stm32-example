@@ -69,7 +69,7 @@ int main(void)
         }
     }
 
-    printf("50_2_dsp_fft ready: KEY0 runs a %u-point FFT\r\n", (unsigned)FFT_LENGTH_SAMPLE);
+    printf("KEY0: run %u-point FFT\r\n", (unsigned)FFT_LENGTH_SAMPLE);
 
     for (;;)
     {

@@ -28,6 +28,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     led_on(LED0);
+    printf("KEY0: both  KEY1: LED1  KEY2: LED0  WKUP: both (opposite)\r\n");
 
     for (;;)
     {

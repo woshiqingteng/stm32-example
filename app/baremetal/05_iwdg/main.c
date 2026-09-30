@@ -18,6 +18,7 @@ int main(void)
     delay_ms(IWDG_START_DELAY_MS);
     iwdg_init();
     led_on(LED0);
+    printf("WKUP: feed watchdog\r\n");
 
     for (;;)
     {

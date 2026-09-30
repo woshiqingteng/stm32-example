@@ -36,7 +36,7 @@ int main(void)
     adc_init();
     dac_set(DAC_CH1, code);
 
-    printf("22_1_dac ready (WKUP/KEY0 adjust)\r\n");
+    printf("WKUP: +  KEY0: -\r\n");
     dac_show(code);
 
     for (;;)

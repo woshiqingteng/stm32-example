@@ -35,7 +35,7 @@ int main(void)
     dac_sine_init(SIN_TIMER_ARR, g_sin_psc[idx]);
     dac_sine_start();
 
-    printf("22_3_dac_sine ready (KEY0 switches frequency)\r\n");
+    printf("KEY0: switch frequency\r\n");
     dac_sine_show(idx);
 
     for (;;)

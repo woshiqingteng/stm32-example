@@ -92,7 +92,7 @@ int main(void)
     }
 
     printf(APP_BANNER "\r\n");
-    printf("KEY0:RX  KEY1:TX\r\n");
+    printf("KEY0: RX  KEY1: TX\r\n");
 
     while (waited < NRF_MODE_SELECT_MS)
     {

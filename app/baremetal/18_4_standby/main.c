@@ -46,7 +46,7 @@ int main(void)
     print_boot_cause();
     rtc_write_bkr(STANDBY_BKP_REG, STANDBY_BKP_MAGIC);
 
-    printf("KEY0: enter standby mode, WK_UP: wake\r\n");
+    printf("KEY0: enter standby  WKUP: wake\r\n");
 
     for (;;)
     {

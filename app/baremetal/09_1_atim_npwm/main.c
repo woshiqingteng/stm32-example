@@ -25,6 +25,7 @@ int main(void)
 
     atim_timx_npwm_chy_init(ATIM_NPWM_ARR - 1U, ATIM_NPWM_PSC - 1U);
     atim_timx_npwm_chy_set(ATIM_NPWM_PULSE_COUNT);
+    printf("KEY0: reset pulse count\r\n");
 
     for (;;)
     {

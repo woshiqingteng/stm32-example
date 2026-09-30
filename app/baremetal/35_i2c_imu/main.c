@@ -91,7 +91,7 @@ int main(void)
         imu_fifo_init();
     }
 
-    printf("35_i2c_imu ready (SH3001+ST480MC, KEY0: recalibrate)\r\n");
+    printf("KEY0: recalibrate\r\n");
 
     for (;;)
     {

@@ -39,7 +39,7 @@ int main(void)
     adc_init();
     pwmdac_set(vol);
 
-    printf("23_pwm_dac ready (WKUP/KEY0 adjust)\r\n");
+    printf("WKUP: +  KEY0: -\r\n");
     pwmdac_show();
 
     for (;;)

@@ -63,6 +63,7 @@ int main(void)
 
     /* Keep a pristine copy of sector 2 so KEY2 can restore it. */
     (void)ftl_read_sectors(backbuf, TEST_SECTOR, NAND_ECC_SECTOR_SIZE_BYTE, 1U);
+    printf("KEY0: read  KEY1: write  KEY2: restore\r\n");
 
     for (;;)
     {

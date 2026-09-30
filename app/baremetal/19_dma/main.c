@@ -54,7 +54,7 @@ int main(void)
     }
     len = dma_fill_buffer();
 
-    printf("19_dma ready: %u bytes buffered, press KEY0 to send\r\n", (unsigned)len);
+    printf("KEY0: send\r\n");
 
     for (;;)
     {

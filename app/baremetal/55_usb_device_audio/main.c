@@ -34,6 +34,7 @@ int main(void)
     (void)USBD_RegisterClass(&USBD_Device, USBD_AUDIO_CLASS);
     (void)USBD_AUDIO_RegisterInterface(&USBD_Device, &USBD_AUDIO_fops);
     (void)USBD_Start(&USBD_Device);
+    printf("KEY0: vol+  KEY2: vol-  WKUP: default vol\r\n");
 
     for (;;)
     {

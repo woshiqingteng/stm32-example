@@ -35,7 +35,7 @@ int main(void)
 
     pwr_register_wkup_hook(&wkup_hook);
     pwr_wkup_key_init();
-    printf("KEY0: enter sleep mode, WK_UP: wake\r\n");
+    printf("KEY0: enter sleep  WKUP: wake\r\n");
 
     for (;;)
     {
@@ -56,7 +56,7 @@ int main(void)
             if (g_wake_cause == SLEEP_WAKE_WKUP)
             {
                 g_wake_cause = SLEEP_WAKE_NONE;
-                printf("Woke from sleep mode (WK_UP)\r\n");
+                printf("Woke from sleep mode (WKUP)\r\n");
             }
             else
             {

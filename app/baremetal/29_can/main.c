@@ -42,8 +42,7 @@ int main(void)
         }
     }
 
-    printf("29_can ready (%s), WKUP toggles mode\r\n",
-           (g_can_mode == CAN_MODE_LOOPBACK) ? "loopback" : "normal");
+    printf("WKUP: toggle mode\r\n");
 
     for (;;)
     {

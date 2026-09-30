@@ -169,11 +169,11 @@ void recoder_remindmsg_show(uint8_t mode)
 {
     if (mode == 0)      /* record mode */
     {
-        printf("KEY0:REC/PAUSE  KEY2:STOP&SAVE  WK_UP:PLAY\r\n");
+        printf("KEY0: REC/PAUSE  KEY2: STOP&SAVE  WKUP: PLAY\r\n");
     }
     else                /* playback mode */
     {
-        printf("KEY0:STOP Play  WK_UP:PLAY/PAUSE\r\n");
+        printf("KEY0: stop play  WKUP: play/pause\r\n");
     }
 }
 
