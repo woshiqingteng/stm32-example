@@ -24,8 +24,8 @@
 /** @brief  SDRAM device parameters (chip specific values, FMC generic type). */
 typedef struct
 {
-    uint32_t col_bits;        /*!< FMC_SDRAM_COLUMN_BITS_NUM_x */
-    uint32_t row_bits;        /*!< FMC_SDRAM_ROW_BITS_NUM_x */
+    uint32_t col_bit;         /*!< FMC_SDRAM_COLUMN_BITS_NUM_x */
+    uint32_t row_bit;         /*!< FMC_SDRAM_ROW_BITS_NUM_x */
     uint32_t bank_num;        /*!< FMC_SDRAM_INTERN_BANKS_NUM_x */
     uint32_t data_width;      /*!< FMC_SDRAM_MEM_BUS_WIDTH_x */
     uint32_t cas_latency;     /*!< FMC_SDRAM_CAS_LATENCY_x */
@@ -40,7 +40,7 @@ typedef struct
     uint16_t trcd_ns;         /*!< row-to-column delay, ns */
 
     uint16_t refresh_period_ms; /*!< tREF, device refresh period */
-    uint16_t rows;              /*!< number of rows for the refresh counter */
+    uint16_t row_num;           /*!< number of rows for the refresh counter */
 
     uint16_t mode_register;     /*!< SDRAM mode register value (CAS/burst) */
 } sdram_cfg_t;

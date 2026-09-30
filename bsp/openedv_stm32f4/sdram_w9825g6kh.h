@@ -16,8 +16,8 @@
 
 static const sdram_cfg_t g_sdram_w9825g6kh =
 {
-    .col_bits   = FMC_SDRAM_COLUMN_BITS_NUM_9,   /* 512 columns  */
-    .row_bits   = FMC_SDRAM_ROW_BITS_NUM_13,     /* 8192 rows    */
+    .col_bit    = FMC_SDRAM_COLUMN_BITS_NUM_9,   /* 512 columns  */
+    .row_bit    = FMC_SDRAM_ROW_BITS_NUM_13,     /* 8192 rows    */
     .bank_num   = FMC_SDRAM_INTERN_BANKS_NUM_4,
     .data_width = FMC_SDRAM_MEM_BUS_WIDTH_16,
     .cas_latency = FMC_SDRAM_CAS_LATENCY_3,
@@ -32,7 +32,7 @@ static const sdram_cfg_t g_sdram_w9825g6kh =
     .trcd_ns = 18U,
 
     .refresh_period_ms = 64U,
-    .rows = 8192U,
+    .row_num = 8192U,
 
     .mode_register = 0x0230U,   /* burst 1, sequential, CAS 3, write burst single */
 };

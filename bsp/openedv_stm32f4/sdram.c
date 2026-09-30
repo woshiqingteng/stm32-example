@@ -125,8 +125,8 @@ void sdram_init(void)
 
     g_sdram_handle.Instance                 = FMC_SDRAM_DEVICE;
     g_sdram_handle.Init.SDBank              = FMC_SDRAM_BANK1;
-    g_sdram_handle.Init.ColumnBitsNumber    = cfg->col_bits;
-    g_sdram_handle.Init.RowBitsNumber       = cfg->row_bits;
+    g_sdram_handle.Init.ColumnBitsNumber    = cfg->col_bit;
+    g_sdram_handle.Init.RowBitsNumber       = cfg->row_bit;
     g_sdram_handle.Init.MemoryDataWidth     = cfg->data_width;
     g_sdram_handle.Init.InternalBankNumber  = cfg->bank_num;
     g_sdram_handle.Init.CASLatency          = cfg->cas_latency;
@@ -156,8 +156,8 @@ void sdram_init(void)
     (void)HAL_SDRAM_Init(&g_sdram_handle, &timing);
     sdram_initialization_sequence(cfg);
 
-    /* COUNT = (tREF / rows) * f_SDCLK - 20 (STM32 FMC refresh counter). */
-    refresh_count = (((uint32_t)cfg->refresh_period_ms * (sdclk_hz / 1000U)) / cfg->rows) - 20U;
+    /* COUNT = (tREF / row_num) * f_SDCLK - 20 (STM32 FMC refresh counter). */
+    refresh_count = (((uint32_t)cfg->refresh_period_ms * (sdclk_hz / 1000U)) / cfg->row_num) - 20U;
     (void)HAL_SDRAM_ProgramRefreshRate(&g_sdram_handle, refresh_count);
 }
 
