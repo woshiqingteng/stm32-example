@@ -27,6 +27,7 @@ typedef struct
     uint8_t dhcp_used;      /* 1: start DHCP after netif up */
     uint8_t dhcp_status;    /* one of LWIP_DHCP_* */
     uint8_t link_up;
+    uint8_t mac_started;    /* 1 once the eth_rx task has started the MAC */
 } lwip_dev_t;
 
 extern lwip_dev_t     g_lwipdev;

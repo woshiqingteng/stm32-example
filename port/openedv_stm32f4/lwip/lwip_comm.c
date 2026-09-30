@@ -21,7 +21,8 @@
 #include "lwip_comm.h"
 #include "ethernetif.h"
 
-#define LWIP_DHCP_WAIT_MS   10000U
+#define LWIP_DHCP_WAIT_MS        10000U
+#define LWIP_MAC_START_WAIT_MS    2000U
 
 /* LWIP_RAND(): hardware RNG by default, C library rand() when disabled. */
 #if LWIP_RAND_USE_HW
@@ -69,6 +70,7 @@ lwip_dev_t g_lwipdev =
     .dhcp_used    = 1U,
     .dhcp_status  = LWIP_DHCP_OFF,
     .link_up      = 0U,
+    .mac_started  = 0U,
 };
 
 struct netif g_lwip_netif;
@@ -81,9 +83,20 @@ uint8_t lwip_comm_init(void)
 
     tcpip_init(NULL, NULL);
 
-    IP4_ADDR(&ip,      g_lwipdev.ip[0],      g_lwipdev.ip[1],      g_lwipdev.ip[2],      g_lwipdev.ip[3]);
-    IP4_ADDR(&netmask, g_lwipdev.netmask[0], g_lwipdev.netmask[1], g_lwipdev.netmask[2], g_lwipdev.netmask[3]);
-    IP4_ADDR(&gateway, g_lwipdev.gateway[0], g_lwipdev.gateway[1], g_lwipdev.gateway[2], g_lwipdev.gateway[3]);
+    if (g_lwipdev.dhcp_used)
+    {
+        /* DHCP needs an unconfigured interface (0.0.0.0); the static address
+         * is only applied later by lwip_comm_fallback_ip(). */
+        IP4_ADDR(&ip, 0, 0, 0, 0);
+        IP4_ADDR(&netmask, 0, 0, 0, 0);
+        IP4_ADDR(&gateway, 0, 0, 0, 0);
+    }
+    else
+    {
+        IP4_ADDR(&ip,      g_lwipdev.ip[0],      g_lwipdev.ip[1],      g_lwipdev.ip[2],      g_lwipdev.ip[3]);
+        IP4_ADDR(&netmask, g_lwipdev.netmask[0], g_lwipdev.netmask[1], g_lwipdev.netmask[2], g_lwipdev.netmask[3]);
+        IP4_ADDR(&gateway, g_lwipdev.gateway[0], g_lwipdev.gateway[1], g_lwipdev.gateway[2], g_lwipdev.gateway[3]);
+    }
 
     if (netif_add(&g_lwip_netif, &ip, &netmask, &gateway, NULL,
                   ethernetif_init, tcpip_input) == NULL)
@@ -100,12 +113,8 @@ uint8_t lwip_comm_init(void)
         dns_setserver(0, &dns);
     }
 
-    if (g_lwipdev.dhcp_used)
-    {
-        dhcp_start(&g_lwip_netif);
-        g_lwipdev.dhcp_status = LWIP_DHCP_START;
-    }
-
+    /* DHCP is started later, from lwip_comm_wait_ip(), once the scheduler is
+     * running and the eth_rx task has started the MAC. */
     return 0U;
 }
 
@@ -144,6 +153,20 @@ void lwip_comm_wait_ip(void)
     if (g_lwipdev.dhcp_used)
     {
         TickType_t start = xTaskGetTickCount();
+
+        /* The eth_rx task starts the MAC after the scheduler is running; DHCP
+         * must not be started before that, or its first DISCOVER cannot be
+         * transmitted (no MAC/DMA), matching the ALIENTEK reference ordering. */
+        while ((g_lwipdev.mac_started == 0U) &&
+               ((xTaskGetTickCount() - start) < pdMS_TO_TICKS(LWIP_MAC_START_WAIT_MS)))
+        {
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+
+        netifapi_dhcp_start(&g_lwip_netif);
+        g_lwipdev.dhcp_status = LWIP_DHCP_START;
+
+        start = xTaskGetTickCount();
 
         while (!dhcp_supplied_address(&g_lwip_netif))
         {

@@ -559,7 +559,9 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 - C：`eth_init` 失败传播；TX 超时清信号量；DHCP 回退等地址落地；`LWIP_RAND` 用 STM32 RNG；NTP/SNTP 先对 epoch `+8h` 再 `gmtime`（正确翻日）；线程栈加大；`CHECKSUM_CHECK_ICMP=0`。
 
 ## 未完成 / 环境
-- DHCP 未在测试路由器上成功（用静态回退；路由器侧未排查）。
+- DHCP 之前完全失败：根因有二 ——
+  1) DHCP 在调度器前、MAC 尚未启动时就 `dhcp_start`（且 netif 用了静态地址）→ 首包发不出；已改为在 `lwip_comm_wait_ip()`（调度器后、`eth_rx` 启动 MAC 后）用 `netifapi_dhcp_start`，且 DHCP 时 `netif_add` 用 0.0.0.0。
+  2) STM32F4 的 **Tx 校验和硬件卸载会静默丢弃 DHCP DISCOVER**（src 0.0.0.0 / dst 255.255.255.255）；已改用**软件校验和**（`CHECKSUM_GEN_*/CHECKSUM_CHECK_* = 1`，TX 仅 CRC padding）。抓包确认 DISCOVER 已上总线；测试路由器本身不回 OFFER（环境问题），故仍回退静态地址。
 - 17/18 仅占位凭据，只验证 DNS/TCP 连通性。
 - **TLS 属可选增强（未实现）**：若需要，另建示例 `lwip_19_..._tls`（mbedTLS TLS 客户端配置 + altcp_tls + 熵/分配器/时间/CA）。
 - 未启用 FreeRTOS 栈溢出检查（缺全局 hook）。

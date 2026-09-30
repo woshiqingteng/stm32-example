@@ -2,8 +2,8 @@
  * @file    lwipopts.h
  * @brief   lwIP options for the ALIENTEK F429 board (FreeRTOS, netconn/socket).
  *
- * Hardware checksum offload is enabled (the STM32F4 ETH MAC computes IP/UDP/
- * TCP/ICMP checksums). The port is a full NO_SYS=0 build with a TCP/IP thread.
+ * IP/UDP/TCP/ICMP checksums are computed in software (the STM32F4 Tx checksum
+ * offload does not transmit DHCP DISCOVERs). NO_SYS=0 build with a TCP/IP thread.
  */
 
 #ifndef LWIPOPTS_H
@@ -69,18 +69,17 @@ void lwip_sntp_set_time(uint32_t sec);
 #define LWIP_RAND_USE_HW                1
 #endif
 
-/* STM32F4xx ETH MAC checksum offload. */
-#define CHECKSUM_BY_HARDWARE            1
-#ifdef CHECKSUM_BY_HARDWARE
-#define CHECKSUM_GEN_IP                 0
-#define CHECKSUM_GEN_UDP                0
-#define CHECKSUM_GEN_TCP                0
-#define CHECKSUM_CHECK_IP               0
-#define CHECKSUM_CHECK_UDP              0
-#define CHECKSUM_CHECK_TCP              0
-#define CHECKSUM_CHECK_ICMP             0
-#define CHECKSUM_GEN_ICMP               0
-#endif
+/* Software checksums. The STM32F4 Tx checksum offload does not transmit DHCP
+ * DISCOVERs (source 0.0.0.0, destination 255.255.255.255), so lwIP generates
+ * and verifies the IP/UDP/TCP/ICMP checksums in software. */
+#define CHECKSUM_GEN_IP                 1
+#define CHECKSUM_GEN_UDP                1
+#define CHECKSUM_GEN_TCP                1
+#define CHECKSUM_GEN_ICMP               1
+#define CHECKSUM_CHECK_IP               1
+#define CHECKSUM_CHECK_UDP              1
+#define CHECKSUM_CHECK_TCP              1
+#define CHECKSUM_CHECK_ICMP             1
 
 #define LWIP_NETCONN                    1
 #define LWIP_SOCKET                     1

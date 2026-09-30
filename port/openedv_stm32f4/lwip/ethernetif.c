@@ -83,8 +83,11 @@ static err_t low_level_init(struct netif *netif)
     LWIP_MEMPOOL_INIT(RX_POOL);
 
     memset(&s_tx_config, 0, sizeof(s_tx_config));
-    s_tx_config.Attributes   = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
-    s_tx_config.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
+    /* CRC padding only: the STM32F4 Tx checksum offload silently fails to
+     * transmit DHCP DISCOVERs (src 0.0.0.0 / dst 255.255.255.255), so lwIP
+     * computes IP/UDP/TCP/ICMP checksums in software (see lwipopts.h). */
+    s_tx_config.Attributes   = ETH_TX_PACKETS_FEATURES_CRCPAD;
+    s_tx_config.ChecksumCtrl = ETH_CHECKSUM_DISABLE;
     s_tx_config.CRCPadCtrl   = ETH_CRC_PAD_INSERT;
 
     s_rx_semaphore = xSemaphoreCreateBinary();
@@ -201,6 +204,7 @@ static void ethernetif_input(void *argument)
 
     /* Enable the MAC RX/TX interrupts only once the scheduler is running. */
     HAL_ETH_Start_IT(&g_eth_handle);
+    g_lwipdev.mac_started = 1U;
 
     for (;;)
     {
