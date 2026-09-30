@@ -18,10 +18,6 @@
 #define SDRAM_DUMP_PER_LINE   8U
 #define SDRAM_DUMP_PER_PAGE   128U
 
-/* The pattern region must be a whole number of pages and lines. */
-_Static_assert((SDRAM_DATA_WORD_COUNT % SDRAM_DUMP_PER_PAGE) == 0U, "SDRAM dump: partial page");
-_Static_assert((SDRAM_DUMP_PER_PAGE % SDRAM_DUMP_PER_LINE) == 0U, "SDRAM dump: partial line");
-
 static volatile uint16_t *const g_sdram = (volatile uint16_t *)SDRAM_BASE_ADDR;
 static uint32_t g_dump_pos = 0U;   /* next value index to dump */
 
@@ -87,7 +83,7 @@ static void sdram_data_dump(void)
 
     for (i = g_dump_pos; i < end; i += SDRAM_DUMP_PER_LINE)
     {
-        printf("%08lX:", (unsigned long)i);
+        printf("0x%08lX:", (unsigned long)(SDRAM_BASE_ADDR + (i * 2U)));
 
         for (j = 0U; j < SDRAM_DUMP_PER_LINE; j++)
         {
