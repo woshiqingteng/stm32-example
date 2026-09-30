@@ -12,13 +12,17 @@
 
 #define SDRAM_SIZE_BYTE    (32U * 1024U * 1024U)
 #define SDRAM_BLOCK_STEP_BYTE    (16U * 1024U)
-#define SDRAM_DATA_WORD_COUNT    250000U
+#define SDRAM_DATA_WORD_COUNT    4096U
 #define SDRAM_LOOP_MS       10U
 #define SDRAM_LED_TICK_COUNT     20U
 #define SDRAM_DUMP_PER_LINE   8U
 #define SDRAM_DUMP_PER_PAGE   128U
 
-static uint16_t *const g_sdram = (uint16_t *)SDRAM_BASE_ADDR;
+/* The pattern region must be a whole number of pages and lines. */
+_Static_assert((SDRAM_DATA_WORD_COUNT % SDRAM_DUMP_PER_PAGE) == 0U, "SDRAM dump: partial page");
+_Static_assert((SDRAM_DUMP_PER_PAGE % SDRAM_DUMP_PER_LINE) == 0U, "SDRAM dump: partial line");
+
+static volatile uint16_t *const g_sdram = (volatile uint16_t *)SDRAM_BASE_ADDR;
 static uint32_t g_dump_pos = 0U;   /* next value index to dump */
 
 static void sdram_prefill(void)
@@ -73,16 +77,9 @@ static void sdram_capacity_test(void)
 
 static void sdram_data_dump(void)
 {
-    char     line[SDRAM_DUMP_PER_LINE * 6U + 16U];
     uint32_t end = g_dump_pos + SDRAM_DUMP_PER_PAGE;
     uint32_t i;
     uint32_t j;
-    int      n;
-
-    if (end > SDRAM_DATA_WORD_COUNT)
-    {
-        end = SDRAM_DATA_WORD_COUNT;
-    }
 
     printf("dump [%lu..%lu) @0x%08lX\r\n",
            (unsigned long)g_dump_pos, (unsigned long)end,
@@ -90,15 +87,14 @@ static void sdram_data_dump(void)
 
     for (i = g_dump_pos; i < end; i += SDRAM_DUMP_PER_LINE)
     {
-        n = snprintf(line, sizeof(line), "%08lX:", (unsigned long)i);
+        printf("%08lX:", (unsigned long)i);
 
-        for (j = 0U; (j < SDRAM_DUMP_PER_LINE) && ((i + j) < end); j++)
+        for (j = 0U; j < SDRAM_DUMP_PER_LINE; j++)
         {
-            n += snprintf(line + n, sizeof(line) - (size_t)n, " %04X",
-                          (unsigned)g_sdram[i + j]);
+            printf(" %04X", (unsigned)g_sdram[i + j]);
         }
 
-        printf("%s\r\n", line);
+        printf("\r\n");
     }
 
     g_dump_pos = (end >= SDRAM_DATA_WORD_COUNT) ? 0U : end;
