@@ -72,6 +72,7 @@ void lwip_sntp_set_time(uint32_t sec);
 #define CHECKSUM_CHECK_IP               0
 #define CHECKSUM_CHECK_UDP              0
 #define CHECKSUM_CHECK_TCP              0
+#define CHECKSUM_CHECK_ICMP             0
 #define CHECKSUM_GEN_ICMP               0
 #endif
 
@@ -83,12 +84,12 @@ void lwip_sntp_set_time(uint32_t sec);
 #define LWIP_SO_RCVTIMEO                1
 
 #define TCPIP_THREAD_NAME               "tcpip"
-#define TCPIP_THREAD_STACKSIZE          1000
+#define TCPIP_THREAD_STACKSIZE          2048
 #define TCPIP_MBOX_SIZE                 8
 #define DEFAULT_UDP_RECVMBOX_SIZE       6
 #define DEFAULT_TCP_RECVMBOX_SIZE       6
 #define DEFAULT_ACCEPTMBOX_SIZE         6
-#define DEFAULT_THREAD_STACKSIZE        512
+#define DEFAULT_THREAD_STACKSIZE        1024
 #define TCPIP_THREAD_PRIO               5
 
 #endif /* LWIPOPTS_H */

@@ -4,13 +4,17 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "stm32f4xx_hal.h"
 
 #include "lwip/opt.h"
 #include "lwip/tcpip.h"
 #include "lwip/dhcp.h"
 #include "lwip/dns.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netif.h"
 #include "lwip/netifapi.h"
 
 #include "FreeRTOS.h"
@@ -20,6 +24,33 @@
 #include "ethernetif.h"
 
 #define LWIP_DHCP_WAIT_MS   10000U
+
+/* LWIP_RAND(): use the STM32 RNG when available, else fall back to rand(). */
+static uint8_t s_rng_ready;
+
+unsigned int lwip_rand(void)
+{
+    uint32_t i;
+
+    if (s_rng_ready == 0U)
+    {
+        __HAL_RCC_RNG_CLK_ENABLE();
+        RNG->CR |= RNG_CR_RNGEN;
+        s_rng_ready = 1U;
+    }
+
+    for (i = 0; i < 1000U; i++)
+    {
+        if ((RNG->SR & RNG_SR_DRDY) != 0U)
+        {
+            return (unsigned int)RNG->DR;
+        }
+    }
+
+    RNG->SR &= ~(RNG_SR_SEIS | RNG_SR_CEIS);   /* clear seed/clock error flags */
+
+    return (unsigned int)rand();
+}
 
 lwip_dev_t g_lwipdev =
 {
@@ -88,6 +119,17 @@ void lwip_comm_fallback_ip(void)
     IP4_ADDR(&gateway, g_lwipdev.gateway[0], g_lwipdev.gateway[1], g_lwipdev.gateway[2], g_lwipdev.gateway[3]);
 
     netifapi_netif_set_addr(&g_lwip_netif, &ip, &netmask, &gateway);
+
+    /* The request runs on the tcpip thread; wait until it is applied so the
+     * caller can use the interface immediately. */
+    for (uint32_t i = 0; i < 50U; i++)
+    {
+        if (ip4_addr_cmp(netif_ip4_addr(&g_lwip_netif), &ip))
+        {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
 void lwip_comm_wait_ip(void)

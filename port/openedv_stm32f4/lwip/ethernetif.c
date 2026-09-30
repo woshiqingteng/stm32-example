@@ -27,7 +27,7 @@
 
 #define TIME_WAITING_FOR_INPUT       (portMAX_DELAY)
 #define ETH_TX_TIMEOUT_MS            (50)
-#define INTERFACE_THREAD_STACK_SIZE  (512)
+#define INTERFACE_THREAD_STACK_SIZE  (1024)
 #define NETIF_IN_TASK_PRIORITY       (2)
 
 #define IFNAME0                      'e'
@@ -63,14 +63,17 @@ static void   rmii_watchdog(void *argument);
 static void   pbuf_free_custom(struct pbuf *p);
 static struct pbuf *low_level_input(void);
 
-static void low_level_init(struct netif *netif)
+static err_t low_level_init(struct netif *netif)
 {
     uint32_t duplex = ETH_FULLDUPLEX_MODE;
     uint32_t speed  = ETH_SPEED_100M;
     uint8_t  link_up;
     ETH_MACConfigTypeDef macconf = {0};
 
-    eth_init(g_lwipdev.mac);
+    if (eth_init(g_lwipdev.mac) != 0)
+    {
+        return ERR_IF;
+    }
 
     netif->hwaddr_len = ETHARP_HWADDR_LEN;
     memcpy(netif->hwaddr, g_lwipdev.mac, 6);
@@ -121,6 +124,8 @@ static void low_level_init(struct netif *netif)
         sys_thread_new("eth_rmii", rmii_watchdog, NULL,
                        configMINIMAL_STACK_SIZE, NETIF_IN_TASK_PRIORITY + 1);
     }
+
+    return ERR_OK;
 }
 
 static err_t low_level_output(struct netif *netif, struct pbuf *p)
@@ -164,6 +169,9 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
     if (xSemaphoreTake(s_tx_semaphore, pdMS_TO_TICKS(ETH_TX_TIMEOUT_MS)) != pdTRUE)
     {
         HAL_ETH_ReleaseTxPacket(&g_eth_handle);
+        /* Drop any token the Tx-complete ISR may still deliver, so the next
+         * frame does not return ERR_OK before its own completion. */
+        (void)xSemaphoreTake(s_tx_semaphore, 0);
         return ERR_TIMEOUT;
     }
 
@@ -222,9 +230,7 @@ err_t ethernetif_init(struct netif *netif)
     netif->output     = etharp_output;
     netif->linkoutput = low_level_output;
 
-    low_level_init(netif);
-
-    return ERR_OK;
+    return low_level_init(netif);
 }
 
 static void pbuf_free_custom(struct pbuf *p)

@@ -82,7 +82,8 @@
 #define LWIP_PLATFORM_ASSERT(x) do {printf("Assertion \"%s\" failed at line %d in %s\n", \
                                      x, __LINE__, __FILE__); } while(0)
 
-/* Define random number generator function */
-#define LWIP_RAND() ((u32_t)rand())
+/* Random number generator: the port seeds LWIP_RAND from the STM32 RNG. */
+extern unsigned int lwip_rand(void);
+#define LWIP_RAND() ((u32_t)lwip_rand())
 
 #endif /* __CC_H__ */
