@@ -1,6 +1,10 @@
 /**
  * @file    main.c
- * @brief   14_ltdc_lcd: RGB LTDC colour cycle demo (mirrors the vendor exp14).
+ * @brief   12_lcd_mcu: screen colour cycle demo.
+ *
+ * NOTE: the MCU screen (SSD1963/FMC) driver has been removed; this former
+ * MCU-screen experiment now drives the RGB (LTDC) screen via the same lcd API
+ * as 14_lcd_rgb.
  */
 
 #include <stdio.h>
@@ -9,12 +13,12 @@
 #include "lcd.h"
 #include "sdram.h"
 
-#define LTDC_COLOR_COUNT 12U
-#define DEMO_TEXT_X      10U
-#define DEMO_TEXT_WIDTH_PIXEL  240U
-#define DEMO_ID_Y        130U
-#define DEMO_ID_SIZE_PIXEL     16U
-#define DEMO_REFRESH_MS  1000U
+#define LCD_COLOR_COUNT 12U
+#define DEMO_TEXT_X     10U
+#define DEMO_TEXT_WIDTH_PIXEL 240U
+#define DEMO_ID_Y       130U
+#define DEMO_ID_SIZE_PIXEL    16U
+#define DEMO_REFRESH_MS 1000U
 
 typedef struct
 {
@@ -34,7 +38,7 @@ static const demo_line_t g_demo_lines[] =
 
 int main(void)
 {
-    static const uint16_t colors[LTDC_COLOR_COUNT] =
+    static const uint16_t colors[LCD_COLOR_COUNT] =
     {
         WHITE, BLACK, BLUE, RED, MAGENTA, GREEN,
         CYAN, YELLOW, BRRED, GRAY, LGRAY, BROWN
@@ -49,7 +53,7 @@ int main(void)
     lcd_init();
 
     sprintf(lcd_id, "LCD ID:%04X", (unsigned int)lcd_info()->id);
-    printf("14_ltdc_lcd ready, %s\r\n", lcd_id);
+    printf("12_lcd_mcu ready (RGB screen), %s\r\n", lcd_id);
 
     for (;;)
     {
@@ -68,7 +72,7 @@ int main(void)
         printf("color index %u\r\n", (unsigned)x);
 
         x++;
-        if (x >= LTDC_COLOR_COUNT)
+        if (x >= LCD_COLOR_COUNT)
         {
             x = 0;
         }

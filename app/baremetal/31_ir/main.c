@@ -19,7 +19,7 @@ static const char *ir_symbol(uint8_t key)
         case IR_KEY_POWER:    return "POWER";
         case IR_KEY_UP:       return "UP";
         case IR_KEY_PLAY:     return "PLAY";
-        case IR_KEY_ALIENTEK: return "ALIENTEK";
+        case IR_KEY_MENU:     return "MENU";
         case IR_KEY_RIGHT:    return "RIGHT";
         case IR_KEY_LEFT:     return "LEFT";
         case IR_KEY_VOL_DOWN: return "VOL-";

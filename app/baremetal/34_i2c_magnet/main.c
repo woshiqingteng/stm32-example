@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "bsp.h"
-#include "st480mc.h"
+#include "mag.h"
 
 #define SAMPLE_PERIOD_MS   200U
 
@@ -33,7 +33,7 @@ static float compass_get_angle(void)
     int16_t magy;
     int16_t magz;
 
-    if (st480mc_read_magdata_average(&magx, &magy, &magz, 10U) != 0U)
+    if (mag_read_average(&magx, &magy, &magz, 10U) != 0U)
     {
         return 0.0f;
     }
@@ -98,7 +98,7 @@ static void compass_calibration(void)
             break;
         }
 
-        if (st480mc_read_magdata(&magx, &magy, &magz) == 0U)
+        if (mag_read(&magx, &magy, &magz) == 0U)
         {
             if (magx > x_max) { x_max = magx; }
             if (magx < x_min) { x_min = magx; }
@@ -130,7 +130,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (st480mc_init() != 0U)
+    if (mag_init() != 0U)
     {
         printf("ST480MC check failed\r\n");
     }
@@ -157,12 +157,12 @@ int main(void)
             angle = compass_get_angle();
             print_fixed1("Angle: ", "", 360.0f - angle);
 
-            if (st480mc_read_temperature(&temperature) == 0U)
+            if (mag_read_temperature(&temperature) == 0U)
             {
                 print_fixed1("Temp: ", " C", temperature);
             }
 
-            if (st480mc_read_magdata(&magx, &magy, &magz) == 0U)
+            if (mag_read(&magx, &magy, &magz) == 0U)
             {
                 printf("MagX:%d\r\n", (int)magx);
                 printf("MagY:%d\r\n", (int)magy);

@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "ds18b20.h"
+#include "temp.h"
 
 #define TEMP_PERIOD_MS  500U
 
@@ -19,7 +19,7 @@ int main(void)
 
     bsp_init();
 
-    if (ds18b20_init() != 0U)
+    if (temp_init() != 0U)
     {
         printf("DS18B20 not found!\r\n");
 
@@ -34,7 +34,7 @@ int main(void)
 
     for (;;)
     {
-        temperature = ds18b20_get_temperature();
+        temperature = temp_read();
         shown = (temperature < 0) ? (int16_t)(-temperature) : temperature;
 
         printf("Temp: %s%d.%d C\r\n", (temperature < 0) ? "-" : "",

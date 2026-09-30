@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "ap3216c.h"
+#include "als.h"
 
 #define SAMPLE_PERIOD_MS   120U
 
@@ -20,7 +20,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (ap3216c_init() != 0U)
+    if (als_init() != 0U)
     {
         printf("AP3216C check failed\r\n");
     }
@@ -33,7 +33,7 @@ int main(void)
 
     for (;;)
     {
-        ap3216c_read_data(&ir, &ps, &als);
+        als_read(&ir, &ps, &als);
 
         printf("IR:%u PS:%u ALS:%u\r\n", (unsigned)ir, (unsigned)ps, (unsigned)als);
 

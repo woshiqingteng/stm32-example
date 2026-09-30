@@ -11,7 +11,7 @@
 #include "bsp.h"
 #include "internal_flash.h"
 
-#define FLASH_TEXT        "STM32 FLASH TEST"
+#define FLASH_TEXT        "FLASH TEST"
 #define FLASH_TEXT_SIZE_BYTE   (sizeof(FLASH_TEXT))
 #define FLASH_WORD_COUNT       ((FLASH_TEXT_SIZE_BYTE + 3U) / 4U)
 

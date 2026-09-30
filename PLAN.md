@@ -77,10 +77,10 @@
 |---|---|---|---|---|---|---|
 | 11_oled | 11 | main | 信息行 y=48 vs 52、CODE_X=88 vs 94（数字与 CODE 重叠） | P | 改 `OLED_INFO_Y=52`、`OLED_CODE_X=94` | [ ] |
 | 11_oled | 11 | `oled.c` | 公开 API(draw_point/show_char/fill)被 static/删除 | P | 按需补回 `oled_draw_point/show_char/fill` | [ ] |
-| 12_tftlcd | 12 | main/lcd | MCU 屏→LTDC RGB（有意） | I | 保留 | (有意) |
-| 13_sdram | 13 | main | 参考用 LCD 显示与 KEY 交互、容量/图形测试算法；当前仅 USART 简化 | P | 评估是否对齐 LCD/算法 | [ ] |
-| 14_ltdc_lcd | 14 | `ltdc.c` | 仅支持 0x4384 面板 | I | 保留 | (有意) |
-| 14_ltdc_lcd | 14 | `lcd.c` | 缺 draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum | P | 按需补绘图层 API | [ ] |
+| 12_lcd_mcu | 12 | main/lcd | MCU 屏→LTDC RGB（有意） | I | 保留 | (有意) |
+| 13_sdram | 13 | main | SDRAM 容量/数据测试；KEY0 容量、KEY1 数据回显 | P | 已去 LCD，改 USART（按键提示+结果） | [x] |
+| 14_lcd_rgb | 14 | `lcd_rgb.c` | 仅支持 0x4384 面板 | I | 保留 | (有意) |
+| 14_lcd_rgb | 14 | `lcd.c` | 缺 draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum | P | 按需补绘图层 API | [ ] |
 | 30_touch_screen | 30 | main | 无 RST 清除区、触点固定蓝色 | P | 补 RST 区与按触点取色 | [ ] |
 | 30_touch_screen | 30 | `touch.c` | 竖屏映射缺 `width-` 镜像；无抽帧/越界/释放处理 | P/R | 修正竖屏映射；可选抽帧 | [ ] |
 | 49_fpu | 49 | main | 缩放表(26 vs 14)、镜像方向、标题提示、计时方式差异 | P | 对齐表/镜像/标题；建议用 BTIM 0.1ms | [ ] |
@@ -101,8 +101,8 @@
 
 | App | 参考 | 比对面 | 差异 | 类别 | 建议 | 状态 |
 |---|---|---|---|---|---|---|
-| 32_1wire_temp | 32 | ds18b20 | 一致 | P | 无 | [x] |
-| 33_1wire_humi | 33 | dht11 | 校验和返回值语义（当前更健壮） | R | 保留 | (可选) |
+| 32_1wire_temp | 32 | `temp`（←ds18b20） | 一致 | P | 无 | [x] |
+| 33_1wire_humi | 33 | `humi`（←dht11） | 校验和返回值语义（当前更健壮） | R | 保留 | (可选) |
 | 34_i2c_magnet | REG34 | `st480mc.c` | 温度原始值用 int16 致负温异常；应用 uint16 | P | 改 uint16/float | [ ] |
 | 34_i2c_magnet | REG34 | main | 方位角参考显示 `360-angle`；当前直接 angle | P | 改 360-angle 或注明 | [ ] |
 | 34_i2c_magnet | REG34 | main | 校准键/节奏/显示差异 | I | 保留 | (有意) |
@@ -202,7 +202,7 @@
 - **全量回归 73/73 通过**。
 
 ## 未执行（已评估，属“可选/性能”）
-- `14_ltdc`：补 `lcd_draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum`（当前无 app 使用，属 API 完整性，非功能 parity）。
+- `14_lcd_rgb`：补 `lcd_draw_line/circle/fill_circle/set_window/ram_prepare/show_xnum`（当前无 app 使用，属 API 完整性，非功能 parity）。
 - `44_image` 快/慢模式 DMA2D 与定点缩放、`48_video` DMA2D 直写帧缓冲：大改动、性能 parity，无功能缺陷风险。
 - 其余 R/S 项按约定仅列不改。
 
@@ -244,6 +244,61 @@
 - **F5**：删除 `lv_29_keyboard` 自定义键盘回调（v8 中 `LV_SYMBOL_KEYBOARD` 内置为 CANCEL；模式切换用内置键 `1#`/`abc`/`ABC`）。
 - **F6**：对 `qrcodegen.c` 加 `-Wno-type-limits`、`lv_tlsf.c` 加 `-Wno-unused-parameter`（定向抑制上游告警）。
 - **验证**：`build all` / `build all-freertos` RC=0、**0 告警**；`43_font` 烧录运行（`page 0: GBK FONT OK`）；`lv_29_keyboard` 自动核验：`g_lvgl_tick_fn=&tick_read`、`xTickCount` **689→1695ms**、帧缓冲非空、非 HardFault。
+
+## 执行记录（Phase 2，第八批：`ltdc` 并入 `lcd_rgb` + 应用改名）
+- **合并**：删除 `ltdc.{c,h}`，其面板探测 + LTDC 控制器内容并入 `lcd_rgb.{c,h}`（模块名 `lcd_rgb`）；`lcd_rgb.h` 现直接 `#include "stm32f4xx_hal.h"`（消除 `RCC_PLLSAIDIVR_4` 依赖包含顺序的隐患）。
+- **标识符不改**：`ltdc_*`、`LTDC_*`（自定义宏/枚举）、`lcdltdc`、`g_ltdc_handle`、`g_ltdc_framebuf`、`g_dma2d_handle`、`lcd_rgb_cfg_t`、`lcd_rgb_probe`、`LCD_PANEL_*` 全部沿用。
+- **CMake**：删除 `bsp_ltdc`；`bsp_lcd_rgb` 承接 `drv_ltdc drv_dma2d`；`bsp_lcd PUBLIC bsp_lcd_rgb`；`bsp_touch PUBLIC bsp_lcd`（修正：touch 仅用 `lcd_info()`）；`bsp_all` 去 `bsp_ltdc`。
+- **包含**：`bsp/.../lcd.c` 改 `#include "lcd_rgb.h"`；`38/45` 仍含 `lcd_rgb.h`（不变）；`platform/**`（`LTDC_IRQHandler`）与 `module/stm32_hal/**` 不动。
+- **应用改名**：`12_tftlcd`→`12_lcd_mcu`、`14_ltdc_lcd`→`14_lcd_rgb`（目录/`add_baremetal_app`/`@brief`/`printf`/交叉注释/PLAN 名引用）。
+- **验证**：`build all` / `build all-freertos` RC=0、**0 告警**（含 `12_lcd_mcu`/`14_lcd_rgb`/`30/38/43/45` 全量重建）。烧录 `14_lcd_rgb`：横幅 `app_baremetal_14_lcd_rgb`、`14_lcd_rgb ready, LCD ID:4384`、颜色循环正常。烧录 `lv_29_keyboard` 自动核验：`g_lvgl_tick_fn=&tick_read`、`xTickCount` **718→1722ms**、帧缓冲 `0xC0000000` 非空、非 HardFault。
+
+## 执行记录（Phase 2，第九批：`lcd_rgb` 全局收敛 + 类型改名）
+- **类型**：`_ltdc_dev`（文件作用域 `_` 前缀为 C 保留标识符）→ **`ltdc_dev_t`**。
+- **全局内聚**：`lcd_rgb.c` 内 `g_ltdc_dev`（原名 `lcdltdc`）、`g_ltdc_handle`、`g_dma2d_handle`、`g_ltdc_framebuf[2]` 全省为 `static`；`lcd_rgb.h` 删除对应 4 行 `extern`。
+- **访问器**：新增 `const ltdc_dev_t *ltdc_info(void)` 与 `uint32_t ltdc_framebuf(void)`（活动层帧缓冲基址），替代对外暴露全局。
+- **`lcd.c`**：`lcd_sync_info()` 改用 `ltdc_info()`/`ltdc_framebuf()`；5 处 `pwidth!=0` 守卫改 `ltdc_info()->pwidth`。
+- **验证**：`build all` / `build all-freertos` RC=0、**0 告警**；烧录 `14_lcd_rgb`（`LCD ID:4384`、颜色循环正常）；`lv_29_keyboard` 自动核验：`g_lvgl_tick_fn=&tick_read`、`xTickCount` **704→1708ms**、帧缓冲非空。
+
+## 执行记录（Phase 2，第十批：对外接口与具体驱动解耦，仿 `oled`/`oled_ssd1306`）
+- **规则**：`X.{c,h}`=对外接口（函数名不变，消费方免改）+ 设备无关逻辑；`X_<chip>.{c,h}`=具体驱动（芯片常量/寄存器/引脚/总线/初始化/原始访问）。CMake `bsp_X_<chip>` + `bsp_X` PUBLIC 链接之。
+- **touch**：新增 `touch_gt9xxx.{c,h}`（`touch_gt9xxx_init/read`；CT_IIC/GT9XXX 寄存器/读点为原始点，**无 `g_touch`/`lcd`**）；`touch.{c,h}` 保留公共 API + `touch_map_raw`（坐标映射）。**`ct_iic_delay()` 删除，22 处直接 `delay_us(GT9XXX_IIC_DELAY_US)`**。
+- **eeprom**：新增 `eeprom_at24cxx.{c,h}`（`AT24*`/`EE_TYPE`/`read_one_byte`/`write_one_byte`/`check`）；`eeprom.{c,h}` 转发 + 块读写。
+- **codec**：新增 `codec_es8388.{c,h}`（`ES8388_ADDR` + 全部寄存器级配置）；`codec.{c,h}` 为转发层。
+- **imu**：新增 `imu_sh3001.{c,h}`（`IMU_ADDR`/`IMU_CHIP_ID_VAL`/寄存器图/原始读/温度/中断/FIFO）；`imu.{c,h}` 保留标定/动态偏置，`IMU_STATUS_*`/`IMU_FIFO_SAMPLE_LEN`/`IMU_ACC_1G_COUNT`/`IMU_CAL_*`/`IMU_DYN_*` 留公共。
+- **wireless**：新增 `wireless_nrf24l01.{c,h}`（引脚/SPI 命令/寄存器图/宽度）；`wireless.{c,h}` 转发；`36_spi_wireless/main.c` 增 `#include "wireless_nrf24l01.h"`（唯一消费方改动）。
+- **CMake**：`bsp_touch_gt9xxx`(bsp_delay)+`bsp_touch`(→bsp_touch_gt9xxx,bsp_lcd)；`bsp_eeprom_at24cxx`(bsp_i2c,bsp_delay)+`bsp_eeprom`；`bsp_codec_es8388`(bsp_i2c,bsp_delay)+`bsp_codec`；`bsp_imu_sh3001`(bsp_i2c)+`bsp_imu`(→bsp_imu_sh3001,m,bsp_delay)；`bsp_wireless_nrf24l01`(bsp_spi)+`bsp_wireless`。`bsp_all` 不变。
+- **验证**：`build all`/`all-freertos` RC=0（新/改文件 **0 告警**；全量重编暴露 3 处**既有**告警：`24_i2c_eeprom/main.c:26` 字符串初始值、`wavplay.c:131/133` 枚举、`usbd_def.h` `-Wundef`，均非本次引入）。烧录自检：`24_i2c_eeprom`（`24C02 ready`/读写 `OK`）、`35_i2c_imu`（`SH3001 ready`/标定/温度/acc-gyro）、`30_touch_screen`（`touch ready`）、`47_sai_record`（SD/menu）、`36_spi_wireless`（无模块→`NRF24L01 not found!`，初始化路径正常）。公共头经核对**无芯片细节泄漏**。
+
+## 执行记录（Phase 2，第十一批：app 仅经功能头接触器件）
+- **R1 wireless**：`wireless.h` 增 `WIRELESS_PLOAD_WIDTH 32U`（功能契约）；`wireless.c` 加 `_Static_assert` 与 `NRF24L01_TX/RX_PLOAD_WIDTH` 一致；`36_spi_wireless` 改用该宏并删除 `wireless_nrf24l01.h`。
+- **R2 lcd 几何**：`lcd.h` 增 `LCD_WIDTH_PX 800U`/`LCD_HEIGHT_PX 480U`（原生光栅，供编译期缓冲尺寸）；`lcd_rgb.h` 删 `LCD_PANEL_WIDTH/HEIGHT_PX`（时序仍私有）；`lcd_rgb.c` 含 `lcd.h` 用新宏；`38_camera_stream`/`45_camera_storage` 换宏并删 `lcd_rgb.h`。
+- **R3 传感器功能层**：新增 `mag.{c,h}`（←`st480mc`：`mag_init/read/read_average/read_temperature`）与 `als.{c,h}`（←`ap3216c`：`als_init`、`als_read(ir,ps,light)`）。改 `34_i2c_magnet`/`35_i2c_imu`（`mag.h`）、`26_i2c_als`（`als.h`）；app BSP 改 `mag`/`imu mag`/`als`。
+- **CMake**：`bsp_als`→`bsp_ap3216c`；`bsp_mag`→`bsp_st480mc`；`bsp_all` 追加 `bsp_als bsp_mag`。芯片头 `st480mc.h`/`ap3216c.h` 保持私有。
+- **暂不改**：`ds18b20.h`/`dht11.h`/`ov5640.h`（含 `lib/usmart`）及 `temp/humi/ov` 相关 app（按决定保留现状）。
+- **验证**：`build all`/`all-freertos` RC=0、新/改文件 **0 告警**；烧录自检 `26_i2c_als`（IR/PS/ALS 数据）、`34_i2c_magnet`（`ST480MC ready`+MagX/Y/Z）、`35_i2c_imu`（`SH3001 ready`+`ST480MC ready`）、`36_spi_wireless`（无模块→not found）、`38_camera_stream`（`OV5640 error`＝相机未接，编译/启动正常）。
+
+## 执行记录（Phase 2，第十二批：`temp`/`humi` 功能接口）
+- **新增** `temp.{c,h}`（←`ds18b20`）：`temp_init()`、`temp_read()`（0.1°C，int16）。
+- **新增** `humi.{c,h}`（←`dht11`）：`humi_init()`、`humi_read(uint8_t *temp_c, uint8_t *rh)`。
+- **app**：`32_1wire_temp`（include `temp.h`；`ds18b20_*`→`temp_*`；BSP `ds18b20`→`temp`）、`33_1wire_humi`（include `humi.h`；`dht11_*`→`humi_*`；BSP `dht11`→`humi`）。
+- **CMake**：`bsp_temp`(→`bsp_ds18b20`)、`bsp_humi`(→`bsp_dht11`)；`bsp_all` 追加。芯片头 `ds18b20.h`/`dht11.h` 保持私有（单线时序/编解码留芯片，不抽 `singlewire`）。
+- **待办（未执行）**：相机解耦——`camera.{c,h}`（←`ov5640`，外加 `dcmi` 采集不变），改 `38/45`（BSP `ov5640`→`camera`）与 `lib/usmart`；按决定**暂不执行**。
+- **验证**：`build all`/`all-freertos` RC=0、新/改文件 **0 告警**；烧录 `32_1wire_temp`/`33_1wire_humi` 启动正常（传感器未接→`DS18B20 not found!`/`DHT11 not found!`，`temp_init`/`humi_init` 路径已执行）。
+
+## 执行记录（Phase 2，第十三批：非显示应用去 LCD）
+- **原则**：仅“图像/视频/相机/触摸/LVGL/字库”等**必要**用 LCD 的应用保留 `lcd`；其余改 `printf` 串口输出。
+- **`13_sdram`**：删除 `#include "lcd.h"` 与全部 `lcd_*` 调用；菜单/容量结果改 `printf`。**去掉正点原子横幅**（`STM32`/`ATOM@ALIENTEK`/`SDRAM TEST`），仅保留必要信息：`APP_BANNER` + `KEY0: capacity test  KEY1: data dump` + `SDRAM Capacity:<n>KB`。CMake `BSP sdram lcd`→`BSP sdram`。
+- **`49_fpu` 保留 LCD**（Julia 分形渲染类，去屏即失去意义）。
+- **保留清单**：`12_lcd_mcu`/`14_lcd_rgb`/`30_touch_screen`/`43_font`/`44_image`/`48_video`/`38/45_camera`/`lv_29_keyboard`。
+- **验证**：`13_sdram` 构建 RC=0、0 告警；烧录串口仅 `app_baremetal_13_sdram` + `KEY0: capacity test  KEY1: data dump`（无厂商横幅）。
+
+## 执行记录（Phase 2，第十四批：非 LCD/OLED 应用去厂商/演示横幅）
+- **原则**：除 LCD/OLED 类外，去除厂商/演示字样（含 `STM32` 前缀）；**源码注释保留**。
+- **`31_ir`（中性名）**：`ir.h` `IR_KEY_ALIENTEK=71`→`IR_KEY_MENU=71`；`31_ir/main.c` `"ALIENTEK"`→`"MENU"`。
+- **串口/测试串**：`19_dma` `"STM32F429 USART1 TX DMA demo - …"`→`"USART1 TX DMA: 0123456789\r\n"`；`24_i2c_eeprom` `"STM32 IIC TEST"`→`"IIC TEST"`；`37_internal_flash` `"STM32 FLASH TEST"`→`"FLASH TEST"`；`42_fatfs` `ALIENTEK.TXT`→`FATFS.TXT`、`"ALIENTEK FATFS TEST"`→`"FATFS TEST"`；`56_usb_device_cdc` 去 `STM32 `。
+- **保留**：LCD/OLED 类横幅；所有源码注释（`35/fusion.c`、`39_malloc`、`lib/*`、`53_iap`、`ir.h`）。
+- **验证**：`build all`/`all-freertos` RC=0；**`24_i2c_eeprom` 的 `-Wunterminated-string-initialization` 告警消失**；烧录抽查 `19_dma`/`24_i2c_eeprom`(`String: IIC TEST (OK)`)/`37_internal_flash`(`"FLASH TEST"`)/`31_ir`(干净横幅)/`42_fatfs`(`FATFS.TXT`/`FATFS TEST`)/`56_usb_device_cdc`(USB CDC) 均无厂商/演示字样。
 
 ---
 

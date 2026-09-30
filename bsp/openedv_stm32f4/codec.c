@@ -1,179 +1,67 @@
 /**
  * @file    codec.c
- * @brief   ES8388 audio codec control over the bit-bang IIC bus.
+ * @brief   Audio codec control interface (delegates to the chip driver).
  */
 
 #include "codec.h"
-#include "i2c.h"
-#include "delay.h"
+#include "codec_es8388.h"
 
 uint8_t codec_init(void)
 {
-    i2c_init();                     /* initialise the IIC interface */
-
-    codec_write_reg(0, 0x80);      /* software reset */
-    codec_write_reg(0, 0x00);
-    delay_ms(100);                  /* wait for the reset */
-
-    codec_write_reg(0x01, 0x58);
-    codec_write_reg(0x01, 0x50);
-    codec_write_reg(0x02, 0xF3);
-    codec_write_reg(0x02, 0xF0);
-
-    codec_write_reg(0x03, 0x09);   /* mic bias off */
-    codec_write_reg(0x00, 0x06);   /* reference 500K, slow */
-    codec_write_reg(0x04, 0x00);   /* DAC power, all outputs off */
-    codec_write_reg(0x08, 0x00);   /* MCLK divider */
-    codec_write_reg(0x2B, 0x80);   /* DACLRC = ADCLRC */
-
-    codec_write_reg(0x09, 0x88);   /* ADC L/R PGA gain +24 dB */
-    codec_write_reg(0x0C, 0x4C);   /* ADC data select, 16-bit */
-    codec_write_reg(0x0D, 0x02);   /* ADC MCLK / sample rate = 256 */
-    codec_write_reg(0x10, 0x00);   /* ADC L input attenuation, minimum */
-    codec_write_reg(0x11, 0x00);   /* ADC R input attenuation, minimum */
-
-    codec_write_reg(0x17, 0x18);   /* DAC 16-bit */
-    codec_write_reg(0x18, 0x02);   /* DAC MCLK / sample rate = 256 */
-    codec_write_reg(0x1A, 0x00);   /* DAC L input attenuation, minimum */
-    codec_write_reg(0x1B, 0x00);   /* DAC R input attenuation, minimum */
-    codec_write_reg(0x27, 0xB8);   /* L mixer */
-    codec_write_reg(0x2A, 0xB8);   /* R mixer */
-    delay_ms(100);
-
-    return 0;
+    return codec_es8388_init();
 }
 
 uint8_t codec_write_reg(uint8_t reg, uint8_t val)
 {
-    i2c_start();
-
-    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    i2c_send_byte(reg);                     /* register address */
-    if (i2c_wait_ack())
-    {
-        return 2;
-    }
-
-    i2c_send_byte(val & 0xFF);              /* data */
-    if (i2c_wait_ack())
-    {
-        return 3;
-    }
-
-    i2c_stop();
-
-    return 0;
+    return codec_es8388_write_reg(reg, val);
 }
 
 uint8_t codec_read_reg(uint8_t reg)
 {
-    uint8_t temp = 0;
-
-    i2c_start();
-
-    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    i2c_send_byte(reg);                     /* register address */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    i2c_start();
-    i2c_send_byte((ES8388_ADDR << 1) | 1);  /* device address + read */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    temp = i2c_read_byte(0);
-
-    i2c_stop();
-
-    return temp;
+    return codec_es8388_read_reg(reg);
 }
 
 void codec_sai_cfg(uint8_t fmt, uint8_t len)
 {
-    fmt &= 0x03;
-    len &= 0x07;                                    /* clamp the range */
-    codec_write_reg(23, (fmt << 1) | (len << 3));  /* R23: SAI format */
+    codec_es8388_sai_cfg(fmt, len);
 }
 
 void codec_hpvol_set(uint8_t volume)
 {
-    if (volume > 33)
-    {
-        volume = 33;
-    }
-
-    codec_write_reg(0x2E, volume);
-    codec_write_reg(0x2F, volume);
+    codec_es8388_hpvol_set(volume);
 }
 
 void codec_spkvol_set(uint8_t volume)
 {
-    if (volume > 33)
-    {
-        volume = 33;
-    }
-
-    codec_write_reg(0x30, volume);
-    codec_write_reg(0x31, volume);
+    codec_es8388_spkvol_set(volume);
 }
 
 void codec_3d_set(uint8_t depth)
 {
-    depth &= 0x7;                           /* clamp the range */
-    codec_write_reg(0x1D, depth << 2);     /* R7: 3D depth */
+    codec_es8388_3d_set(depth);
 }
 
 void codec_adda_cfg(uint8_t dacen, uint8_t adcen)
 {
-    uint8_t tempreg = 0;
-
-    tempreg |= ((!dacen) << 0);
-    tempreg |= ((!adcen) << 1);
-    tempreg |= ((!dacen) << 2);
-    tempreg |= ((!adcen) << 3);
-    codec_write_reg(0x02, tempreg);
+    codec_es8388_adda_cfg(dacen, adcen);
 }
 
 void codec_output_cfg(uint8_t o1en, uint8_t o2en)
 {
-    uint8_t tempreg = 0;
-    tempreg |= o1en * (3 << 4);
-    tempreg |= o2en * (3 << 2);
-    codec_write_reg(0x04, tempreg);
+    codec_es8388_output_cfg(o1en, o2en);
 }
 
 void codec_mic_gain(uint8_t gain)
 {
-    gain &= 0x0F;
-    gain |= gain << 4;
-    codec_write_reg(0x09, gain);       /* R9: input PGA gain */
+    codec_es8388_mic_gain(gain);
 }
 
 void codec_alc_ctrl(uint8_t sel, uint8_t maxgain, uint8_t mingain)
 {
-    uint8_t tempreg = 0;
-
-    tempreg = sel << 6;
-    tempreg |= (maxgain & 0x07) << 3;
-    tempreg |= mingain & 0x07;
-    codec_write_reg(0x12, tempreg);     /* R18: ALC control */
+    codec_es8388_alc_ctrl(sel, maxgain, mingain);
 }
 
 void codec_input_cfg(uint8_t in)
 {
-    codec_write_reg(0x0A, (5 * in) << 4);   /* ADC1 L/R input select */
+    codec_es8388_input_cfg(in);
 }

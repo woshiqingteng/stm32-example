@@ -1,7 +1,6 @@
 /**
  * @file    touch.h
- * @brief   GT9147 capacitive touch panel driver over a dedicated software IIC
- *          bus (CT_SCL = PH6, CT_SDA = PI3, RST = PI8, INT = PH7).
+ * @brief   Capacitive touch panel: generic point/state API.
  */
 
 #ifndef BSP_TOUCH_H
@@ -28,8 +27,8 @@ typedef struct
 
 extern touch_dev_t g_touch;
 
-/** @brief  Reset and probe the GT9147.
- *  @return 0 on success, 1 if the product id is not recognised. */
+/** @brief  Reset and probe the touch controller.
+ *  @return 0 on success, 1 if the controller is not recognised. */
 uint8_t touch_init(void);
 
 /**

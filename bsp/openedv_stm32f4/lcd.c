@@ -7,7 +7,7 @@
  */
 
 #include "lcd.h"
-#include "ltdc.h"
+#include "lcd_rgb.h"
 #include "lcdfont.h"
 #include "sys.h"
 
@@ -65,12 +65,14 @@ static uint8_t glyph_bit(uint8_t byte, uint8_t row)
 /* Refresh the cached info from the LTDC controller state. */
 static void lcd_sync_info(void)
 {
-    g_lcd_info.pwidth   = (uint16_t)lcdltdc.pwidth;
-    g_lcd_info.pheight  = (uint16_t)lcdltdc.pheight;
-    g_lcd_info.width    = (uint16_t)lcdltdc.width;
-    g_lcd_info.height   = (uint16_t)lcdltdc.height;
-    g_lcd_info.pixsize  = (uint8_t)lcdltdc.pixsize;
-    g_lcd_info.framebuf = (uint32_t)g_ltdc_framebuf[lcdltdc.activelayer];
+    const ltdc_dev_t *dev = ltdc_info();
+
+    g_lcd_info.pwidth   = (uint16_t)dev->pwidth;
+    g_lcd_info.pheight  = (uint16_t)dev->pheight;
+    g_lcd_info.width    = (uint16_t)dev->width;
+    g_lcd_info.height   = (uint16_t)dev->height;
+    g_lcd_info.pixsize  = (uint8_t)dev->pixsize;
+    g_lcd_info.framebuf = ltdc_framebuf();
 }
 
 const lcd_info_t *lcd_info(void)
@@ -105,7 +107,7 @@ void lcd_display_dir(lcd_dir_t dir)
 {
     g_lcd_info.dir = dir;
 
-    if (lcdltdc.pwidth != 0U)
+    if (ltdc_info()->pwidth != 0U)
     {
         ltdc_display_dir((dir == LCD_DIR_LANDSCAPE) ? LTDC_DIR_LANDSCAPE : LTDC_DIR_PORTRAIT);
         lcd_sync_info();
@@ -115,7 +117,7 @@ void lcd_display_dir(lcd_dir_t dir)
 
 void lcd_draw_point(uint16_t x, uint16_t y, uint32_t color)
 {
-    if (lcdltdc.pwidth != 0U)
+    if (ltdc_info()->pwidth != 0U)
     {
         ltdc_draw_point(x, y, color);
     }
@@ -128,7 +130,7 @@ uint32_t lcd_read_point(uint16_t x, uint16_t y)
 
 void lcd_clear(uint32_t color)
 {
-    if (lcdltdc.pwidth != 0U)
+    if (ltdc_info()->pwidth != 0U)
     {
         ltdc_clear(color);
     }
@@ -136,7 +138,7 @@ void lcd_clear(uint32_t color)
 
 void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
 {
-    if (lcdltdc.pwidth != 0U)
+    if (ltdc_info()->pwidth != 0U)
     {
         ltdc_fill(sx, sy, ex, ey, color);
     }
@@ -144,7 +146,7 @@ void lcd_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color
 
 void lcd_blit(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, const uint16_t *src)
 {
-    if (lcdltdc.pwidth != 0U)
+    if (ltdc_info()->pwidth != 0U)
     {
         ltdc_blit(sx, sy, ex, ey, src);
     }

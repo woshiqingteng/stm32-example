@@ -22,7 +22,7 @@ typedef enum
 
 static void nrf_run_rx(void)
 {
-    uint8_t payload[NRF24L01_RX_PLOAD_WIDTH];
+    uint8_t payload[WIRELESS_PLOAD_WIDTH];
 
     printf("NRF24L01 RX mode\r\n");
     wireless_rx_mode();
@@ -31,7 +31,7 @@ static void nrf_run_rx(void)
     {
         if (wireless_rx_packet(payload) == 0U)
         {
-            payload[NRF24L01_RX_PLOAD_WIDTH - 1U] = '\0';
+            payload[WIRELESS_PLOAD_WIDTH - 1U] = '\0';
             printf("RX: %s\r\n", (char *)payload);
             led_toggle(LED1);
         }
@@ -44,7 +44,7 @@ static void nrf_run_rx(void)
 
 static void nrf_run_tx(void)
 {
-    uint8_t  payload[NRF24L01_TX_PLOAD_WIDTH];
+    uint8_t  payload[WIRELESS_PLOAD_WIDTH];
     uint32_t count = 0U;
     uint8_t  i;
 
@@ -53,12 +53,12 @@ static void nrf_run_tx(void)
 
     for (;;)
     {
-        for (i = 0U; i < NRF24L01_TX_PLOAD_WIDTH; i++)
+        for (i = 0U; i < WIRELESS_PLOAD_WIDTH; i++)
         {
             payload[i] = (uint8_t)' ';
         }
 
-        (void)snprintf((char *)payload, NRF24L01_TX_PLOAD_WIDTH, "NRF TX #%lu",
+        (void)snprintf((char *)payload, WIRELESS_PLOAD_WIDTH, "NRF TX #%lu",
                        (unsigned long)count);
 
         if (wireless_tx_packet(payload) == 0U)

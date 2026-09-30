@@ -21,7 +21,6 @@
 #include "lcd.h"
 #include "ov5640.h"
 #include "sdram.h"
-#include "lcd_rgb.h"
 
 /** @brief  Current camera mode. */
 typedef enum
@@ -35,13 +34,13 @@ uint16_t   g_curline = 0;                 /* current capture line (RGB mode) */
 uint16_t   g_yoffset = 0;                 /* vertical offset (RGB mode) */
 
 #define JPEG_BUF_WORD_COUNT   (1U * 1024U * 1024U)               /* 4 MB JPEG buffer (words) */
-#define RGB_LINE_WORD_COUNT   (LCD_PANEL_WIDTH_PX / 2U)            /* per-line DMA buffer (words) */
+#define RGB_LINE_WORD_COUNT   (LCD_WIDTH_PX / 2U)                  /* per-line DMA buffer (words) */
 #define CAM_OUTSIZE_OFFSET_X 4U                              /* sensor output window X offset */
 
 /* The RGB565 panel frame buffer occupies the start of SDRAM; the JPEG capture
  * buffer is placed right after it. */
 #define JPEG_BUF_ADDR    (lcd_info()->framebuf + \
-                          ((uint32_t)LCD_PANEL_WIDTH_PX * LCD_PANEL_HEIGHT_PX * 2U))
+                          ((uint32_t)LCD_WIDTH_PX * LCD_HEIGHT_PX * 2U))
 
 static uint32_t g_dcmi_line_buf[2][RGB_LINE_WORD_COUNT];
 

@@ -23,7 +23,7 @@ static const uint8_t g_pattern[EEPROM_BYTE_COUNT] =
     0x88U, 0x99U, 0xAAU, 0xBBU, 0xCCU, 0xDDU, 0xEEU, 0xFFU
 };
 
-static const char g_text[EEPROM_STR_LEN_BYTE] = "STM32 IIC TEST";
+static const char g_text[EEPROM_STR_LEN_BYTE] = "IIC TEST";
 
 static uint8_t g_readback[EEPROM_BYTE_COUNT];
 

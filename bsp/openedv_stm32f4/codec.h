@@ -1,18 +1,15 @@
 /**
  * @file    codec.h
- * @brief   ES8388 audio codec control over the bit-bang IIC bus.
+ * @brief   Audio codec control interface.
  *
- * The codec is wired to the ALIENTEK F429 board IIC pins (SCL = PH4, SDA =
- * PH5). Volume, DAC/ADC enable, output and input routing and the SAI data
- * format are all configured through the register interface below.
+ * Device-independent API; the concrete codec chip driver sits behind it
+ * (codec_es8388.h).
  */
 
 #ifndef BSP_CODEC_H
 #define BSP_CODEC_H
 
 #include <stdint.h>
-
-#define ES8388_ADDR     0x10    /* ES8388 device address, fixed at 0x10 */
 
 /** @brief  Reset and configure the codec. @return 0 on success. */
 uint8_t codec_init(void);

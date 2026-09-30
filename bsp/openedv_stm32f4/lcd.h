@@ -8,6 +8,10 @@
 
 #include <stdint.h>
 
+/** @brief  Native panel raster geometry (compile-time; matches lcd_info()->pwidth/pheight). */
+#define LCD_WIDTH_PX   800U
+#define LCD_HEIGHT_PX  480U
+
 /* Common colours. */
 #define WHITE           0xFFFF
 #define BLACK           0x0000

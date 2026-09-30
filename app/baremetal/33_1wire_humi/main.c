@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "dht11.h"
+#include "humi.h"
 
 #define DHT11_PERIOD_MS 1000U
 
@@ -18,7 +18,7 @@ int main(void)
 
     bsp_init();
 
-    if (dht11_init() != 0U)
+    if (humi_init() != 0U)
     {
         printf("DHT11 not found!\r\n");
 
@@ -33,7 +33,7 @@ int main(void)
 
     for (;;)
     {
-        if (dht11_read_data(&temperature, &humidity) != 0U)
+        if (humi_read(&temperature, &humidity) != 0U)
         {
             printf("DHT11 read failed\r\n");
         }

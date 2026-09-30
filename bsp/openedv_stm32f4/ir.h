@@ -40,7 +40,7 @@ typedef enum
     IR_KEY_6        = 94U,
     IR_KEY_POWER    = 69U,
     IR_KEY_PLAY     = 64U,
-    IR_KEY_ALIENTEK = 71U,
+    IR_KEY_MENU     = 71U,
     IR_KEY_RIGHT    = 67U,
     IR_KEY_LEFT     = 68U,
     IR_KEY_DELETE   = 74U

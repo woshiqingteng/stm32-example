@@ -25,7 +25,6 @@
 #include "piclib.h"
 #include "jpeg_dec.h"
 #include "bmp.h"
-#include "lcd_rgb.h"
 
 #define CAM_OUT_WIDTH_PIXEL    800U
 #define CAM_OUT_HEIGHT_PIXEL   464U
@@ -43,7 +42,7 @@
 #define JPEG_SIZE_WIDTH_PIXEL      2592U
 #define JPEG_SIZE_HEIGHT_PIXEL      1944U
 #define JPEG_BUF_ADDR    (lcd_info()->framebuf + \
-                          ((uint32_t)LCD_PANEL_WIDTH_PX * LCD_PANEL_HEIGHT_PX * 2U))
+                          ((uint32_t)LCD_WIDTH_PX * LCD_HEIGHT_PX * 2U))
 #define JPEG_BUF_WORD_COUNT   (1U * 1024U * 1024U)   /* 4 MB capture buffer */
 #define JPEG_CAPTURE_TIMEOUT_MS 3000U
 

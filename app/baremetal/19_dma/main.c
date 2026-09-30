@@ -19,7 +19,7 @@
 #define DMA_TX_POLL_DELAY_MS  1U
 #define DMA_TX_LOOP_MS  100U
 
-static const char DMA_TX_LINE[] = "STM32F429 USART1 TX DMA demo - 0123456789\r\n";
+static const char DMA_TX_LINE[] = "USART1 TX DMA: 0123456789\r\n";
 static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE_BYTE];
 
 static uint16_t dma_fill_buffer(void)

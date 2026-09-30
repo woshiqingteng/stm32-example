@@ -57,9 +57,12 @@ target_link_libraries(bsp_can PUBLIC drv_can)
 bsp_library(bsp_rs485
     rs485.c)
 target_link_libraries(bsp_rs485 PUBLIC bsp_io_expand drv_uart)
+bsp_library(bsp_wireless_nrf24l01
+    wireless_nrf24l01.c)
+target_link_libraries(bsp_wireless_nrf24l01 PUBLIC bsp_spi)
 bsp_library(bsp_wireless
     wireless.c)
-target_link_libraries(bsp_wireless PUBLIC bsp_spi)
+target_link_libraries(bsp_wireless PUBLIC bsp_wireless_nrf24l01)
 bsp_library(bsp_ir
     ir.c)
 target_link_libraries(bsp_ir PUBLIC drv_tim)
@@ -91,9 +94,12 @@ target_link_libraries(bsp_ftl PUBLIC bsp_nand)
 bsp_library(bsp_nor
     nor.c)
 target_link_libraries(bsp_nor PUBLIC bsp_spi)
+bsp_library(bsp_eeprom_at24cxx
+    eeprom_at24cxx.c)
+target_link_libraries(bsp_eeprom_at24cxx PUBLIC bsp_i2c bsp_delay)
 bsp_library(bsp_eeprom
     eeprom.c)
-target_link_libraries(bsp_eeprom PUBLIC bsp_i2c)
+target_link_libraries(bsp_eeprom PUBLIC bsp_eeprom_at24cxx)
 bsp_library(bsp_sdio
     sdio.c)
 target_link_libraries(bsp_sdio PUBLIC drv_sd)
@@ -101,20 +107,21 @@ target_link_libraries(bsp_sdio PUBLIC drv_sd)
 # display
 bsp_library(bsp_lcd_rgb
     lcd_rgb.c)
-bsp_library(bsp_ltdc
-    ltdc.c)
-target_link_libraries(bsp_ltdc PUBLIC drv_ltdc drv_dma2d)
+target_link_libraries(bsp_lcd_rgb PUBLIC drv_ltdc drv_dma2d)
 bsp_library(bsp_lcd
     lcd.c)
-target_link_libraries(bsp_lcd PUBLIC bsp_ltdc bsp_lcd_rgb)
+target_link_libraries(bsp_lcd PUBLIC bsp_lcd_rgb)
 bsp_library(bsp_oled_ssd1306
     oled_ssd1306.c)
 bsp_library(bsp_oled
     oled.c)
 target_link_libraries(bsp_oled PUBLIC bsp_oled_ssd1306)
+bsp_library(bsp_touch_gt9xxx
+    touch_gt9xxx.c)
+target_link_libraries(bsp_touch_gt9xxx PUBLIC bsp_delay)
 bsp_library(bsp_touch
     touch.c)
-target_link_libraries(bsp_touch PUBLIC bsp_ltdc)
+target_link_libraries(bsp_touch PUBLIC bsp_touch_gt9xxx bsp_lcd)
 bsp_library(bsp_tpad
     tpad.c)
 target_link_libraries(bsp_tpad PUBLIC drv_tim)
@@ -126,9 +133,12 @@ target_link_libraries(bsp_dcmi PUBLIC drv_dcmi bsp_ov5640)
 bsp_library(bsp_ov5640
     ov5640.c)
 target_link_libraries(bsp_ov5640 PUBLIC bsp_io_expand)
+bsp_library(bsp_codec_es8388
+    codec_es8388.c)
+target_link_libraries(bsp_codec_es8388 PUBLIC bsp_i2c bsp_delay)
 bsp_library(bsp_codec
     codec.c)
-target_link_libraries(bsp_codec PUBLIC bsp_i2c)
+target_link_libraries(bsp_codec PUBLIC bsp_codec_es8388)
 bsp_library(bsp_sai
     sai.c)
 target_link_libraries(bsp_sai PUBLIC drv_sai)
@@ -142,16 +152,31 @@ target_link_libraries(bsp_rng PUBLIC drv_rng)
 bsp_library(bsp_ap3216c
     ap3216c.c)
 target_link_libraries(bsp_ap3216c PUBLIC bsp_i2c)
+bsp_library(bsp_als
+    als.c)
+target_link_libraries(bsp_als PUBLIC bsp_ap3216c)
+bsp_library(bsp_imu_sh3001
+    imu_sh3001.c)
+target_link_libraries(bsp_imu_sh3001 PUBLIC bsp_i2c)
 bsp_library(bsp_imu
     imu.c)
-target_link_libraries(bsp_imu PUBLIC bsp_i2c m)
+target_link_libraries(bsp_imu PUBLIC bsp_imu_sh3001 m bsp_delay)
 bsp_library(bsp_st480mc
     st480mc.c)
 target_link_libraries(bsp_st480mc PUBLIC bsp_i2c)
+bsp_library(bsp_mag
+    mag.c)
+target_link_libraries(bsp_mag PUBLIC bsp_st480mc)
 bsp_library(bsp_ds18b20
     ds18b20.c)
+bsp_library(bsp_temp
+    temp.c)
+target_link_libraries(bsp_temp PUBLIC bsp_ds18b20)
 bsp_library(bsp_dht11
     dht11.c)
+bsp_library(bsp_humi
+    humi.c)
+target_link_libraries(bsp_humi PUBLIC bsp_dht11)
 
 # misc
 bsp_library(bsp_exti
@@ -173,10 +198,10 @@ target_link_libraries(bsp_all INTERFACE
     bsp_can bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac
     bsp_internal_flash bsp_sdram bsp_nand bsp_ftl bsp_nor bsp_eeprom bsp_sdio
-    bsp_ltdc bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
+    bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai
     bsp_rng
-    bsp_ap3216c bsp_imu bsp_st480mc bsp_ds18b20 bsp_dht11
+    bsp_ap3216c bsp_als bsp_imu bsp_st480mc bsp_mag bsp_ds18b20 bsp_temp bsp_dht11 bsp_humi
     bsp_exti bsp_pwr bsp_iap)
 
 function(bsp_resolve out)

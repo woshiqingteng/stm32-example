@@ -2,13 +2,12 @@
  * @file    main.c
  * @brief   13_sdram: SDRAM capacity test. KEY0 walks every 16 KB block to
  *          measure the capacity across the whole part; KEY1 dumps a preloaded
- *          pattern. Results are shown on the RGB panel and USART1.
+ *          pattern. Results are reported over USART1.
  */
 
 #include <stdio.h>
 
 #include "bsp.h"
-#include "lcd.h"
 #include "sdram.h"
 
 #define SDRAM_SIZE_BYTE    (32U * 1024U * 1024U)
@@ -36,7 +35,6 @@ static void sdram_capacity_test(void)
     uint32_t           temp = 0U;
     uint32_t           sval = 0U;
     uint32_t           cap_kb = 0U;
-    char               buf[32];
 
     for (i = 0U; i < SDRAM_SIZE_BYTE; i += SDRAM_BLOCK_STEP_BYTE)
     {
@@ -60,8 +58,6 @@ static void sdram_capacity_test(void)
         cap_kb = (temp - sval + 1U) * (SDRAM_BLOCK_STEP_BYTE / 1024U);
     }
 
-    (void)sprintf(buf, "Ex Memory Test:%5luKB", (unsigned long)cap_kb);
-    lcd_show_string(30U, 170U, 240U, 16U, LCD_FONT_SIZE_16, buf, RED);
     printf("SDRAM Capacity:%luKB\r\n", (unsigned long)cap_kb);
 }
 
@@ -82,18 +78,11 @@ int main(void)
 
     bsp_init();
     sdram_init();
-    lcd_init();
-    lcd_clear(WHITE);
-
-    lcd_show_string(30U, 50U, 200U, 16U, LCD_FONT_SIZE_16, "STM32", RED);
-    lcd_show_string(30U, 70U, 200U, 16U, LCD_FONT_SIZE_16, "SDRAM TEST", RED);
-    lcd_show_string(30U, 90U, 200U, 16U, LCD_FONT_SIZE_16, "ATOM@ALIENTEK", RED);
-    lcd_show_string(30U, 110U, 200U, 16U, LCD_FONT_SIZE_16, "KEY0:Test SDRAM", RED);
-    lcd_show_string(30U, 130U, 200U, 16U, LCD_FONT_SIZE_16, "KEY1:Test DATA", RED);
 
     sdram_prefill();
 
     printf(APP_BANNER "\r\n");
+    printf("KEY0: capacity test  KEY1: data dump\r\n");
 
     for (;;)
     {

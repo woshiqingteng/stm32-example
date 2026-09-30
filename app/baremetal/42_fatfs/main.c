@@ -88,12 +88,12 @@ static void fatfs_test(uint8_t idx)
     printf("%s (%s) OK\r\n", drv, g_name[idx]);
     fatfs_list_root(drv);
 
-    (void)sprintf(path, "%s/ALIENTEK.TXT", drv);
+    (void)sprintf(path, "%s/FATFS.TXT", drv);
     res = f_open(&g_file, path, FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
 
     if (res == FR_OK)
     {
-        const char *msg = "ALIENTEK FATFS TEST\r\n";
+        const char *msg = "FATFS TEST\r\n";
 
         (void)f_write(&g_file, msg, (UINT)strlen(msg), &bw);
         (void)f_sync(&g_file);

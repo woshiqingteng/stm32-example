@@ -74,7 +74,7 @@ int main(void)
 
             if ((times % 5000U) == 0U)
             {
-                usb_printf("\r\nSTM32 USB virtual COM test\r\n");
+                usb_printf("\r\nUSB virtual COM test\r\n");
             }
 
             if ((times % 30U) == 0U)

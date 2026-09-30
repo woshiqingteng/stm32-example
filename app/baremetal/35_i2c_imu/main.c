@@ -13,7 +13,7 @@
 
 #include "bsp.h"
 #include "imu.h"
-#include "st480mc.h"
+#include "mag.h"
 #include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U
@@ -74,7 +74,7 @@ int main(void)
         printf("Calibration done\r\n");
     }
 
-    mag_ok = (st480mc_init() == 0U);
+    mag_ok = (mag_init() == 0U);
 
     if (!mag_ok)
     {
@@ -177,7 +177,7 @@ int main(void)
 
                 for (k = 0U; (k < 20U) && (mag_ret != 0U); k++)
                 {
-                    mag_ret = st480mc_read_magdata(&mag[0], &mag[1], &mag[2]);
+                    mag_ret = mag_read(&mag[0], &mag[1], &mag[2]);
                 }
             }
 
