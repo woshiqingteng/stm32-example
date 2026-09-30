@@ -37,30 +37,37 @@ static void sdram_capacity_test(void)
     uint32_t           i;
     uint32_t           temp = 0U;
     uint32_t           sval = 0U;
-    uint32_t           cap_kb = 0U;
+    uint32_t           block = 0U;
+    uint32_t           cap_kb;
 
+    /* Write an incrementing counter to every 16 KB block. */
     for (i = 0U; i < SDRAM_SIZE_BYTE; i += SDRAM_BLOCK_STEP_BYTE)
     {
         base[i / 4U] = temp;
         temp++;
     }
 
+    /* Count the blocks reading back as strictly increasing values. */
     for (i = 0U; i < SDRAM_SIZE_BYTE; i += SDRAM_BLOCK_STEP_BYTE)
     {
         temp = base[i / 4U];
 
         if (i == 0U)
         {
-            sval = temp;
+            sval  = temp;
+            block = 1U;
         }
-        else if (temp <= sval)
+        else if (temp <= sval)      /* address mirroring: counter wrapped */
         {
             break;
         }
-
-        cap_kb = (temp - sval + 1U) * (SDRAM_BLOCK_STEP_BYTE / 1024U);
+        else
+        {
+            block++;
+        }
     }
 
+    cap_kb = block * (SDRAM_BLOCK_STEP_BYTE / 1024U);
     printf("SDRAM Capacity:%luKB\r\n", (unsigned long)cap_kb);
 }
 
