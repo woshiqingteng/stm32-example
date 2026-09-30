@@ -9,9 +9,6 @@
 
 #include <stdint.h>
 
-/** @brief  JEDEC ID returned by the on-board device. */
-#define NOR_W25Q256JV_ID    0xEF18U
-
 /** @brief  Bring up the SPI bus and chip select. */
 void nor_w25q256jv_dev_init(void);
 

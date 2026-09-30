@@ -1,7 +1,7 @@
 /**
  * @file    temp.h
  * @brief   Temperature sensor: device-independent API over the chip driver
- *          (ds18b20.h).
+ *          (temp_ds18b20.h).
  */
 
 #ifndef BSP_TEMP_H

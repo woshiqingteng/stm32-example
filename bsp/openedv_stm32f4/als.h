@@ -1,7 +1,7 @@
 /**
  * @file    als.h
  * @brief   Ambient light / proximity sensor: IR, PS and ambient light.
- *          Device-independent API over the chip driver (ap3216c.h).
+ *          Device-independent API over the chip driver (als_ap3216c.h).
  */
 
 #ifndef BSP_ALS_H

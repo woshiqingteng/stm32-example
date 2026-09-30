@@ -9,7 +9,7 @@
 #include "bsp.h"
 #include "humi.h"
 
-#define DHT11_PERIOD_MS 1000U
+#define HUMI_DHT11_PERIOD_MS 1000U
 
 int main(void)
 {
@@ -43,6 +43,6 @@ int main(void)
         }
 
         led_toggle(LED0);
-        delay_ms(DHT11_PERIOD_MS);
+        delay_ms(HUMI_DHT11_PERIOD_MS);
     }
 }

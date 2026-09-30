@@ -1,7 +1,7 @@
 /**
  * @file    humi.h
  * @brief   Temperature / humidity sensor: device-independent API over the chip
- *          driver (dht11.h).
+ *          driver (humi_dht11.h).
  */
 
 #ifndef BSP_HUMI_H

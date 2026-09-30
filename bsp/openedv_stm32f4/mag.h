@@ -1,7 +1,7 @@
 /**
  * @file    mag.h
  * @brief   Magnetometer: 3-axis field and temperature. Device-independent API
- *          over the chip driver (st480mc.h).
+ *          over the chip driver (mag_st480mc.h).
  */
 
 #ifndef BSP_MAG_H
