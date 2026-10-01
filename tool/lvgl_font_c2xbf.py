@@ -10,9 +10,9 @@ layout read by the generated `FontXX.c` descriptor (see
     block   : { uint8 adv_w; uint8 box_w; uint8 box_h; int8 ofs_y; }
               followed by box_w*box_h*bpp/8 bitmap bytes
 
-`adv_w` is in pixels; the source `lv_font_fmt_txt_glyph_dsc_t.adv_w` is 8.4,
-so it is rounded with `(adv_w + 8) >> 4` (matching lv_font_fmt_txt.c).  `box_w`
-is padded up to a multiple of `8 / bpp`, which keeps each bitmap row the same
+`adv_w` is in pixels; LvglFontTool already stores the advance in pixels (its
+generated get_glyph_dsc() assigns it directly), so it is copied unchanged.
+`box_w` is padded up to a multiple of `8 / bpp`, which keeps each bitmap row the same
 byte count as LVGL's own `(box_w*bpp+7)/8` packing, so the bytes are copied
 verbatim.  `ofs_x` is not representable in XBF and is forced to 0 (a warning is
 printed if any glyph needs it).
@@ -112,7 +112,7 @@ def build(sources):
     for uni in unis:
         adv_w, box_w, box_h, ofs_y, data = glyphs[uni]
         box_w_pad = ((box_w + pix_per_byte - 1) // pix_per_byte) * pix_per_byte
-        adv_px = (adv_w + 8) >> 4
+        adv_px = adv_w
         if adv_px > 255:
             raise ValueError("glyph 0x%04X advance %d px > 255" % (uni, adv_px))
         block = bytes([adv_px, box_w_pad, box_h, ofs_y & 0xFF]) + data

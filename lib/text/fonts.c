@@ -54,6 +54,10 @@ char *const FONT_UPDATE_REMIND_TBL[9] =
 
 #define FONT_GBK_NUM        (sizeof(FONT_GBK_PATH) / sizeof(FONT_GBK_PATH[0]))
 
+/* Bump when the store layout or the XBF encoding changes so existing stores are
+ * rebuilt once. */
+#define FONT_STORE_VER      2U
+
 static void fonts_progress_show(uint16_t x, uint16_t y, uint8_t size, uint32_t totsize, uint32_t pos, uint16_t color)
 {
     float prog;
@@ -180,7 +184,13 @@ static uint8_t fonts_update_fontx(uint16_t x, uint16_t y, uint8_t size, uint8_t 
 
             nor_write(tempbuf, offx + flashaddr, (uint16_t)bread);
             offx += bread;
-            fonts_progress_show(x, y, size, (uint32_t)fftemp->obj.objsize, offx, color);
+
+            /* Updating the LCD on every 4 KB chunk is very slow; refresh it
+             * every 16 chunks (64 KB) instead. */
+            if (((offx / 4096U) & 0x0FU) == 0U)
+            {
+                fonts_progress_show(x, y, size, (uint32_t)fftemp->obj.objsize, offx, color);
+            }
 
             if (bread != 4096U)
             {
@@ -203,7 +213,6 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
     uint8_t *buf;
     uint8_t res = 0;
     uint16_t i;
-    uint32_t j;
     FIL *fftemp;
     uint8_t rval = 0;
 
@@ -232,32 +241,17 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
             rval |= 1U << 7;
             break;
         }
+
+        (void)f_close(fftemp);   /* do not leak the object between opens */
     }
 
     myfree(SRAMIN, fftemp);
 
     if (rval == 0)
     {
-        lcd_show_string(x, y, 240U, 320U, (lcd_font_size_t)size, "Erasing sectors... ", color);
-
-        for (i = 0; i < FONTSECSIZE; i++)
-        {
-            fonts_progress_show((uint16_t)(x + 20 * size / 2), y, size, FONTSECSIZE, i, color);
-            nor_read(buf, (uint32_t)((FONTINFOADDR / 4096U) + i) * 4096U, 4096U);
-
-            for (j = 0; j < 4096U; j++)
-            {
-                if (buf[j] != 0xFFU)
-                {
-                    break;
-                }
-            }
-
-            if (j != 4096U)
-            {
-                nor_erase_sector((uint32_t)((FONTINFOADDR / 4096U) + i));
-            }
-        }
+        /* No pre-erase pass: nor_write() already erases each sector on demand,
+         * and scanning/erasing all FONTSECSIZE sectors (with an LCD update per
+         * sector) made the update take minutes. */
 
         for (i = 0; i < FONT_GBK_NUM; i++)
         {
@@ -275,6 +269,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
         }
 
         ftinfo.fontok = 0xAA;
+        ftinfo.ver    = FONT_STORE_VER;
         nor_write((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
     }
 
@@ -295,7 +290,7 @@ uint8_t fonts_init(void)
         t++;
         nor_read((uint8_t *)&ftinfo, FONTINFOADDR, (uint16_t)sizeof(ftinfo));
 
-        if (ftinfo.fontok == 0xAA)
+        if ((ftinfo.fontok == 0xAA) && (ftinfo.ver == FONT_STORE_VER))
         {
             break;
         }
@@ -303,7 +298,7 @@ uint8_t fonts_init(void)
         delay_ms(20);
     }
 
-    if (ftinfo.fontok != 0xAA)
+    if ((ftinfo.fontok != 0xAA) || (ftinfo.ver != FONT_STORE_VER))
     {
         return 1;
     }

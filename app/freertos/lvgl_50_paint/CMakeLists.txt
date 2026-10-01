@@ -10,4 +10,4 @@ target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Only the font-update scratch lives in SRAM here; keep the internal SRAM
 # for the LVGL buffers and the FreeRTOS heap.
-target_compile_definitions(lib_malloc PRIVATE MEM1_MAX_SIZE=8192)
+target_compile_definitions(lib_malloc PRIVATE MEM1_MAX_SIZE=16384)

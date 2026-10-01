@@ -13,6 +13,7 @@
 typedef struct __attribute__((packed))
 {
     uint8_t  fontok;      /* 0xAA when the font store is valid */
+    uint8_t  ver;         /* font store format version (see fonts.c) */
     uint32_t ugbkaddr;    /* unigbk address */
     uint32_t ugbksize;    /* unigbk size */
     uint32_t f12addr;     /* gbk12 address */
