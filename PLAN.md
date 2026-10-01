@@ -568,3 +568,44 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 
 ## 测试
 - HIL：`test/hil/`（`hil_run.py` 等），结果见 `test/hil/report.md`；入口 `tool/hil.sh`。
+
+---
+
+# 记录：FreeRTOS 例程移植（25 个，app/freertos/<number>_<name>）
+
+## 约定
+- 目录 `app/freertos/<number>_<name>/`，含 `main.c` + `FreeRTOSConfig.h`（覆盖 + `#include "FreeRTOSConfig_common.h"`）+ `CMakeLists.txt`。
+- LCD 与串口 `printf` 均英文（参考 LCD 无中文；串口中文改英文）。
+- API 映射：`lcd_show_string`→同名（竖屏 `LCD_DIR_PORTRAIT`）；`LED1_TOGGLE()`→`led_toggle(LED0)`；`key_scan(0)`→`key_scan(false)`；`delay_ms`→`delay_ms`；`my_mem_*`→`lib_malloc`。
+- 不用字库；堆用 heap_4；**不改任何 BSP**。
+
+## 兼容核对（FreeRTOS 10.4.6 → 11.3.1）
+- 移植版 `FreeRTOSConfig.h` 只写覆盖项；`FreeRTOSConfig_common.h` 已 1:1 复刻参考配置。
+- 删除端口固定项（common 有 `#error` 保护）：`configUSE_PORT_OPTIMISED_TASK_SELECTION`、`configPRIO_BITS`、`configKERNEL_INTERRUPT_PRIORITY`、`configMAX_SYSCALL_INTERRUPT_PRIORITY`、`configMAX_API_CALL_INTERRUPT_PRIORITY`、`xPortPendSVHandler`、`vPortSVCHandler`。
+
+## 清单（名 | BSP(+LIB) | 覆盖）
+- 02_freertos_port | lcd led usart | heap 20K
+- 04_interrupt | lcd usart delay gtim btim | heap；TIM3 抢占4/TIM6 抢占6；arr=9999,psc=8999
+- 06_1_task_create_dynamic | lcd key | heap
+- 06_2_task_create_static | lcd key | STATIC_ALLOCATION=1 + GetIdle/TimerTaskMemory
+- 06_3_task_suspend_resume | lcd key | heap
+- 07_list_item | lcd key usart | heap
+- 09_time_slicing | lcd usart delay | heap
+- 11_1_task_status_info | lcd key usart (LIB malloc) | heap
+- 11_2_run_time_stats | lcd key (LIB malloc) btim | GENERATE_RUN_TIME_STATS=1 + port 宏
+- 13_1_queue | lcd led key | heap
+- 13_2_queue_set | lcd key | heap
+- 13_3_queue_set_event_flags | lcd key | heap
+- 14_1_binary_semaphore | lcd key | heap
+- 14_2_counting_semaphore | lcd key | heap
+- 14_3_priority_inversion | lcd usart delay | heap
+- 14_4_mutex | lcd usart delay | heap
+- 15_software_timer | lcd key | heap
+- 16_event_group | lcd key | heap
+- 17_1_notify_binary_sem / 17_2_notify_counting_sem / 17_3_notify_mailbox(led) / 17_4_notify_event_group | lcd key | heap
+- 18_tickless | lcd led usart delay | TICKLESS=1 + sleep 前后钩子
+- 19_idle_hook | lcd led usart delay | IDLE_HOOK=1
+- 20_memory | lcd key | heap_4
+
+## 验证
+- 逐 app 构建 + 烧录 + 上电验证（LCD OCR / 串口 / KEY/LED）；完成后再逐项对照本清单校验，产出校验报告。
