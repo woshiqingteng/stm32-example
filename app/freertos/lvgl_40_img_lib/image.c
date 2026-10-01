@@ -1,24 +1,24 @@
 /**
  ****************************************************************************************************
  * @file        image.c
- * @author      ÕýµãÔ­×ÓÍÅ¶Ó(ALIENTEK)
+ * @author      ï¿½ï¿½ï¿½ï¿½Ô­ï¿½ï¿½ï¿½Å¶ï¿½(ALIENTEK)
  * @version     V1.0
  * @date        2020-04-04
- * @brief       Í¼Æ¬¿â ´úÂë
- *              Ìá¹©image_update_imageºÍimages_initÓÃÓÚÍ¼Æ¬¿â¸üÐÂºÍ³õÊ¼»¯
- * @license     Copyright (c) 2020-2032, ¹ãÖÝÊÐÐÇÒíµç×Ó¿Æ¼¼ÓÐÏÞ¹«Ë¾
+ * @brief       Í¼Æ¬ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+ *              ï¿½á¹©image_update_imageï¿½ï¿½images_initï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ÂºÍ³ï¿½Ê¼ï¿½ï¿½
+ * @license     Copyright (c) 2020-2032, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿Æ¼ï¿½ï¿½ï¿½ï¿½Þ¹ï¿½Ë¾
  ****************************************************************************************************
  * @attention
  *
- * ÊµÑéÆ½Ì¨:ÕýµãÔ­×Ó Mini Pro H750¿ª·¢°å
- * ÔÚÏßÊÓÆµ:www.yuanzige.com
- * ¼¼ÊõÂÛÌ³:www.openedv.com
- * ¹«Ë¾ÍøÖ·:www.alientek.com
- * ¹ºÂòµØÖ·:openedv.taobao.com
+ * Êµï¿½ï¿½Æ½Ì¨:ï¿½ï¿½ï¿½ï¿½Ô­ï¿½ï¿½ Mini Pro H750ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµ:www.yuanzige.com
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì³:www.openedv.com
+ * ï¿½ï¿½Ë¾ï¿½ï¿½Ö·:www.alientek.com
+ * ï¿½ï¿½ï¿½ï¿½ï¿½Ö·:openedv.taobao.com
  *
- * ÐÞ¸ÄËµÃ÷
+ * ï¿½Þ¸ï¿½Ëµï¿½ï¿½
  * V1.0 20200404
- * µÚÒ»´Î·¢²¼
+ * ï¿½ï¿½Ò»ï¿½Î·ï¿½ï¿½ï¿½
  *
  ****************************************************************************************************
  */
@@ -33,21 +33,22 @@
 #include "nor.h"
 
 
-/* Í¼Æ¬¿âÇøÓòÕ¼ÓÃµÄ×ÜÉÈÇøÊý´óÐ¡(4¸öÍ¼Æ¬¿â=70408×Ö½Ú,Ô¼Õ¼18¸ö25QXXÉÈÇø,Ò»¸öÉÈÇø4K×Ö½Ú) */
+/* Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡(4ï¿½ï¿½Í¼Æ¬ï¿½ï¿½=70408ï¿½Ö½ï¿½,Ô¼Õ¼18ï¿½ï¿½25QXXï¿½ï¿½ï¿½ï¿½,Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4Kï¿½Ö½ï¿½) */
 #define IMAGESECSIZE         18
 
 
-/* Í¼Æ¬¿â´æ·ÅÆðÊ¼µØÖ·
- * ´ÓµÚ18¸öÉÈÇø¿ªÊ¼´æ·ÅÍ¼Æ¬¿â
- * Ç°Ãæ18¸öÉÈÇø±»codeÇøºÍspbÇøÕ¼ÓÃÁË.
- * 25MÉÈÇøºó½ô¸ú4¸öÍ¼Æ¬¿â,±»Í¼Æ¬¿âÕ¼ÓÃÁË,²»ÄÜ¶¯!
+/* Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Ö·
+ * ï¿½Óµï¿½18ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½
+ * Ç°ï¿½ï¿½18ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½codeï¿½ï¿½ï¿½ï¿½spbï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½.
+ * 25Mï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4ï¿½ï¿½Í¼Æ¬ï¿½ï¿½,ï¿½ï¿½Í¼Æ¬ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Ü¶ï¿½!
  */
-#define IMAGEINFOADDR        25 * 1024 * 1024
+/* Image store base in the SPI NOR: 31.5 MB, past the 25 MB font store. */
+#define IMAGEINFOADDR        0x1F80000UL
 
-/* ÓÃÀ´±£´æÍ¼Æ¬¿â»ù±¾ÐÅÏ¢£¬µØÖ·£¬´óÐ¡µÈ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ */
 _image_info g_ftinfo;
 
-/* Í¼Æ¬¿â´æ·ÅÔÚ´ÅÅÌÖÐµÄÂ·¾¶ */
+/* Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ðµï¿½Â·ï¿½ï¿½ */
 char *const IMAGE_GBK_PATH[4] =
 {
     "/PICTURE/LVGLBIN/atk05.BIN",
@@ -56,7 +57,7 @@ char *const IMAGE_GBK_PATH[4] =
     "/PICTURE/LVGLBIN/money.BIN",
 };
 
-/* ¸üÐÂÊ±µÄÌáÊ¾ÐÅÏ¢ */
+/* ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢ */
 char *const IMAGE_UPDATE_REMIND_TBL[4] =
 {
     "Updating atk05.BIN",
@@ -68,13 +69,13 @@ char *const IMAGE_UPDATE_REMIND_TBL[4] =
 #define IMAGE_GBK_NUM           (int)(sizeof(IMAGE_GBK_PATH)/sizeof(IMAGE_GBK_PATH[0]))
 #define IMAGE_UPDATE_REMIND_NUM (int)(sizeof(IMAGE_UPDATE_REMIND_TBL)/sizeof(IMAGE_UPDATE_REMIND_TBL[0]))
 /**
- * @brief       ÏÔÊ¾µ±Ç°Í¼Æ¬¸üÐÂ½ø¶È
- * @param       x, y    : ×ø±ê
- * @param       size    : Í¼Æ¬´óÐ¡
- * @param       totsize : Õû¸öÎÄ¼þ´óÐ¡
- * @param       pos     : µ±Ç°ÎÄ¼þÖ¸ÕëÎ»ÖÃ
- * @param       color   : Í¼Æ¬ÑÕÉ«
- * @retval      ÎÞ
+ * @brief       ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Í¼Æ¬ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½
+ * @param       x, y    : ï¿½ï¿½ï¿½ï¿½
+ * @param       size    : Í¼Æ¬ï¿½ï¿½Ð¡
+ * @param       totsize : ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡
+ * @param       pos     : ï¿½ï¿½Ç°ï¿½Ä¼ï¿½Ö¸ï¿½ï¿½Î»ï¿½ï¿½
+ * @param       color   : Í¼Æ¬ï¿½ï¿½É«
+ * @retval      ï¿½ï¿½
  */
 static void images_progress_show(uint16_t x, uint16_t y, uint8_t size, uint32_t totsize, uint32_t pos, uint16_t color)
 {
@@ -90,23 +91,23 @@ static void images_progress_show(uint16_t x, uint16_t y, uint8_t size, uint32_t 
 
         if (t > 100)t = 100;
 
-        lcd_show_num(x, y, t, 3, size, color);  /* ÏÔÊ¾ÊýÖµ */
+        lcd_show_num(x, y, t, 3, size, color);  /* ï¿½ï¿½Ê¾ï¿½ï¿½Öµ */
     }
 }
 
 /**
- * @brief       ¸üÐÂÄ³Ò»¸öÍ¼Æ¬¿â
- * @param       x, y    : ÌáÊ¾ÐÅÏ¢µÄÏÔÊ¾µØÖ·
- * @param       size    : ÌáÊ¾ÐÅÏ¢Í¼Æ¬´óÐ¡
- * @param       fpath   : Í¼Æ¬Â·¾¶
- * @param       fx      : ¸üÐÂµÄÄÚÈÝ
+ * @brief       ï¿½ï¿½ï¿½ï¿½Ä³Ò»ï¿½ï¿½Í¼Æ¬ï¿½ï¿½
+ * @param       x, y    : ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ö·
+ * @param       size    : ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢Í¼Æ¬ï¿½ï¿½Ð¡
+ * @param       fpath   : Í¼Æ¬Â·ï¿½ï¿½
+ * @param       fx      : ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½
  *   @arg                 0, atk01;
  *   @Arg                 1, atk02;
  *   @arg                 2, atk03;
  *   @arg                 3, atk04;
  *   @arg                 4, atk05;
- * @param       color   : Í¼Æ¬ÑÕÉ«
- * @retval      0, ³É¹¦; ÆäËû, ´íÎó´úÂë;
+ * @param       color   : Í¼Æ¬ï¿½ï¿½É«
+ * @retval      0, ï¿½É¹ï¿½; ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½;
  */
 static uint8_t images_update_imagex(uint16_t x, uint16_t y, uint8_t size, uint8_t *fpath, uint8_t fx, uint16_t color)
 {
@@ -117,76 +118,76 @@ static uint8_t images_update_imagex(uint16_t x, uint16_t y, uint8_t size, uint8_
     uint16_t bread;
     uint32_t offx = 0;
     uint8_t rval = 0;
-    fftemp = (FIL *)lv_mem_alloc( sizeof(FIL));  /* ·ÖÅäÄÚ´æ */
+    fftemp = (FIL *)lv_mem_alloc( sizeof(FIL));  /* ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ */
 
     if (fftemp == NULL)rval = 1;
 
-    tempbuf = lv_mem_alloc( 4096);               /* ·ÖÅä4096¸ö×Ö½Ú¿Õ¼ä */
+    tempbuf = lv_mem_alloc( 4096);               /* ï¿½ï¿½ï¿½ï¿½4096ï¿½ï¿½ï¿½Ö½Ú¿Õ¼ï¿½ */
 
     if (tempbuf == NULL)rval = 1;
 
     res = f_open(fftemp, (const TCHAR *)fpath, FA_READ);
 
-    if (res)rval = 2;   /* ´ò¿ªÎÄ¼þÊ§°Ü */
+    if (res)rval = 2;   /* ï¿½ï¿½ï¿½Ä¼ï¿½Ê§ï¿½ï¿½ */
 
     if (rval == 0)
     {
         switch (fx)
         {
-            case 0: /* ¸üÐÂatk01.BIN */
-                g_ftinfo.lvgl_atk01addr = IMAGEINFOADDR + sizeof(g_ftinfo);                  /* ÐÅÏ¢Í·Ö®ºó£¬½ô¸úatk02 */
-                g_ftinfo.lvgl_atk01size = fftemp->obj.objsize;                             /* atk01´óÐ¡ */
+            case 0: /* ï¿½ï¿½ï¿½ï¿½atk01.BIN */
+                g_ftinfo.lvgl_atk01addr = IMAGEINFOADDR + sizeof(g_ftinfo);                  /* ï¿½ï¿½Ï¢Í·Ö®ï¿½ó£¬½ï¿½ï¿½ï¿½atk02 */
+                g_ftinfo.lvgl_atk01size = fftemp->obj.objsize;                             /* atk01ï¿½ï¿½Ð¡ */
                 flashaddr = g_ftinfo.lvgl_atk01addr;
                 break;
-            case 1: /* ¸üÐÂatk02.BIN */
-                g_ftinfo.lvgl_atk02addr = g_ftinfo.lvgl_atk01addr + g_ftinfo.lvgl_atk01size;    /* ÐÅÏ¢Í·Ö®ºó£¬½ô¸úatk03 */
-                g_ftinfo.lvgl_atk02size = fftemp->obj.objsize;                              /* atk02´óÐ¡ */
+            case 1: /* ï¿½ï¿½ï¿½ï¿½atk02.BIN */
+                g_ftinfo.lvgl_atk02addr = g_ftinfo.lvgl_atk01addr + g_ftinfo.lvgl_atk01size;    /* ï¿½ï¿½Ï¢Í·Ö®ï¿½ó£¬½ï¿½ï¿½ï¿½atk03 */
+                g_ftinfo.lvgl_atk02size = fftemp->obj.objsize;                              /* atk02ï¿½ï¿½Ð¡ */
                 flashaddr = g_ftinfo.lvgl_atk02addr;
                 break;
-            case 2: /* ¸üÐÂatk03.BIN */
-                g_ftinfo.lvgl_atk03addr = g_ftinfo.lvgl_atk02addr + g_ftinfo.lvgl_atk02size;    /* ÐÅÏ¢Í·Ö®ºó£¬½ô¸úmoney */
-                g_ftinfo.lvgl_atk03size = fftemp->obj.objsize;                              /* atk03´óÐ¡ */
+            case 2: /* ï¿½ï¿½ï¿½ï¿½atk03.BIN */
+                g_ftinfo.lvgl_atk03addr = g_ftinfo.lvgl_atk02addr + g_ftinfo.lvgl_atk02size;    /* ï¿½ï¿½Ï¢Í·Ö®ï¿½ó£¬½ï¿½ï¿½ï¿½money */
+                g_ftinfo.lvgl_atk03size = fftemp->obj.objsize;                              /* atk03ï¿½ï¿½Ð¡ */
                 flashaddr = g_ftinfo.lvgl_atk03addr;
                 break;
-            case 3: /* ¸üÐÂmoney.BIN */
-                g_ftinfo.lvgl_moneyaddr = g_ftinfo.lvgl_atk03addr + g_ftinfo.lvgl_atk03size;    /* ÐÅÏ¢Í·Ö®ºó */
-                g_ftinfo.lvgl_moneysize = fftemp->obj.objsize;                              /* money´óÐ¡ */
+            case 3: /* ï¿½ï¿½ï¿½ï¿½money.BIN */
+                g_ftinfo.lvgl_moneyaddr = g_ftinfo.lvgl_atk03addr + g_ftinfo.lvgl_atk03size;    /* ï¿½ï¿½Ï¢Í·Ö®ï¿½ï¿½ */
+                g_ftinfo.lvgl_moneysize = fftemp->obj.objsize;                              /* moneyï¿½ï¿½Ð¡ */
                 flashaddr = g_ftinfo.lvgl_moneyaddr;
                 break;
         }
 
-        while (res == FR_OK)   /* ËÀÑ­»·Ö´ÐÐ */
+        while (res == FR_OK)   /* ï¿½ï¿½Ñ­ï¿½ï¿½Ö´ï¿½ï¿½ */
         {
-            res = f_read(fftemp, tempbuf, 4096, (UINT *)&bread);    /* ¶ÁÈ¡Êý¾Ý */
+            res = f_read(fftemp, tempbuf, 4096, (UINT *)&bread);    /* ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ */
 
-            if (res != FR_OK)break;     /* Ö´ÐÐ´íÎó */
+            if (res != FR_OK)break;     /* Ö´ï¿½Ð´ï¿½ï¿½ï¿½ */
 
-            nor_write(tempbuf, offx + flashaddr, bread);    /* ´Ó0¿ªÊ¼Ð´Èëbread¸öÊý¾Ý */
+            nor_write(tempbuf, offx + flashaddr, bread);    /* ï¿½ï¿½0ï¿½ï¿½Ê¼Ð´ï¿½ï¿½breadï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
             offx += bread;
-            images_progress_show(x, y, size, fftemp->obj.objsize, offx, color);    /* ½ø¶ÈÏÔÊ¾ */
+            images_progress_show(x, y, size, fftemp->obj.objsize, offx, color);    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ */
 
-            if (bread != 4096)break;    /* ¶ÁÍêÁË. */
+            if (bread != 4096)break;    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½. */
         }
 
         f_close(fftemp);
     }
 
-    lv_mem_free( fftemp);     /* ÊÍ·ÅÄÚ´æ */
-    lv_mem_free( tempbuf);    /* ÊÍ·ÅÄÚ´æ */
+    lv_mem_free( fftemp);     /* ï¿½Í·ï¿½ï¿½Ú´ï¿½ */
+    lv_mem_free( tempbuf);    /* ï¿½Í·ï¿½ï¿½Ú´ï¿½ */
     return res;
 }
 
 /**
- * @brief       ¸üÐÂÍ¼Æ¬ÎÄ¼þ
- *   @note      ËùÓÐÍ¼Æ¬¿âÒ»Æð¸üÐÂ(UNIGBK,GBK12,GBK16,GBK24,GBK32)
- * @param       x, y    : ÌáÊ¾ÐÅÏ¢µÄÏÔÊ¾µØÖ·
- * @param       size    : ÌáÊ¾ÐÅÏ¢Í¼Æ¬´óÐ¡
- * @param       src     : Í¼Æ¬¿âÀ´Ô´´ÅÅÌ
- *   @arg                 "0:", SD¿¨;
- *   @Arg                 "1:", FLASHÅÌ
- *   @arg                 "2:", UÅÌ
- * @param       color   : Í¼Æ¬ÑÕÉ«
- * @retval      0, ³É¹¦; ÆäËû, ´íÎó´úÂë;
+ * @brief       ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½Ä¼ï¿½
+ *   @note      ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½(UNIGBK,GBK12,GBK16,GBK24,GBK32)
+ * @param       x, y    : ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ö·
+ * @param       size    : ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢Í¼Æ¬ï¿½ï¿½Ð¡
+ * @param       src     : Í¼Æ¬ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½
+ *   @arg                 "0:", SDï¿½ï¿½;
+ *   @Arg                 "1:", FLASHï¿½ï¿½
+ *   @arg                 "2:", Uï¿½ï¿½
+ * @param       color   : Í¼Æ¬ï¿½ï¿½É«
+ * @retval      0, ï¿½É¹ï¿½; ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½;
  */
 uint8_t images_update_image(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, uint16_t color)
 {
@@ -198,59 +199,59 @@ uint8_t images_update_image(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, 
     uint8_t rval = 0;
     res = 0XFF;
     g_ftinfo.imageok = 0XFF;
-    pname = lv_mem_alloc( 100);  /* ÉêÇë100×Ö½ÚÄÚ´æ */
-    buf = lv_mem_alloc( 4096);   /* ÉêÇë4K×Ö½ÚÄÚ´æ */
-    fftemp = (FIL *)lv_mem_alloc( sizeof(FIL));  /* ·ÖÅäÄÚ´æ */
+    pname = lv_mem_alloc( 100);  /* ï¿½ï¿½ï¿½ï¿½100ï¿½Ö½ï¿½ï¿½Ú´ï¿½ */
+    buf = lv_mem_alloc( 4096);   /* ï¿½ï¿½ï¿½ï¿½4Kï¿½Ö½ï¿½ï¿½Ú´ï¿½ */
+    fftemp = (FIL *)lv_mem_alloc( sizeof(FIL));  /* ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ */
 
     if (buf == NULL || pname == NULL || fftemp == NULL)
     {
         lv_mem_free( fftemp);
         lv_mem_free( pname);
         lv_mem_free( buf);
-        return 5;   /* ÄÚ´æÉêÇëÊ§°Ü */
+        return 5;   /* ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½ */
     }
 
-    for (i = 0; i < IMAGE_GBK_NUM; i++) /* ÏÈ²éÕÒÎÄ¼þatk01,atk02,atk03,moneyÊÇ·ñÕý³£ */
+    for (i = 0; i < IMAGE_GBK_NUM; i++) /* ï¿½È²ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½atk01,atk02,atk03,moneyï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ */
     {
-        strcpy((char *)pname, (char *)src);                  /* copy srcÄÚÈÝµ½pname */
-        strcat((char *)pname, (char *)IMAGE_GBK_PATH[i]);    /* ×·¼Ó¾ßÌåÎÄ¼þÂ·¾¶ */
-        res = f_open(fftemp, (const TCHAR *)pname, FA_READ); /* ³¢ÊÔ´ò¿ª */
+        strcpy((char *)pname, (char *)src);                  /* copy srcï¿½ï¿½ï¿½Ýµï¿½pname */
+        strcat((char *)pname, (char *)IMAGE_GBK_PATH[i]);    /* ×·ï¿½Ó¾ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Â·ï¿½ï¿½ */
+        res = f_open(fftemp, (const TCHAR *)pname, FA_READ); /* ï¿½ï¿½ï¿½Ô´ï¿½ */
 
         if (res)
         {
-            rval |= 1 << 7; /* ±ê¼Ç´ò¿ªÎÄ¼þÊ§°Ü */
-            break;          /* ³ö´íÁË,Ö±½ÓÍË³ö */
+            rval |= 1 << 7; /* ï¿½ï¿½Ç´ï¿½ï¿½Ä¼ï¿½Ê§ï¿½ï¿½ */
+            break;          /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ö±ï¿½ï¿½ï¿½Ë³ï¿½ */
         }
     }
 
-    lv_mem_free( fftemp); /* ÊÍ·ÅÄÚ´æ */
+    lv_mem_free( fftemp); /* ï¿½Í·ï¿½ï¿½Ú´ï¿½ */
 
-    if (rval == 0)          /* Í¼Æ¬¿âÎÄ¼þ¶¼´æÔÚ. */
+    if (rval == 0)          /* Í¼Æ¬ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½. */
     {
-        lcd_show_string(x, y, 240, 320, size, "Erasing sectors... ", color);    /* ÌáÊ¾ÕýÔÚ²Á³ýÉÈÇø */
+        lcd_show_string(x, y, 240, 320, size, "Erasing sectors... ", color);    /* ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 
-        for (i = 0; i < IMAGESECSIZE; i++)   /* ÏÈ²Á³ýÍ¼Æ¬¿âÇøÓò,Ìá¸ßÐ´ÈëËÙ¶È */
+        for (i = 0; i < IMAGESECSIZE; i++)   /* ï¿½È²ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ù¶ï¿½ */
         {
-            images_progress_show(x + 20 * size / 2, y, size, IMAGESECSIZE, i, color);    /* ½ø¶ÈÏÔÊ¾ */
-            nor_read((uint8_t *)buf, ((IMAGEINFOADDR / 4096) + i) * 4096, 4096); /* ¶Á³öÕû¸öÉÈÇøµÄÄÚÈÝ */
+            images_progress_show(x + 20 * size / 2, y, size, IMAGESECSIZE, i, color);    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ */
+            nor_read((uint8_t *)buf, ((IMAGEINFOADDR / 4096) + i) * 4096, 4096); /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 
-            for (j = 0; j < 1024; j++)          /* Ð£ÑéÊý¾Ý */
+            for (j = 0; j < 1024; j++)          /* Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
             {
-                if (buf[j] != 0XFFFFFFFF)break; /* ÐèÒª²Á³ý */
+                if (buf[j] != 0XFFFFFFFF)break; /* ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ */
             }
 
             if (j != 1024)
             {
-                nor_erase_sector((IMAGEINFOADDR / 4096) + i); /* ÐèÒª²Á³ýµÄÉÈÇø */
+                nor_erase_sector((IMAGEINFOADDR / 4096) + i); /* ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
             }
         }
 
-        for (i = 0; i < IMAGE_UPDATE_REMIND_NUM; i++) /* ÒÀ´Î¸üÐÂatk01,atk02,atk03,money */
+        for (i = 0; i < IMAGE_UPDATE_REMIND_NUM; i++) /* ï¿½ï¿½ï¿½Î¸ï¿½ï¿½ï¿½atk01,atk02,atk03,money */
         {
             lcd_show_string(x, y, 240, 320, size, IMAGE_UPDATE_REMIND_TBL[i], color);
-            strcpy((char *)pname, (char *)src);              /* copy srcÄÚÈÝµ½pname */
-            strcat((char *)pname, (char *)IMAGE_GBK_PATH[i]);/* ×·¼Ó¾ßÌåÎÄ¼þÂ·¾¶ */
-            res = images_update_imagex(x + 20 * size / 2, y, size, pname, i, color);    /* ¸üÐÂÍ¼Æ¬¿â */
+            strcpy((char *)pname, (char *)src);              /* copy srcï¿½ï¿½ï¿½Ýµï¿½pname */
+            strcat((char *)pname, (char *)IMAGE_GBK_PATH[i]);/* ×·ï¿½Ó¾ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Â·ï¿½ï¿½ */
+            res = images_update_imagex(x + 20 * size / 2, y, size, pname, i, color);    /* ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ */
 
             if (res)
             {
@@ -260,29 +261,29 @@ uint8_t images_update_image(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, 
             }
         }
 
-        /* È«²¿¸üÐÂºÃÁË */
+        /* È«ï¿½ï¿½ï¿½ï¿½ï¿½Âºï¿½ï¿½ï¿½ */
         g_ftinfo.imageok = 0XAA;
-        nor_write((uint8_t *)&g_ftinfo, IMAGEINFOADDR, sizeof(g_ftinfo));    /* ±£´æÍ¼Æ¬¿âÐÅÏ¢ */
+        nor_write((uint8_t *)&g_ftinfo, IMAGEINFOADDR, sizeof(g_ftinfo));    /* ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ï¿½ï¿½Ï¢ */
     }
 
-    lv_mem_free( pname);  /* ÊÍ·ÅÄÚ´æ */
+    lv_mem_free( pname);  /* ï¿½Í·ï¿½ï¿½Ú´ï¿½ */
     lv_mem_free( buf);
-    return rval;            /* ÎÞ´íÎó. */
+    return rval;            /* ï¿½Þ´ï¿½ï¿½ï¿½. */
 }
 
 /**
- * @brief       ³õÊ¼»¯Í¼Æ¬
- * @param       ÎÞ
- * @retval      0, Í¼Æ¬¿âÍêºÃ; ÆäËû, Í¼Æ¬¿â¶ªÊ§;
+ * @brief       ï¿½ï¿½Ê¼ï¿½ï¿½Í¼Æ¬
+ * @param       ï¿½ï¿½
+ * @retval      0, Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½, Í¼Æ¬ï¿½â¶ªÊ§;
  */
 uint8_t images_init(void)
 {
     uint8_t t = 0;
 
-    while (t < 10)  /* Á¬Ðø¶ÁÈ¡10´Î,¶¼ÊÇ´íÎó,ËµÃ÷È·ÊµÊÇÓÐÎÊÌâ,µÃ¸üÐÂÍ¼Æ¬¿âÁË */
+    while (t < 10)  /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡10ï¿½ï¿½,ï¿½ï¿½ï¿½Ç´ï¿½ï¿½ï¿½,Ëµï¿½ï¿½È·Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½Ã¸ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½ï¿½ï¿½ */
     {
         t++;
-        nor_read((uint8_t *)&g_ftinfo, IMAGEINFOADDR, sizeof(g_ftinfo)); /* ¶Á³ög_ftinfo½á¹¹ÌåÊý¾Ý */
+        nor_read((uint8_t *)&g_ftinfo, IMAGEINFOADDR, sizeof(g_ftinfo)); /* ï¿½ï¿½ï¿½ï¿½g_ftinfoï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 
         if (g_ftinfo.imageok == 0XAA)
         {

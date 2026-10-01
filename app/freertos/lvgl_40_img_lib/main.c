@@ -16,6 +16,8 @@
 #include "lv_port.h"
 
 #include "nor.h"
+#include "exfuns.h"
+#include "ff.h"
 #include "image.h"
 
 #define LVGL_TASK_PRIO     3
@@ -46,6 +48,7 @@ static uint8_t lv_load_img(lv_img_dsc_t *image, uint32_t addr, uint32_t size)
         off += chunk;
     }
 
+    /* 4-byte little-endian header: cf | (w << 8) | (h << 20). */
     image_header = (uint32_t)image_buffer[3] << 24;
     image_header |= (uint32_t)image_buffer[2] << 16;
     image_header |= (uint32_t)image_buffer[1] << 8;
@@ -53,10 +56,10 @@ static uint8_t lv_load_img(lv_img_dsc_t *image, uint32_t addr, uint32_t size)
 
     image_jpeg = (uint8_t *)image_buffer + 4;
 
-    image->header.cf = image_buffer[0];
+    image->header.cf = (lv_img_cf_t)(image_header & 0xFFU);
     image->header.always_zero = 0;
-    image->header.w = (uint16_t)(image_header >> 10);
-    image->header.h = (uint16_t)(image_header >> 21);
+    image->header.w = (uint16_t)((image_header >> 8) & 0xFFFU);
+    image->header.h = (uint16_t)((image_header >> 20) & 0xFFFU);
     image->data_size = size - 4;
     image->data = image_jpeg;
 
@@ -161,7 +164,15 @@ int main(void)
     printf(APP_BANNER "\r\n");
     sdram_init();
 
-    (void)images_init();
+    (void)exfuns_init();
+    (void)f_mount(fs[0], "0:", 1);
+
+    /* Copy the image library from the SD card to the SPI NOR when it is
+     * missing, mirroring the ALIENTEK example. */
+    if (images_init() != 0)
+    {
+        (void)images_update_image(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+    }
 
     lv_init();
     lv_port_disp_init();
