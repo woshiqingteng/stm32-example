@@ -1,6 +1,6 @@
 /**
  * @file    FreeRTOSConfig.h
- * @brief   lv_29_keyboard specific FreeRTOS configuration.
+ * @brief   lvgl_29_keyboard specific FreeRTOS configuration.
  *
  * Only settings that differ from FreeRTOSConfig_common.h are listed here;
  * define them before including the common header.

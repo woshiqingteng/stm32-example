@@ -1,4 +1,4 @@
-add_freertos_app(lv_29_keyboard
+add_freertos_app(lvgl_29_keyboard
     SOURCE  main.c
     BSP     lcd touch sdram
     LIB     lvgl)
