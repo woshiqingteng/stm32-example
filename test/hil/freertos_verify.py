@@ -180,6 +180,18 @@ def c_20(env, *a):
     return v.startswith("0x"), "addr %s" % v
 
 
+def c_04(env, *a):
+    lines = env.page.serial_read_lines(8)
+    best, hl = 0, ""
+    for l in lines:
+        m = re.search(r"tim3=(\d+) tim6=(\d+)", l)
+        if m:
+            d = int(m.group(1)) - int(m.group(2))
+            if d > best:
+                best, hl = d, l
+    return best >= 1, "max(tim3-tim6)=%d '%s'" % (best, hl)
+
+
 def c_07(env, *a):
     for _ in range(6):
         env.tap("KEY0", hold=120, gap=120)
@@ -237,6 +249,7 @@ CHECK = {
     "11_2_run_time_stats": c_11_2,
     "18_tickless": c_ledtoggle,
     "19_idle_hook": c_ledtoggle,
+    "04_interrupt": c_04,
 }
 
 

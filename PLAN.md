@@ -613,3 +613,9 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 ## 校验（FreeRTOS 移植）
 - 25 个示例已全部构建（`all-freertos` RC=0/零告警）、逐一烧录并上电验证：LCD 标题 OCR 全部正确、串口输出正常；KEY 功能抽测通过（20_memory KEY0 分配、15 KEY0 启动定时器）。
 - 详见 `test/hil/freertos_report.md`（逐项对照清单 + 与计划的差异说明）。
+
+## 修复与重构（FreeRTOS 移植，第二轮）
+- 行为修复：`04_interrupt` 掩码窗口、`18_tickless`/`19_idle_hook` 忙阶段改用 `delay_us()` 忙等（`delay_ms()` 在 FreeRTOS 下是 `vTaskDelay`，掩码时非法）；printf 任务栈 128→256 words。
+- **配置迁 port（方式 A，等价 lwIP）**：`FreeRTOSConfig_common.h` → `port/openedv_stm32f4/freertos/`；`lv_conf_common.h` → `port/openedv_stm32f4/lvgl/`；端口把自身目录注入 `freertos`/`lvgl` 的 include。
+- **`lib_wrapper(lib_freertos freertos freertos_port)`**：`freertos_port` 提供 `vApplicationStackOverflowHook`（`port/.../freertos/vApplicationHooks.c`，自包含、不依赖 freertos 头），`common` 开 `configCHECK_FOR_STACK_OVERFLOW=2`；`add_freertos_app` 链 `lib_freertos`。
+- **HIL 验证**：改用 `test/page` 的 BasePage 常驻 OpenOCD 会话（反复启停/强杀 openocd 会弄死 CMSIS-DAP）；25 个示例全部 PASS，含 KEY0/KEY1/WKUP 注入；见 `test/hil/freertos_report.md`。
