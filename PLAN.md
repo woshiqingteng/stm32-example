@@ -154,7 +154,8 @@ spi/sys/tpad/usart/wdg`）。
   06_1/06_2/06_3 07_list_item 09_time_slicing 11_1 11_2 13_1 13_2 13_3
   14_1 14_2 14_3 14_4 15_software_timer 16_event_group 17_1 17_2 17_3 17_4
   18_tickless 19_idle_hook 20_memory`。
- - **LVGL（38 + 2 官方 demo）**：`lvgl_02_stress lvgl_04_mouse lvgl_09_obj
+ - **LVGL（47 + 2 官方 demo）**：
+  A 类（纯控件/官方 demo）：`lvgl_02_stress lvgl_04_mouse lvgl_09_obj
   lvgl_10_arc lvgl_11_bar lvgl_12_btn lvgl_13_btnmatrix lvgl_14_canvas
   lvgl_15_checkbox lvgl_16_dropdown lvgl_17_img lvgl_18_label lvgl_19_line
   lvgl_20_roller lvgl_21_slider lvgl_22_switch lvgl_23_table lvgl_24_textarea
@@ -162,8 +163,10 @@ spi/sys/tpad/usart/wdg`）。
   lvgl_29_keyboard lvgl_30_led lvgl_31_list lvgl_32_meter lvgl_33_msgbox
   lvgl_34_span lvgl_35_spinbox lvgl_36_spinner lvgl_37_tabview lvgl_38_tileview
   lvgl_39_win lvgl_44_qrcode lvgl_47_calculator lvgl_49_qrgen lvgl_50_paint
-  lvgl_52_baseconv`
-  + `lvgl_demo_widgets lvgl_demo_benchmark`。
+  lvgl_52_baseconv` + `lvgl_demo_widgets lvgl_demo_benchmark`。
+  B 类（SD/FATFS）：`lvgl_05_fs lvgl_06_font lvgl_41_bmp lvgl_42_png
+  lvgl_43_gif lvgl_45_jpeg lvgl_51_filemgr`。
+  B 类（SPI-NOR）：`lvgl_07_xbf_font lvgl_40_img_lib`。
  - **lwip（15）**：`lwip_6_freertos 7_netconn_udp 8_netconn_tcp_client
   9_netconn_tcp_server 10_socket_udp 10_1_udp_broadcast 10_2_udp_multicast
   11_socket_tcp_client 12_socket_tcp_server 12_1_socket_tcp_server_multi

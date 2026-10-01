@@ -23,6 +23,12 @@ typedef struct __attribute__((packed))
     uint32_t gbk24size;   /* gbk24 size */
     uint32_t f32addr;     /* gbk32 address */
     uint32_t gbk32size;   /* gbk32 size */
+    uint32_t lvgl_12addr; /* LVGL XBF 12px address */
+    uint32_t lvgl_12size; /* LVGL XBF 12px size */
+    uint32_t lvgl_24addr; /* LVGL XBF 24px address */
+    uint32_t lvgl_24size; /* LVGL XBF 24px size */
+    uint32_t lvgl_36addr; /* LVGL XBF 36px address */
+    uint32_t lvgl_36size; /* LVGL XBF 36px size */
 } _font_info;
 
 extern _font_info ftinfo;

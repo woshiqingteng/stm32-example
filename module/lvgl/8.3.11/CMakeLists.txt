@@ -12,6 +12,9 @@ set_source_files_properties(
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/demos/benchmark/lv_demo_benchmark.c
     PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-parameter")
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/extra/libs/png/lodepng.c
+    PROPERTIES COMPILE_OPTIONS "-Wno-type-limits")
 
 add_library(lvgl STATIC EXCLUDE_FROM_ALL ${LVGL_SRC})
 
