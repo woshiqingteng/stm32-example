@@ -123,19 +123,29 @@ def run_once(
     serial_set=(),
     title_required=True,
     title_ok_fn=None,
+    collect=None,
 ):
     if build(app) != 0:
-        return ("FAIL", "build rc!=0")
+        return ("FAIL", "build rc!=0", None)
     binp = APP_BIN % (app, app)
     page.elf = str(ROOT / binp).replace(".bin", ".elf")
     try:
         page.program(str(ROOT / binp))
     except Exception as e:  # noqa: BLE001
-        return ("FAIL", "flash: %s" % e)
+        return ("FAIL", "flash: %s" % e, None)
     page.reset_run()
     # Capture serial from the reset so one-shot startup prints (e.g. lvgl_05's
     # "READ(...)") are not missed.
     boot_lines = page.serial_read_lines(2.5)
+    if collect is not None:
+        # Long-running apps (the benchmark) collect their own results.  Never
+        # dump the frame buffer here: frame() halts the core and would skew
+        # any timing being measured.
+        try:
+            ok, detail, section = collect(page, boot_lines)
+        except Exception as e:  # noqa: BLE001
+            ok, detail, section = False, "exc %s" % e, None
+        return ("PASS" if ok else "FAIL", detail, section)
     env = Env(page)
     t, s = env.title()
     detail = "lcd='%s'/'%s'" % (t, s)
@@ -157,7 +167,57 @@ def run_once(
     else:
         title_ok = (t == "STM32") if title_required else True
     ok = title_ok and extra_ok and ser_ok
-    return ("PASS" if ok else "FAIL", detail + " " + extra)
+    return ("PASS" if ok else "FAIL", detail + " " + extra, None)
+
+
+BENCH_BEGIN = "<!-- BENCHMARK:BEGIN -->"
+BENCH_END = "<!-- BENCHMARK:END -->"
+
+
+def read_benchmark_section(report_path):
+    """Return the marker-delimited benchmark block of an existing report."""
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return None
+    b = text.find(BENCH_BEGIN)
+    e = text.find(BENCH_END)
+    if b == -1 or e == -1 or e < b:
+        return None
+    return text[b : e + len(BENCH_END)]
+
+
+def upsert_benchmark_section(report_path, section):
+    """Insert/replace the benchmark block, leaving the rest of the report."""
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        text = ""
+    b = text.find(BENCH_BEGIN)
+    e = text.find(BENCH_END)
+    if b != -1 and e != -1 and e > b:
+        text = text[:b] + section + text[e + len(BENCH_END) :]
+    else:
+        if text and not text.endswith("\n"):
+            text += "\n"
+        text += "\n" + section + "\n"
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def _write_table_report(report_path, title, rows):
+    """Write the app table, preserving any existing benchmark block."""
+    section = read_benchmark_section(report_path)
+    lines = [title, "", "| app | result | detail |", "|---|---|---|"]
+    for a, s_, d in rows:
+        lines.append("| %s | %s | %s |" % (a, s_, d))
+    text = "\n".join(lines) + "\n"
+    if section:
+        text += "\n" + section + "\n"
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(text)
 
 
 def run_apps(
@@ -170,8 +230,12 @@ def run_apps(
     report_path=None,
     title="# HIL verification",
     default_check=None,
+    collect_map=None,
+    only_sections=False,
+    apps=None,
 ):
-    apps = sys.argv[1:]
+    if apps is None:
+        apps = sys.argv[1:]
     if not apps:
         apps = list(default_apps)
     clear_stray()
@@ -182,10 +246,12 @@ def run_apps(
     page.start()
     page.serial_open()
     rows = []
+    sections = {}
     try:
         for a in apps:
             kw = ser_kw_fn(a) if ser_kw_fn else None
-            status, detail = run_once(
+            collect = collect_map.get(a) if collect_map else None
+            status, detail, section = run_once(
                 page,
                 a,
                 check=check_map.get(a, default_check),
@@ -193,14 +259,17 @@ def run_apps(
                 serial_set=serial_set,
                 title_required=title_required,
                 title_ok_fn=title_ok_fn,
+                collect=collect,
             )
             print("%-32s %s  %s" % (a, status, detail), flush=True)
             rows.append((a, status, detail))
+            if section:
+                sections[a] = section
     finally:
         page.close()
     if report_path:
-        with open(report_path, "w", encoding="utf-8") as f:
-            f.write(title + "\n\n| app | result | detail |\n|---|---|---|\n")
-            for a, s_, d in rows:
-                f.write("| %s | %s | %s |\n" % (a, s_, d))
+        if not only_sections:
+            _write_table_report(report_path, title, rows)
+        for section in sections.values():
+            upsert_benchmark_section(report_path, section)
     return rows

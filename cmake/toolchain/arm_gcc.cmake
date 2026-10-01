@@ -29,7 +29,7 @@ option(ENABLE_LTO "Enable Link-Time Optimization (release only)" OFF)
 set(OPT_RELEASE_C   "-Os -DNDEBUG \
                      -fno-unwind-tables -fno-asynchronous-unwind-tables")
 set(OPT_RELEASE_CXX "${OPT_RELEASE_C} -fno-exceptions -fno-rtti -fno-threadsafe-statics")
-set(OPT_RELEASE_LINK "-Wl,--no-undefined -Wl,--print-memory-usage")
+set(OPT_RELEASE_LINK "-Wl,--no-undefined")
 if(ENABLE_LTO)
     set(OPT_RELEASE_C   "${OPT_RELEASE_C}   -flto=auto -ffat-lto-objects")
     set(OPT_RELEASE_CXX "${OPT_RELEASE_CXX} -flto=auto -ffat-lto-objects")
@@ -51,5 +51,5 @@ set(CMAKE_C_FLAGS_RELEASE_INIT   ${OPT_RELEASE_C})
 set(CMAKE_CXX_FLAGS_RELEASE_INIT ${OPT_RELEASE_CXX})
 
 # link
-set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nano.specs -Wl,--gc-sections")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nano.specs -Wl,--gc-sections -Wl,--print-memory-usage")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT ${OPT_RELEASE_LINK})

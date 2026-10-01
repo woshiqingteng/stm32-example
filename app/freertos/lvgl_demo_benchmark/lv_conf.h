@@ -12,6 +12,14 @@
 
 #define LV_USE_DEMO_BENCHMARK 1
 
+/* The benchmark reports its result through LV_LOG(); route it to printf so the
+ * HIL can capture the "Weighted FPS" summary and per-scene CSV lines.  Keep the
+ * level at USER so LVGL's own warnings do not flood the UART (LV_LOG() maps to
+ * lv_log() and is printed regardless of the level). */
+#define LV_USE_LOG     1
+#define LV_LOG_PRINTF  1
+#define LV_LOG_LEVEL   LV_LOG_LEVEL_USER
+
 #include "lv_conf_common.h"
 
 #endif /* LV_CONF_H */
