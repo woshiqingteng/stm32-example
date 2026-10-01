@@ -1,9 +1,8 @@
-# LVGL port - hardware verification (46/48 PASS)
+# LVGL port - hardware verification (48/48 PASS)
 
 Harness: `test/hil/lvgl_verify.py` (shared `hil_common.py` + the project
 `test/page` framework, one persistent OpenOCD session). SD card populated from
-`LVGL实验所需SD卡文件` (+ `PICTURE/LVGLBIN/*.BIN` substitute images). `07`/`40`
-need the SPI-NOR font/image store.
+`LVGL实验所需SD卡文件` (+ `PICTURE/LVGLBIN/*.BIN` substitute images).
 
 | app | result | detail |
 |---|---|---|
@@ -11,9 +10,9 @@ need the SPI-NOR font/image store.
 | lvgl_04_mouse | PASS | drawn, no fault, LED |
 | lvgl_05_fs | PASS | SD file read (bg green) |
 | lvgl_06_font | PASS | drawn, no fault, LED |
-| lvgl_07_xbf_font | FAIL | XBF font store absent in SPI-NOR (no glyph drawn) |
+| lvgl_07_xbf_font | PASS | XBF Font12 store updated from SD, label drawn |
 | lvgl_09..39 (widgets) | PASS | drawn, no fault, LED |
-| lvgl_40_img_lib | FAIL | image store not produced (NOR auto-update) |
+| lvgl_40_img_lib | PASS | image store loaded from SPI-NOR, images drawn |
 | lvgl_41_bmp | PASS | BMP drawn from SD |
 | lvgl_42_png | PASS | PNG drawn from SD |
 | lvgl_43_gif | PASS | GIF animates |
@@ -33,9 +32,10 @@ need the SPI-NOR font/image store.
   the HIL can assert it by pixel (the UART one-shot line is unreliable here).
 - `lvgl_43_gif`: `has_next` is set so the demo lets LVGL's `lv_gif` loop the
   animation instead of recreating it every 10 ms.
-- The font/image update (SD -> SPI-NOR) must run **after**
-  `lv_port_disp_init()`: it draws progress via the BSP LCD, which is not
-  initialised before that (created a bus fault).
-- `lvgl_07` / `lvgl_40` still require a populated SPI-NOR store. The auto-update
-  from SD runs but the store is not read back correctly on this board; needs
-  further work on the vendor font/image store format.
+- `lvgl_07/40`: the SD -> SPI-NOR update must run **after** `lv_port_disp_init()`
+  (it draws progress via the BSP LCD, which is not initialised before that).
+- `lvgl_40_img_lib`: `images_init()` now calls `nor_init()`; previously nothing
+  initialised the SPI-NOR bus, so the store was never readable/writable.
+- `lvgl_07_xbf_font`: `fonts_init()` succeeds on the board's factory GBK store
+  (which has no LVGL XBF font), so the update was skipped. `fonts_lvgl_ok()`
+  validates the Font12 XBF header and forces a one-time update when missing.

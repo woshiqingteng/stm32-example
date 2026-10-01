@@ -283,3 +283,38 @@ uint8_t fonts_init(void)
 
     return 0;
 }
+
+uint8_t fonts_lvgl_ok(void)
+{
+    uint8_t hd[8];
+    uint16_t min;
+    uint16_t max;
+
+    if (ftinfo.lvgl_12size == 0U)
+    {
+        return 0;
+    }
+
+    if ((ftinfo.lvgl_12addr < FONTINFOADDR) ||
+        (ftinfo.lvgl_12addr >= (FONTINFOADDR + (FONTSECSIZE * 4096U))))
+    {
+        return 0;
+    }
+
+    nor_read(hd, ftinfo.lvgl_12addr, (uint16_t)sizeof(hd));
+
+    min = (uint16_t)(hd[0] | ((uint16_t)hd[1] << 8));
+    max = (uint16_t)(hd[2] | ((uint16_t)hd[3] << 8));
+
+    if ((max == 0U) || (max < min))
+    {
+        return 0;
+    }
+
+    if ((hd[4] != 1U) && (hd[4] != 2U) && (hd[4] != 4U))
+    {
+        return 0;
+    }
+
+    return 1;
+}

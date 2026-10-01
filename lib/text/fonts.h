@@ -40,4 +40,8 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
 /** @brief  Load the font store descriptor. Returns 0 when it is valid. */
 uint8_t fonts_init(void);
 
+/** @brief  Return 1 when the LVGL XBF Font12 store looks valid (header and
+ *  address range), 0 otherwise. */
+uint8_t fonts_lvgl_ok(void);
+
 #endif /* LIB_TEXT_FONTS_H */

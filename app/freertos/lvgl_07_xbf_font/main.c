@@ -78,9 +78,10 @@ int main(void)
     /* Copy the font store (GBK + XBF Font12) from the SD card to the SPI NOR
      * only when it is missing (mirrors the ALIENTEK example). It shows progress
      * on the LCD, so it must run after lv_port_disp_init(). */
-    if (fonts_init() != 0)
+    if (fonts_init() != 0 || fonts_lvgl_ok() == 0)
     {
         (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+        (void)fonts_init();
     }
 
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STK_SIZE, NULL, LVGL_TASK_PRIO, NULL);
