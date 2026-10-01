@@ -1,5 +1,8 @@
 add_subdirectory(fatfs)
 add_subdirectory(lvgl)
 add_subdirectory(lwip)
+if(OS STREQUAL "freertos")
+    add_subdirectory(freertos)
+endif()
 add_subdirectory(stm32_usb_device)
 add_subdirectory(stm32_usb_host)

@@ -17,7 +17,7 @@
 #define START_TASK_PRIO 1U
 #define START_STK_SIZE  128U
 #define TASK1_PRIO      2U
-#define TASK1_STK_SIZE  128U
+#define TASK1_STK_SIZE  256U
 #define TASK2_PRIO      3U
 #define TASK2_STK_SIZE  256U
 

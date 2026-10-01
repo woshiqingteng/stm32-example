@@ -119,7 +119,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_TICK_HOOK                             0
 #endif
 #ifndef configCHECK_FOR_STACK_OVERFLOW
-#define configCHECK_FOR_STACK_OVERFLOW                  0
+#define configCHECK_FOR_STACK_OVERFLOW                  2
 #endif
 #ifndef configUSE_MALLOC_FAILED_HOOK
 #define configUSE_MALLOC_FAILED_HOOK                    0

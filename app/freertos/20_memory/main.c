@@ -15,7 +15,7 @@
 #define START_TASK_PRIO 1U
 #define START_STK_SIZE  128U
 #define TASK1_PRIO      2U
-#define TASK1_STK_SIZE  128U
+#define TASK1_STK_SIZE  256U
 
 static TaskHandle_t s_start_task;
 

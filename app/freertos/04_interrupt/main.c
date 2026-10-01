@@ -28,7 +28,7 @@
 #define START_TASK_PRIO 1U
 #define START_STK_SIZE  128U
 #define TASK1_PRIO      2U
-#define TASK1_STK_SIZE  128U
+#define TASK1_STK_SIZE  256U
 
 static volatile uint32_t s_tim3_count;
 static volatile uint32_t s_tim6_count;
@@ -78,7 +78,11 @@ static void task1(void *argument)
         {
             printf("FreeRTOS: disable interrupts\r\n");
             portDISABLE_INTERRUPTS();
-            delay_ms(5000);
+            /* Scheduler-independent busy wait: vTaskDelay() is illegal while
+             * the tick/PendSV are masked (the reference also busy-waits here).
+             * TIM3 (pre-emption 4) keeps firing; TIM6 (pre-emption 6) is
+             * masked by configMAX_SYSCALL_INTERRUPT_PRIORITY (5). */
+            delay_us(5000000);
             printf("FreeRTOS: enable interrupts\r\n");
             portENABLE_INTERRUPTS();
         }

@@ -24,7 +24,7 @@ function(add_freertos_app name)
     # The app dir provides FreeRTOSConfig.h; PUBLIC because every target that
     # includes FreeRTOS.h (port, bsp_delay, eth, the app) must see the config.
     target_include_directories(freertos PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(${_target} PRIVATE ${_bsp} freertos ${_libs})
+    target_link_libraries(${_target} PRIVATE ${_bsp} lib_freertos ${_libs})
 
     # generate
     mcu_generate(${_target} ${name})
