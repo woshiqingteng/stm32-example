@@ -224,14 +224,33 @@ def c_11_2(env, *a):
     return True, "KEY0"
 
 
-def c_ledtoggle(env, *a):
+def gpio_odr(env):
+    """Full GPIOB->ODR with the GPIOB clock forced on (idle/tickless gate it)."""
+    env.page.cmd("halt")
+    enr = env.page.peek(0x40023830)
+    env.page.poke(0x40023830, enr | 0x00000002)
+    v = env.page.peek(0x40020414)
+    env.page.poke(0x40023830, enr)
+    env.page.cmd("resume")
+    return v
+
+
+def c_lowpower(env, *a):
+    """18/19: panel blanked (LTDC off + backlight off) and LED0 toggles."""
+    ltdc = env.page.peek(0x40016818) & 1  # LTDC_GCR.LTDCEN
+    bl = (gpio_odr(env) >> 5) & 1  # PB5 backlight
     bits = set()
     for _ in range(24):
-        bits.add((led_odr(env) >> 1) & 1)
+        bits.add((gpio_odr(env) >> 1) & 1)  # LED0 = PB1
         time.sleep(0.3)
         if len(bits) == 2:
             break
-    return (0 in bits and 1 in bits), "led0 b1 states=%s" % sorted(bits)
+    led_ok = 0 in bits and 1 in bits
+    return (ltdc == 0) and (bl == 0) and led_ok, "ltdc=%d bl=%d led0=%s" % (
+        ltdc,
+        bl,
+        sorted(bits),
+    )
 
 
 CHECK = {
@@ -255,8 +274,8 @@ CHECK = {
     "13_2_queue_set": c_13_2,
     "11_1_task_status_info": c_11_1,
     "11_2_run_time_stats": c_11_2,
-    "18_tickless": c_ledtoggle,
-    "19_idle_hook": c_ledtoggle,
+    "18_tickless": c_lowpower,
+    "19_idle_hook": c_lowpower,
     "04_interrupt": c_04,
 }
 
@@ -305,7 +324,8 @@ def run(page, app):
         ser_ok = len(lines) > 0
     else:
         ser_ok = True
-    ok = (t == "STM32") and extra_ok and ser_ok
+    title_ok = True if app in ("18_tickless", "19_idle_hook") else (t == "STM32")
+    ok = title_ok and extra_ok and ser_ok
     return ("PASS" if ok else "FAIL", detail + " " + extra)
 
 

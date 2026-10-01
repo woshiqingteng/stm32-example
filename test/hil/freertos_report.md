@@ -1,55 +1,54 @@
 # FreeRTOS examples port — HIL verification
 
 Harness: `test/hil/freertos_verify.py` on the project HIL framework
-(`test/page/base.py`, `page/openedv_stm32f429.py`). One **persistent OpenOCD
-session** for the whole run (the CMSIS-DAP probe wedges if re-initialised per
-command — see PLAN.md). KEY0=PH3, KEY1=PH2, WK_UP=PA0 via `page.tap`; LCD via
-framebuffer OCR; LED0=PB1 read with the GPIOB clock forced on (RCC AHB1ENR).
+(`page/base.py` BasePage + `page/openedv_stm32f429.py`). One persistent OpenOCD
+session for the whole run (the CMSIS-DAP probe wedges if re-initialised per
+command). KEY0=PH3, KEY1=PH2, WK_UP=PA0 via `page.tap`; LCD via framebuffer OCR
+and pixel probes; LED0=PB1 read with the GPIOB clock forced on (RCC AHB1ENR).
 
-## Result (Phase 2, after fixes) — 25/25 PASS
+## Phenomenon verification (25/25 PASS)
 
-| app | evidence |
+| app | visible phenomenon / evidence |
 |---|---|
-| 02_freertos_port | serial `float_num`, LCD |
-| 04_interrupt | `max(tim3-tim6)=4` → TIM3 keeps counting, TIM6 masked in the window |
-| 06_1_task_create_dynamic | left counter stops after KEY0 |
-| 06_2_task_create_static | left counter stops after KEY0 |
-| 06_3_task_suspend_resume | KEY0 pauses / KEY1 resumes |
-| 07_list_item | serial `list` after 6× KEY0 |
-| 09_time_slicing | serial `run count` |
+| 02_freertos_port | LCD colour cycle + LED0 toggle + serial `float_num` |
+| 04_interrupt | serial `max(tim3-tim6)=4` (TIM3 keeps counting, TIM6 masked) |
+| 06_1_task_create_dynamic | left counter runs then stops after KEY0 |
+| 06_2_task_create_static | same (static tasks) |
+| 06_3_task_suspend_resume | KEY0 pauses / KEY1 resumes the counter |
+| 07_list_item | serial list ops after 6× KEY0 (`list`) |
+| 09_time_slicing | serial `run count` (round-robin) |
 | 11_1_task_status_info | serial `finished` after 3× KEY0 |
 | 11_2_run_time_stats | serial `runtime` after KEY0 |
-| 13_1_queue | KEY0 fill, KEY1 LED |
-| 13_2_queue_set | WK_UP/KEY1/KEY0, serial `queue` |
-| 13_3_queue_set_event_flags | event 1 → fill |
+| 13_1_queue | KEY0 fill, KEY1 LED0 |
+| 13_2_queue_set | WK_UP/KEY1/KEY0 → serial `queue` |
+| 13_3_queue_set_event_flags | event value 1 → fill |
 | 14_1_binary_semaphore | KEY0 fill |
 | 14_2_counting_semaphore | KEY0 fill |
 | 14_3_priority_inversion | serial `running` |
 | 14_4_mutex | serial `mutex` |
-| 15_software_timer | KEY0, Timer1 increments |
-| 16_event_group | event 1 → fill |
+| 15_software_timer | KEY0 → Timer1 increments |
+| 16_event_group | event value 1 → fill |
 | 17_1_notify_binary_sem | KEY0 fill |
 | 17_2_notify_counting_sem | KEY0 |
-| 17_3_notify_mailbox | KEY0 fill, KEY1 LED |
-| 17_4_notify_event_group | event 1 → fill |
-| 18_tickless | LED0 toggles (states 0/1), alive |
-| 19_idle_hook | LED0 toggles (states 0/1), alive |
-| 20_memory | KEY0 addr `0x200007c0` |
+| 17_3_notify_mailbox | KEY0 fill, KEY1 LED0 |
+| 17_4_notify_event_group | event value 1 → fill |
+| 18_tickless | **LCD blanked (LTDC off, backlight off) + LED0 toggles (idle=on)** |
+| 19_idle_hook | **LCD blanked (LTDC off, backlight off) + LED0 toggles (idle=on)** |
+| 20_memory | KEY0 shows the heap address |
 
-Phase 0 (before fixes) was 24/25 with 04 flagged; the fixes below resolved it.
+## Changes
 
-## Fixes / refactor in this round
-1. **04_interrupt / 18_tickless / 19_idle_hook**: the masked/busy phase now uses
-   a scheduler-independent `delay_us()` busy wait — `delay_ms()` maps to
-   `vTaskDelay()` under FreeRTOS, which is invalid with the tick/PendSV masked.
-2. **Task stacks**: tasks calling `printf/snprintf` raised from 128 to 256 words.
-3. **FreeRTOS config into the port** (lwIP style):
-   `port/openedv_stm32f4/freertos/FreeRTOSConfig_common.h` (moved out of the
-   module); the port injects its include into `freertos`.
-   `lib_wrapper(lib_freertos freertos freertos_port)` with
-   `vApplicationStackOverflowHook` in `port/.../freertos/vApplicationHooks.c`
-   (`configCHECK_FOR_STACK_OVERFLOW = 2`). `add_freertos_app` links `lib_freertos`.
-4. **LVGL config into the port**: `lv_conf_common.h` moved to
-   `port/openedv_stm32f4/lvgl/` (`lvgl_tick.*` stays in the module).
+### LED polarity + blanking for 18/19 (match the ALIENTEK reference)
+- New LCD API: `lcd_display_on()` / `lcd_display_off()` (LTDC controller) and
+  `lcd_backlight(on)` (PB5) in `bsp/openedv_stm32f4/lcd.{c,h}`.
+- `18_tickless` / `19_idle_hook`: `lcd_display_off(); lcd_backlight(0);` at
+  start (panel dark) and LED0 busy=off / idle=on (reference `LED0(1)`/`LED0(0)`).
+- HIL asserts `LTDC_GCR.LTDCEN == 0`, PB5 backlight `== 0`, and LED0 toggling.
 
-No stack-overflow hook fired in any of the 25 apps.
+### Earlier fixes (this port)
+- `delay_us/ms` are pure SysTick busy-waits (no scheduler API) so they are safe
+  with interrupts masked; `04_interrupt` uses `delay_ms(5000)` directly.
+- FreeRTOS/LVGL common config moved into the port; `lib_wrapper(lib_freertos
+  freertos freertos_port)` with `vApplicationStackOverflowHook`
+  (`configCHECK_FOR_STACK_OVERFLOW = 2`); printf/snprintf tasks use 256-word
+  stacks. No stack-overflow hook fired in any app.

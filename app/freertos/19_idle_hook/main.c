@@ -63,9 +63,9 @@ static void task1(void *argument)
 
     for (;;)
     {
-        led_on(LED0);
+        led_off(LED0);          /* busy: no low-power mode (LED off) */
         delay_ms(3000);         /* busy wait (no low-power mode) */
-        led_off(LED0);
+        led_on(LED0);           /* idle: enter low-power mode (LED on) */
         vTaskDelay(3000);
     }
 }
@@ -75,6 +75,10 @@ static void start_task(void *argument)
     (void)argument;
 
     taskENTER_CRITICAL();
+    /* Blank the panel (LTDC off + backlight off) so the idle-hook demo shows
+     * only the LED, like the ALIENTEK reference. */
+    lcd_display_off();
+    lcd_backlight(0);
     (void)xTaskCreate(task1, "task1", TASK1_STK_SIZE, NULL, TASK1_PRIO, NULL);
     vTaskDelete(s_start_task);
     taskEXIT_CRITICAL();

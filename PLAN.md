@@ -619,3 +619,8 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 - **配置迁 port（方式 A，等价 lwIP）**：`FreeRTOSConfig_common.h` → `port/openedv_stm32f4/freertos/`；`lv_conf_common.h` → `port/openedv_stm32f4/lvgl/`；端口把自身目录注入 `freertos`/`lvgl` 的 include。
 - **`lib_wrapper(lib_freertos freertos freertos_port)`**：`freertos_port` 提供 `vApplicationStackOverflowHook`（`port/.../freertos/vApplicationHooks.c`，自包含、不依赖 freertos 头），`common` 开 `configCHECK_FOR_STACK_OVERFLOW=2`；`add_freertos_app` 链 `lib_freertos`。
 - **HIL 验证**：改用 `test/page` 的 BasePage 常驻 OpenOCD 会话（反复启停/强杀 openocd 会弄死 CMSIS-DAP）；25 个示例全部 PASS，含 KEY0/KEY1/WKUP 注入；见 `test/hil/freertos_report.md`。
+
+## 18/19 现象补齐（第三轮）
+- 新增 LCD 关屏/背光 API：`lcd_display_on/off()`（关/开 LTDC 控制器）与 `lcd_backlight(on)`（PB5）。
+- `18_tickless`/`19_idle_hook`：启动即 `lcd_display_off(); lcd_backlight(0);`（屏黑），LED0 忙灭/闲亮（对齐参考 `LED0(1)/LED0(0)`）。
+- 现象级 HIL 复核：25 个示例全部 PASS（含 LTDC 关闭、背光关闭、LED 翻转、帧缓冲区域变化、串口关键字）。
