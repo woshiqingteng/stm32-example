@@ -75,9 +75,8 @@ void              lcd_init(void);
 void              lcd_display_dir(lcd_dir_t dir);
 const lcd_info_t *lcd_info(void);
 
-void              lcd_display_on(void);     /* enable the LTDC controller */
-void              lcd_display_off(void);    /* disable the LTDC controller (blank) */
-void              lcd_backlight(uint8_t on); /* panel backlight (PB5) */
+void              lcd_display_on(void);     /* LTDC on + backlight on */
+void              lcd_display_off(void);    /* LTDC off + backlight off */
 
 void              lcd_set_back_color(uint32_t color);
 uint32_t          lcd_get_back_color(void);

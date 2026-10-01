@@ -270,14 +270,11 @@ void lcd_show_string(uint16_t x, uint16_t y, uint16_t width, uint16_t height, lc
 void lcd_display_on(void)
 {
     ltdc_switch(LTDC_ON);
+    LTDC_BL(1);
 }
 
 void lcd_display_off(void)
 {
     ltdc_switch(LTDC_OFF);
-}
-
-void lcd_backlight(uint8_t on)
-{
-    LTDC_BL(on ? 1 : 0);
+    LTDC_BL(0);
 }

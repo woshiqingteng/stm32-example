@@ -67,7 +67,6 @@ static void start_task(void *argument)
     /* Blank the panel (LTDC off + backlight off) so the low-power demo shows
      * only the LED, like the ALIENTEK reference. */
     lcd_display_off();
-    lcd_backlight(0);
     (void)xTaskCreate(task1, "task1", TASK1_STK_SIZE, NULL, TASK1_PRIO, NULL);
     vTaskDelete(s_start_task);
     taskEXIT_CRITICAL();
