@@ -16,30 +16,33 @@
 #include "delay.h"
 #include "nor.h"
 
-/* 4 fonts + unigbk + descriptor: about 6.01 MB, 1539 4 KB sectors. */
-#define FONTSECSIZE         1539U
+/* 4 GBK fonts + unigbk + LVGL XBF Font12 + descriptor: about 6.39 MB,
+ * 1633 4 KB sectors (1539 GBK + 94 for Font12). */
+#define FONTSECSIZE         1633U
 
 /* Font store base offset inside the NOR flash (past the filesystem area). */
 #define FONTINFOADDR        (25UL * 1024UL * 1024UL)
 
 _font_info ftinfo;
 
-char *const FONT_GBK_PATH[5] =
+char *const FONT_GBK_PATH[6] =
 {
     "/SYSTEM/FONT/UNIGBK.BIN",
     "/SYSTEM/FONT/GBK12.FON",
     "/SYSTEM/FONT/GBK16.FON",
     "/SYSTEM/FONT/GBK24.FON",
     "/SYSTEM/FONT/GBK32.FON",
+    "/SYSTEM/LVFONT/Font12.BIN",
 };
 
-char *const FONT_UPDATE_REMIND_TBL[5] =
+char *const FONT_UPDATE_REMIND_TBL[6] =
 {
     "Updating UNIGBK.BIN",
     "Updating GBK12.FON ",
     "Updating GBK16.FON ",
     "Updating GBK24.FON ",
     "Updating GBK32.FON ",
+    "Updating Font12.BIN",
 };
 
 static void fonts_progress_show(uint16_t x, uint16_t y, uint8_t size, uint32_t totsize, uint32_t pos, uint16_t color)
@@ -129,6 +132,12 @@ static uint8_t fonts_update_fontx(uint16_t x, uint16_t y, uint8_t size, uint8_t 
                 flashaddr = ftinfo.f32addr;
                 break;
 
+            case 5:
+                ftinfo.lvgl_12addr = ftinfo.f32addr + ftinfo.gbk32size;
+                ftinfo.lvgl_12size = (uint32_t)fftemp->obj.objsize;
+                flashaddr = ftinfo.lvgl_12addr;
+                break;
+
             default:
                 break;
         }
@@ -185,7 +194,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
         return 5;
     }
 
-    for (i = 0; i < 5U; i++)
+    for (i = 0; i < 6U; i++)
     {
         strcpy((char *)pname, (char *)src);
         strcat((char *)pname, (char *)FONT_GBK_PATH[i]);
@@ -223,7 +232,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
             }
         }
 
-        for (i = 0; i < 5U; i++)
+        for (i = 0; i < 6U; i++)
         {
             lcd_show_string(x, y, 240U, 320U, (lcd_font_size_t)size, FONT_UPDATE_REMIND_TBL[i], color);
             strcpy((char *)pname, (char *)src);

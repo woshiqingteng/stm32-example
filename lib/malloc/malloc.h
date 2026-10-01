@@ -28,9 +28,12 @@
 
 #define SRAMBANK 3  /* number of supported banks */
 
-/* mem1: internal SRAM. */
+/* mem1: internal SRAM. Small by default so it can coexist with a large
+ * FreeRTOS heap (the official LVGL projects use 20-60 KB here). Overridable. */
 #define MEM1_BLOCK_SIZE         64
-#define MEM1_MAX_SIZE           (160 * 1024)
+#ifndef MEM1_MAX_SIZE
+#define MEM1_MAX_SIZE           (96 * 1024)
+#endif
 #define MEM1_ALLOC_TABLE_SIZE   (MEM1_MAX_SIZE / MEM1_BLOCK_SIZE)
 
 /* mem2: CCM RAM. */

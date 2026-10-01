@@ -213,3 +213,28 @@ spi/sys/tpad/usart/wdg`）。
 ### 阶段 3：验证
 - `tool/build.sh debug all-freertos` RC=0/零告警；逐 app 烧录：帧缓冲非空 + LED
   心跳 + 无 HardFault（触摸类仅验“绘制正常不崩”）；更新 `freertos_report.md`。
+
+## 11. 计划：LVGL B 类收尾（字库/图库/NOR/内存）
+
+参照官方 `LVGL开发指南_V1.5.pdf`（ch 8.4.2 字库更新）与官方工程内存配置
+（F429 192KB RAM）：官方每工程缩小 MALLOC 的 `MEM1(SRAMIN)` 到 20–60KB、
+`MEM2(SRAMCCM)=60KB`、`MEM3(SRAMEX)=50KB`，`configTOTAL_HEAP_SIZE=46KB`，
+并在调度器启动前用 `mymalloc(SRAMIN,4KB)` 小缓冲从 SD 更新 NOR。
+
+1. **`lib/malloc/malloc.h`**：`MEM1_MAX_SIZE` 默认 160KB→96KB，并加
+   `#ifndef MEM1_MAX_SIZE` 使可覆盖（全局/board 级）。
+2. **`lib/text/fonts.c`**：按指南升级为 6 路径
+   `{UNIGBK.BIN, GBK12/16/24/32.FON, /SYSTEM/LVFONT/Font12.BIN}`、
+   `FONTSECSIZE=1633`、`fonts_update_fontx` 增 `case 5` 设 `lvgl_12addr/12size`；
+   **保留 `mymalloc`**（不改静态缓冲）。
+3. **`lvgl_07_xbf_font`**：加 SD 挂载；`if (fonts_init()!=0)
+   fonts_update_font(0,0,16,"0:",WHITE);`（仅缺失时更新）。
+4. **`lvgl_40_img_lib`**：`IMAGEINFOADDR=0x1F80000`（31.5MB，避开 25MB 字库）；
+   启动 `if (images_init()!=0) images_update_image(0,0,16,"0:",WHITE);`；
+   `lv_load_img` 改用自定义头（`cf | w<<8 | h<<20` + RGB565）。
+   因官方 `PICTURE/LVGLBIN/*.BIN` 未随资料提供，用 `tool/lvgl_img2bin.py`
+   （Pillow）以现有图片生成替代 `atk05/06/07/money.BIN`。
+5. **USB MSC 拷 SD**：烧 `54_usb_device_msc` 暴露 SD，拷整包
+   `LVGL实验所需SD卡文件`(48MB) + `PICTURE/LVGLBIN/*.BIN`。
+6. **验证**：`all-freertos` RC=0/零告警；`tool/hil.sh lvgl` 全量 PASS 后更新
+   `test/hil/lvgl_report.md`。

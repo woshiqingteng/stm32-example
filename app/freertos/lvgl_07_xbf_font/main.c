@@ -8,6 +8,8 @@
 #include "bsp.h"
 #include "sdram.h"
 #include "fonts.h"
+#include "exfuns.h"
+#include "ff.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -66,7 +68,15 @@ int main(void)
     printf(APP_BANNER "\r\n");
     sdram_init();
 
-    (void)fonts_init();
+    (void)exfuns_init();
+    (void)f_mount(fs[0], "0:", 1);
+
+    /* Copy the font store (GBK + XBF Font12) from the SD card to the SPI NOR
+     * only when it is missing, mirroring the ALIENTEK example. */
+    if (fonts_init() != 0)
+    {
+        (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+    }
 
     lv_init();
     lv_port_disp_init();
