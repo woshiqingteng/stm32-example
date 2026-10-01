@@ -609,3 +609,7 @@ void      usart_set_rx_cb(usart_id_t id, usart_rx_cb_t cb);
 
 ## 验证
 - 逐 app 构建 + 烧录 + 上电验证（LCD OCR / 串口 / KEY/LED）；完成后再逐项对照本清单校验，产出校验报告。
+
+## 校验（FreeRTOS 移植）
+- 25 个示例已全部构建（`all-freertos` RC=0/零告警）、逐一烧录并上电验证：LCD 标题 OCR 全部正确、串口输出正常；KEY 功能抽测通过（20_memory KEY0 分配、15 KEY0 启动定时器）。
+- 详见 `test/hil/freertos_report.md`（逐项对照清单 + 与计划的差异说明）。
