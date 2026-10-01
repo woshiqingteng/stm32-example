@@ -53,7 +53,7 @@ static void task1(void *argument)
     for (;;)
     {
         led_on(LED0);           /* busy: no low-power mode */
-        delay_us(3000000);      /* scheduler-independent busy wait */
+        delay_ms(3000);         /* busy wait (no low-power mode) */
         led_off(LED0);          /* idle: enter low-power mode */
         vTaskDelay(3000);
     }

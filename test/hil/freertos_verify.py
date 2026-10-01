@@ -181,15 +181,23 @@ def c_20(env, *a):
 
 
 def c_04(env, *a):
-    lines = env.page.serial_read_lines(8)
-    best, hl = 0, ""
-    for l in lines:
-        m = re.search(r"tim3=(\d+) tim6=(\d+)", l)
-        if m:
-            d = int(m.group(1)) - int(m.group(2))
-            if d > best:
-                best, hl = d, l
-    return best >= 1, "max(tim3-tim6)=%d '%s'" % (best, hl)
+    """TIM3 (pre-emption 4) keeps counting while TIM6 (pre-emption 6) is masked
+    during the 5 s `portDISABLE_INTERRUPTS()` window, so after the window the
+    tim3 counter leads tim6 by >= 1. Poll until the post-window line appears."""
+    deadline = time.time() + 16
+    best, hl, seen = 0, "", False
+    while time.time() < deadline:
+        for l in env.page.serial_read_lines(1.0):
+            if "disable interrupts" in l:
+                seen = True
+            m = re.search(r"tim3=(\d+) tim6=(\d+)", l)
+            if m:
+                d = int(m.group(1)) - int(m.group(2))
+                if d > best:
+                    best, hl = d, l
+        if best >= 1 and seen:
+            break
+    return best >= 1, "max(tim3-tim6)=%d '%s' seen_disable=%s" % (best, hl, seen)
 
 
 def c_07(env, *a):

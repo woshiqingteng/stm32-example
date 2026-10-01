@@ -78,11 +78,11 @@ static void task1(void *argument)
         {
             printf("FreeRTOS: disable interrupts\r\n");
             portDISABLE_INTERRUPTS();
-            /* Scheduler-independent busy wait: vTaskDelay() is illegal while
-             * the tick/PendSV are masked (the reference also busy-waits here).
-             * TIM3 (pre-emption 4) keeps firing; TIM6 (pre-emption 6) is
-             * masked by configMAX_SYSCALL_INTERRUPT_PRIORITY (5). */
-            delay_us(5000000);
+            /* delay_ms() is a pure busy wait (ALIENTEK style, no scheduler API):
+             * vTaskDelay() is illegal while the tick/PendSV are masked. TIM3
+             * (pre-emption 4) keeps firing; TIM6 (pre-emption 6) is masked by
+             * configMAX_SYSCALL_INTERRUPT_PRIORITY (5). */
+            delay_ms(5000);
             printf("FreeRTOS: enable interrupts\r\n");
             portENABLE_INTERRUPTS();
         }

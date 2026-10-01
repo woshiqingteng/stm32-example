@@ -15,10 +15,10 @@
 /** @brief  Initialise the delay multiplier. @param sysclk HCLK frequency in MHz. */
 void delay_init(uint16_t sysclk);
 
-/** @brief  Blocking delay. @param nus Microseconds. */
+/** @brief  Busy-wait delay (no scheduler API; safe in critical/ISR). @param nus Microseconds. */
 void delay_us(uint32_t nus);
 
-/** @brief  Blocking delay. @param nms Milliseconds. */
+/** @brief  Busy-wait delay (no scheduler API; safe in critical/ISR). @param nms Milliseconds. */
 void delay_ms(uint16_t nms);
 
 #endif /* BSP_DELAY_H */
