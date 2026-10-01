@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# Build + flash a lwIP demo and validate it on hardware (serial + framebuffer
-# OCR). Thin wrapper around test/hil/hil_run.py.
+# FreeRTOS example HIL runner: flash each app and verify it on hardware with a
+# single persistent OpenOCD session (see test/hil/freertos_verify.py).
 #
-#   tool/hil.sh <app|all>      e.g. tool/hil.sh lwip_16_http
-#                                   tool/hil.sh all
+#   tool/hil.sh [app ...]      e.g. tool/hil.sh 16_event_group
+#                                   tool/hil.sh            # every app/freertos/*
 #
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec python "$here/../test/hil/hil_run.py" "$@"
+exec python "$here/../test/hil/freertos_verify.py" "$@"

@@ -39,16 +39,17 @@ and pixel probes; LED0=PB1 read with the GPIOB clock forced on (RCC AHB1ENR).
 ## Changes
 
 ### LED polarity + blanking for 18/19 (match the ALIENTEK reference)
-- New LCD API: `lcd_display_on()` / `lcd_display_off()` (LTDC controller) and
-  `lcd_backlight(on)` (PB5) in `bsp/openedv_stm32f4/lcd.{c,h}`.
-- `18_tickless` / `19_idle_hook`: `lcd_display_off(); lcd_backlight(0);` at
-  start (panel dark) and LED0 busy=off / idle=on (reference `LED0(1)`/`LED0(0)`).
+- LCD API: `lcd_display_on()` / `lcd_display_off()` in
+  `bsp/openedv_stm32f4/lcd.{c,h}` — `off` disables the LTDC controller **and**
+  the PB5 backlight, `on` re-enables both.
+- `18_tickless` / `19_idle_hook`: a single `lcd_display_off()` at start (panel
+  dark) and LED0 busy=off / idle=on (reference `LED0(1)`/`LED0(0)`).
 - HIL asserts `LTDC_GCR.LTDCEN == 0`, PB5 backlight `== 0`, and LED0 toggling.
 
 ### Earlier fixes (this port)
 - `delay_us/ms` are pure SysTick busy-waits (no scheduler API) so they are safe
   with interrupts masked; `04_interrupt` uses `delay_ms(5000)` directly.
-- FreeRTOS/LVGL common config moved into the port; `lib_wrapper(lib_freertos
-  freertos freertos_port)` with `vApplicationStackOverflowHook`
-  (`configCHECK_FOR_STACK_OVERFLOW = 2`); printf/snprintf tasks use 256-word
-  stacks. No stack-overflow hook fired in any app.
+- FreeRTOS/LVGL common config lives in the port; `add_freertos_app` links
+  `freertos freertos_port` directly (the port force-references
+  `vApplicationStackOverflowHook`; `configCHECK_FOR_STACK_OVERFLOW = 2`).
+  printf/snprintf tasks use 256-word stacks. No hook fired in any app.
