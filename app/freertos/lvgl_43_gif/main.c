@@ -37,7 +37,7 @@ const img_info_t GIF_PATH[] =
 #define image_mun (int)(sizeof(GIF_PATH)/sizeof(GIF_PATH[0]))
 int image = 0;
 lv_obj_t *img;
-int has_next = 0;
+int has_next = 1;  /* LVGL's lv_gif loops by itself; keep the timer idle. */
 
 void lv_my_timer(lv_timer_t *timer)
 { 

@@ -71,16 +71,17 @@ int main(void)
     (void)exfuns_init();
     (void)f_mount(fs[0], "0:", 1);
 
+    lv_init();
+    lv_port_disp_init();
+    lv_port_indev_init();
+
     /* Copy the font store (GBK + XBF Font12) from the SD card to the SPI NOR
-     * only when it is missing, mirroring the ALIENTEK example. */
+     * only when it is missing (mirrors the ALIENTEK example). It shows progress
+     * on the LCD, so it must run after lv_port_disp_init(). */
     if (fonts_init() != 0)
     {
         (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
     }
-
-    lv_init();
-    lv_port_disp_init();
-    lv_port_indev_init();
 
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STK_SIZE, NULL, LVGL_TASK_PRIO, NULL);
     xTaskCreate(led_task, "led", LED_TASK_STK_SIZE, NULL, LED_TASK_PRIO, NULL);

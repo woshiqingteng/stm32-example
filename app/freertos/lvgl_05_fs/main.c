@@ -51,6 +51,7 @@ static void lv_fs_test(void)
     if (res != LV_FS_RES_OK)
     {
         printf("open 0:/Fatfs_test.txt ERROR\n");
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 0, 0), 0);
         return ;
     }
     
@@ -64,11 +65,15 @@ static void lv_fs_test(void)
     if (res != LV_FS_RES_OK)
     {
         printf("read ERROR\n");
+        lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 0, 0), 0);
         return ;
     }
     
     lv_tell(&fd);
     printf("READ(%d): %s",(int)rsize , rbuf);
+
+    /* Read OK: turn the background green (pixel-verifiable in the HIL). */
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(0, 255, 0), 0);
 
     lv_fs_close(&fd);
 }
@@ -83,8 +88,10 @@ void lv_mainstart(void)
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "FATFS TEST");
     lv_obj_center(label);
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 0, 0), 0);  /* red until read succeeds */
     lv_fs_test();
 }
+
 
 /* ==================== app bring-up ==================== */
 

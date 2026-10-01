@@ -133,16 +133,17 @@ def run_once(
     except Exception as e:  # noqa: BLE001
         return ("FAIL", "flash: %s" % e)
     page.reset_run()
-    time.sleep(2.5)
+    # Capture serial from the reset so one-shot startup prints (e.g. lvgl_05's
+    # "READ(...)") are not missed.
+    boot_lines = page.serial_read_lines(2.5)
     env = Env(page)
     t, s = env.title()
     detail = "lcd='%s'/'%s'" % (t, s)
-    page.serial_read_lines(0.3)  # drop boot banner
     try:
         extra_ok, extra = check(env, t, s) if check else (True, "")
     except Exception as e:  # noqa: BLE001
         extra_ok, extra = False, "exc %s" % e
-    lines = page.serial_read_lines(1.0)
+    lines = boot_lines + page.serial_read_lines(1.0)
     body = [x for x in lines if x and not x.startswith("app_")]
     if ser_kw is not None:
         ser_ok = any(ser_kw in x for x in body)

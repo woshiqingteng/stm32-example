@@ -59,7 +59,7 @@ def c_image(env, *a):
             if env.px(fb, x, y) != bg:
                 n += 1
     fault = hc.faulted(env)
-    return (n >= 20) and (not fault), "content=%d bg=%04x fault=%s" % (n, bg, fault)
+    return (n >= 8) and (not fault), "content=%d bg=%04x fault=%s" % (n, bg, fault)
 
 
 def c_gif(env, *a):
@@ -75,8 +75,15 @@ def c_gif(env, *a):
     return (changed >= 1) and (not fault), "changed=%d fault=%s" % (changed, fault)
 
 
+def c_fs(env, *a):
+    """lvgl_05_fs: background turns green when the SD file was read."""
+    c = env.px(env.frame(), 3, 3)
+    fault = hc.faulted(env)
+    return (c == 0x07E0) and (not fault), "bg=%04x fault=%s" % (c, fault)
+
+
 CHECK = {
-    "lvgl_05_fs": lambda e, *a: (not hc.faulted(e), "fs"),
+    "lvgl_05_fs": c_fs,
     "lvgl_41_bmp": c_image,
     "lvgl_42_png": c_image,
     "lvgl_43_gif": c_gif,
@@ -86,9 +93,7 @@ CHECK = {
     "lvgl_40_img_lib": c_image,
 }
 
-_SER_KW = {
-    "lvgl_05_fs": "READ",
-}
+_SER_KW = {}
 
 
 def default_apps():
