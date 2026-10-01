@@ -1,10 +1,6 @@
 file(GLOB_RECURSE LVGL_SRC CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c)
 
-# Tick hook storage lives inside the module (see config/lvgl_tick.c).
-list(APPEND LVGL_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/config/lvgl_tick.c)
-
 # Silence the only two upstream files that trip the project's -Wall/-Wextra.
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/extra/libs/qrcode/qrcodegen.c
@@ -17,8 +13,7 @@ add_library(lvgl STATIC EXCLUDE_FROM_ALL ${LVGL_SRC})
 
 target_include_directories(lvgl PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/config)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # lv_conf.h is resolved via "#include \"lv_conf.h\"" (LV_CONF_INCLUDE_SIMPLE);
 # the app provides it on its own include path.

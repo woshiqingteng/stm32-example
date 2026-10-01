@@ -36,12 +36,9 @@ lib_wrapper(lib_lwip
 lib_wrapper(lib_mbedtls
     mbedtls)
 if(TARGET freertos_port)
-    # `freertos` before `freertos_port`; force the hook symbol so the object is
-    # pulled even when another lib (lwip_port, ...) reorders the link line.
+    # `freertos` before `freertos_port` so the port's objects resolve last.
     lib_wrapper(lib_freertos
         freertos freertos_port)
-    target_link_options(lib_freertos INTERFACE
-        -Wl,-u,vApplicationStackOverflowHook)
 endif()
 
 # lib all

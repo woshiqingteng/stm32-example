@@ -12,9 +12,7 @@
 #include "task.h"
 
 #include "lvgl.h"
-#include "lv_port_disp.h"
-#include "lv_port_indev.h"
-#include "lv_port_tick.h"
+#include "lv_port.h"
 
 #define LVGL_TASK_PRIO     3
 #define LVGL_TASK_STK_SIZE 1024
@@ -63,7 +61,6 @@ int main(void)
     sdram_init();
 
     lv_init();
-    lv_port_tick_init();
     lv_port_disp_init();
     lv_port_indev_init();
 

@@ -35,10 +35,10 @@
 #define LV_TICK_CUSTOM 1
 #endif
 #ifndef LV_TICK_CUSTOM_INCLUDE
-#define LV_TICK_CUSTOM_INCLUDE "lvgl_tick.h"
+#define LV_TICK_CUSTOM_INCLUDE "lv_port.h"
 #endif
 #ifndef LV_TICK_CUSTOM_SYS_TIME_EXPR
-#define LV_TICK_CUSTOM_SYS_TIME_EXPR (g_lvgl_tick_fn())
+#define LV_TICK_CUSTOM_SYS_TIME_EXPR (lv_port_tick_get())
 #endif
 
 
