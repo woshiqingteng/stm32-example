@@ -66,9 +66,6 @@ extern uint32_t SystemCoreClock;
 #ifndef configUSE_COUNTING_SEMAPHORES
 #define configUSE_COUNTING_SEMAPHORES                   1
 #endif
-#ifndef configUSE_ALTERNATIVE_API
-#define configUSE_ALTERNATIVE_API                       0
-#endif
 #ifndef configQUEUE_REGISTRY_SIZE
 #define configQUEUE_REGISTRY_SIZE                       8
 #endif

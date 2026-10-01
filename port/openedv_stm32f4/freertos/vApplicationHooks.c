@@ -7,8 +7,8 @@
  *
  * The signature matches FreeRTOS' vApplicationStackOverflowHook(TaskHandle_t,
  * char*) without pulling in the FreeRTOS headers (TaskHandle_t is a pointer),
- * so this library does not depend on the `freertos` target and can be linked
- * after it (which is required for the symbol to be pulled from a static lib).
+ * so this library does not depend on the `freertos` target. The port's CMake
+ * force-references the symbol (-Wl,-u) so the object is always pulled in.
  */
 
 #include <stdio.h>
