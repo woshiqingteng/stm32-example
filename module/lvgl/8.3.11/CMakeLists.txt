@@ -2,7 +2,7 @@ file(GLOB_RECURSE LVGL_SRC CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
     ${CMAKE_CURRENT_SOURCE_DIR}/demos/*.c)
 
-# Silence the only two upstream files that trip the project's -Wall/-Wextra.
+# Silence the upstream files that trip the project's -Wall/-Wextra.
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/extra/libs/qrcode/qrcodegen.c
     PROPERTIES COMPILE_OPTIONS "-Wno-type-limits")
@@ -15,6 +15,9 @@ set_source_files_properties(
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/extra/libs/png/lodepng.c
     PROPERTIES COMPILE_OPTIONS "-Wno-type-limits")
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/draw/stm32_dma2d/lv_gpu_stm32_dma2d.c
+    PROPERTIES COMPILE_OPTIONS "-Wno-unused-function")
 
 add_library(lvgl STATIC EXCLUDE_FROM_ALL ${LVGL_SRC})
 

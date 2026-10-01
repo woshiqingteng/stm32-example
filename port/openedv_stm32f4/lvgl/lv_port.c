@@ -19,8 +19,14 @@
 
 #include "lv_port.h"
 
-#define LVGL_POOL_ADDR       0xC0400000U
-#define LVGL_DRAW_BUF_ADDR   0xC0480000U
+#if (LV_MEM_ADR == 0)
+#error "lv_port requires an explicit SDRAM LV_MEM_ADR (see lv_conf_common.h)"
+#endif
+
+/* Derived from the LVGL pool so there is a single source of truth: the pool
+ * starts at LV_MEM_ADR, the draw buffer right after it. */
+#define LVGL_POOL_ADDR       ((uint32_t)LV_MEM_ADR)
+#define LVGL_DRAW_BUF_ADDR   ((uint32_t)(LV_MEM_ADR + LV_MEM_SIZE))
 #define LVGL_DRAW_BUF_LINES  40U
 
 #if USE_FREERTOS

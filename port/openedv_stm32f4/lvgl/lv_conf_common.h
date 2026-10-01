@@ -86,12 +86,12 @@
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
 #ifndef LV_MEM_SIZE
-    #define LV_MEM_SIZE (48U * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (512U * 1024U)         /*[bytes]*/
 #endif
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
 #ifndef LV_MEM_ADR
-    #define LV_MEM_ADR 0     /*0: unused*/
+    #define LV_MEM_ADR 0xC0400000U   /*SDRAM pool (frame buffer starts at 0xC0000000, 4 MB reserved)*/
 #endif
     /*Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc*/
     #if LV_MEM_ADR == 0
@@ -269,13 +269,13 @@
 
 /*Use STM32's DMA2D (aka Chrom Art) GPU*/
 #ifndef LV_USE_GPU_STM32_DMA2D
-#define LV_USE_GPU_STM32_DMA2D 0
+#define LV_USE_GPU_STM32_DMA2D 1
 #endif
 #if LV_USE_GPU_STM32_DMA2D
     /*Must be defined to include path of CMSIS header of target processor
     e.g. "stm32f7xx.h" or "stm32f4xx.h"*/
 #ifndef LV_GPU_DMA2D_CMSIS_INCLUDE
-    #define LV_GPU_DMA2D_CMSIS_INCLUDE
+    #define LV_GPU_DMA2D_CMSIS_INCLUDE "stm32f4xx.h"
 #endif
 #endif
 
@@ -585,10 +585,10 @@
 #define LV_FONT_MONTSERRAT_24 1
 #endif
 #ifndef LV_FONT_MONTSERRAT_26
-#define LV_FONT_MONTSERRAT_26 1
+#define LV_FONT_MONTSERRAT_26 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_28
-#define LV_FONT_MONTSERRAT_28 1
+#define LV_FONT_MONTSERRAT_28 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_30
 #define LV_FONT_MONTSERRAT_30 1
@@ -597,22 +597,22 @@
 #define LV_FONT_MONTSERRAT_32 1
 #endif
 #ifndef LV_FONT_MONTSERRAT_34
-#define LV_FONT_MONTSERRAT_34 1
+#define LV_FONT_MONTSERRAT_34 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_36
 #define LV_FONT_MONTSERRAT_36 1
 #endif
 #ifndef LV_FONT_MONTSERRAT_38
-#define LV_FONT_MONTSERRAT_38 1
+#define LV_FONT_MONTSERRAT_38 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_40
-#define LV_FONT_MONTSERRAT_40 1
+#define LV_FONT_MONTSERRAT_40 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_42
-#define LV_FONT_MONTSERRAT_42 1
+#define LV_FONT_MONTSERRAT_42 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_44
-#define LV_FONT_MONTSERRAT_44 1
+#define LV_FONT_MONTSERRAT_44 0
 #endif
 #ifndef LV_FONT_MONTSERRAT_46
 #define LV_FONT_MONTSERRAT_46 1

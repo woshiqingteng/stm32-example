@@ -238,3 +238,43 @@ spi/sys/tpad/usart/wdg`）。
    `LVGL实验所需SD卡文件`(48MB) + `PICTURE/LVGLBIN/*.BIN`。
 6. **验证**：`all-freertos` RC=0/零告警；`tool/hil.sh lvgl` 全量 PASS 后更新
    `test/hil/lvgl_report.md`。
+
+## 12. 计划：LVGL 配置/性能、字体外置、综合实验
+
+目标：开启 DMA2D、记录 benchmark 性能、消除字体重复并把 CJK 字库外置到
+SPI-NOR（XBF）、移植「综合实验」、资源脚本化。
+
+### A. 配置与内存
+1. `lv_conf_common.h`：`LV_USE_GPU_STM32_DMA2D 1` +
+   `LV_GPU_DMA2D_CMSIS_INCLUDE "stm32f4xx.h"`（`lv_init()` 自动初始化 DMA2D）。
+2. `lvgl_demo_benchmark/lv_conf.h`：`LV_USE_FONT_COMPRESSED 1`（启用压缩字场景）。
+3. Montserrat 裁剪：common 默认只开实际用到的
+   `{8,10,12,14,16,18,20,22,24,30,32,36,46}`；benchmark 另行开 `28`。
+4. 内存单源：common 默认 `LV_MEM_ADR 0xC0400000U` / `LV_MEM_SIZE 512KB`；
+   `lv_port.c` 用它推导保护地址与 draw buffer（`LV_MEM_ADR` / `LV_MEM_ADR+LV_MEM_SIZE`）。
+
+### B. 字体外置（XBF）
+5. `tool/lvgl_font_c2xbf.py`：解析 `myFont*.c` → XBF `.bin` + `FontXX.c`
+   描述符（`adv_px=(adv_w+8)>>4`、`box_w` 按 `8/bpp` 补齐并重排位图、
+   `line_height/base_line` 写入、`__g_font_buf` 按最大块取尺寸；非零 `ofs_x`
+   告警后继续）。
+6. `lib/text`：`_font_info` 增 `lvgl_14/18`（24 复用），`FONT_GBK_PATH`/提醒表
+   加 `Font14|18|24.BIN`，扩 `FONTSECSIZE`；`fonts_lvgl_ok` 扩校验 14/18/24。
+7. 一次性迁移全部 myFont 应用到 XBF 描述符 + `f_mount`+`fonts_init/update`；
+   删除各 app 的 `GUI_FONT/myFont*.c`。
+
+### C. 综合实验
+8. 新 `app/freertos/lvgl_53_comprehensive`：迁移参考 `GUI_APP/*` + `image` +
+   `img_hand`，适配本项目头/启动/SD/字库(`Font18`)/图库（8 图，`0x1F80000`，
+   含 `nor_init`）。
+9. 8 个启动图标用 `tool/lvgl_img2bin.py` 生成替身（源图缺失）。
+
+### D. HIL
+10. `lv_port.c` 的 `touchpad_read` 加运行时可注入全局（`lv_indev_test_en/pr/x/y`）。
+11. `lvgl_verify.py` 增 tap 断言（`04/21/29/37/47`）。
+12. 重跑 `tool/hil.sh lvgl` 与 `tool/hil.sh lvgl benchmark`，更新报告。
+
+### E. 资源与仓库
+13. 资源流程：本地生成 LVGLBIN(4+8)+XBF → 烧 `54_usb_device_msc` → 拷入 SD 对应目录。
+14. `.gitattributes`：生成字体/图片 `*.c` 标 `-text`。
+15. `add_freertos_app` 保持原样。
