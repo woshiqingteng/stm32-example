@@ -35,11 +35,6 @@ lib_wrapper(lib_lwip
     lwip_port)
 lib_wrapper(lib_mbedtls
     mbedtls)
-if(TARGET freertos_port)
-    # `freertos` before `freertos_port` so the port's objects resolve last.
-    lib_wrapper(lib_freertos
-        freertos freertos_port)
-endif()
 
 # lib all
 function(lib_dir name)
