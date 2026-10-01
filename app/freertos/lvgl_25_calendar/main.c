@@ -8,6 +8,9 @@
 
 #include "bsp.h"
 #include "sdram.h"
+#include "fonts.h"
+#include "exfuns.h"
+#include "ff.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -22,8 +25,8 @@
 
 
 
-LV_FONT_DECLARE(myFont14) \
-LV_FONT_DECLARE(myFont24)
+LV_FONT_DECLARE(Font14) \
+LV_FONT_DECLARE(Font24)
 
 #if LV_CALENDAR_WEEK_STARTS_MONDAY == 0
 #error LV_CALENDAR_WEEK_STARTS_MONDAY MUST SET 1.
@@ -150,9 +153,20 @@ int main(void)
     printf(APP_BANNER "\r\n");
     sdram_init();
 
+    (void)exfuns_init();
+    (void)f_mount(fs[0], "0:", 1);
+
     lv_init();
     lv_port_disp_init();
     lv_port_indev_init();
+
+    /* Load the CJK XBF fonts from SD into the SPI-NOR store on first use
+     * (progress is drawn on the LCD, so run after lv_port_disp_init). */
+    if (fonts_init() != 0 || fonts_lvgl_ok() == 0)
+    {
+        (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+        (void)fonts_init();
+    }
 
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STK_SIZE, NULL, LVGL_TASK_PRIO, NULL);
     xTaskCreate(led_task, "led", LED_TASK_STK_SIZE, NULL, LED_TASK_PRIO, NULL);

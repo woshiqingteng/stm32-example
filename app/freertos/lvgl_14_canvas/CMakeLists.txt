@@ -1,9 +1,13 @@
 add_freertos_app(lvgl_14_canvas
     SOURCE  main.c
-            GUI_FONT/myFont14.c
-            GUI_FONT/myFont24.c
-    BSP     lcd touch sdram
-    LIB     lvgl)
+            GUI_FONT/Font14.c
+            GUI_FONT/Font24.c
+    BSP     nor sdio lcd touch sdram
+    LIB     lvgl text)
 
 # The app directory provides lv_conf.h; PUBLIC so lvgl.h consumers resolve it.
 target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Only the font-update scratch lives in SRAM here; keep the internal SRAM
+# for the LVGL buffers and the FreeRTOS heap.
+target_compile_definitions(lib_malloc PRIVATE MEM1_MAX_SIZE=8192)

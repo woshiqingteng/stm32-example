@@ -8,6 +8,9 @@
 
 #include "bsp.h"
 #include "sdram.h"
+#include "fonts.h"
+#include "exfuns.h"
+#include "ff.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -25,7 +28,7 @@
 #include <stdio.h>
 
 
-LV_FONT_DECLARE(myFont14)
+LV_FONT_DECLARE(Font14)
 
 lv_obj_t *ta;
 lv_obj_t * lv_qr_win;
@@ -164,7 +167,7 @@ void lv_qr_windowm(void)
     
     ta = lv_textarea_create(lv_qr_cont);                           /* 创建文本区域控件 */
     lv_obj_set_style_radius(ta, 0, LV_PART_MAIN);
-    lv_obj_set_style_text_font(ta,&myFont14,LV_STATE_DEFAULT);     /* 设置文本字体 */
+    lv_obj_set_style_text_font(ta,&Font14,LV_STATE_DEFAULT);     /* 设置文本字体 */
     lv_obj_set_style_border_color(ta,lv_color_make(0,0,0),LV_STATE_DEFAULT);
     lv_obj_set_size(ta, lv_obj_get_width(lv_scr_act())/2, lv_obj_get_height(lv_scr_act())/2);    /* 文本区域的大小 */
     lv_obj_align_to(ta, lv_qr_cont, LV_ALIGN_TOP_LEFT, 0, 30);     /* 对齐 */
@@ -187,7 +190,7 @@ void lv_qr_windowm(void)
     
     lv_obj_t *lv_qr_btn_label = lv_label_create(lv_qr_btn);
     lv_obj_set_style_text_color(lv_qr_btn_label,lv_color_make(255,255,255),LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(lv_qr_btn_label,&myFont14,LV_STATE_DEFAULT);     /* 设置文本字体 */
+    lv_obj_set_style_text_font(lv_qr_btn_label,&Font14,LV_STATE_DEFAULT);     /* 设置文本字体 */
     lv_obj_clear_flag(lv_qr_btn_win,LV_OBJ_FLAG_SCROLLABLE);
     lv_label_set_text(lv_qr_btn_label,"Create Qr");
     lv_obj_center(lv_qr_btn_label);
@@ -240,9 +243,20 @@ int main(void)
     printf(APP_BANNER "\r\n");
     sdram_init();
 
+    (void)exfuns_init();
+    (void)f_mount(fs[0], "0:", 1);
+
     lv_init();
     lv_port_disp_init();
     lv_port_indev_init();
+
+    /* Load the CJK XBF fonts from SD into the SPI-NOR store on first use
+     * (progress is drawn on the LCD, so run after lv_port_disp_init). */
+    if (fonts_init() != 0 || fonts_lvgl_ok() == 0)
+    {
+        (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+        (void)fonts_init();
+    }
 
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STK_SIZE, NULL, LVGL_TASK_PRIO, NULL);
     xTaskCreate(led_task, "led", LED_TASK_STK_SIZE, NULL, LED_TASK_PRIO, NULL);

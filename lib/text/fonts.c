@@ -16,16 +16,17 @@
 #include "delay.h"
 #include "nor.h"
 
-/* 4 GBK fonts + unigbk + LVGL XBF Font12 + descriptor: about 6.39 MB,
- * 1633 4 KB sectors (1539 GBK + 94 for Font12). */
-#define FONTSECSIZE         1633U
+/* 4 GBK fonts + unigbk + LVGL XBF Font12/14/18/24 + descriptor: about 8 MB,
+ * 2560 4 KB sectors.  NOR map: 0-21 MB FatFs, 21-31 MB font store, 31.5 MB
+ * image store. */
+#define FONTSECSIZE         2560U
 
 /* Font store base offset inside the NOR flash (past the filesystem area). */
-#define FONTINFOADDR        (25UL * 1024UL * 1024UL)
+#define FONTINFOADDR        (21UL * 1024UL * 1024UL)
 
 _font_info ftinfo;
 
-char *const FONT_GBK_PATH[6] =
+char *const FONT_GBK_PATH[9] =
 {
     "/SYSTEM/FONT/UNIGBK.BIN",
     "/SYSTEM/FONT/GBK12.FON",
@@ -33,9 +34,12 @@ char *const FONT_GBK_PATH[6] =
     "/SYSTEM/FONT/GBK24.FON",
     "/SYSTEM/FONT/GBK32.FON",
     "/SYSTEM/LVFONT/Font12.BIN",
+    "/SYSTEM/LVFONT/Font14.BIN",
+    "/SYSTEM/LVFONT/Font18.BIN",
+    "/SYSTEM/LVFONT/Font24.BIN",
 };
 
-char *const FONT_UPDATE_REMIND_TBL[6] =
+char *const FONT_UPDATE_REMIND_TBL[9] =
 {
     "Updating UNIGBK.BIN",
     "Updating GBK12.FON ",
@@ -43,7 +47,12 @@ char *const FONT_UPDATE_REMIND_TBL[6] =
     "Updating GBK24.FON ",
     "Updating GBK32.FON ",
     "Updating Font12.BIN",
+    "Updating Font14.BIN",
+    "Updating Font18.BIN",
+    "Updating Font24.BIN",
 };
+
+#define FONT_GBK_NUM        (sizeof(FONT_GBK_PATH) / sizeof(FONT_GBK_PATH[0]))
 
 static void fonts_progress_show(uint16_t x, uint16_t y, uint8_t size, uint32_t totsize, uint32_t pos, uint16_t color)
 {
@@ -138,6 +147,24 @@ static uint8_t fonts_update_fontx(uint16_t x, uint16_t y, uint8_t size, uint8_t 
                 flashaddr = ftinfo.lvgl_12addr;
                 break;
 
+            case 6:
+                ftinfo.lvgl_14addr = ftinfo.lvgl_12addr + ftinfo.lvgl_12size;
+                ftinfo.lvgl_14size = (uint32_t)fftemp->obj.objsize;
+                flashaddr = ftinfo.lvgl_14addr;
+                break;
+
+            case 7:
+                ftinfo.lvgl_18addr = ftinfo.lvgl_14addr + ftinfo.lvgl_14size;
+                ftinfo.lvgl_18size = (uint32_t)fftemp->obj.objsize;
+                flashaddr = ftinfo.lvgl_18addr;
+                break;
+
+            case 8:
+                ftinfo.lvgl_24addr = ftinfo.lvgl_18addr + ftinfo.lvgl_18size;
+                ftinfo.lvgl_24size = (uint32_t)fftemp->obj.objsize;
+                flashaddr = ftinfo.lvgl_24addr;
+                break;
+
             default:
                 break;
         }
@@ -194,7 +221,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
         return 5;
     }
 
-    for (i = 0; i < 6U; i++)
+    for (i = 0; i < FONT_GBK_NUM; i++)
     {
         strcpy((char *)pname, (char *)src);
         strcat((char *)pname, (char *)FONT_GBK_PATH[i]);
@@ -232,7 +259,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
             }
         }
 
-        for (i = 0; i < 6U; i++)
+        for (i = 0; i < FONT_GBK_NUM; i++)
         {
             lcd_show_string(x, y, 240U, 320U, (lcd_font_size_t)size, FONT_UPDATE_REMIND_TBL[i], color);
             strcpy((char *)pname, (char *)src);
@@ -284,24 +311,24 @@ uint8_t fonts_init(void)
     return 0;
 }
 
-uint8_t fonts_lvgl_ok(void)
+static uint8_t fonts_xbf_ok(uint32_t addr, uint32_t size)
 {
     uint8_t hd[8];
     uint16_t min;
     uint16_t max;
 
-    if (ftinfo.lvgl_12size == 0U)
+    if (size == 0U)
     {
         return 0;
     }
 
-    if ((ftinfo.lvgl_12addr < FONTINFOADDR) ||
-        (ftinfo.lvgl_12addr >= (FONTINFOADDR + (FONTSECSIZE * 4096U))))
+    if ((addr < FONTINFOADDR) ||
+        (addr >= (FONTINFOADDR + (FONTSECSIZE * 4096U))))
     {
         return 0;
     }
 
-    nor_read(hd, ftinfo.lvgl_12addr, (uint16_t)sizeof(hd));
+    nor_read(hd, addr, (uint16_t)sizeof(hd));
 
     min = (uint16_t)(hd[0] | ((uint16_t)hd[1] << 8));
     max = (uint16_t)(hd[2] | ((uint16_t)hd[3] << 8));
@@ -317,4 +344,12 @@ uint8_t fonts_lvgl_ok(void)
     }
 
     return 1;
+}
+
+uint8_t fonts_lvgl_ok(void)
+{
+    return fonts_xbf_ok(ftinfo.lvgl_12addr, ftinfo.lvgl_12size) &&
+           fonts_xbf_ok(ftinfo.lvgl_14addr, ftinfo.lvgl_14size) &&
+           fonts_xbf_ok(ftinfo.lvgl_18addr, ftinfo.lvgl_18size) &&
+           fonts_xbf_ok(ftinfo.lvgl_24addr, ftinfo.lvgl_24size);
 }

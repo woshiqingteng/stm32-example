@@ -8,6 +8,7 @@
 
 #include "bsp.h"
 #include "sdram.h"
+#include "fonts.h"
 #include "exfuns.h"
 #include "ff.h"
 
@@ -74,9 +75,9 @@ static void anim_set_x(void *obj, int32_t v)
     lv_obj_set_x((lv_obj_t *)obj, (lv_coord_t)v);
 }
 
-LV_FONT_DECLARE(myFont24)
-LV_FONT_DECLARE(myFont18)
-LV_FONT_DECLARE(myFont14)
+LV_FONT_DECLARE(Font14)
+LV_FONT_DECLARE(Font18)
+LV_FONT_DECLARE(Font14)
 
 lv_file_struct lv_flie;
 /* 文件的后缀名，可以在这个数组添加未知的后缀 */
@@ -184,10 +185,10 @@ lv_obj_t * lv_create_page(lv_obj_t *parent)
     lv_obj_t *lv_page_obj = lv_obj_create(lv_flie.lv_page_cont); /* 创建返回按键的区域 */
     lv_obj_set_style_bg_color(lv_page_obj,lv_palette_main(LV_PALETTE_BLUE),LV_STATE_DEFAULT);
     lv_obj_align(lv_page_obj,LV_ALIGN_BOTTOM_MID,0,10);
-    lv_obj_set_size(lv_page_obj, lcd_info()->width, myFont24.line_height);
+    lv_obj_set_size(lv_page_obj, lcd_info()->width, Font14.line_height);
 
     lv_obj_t * lv_page_back_btn = lv_label_create(lv_page_obj);  /* 创建lable作为返回的对象 */
-    lv_obj_set_style_text_font(lv_page_back_btn,&myFont24,LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(lv_page_back_btn,&Font14,LV_STATE_DEFAULT);
     lv_label_set_text(lv_page_back_btn,"返回");
     lv_obj_align_to(lv_page_back_btn,NULL,LV_ALIGN_CENTER,0,0);
     lv_obj_add_flag(lv_page_back_btn,LV_OBJ_FLAG_CLICKABLE); /* 设置标签可点击 */
@@ -405,7 +406,7 @@ void lv_create_list(lv_obj_t *parent)
 {
     lv_flie.list = lv_list_create(parent);  /* 创建列表 */
     lv_animation(lv_flie.list);
-    lv_obj_set_size(lv_flie.list, lcd_info()->width, lcd_info()->height - myFont24.line_height*2 - 10);  /* 设置列表的大小 */
+    lv_obj_set_size(lv_flie.list, lcd_info()->width, lcd_info()->height - Font14.line_height*2 - 10);  /* 设置列表的大小 */
     lv_obj_align_to(lv_flie.list,lv_flie.lv_page_obj,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);            /* 设置列表的对齐模式 */
     lv_obj_set_style_text_font(lv_flie.list,&lv_font_montserrat_24,LV_STATE_DEFAULT);          /* 设置字体 */
     lv_obj_set_style_radius(lv_flie.list,0,LV_STATE_DEFAULT);/* 设置圆半径为0 */
@@ -419,7 +420,7 @@ void lv_create_list(lv_obj_t *parent)
 void lv_page_tile(lv_obj_t *parent)
 {
     lv_flie.lv_page_obj = lv_obj_create(parent);
-    lv_obj_set_size(lv_flie.lv_page_obj,lcd_info()->width,myFont24.line_height);
+    lv_obj_set_size(lv_flie.lv_page_obj,lcd_info()->width,Font14.line_height);
     lv_obj_set_style_bg_color(lv_flie.lv_page_obj,lv_palette_main(LV_PALETTE_GREY),LV_STATE_DEFAULT);
     lv_obj_set_style_radius(lv_flie.lv_page_obj,0,LV_STATE_DEFAULT);/* 设置圆半径为0 */
     lv_obj_align_to(lv_flie.lv_page_obj,parent,LV_ALIGN_TOP_LEFT,0,0);
@@ -427,7 +428,7 @@ void lv_page_tile(lv_obj_t *parent)
     lv_obj_t *lv_page_label = lv_label_create(lv_flie.lv_page_obj);
     lv_label_set_text(lv_page_label,"文件管理系统");
     lv_obj_set_style_text_color(lv_page_label,lv_palette_main(LV_PALETTE_RED),LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(lv_page_label,&myFont24,LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(lv_page_label,&Font14,LV_STATE_DEFAULT);
     lv_obj_align_to(lv_page_label,lv_flie.lv_page_obj,LV_ALIGN_CENTER,0,0);
 }
 
@@ -474,14 +475,14 @@ void lv_back_btn_event_handler(lv_event_t *event)
 void lv_general_win_create(lv_obj_t *parent)
 {
     lv_flie.lv_back_btn = lv_label_create(parent);
-    lv_obj_set_style_text_font(lv_flie.lv_back_btn,&myFont24,LV_STATE_DEFAULT); /* 设置字体 */
+    lv_obj_set_style_text_font(lv_flie.lv_back_btn,&Font14,LV_STATE_DEFAULT); /* 设置字体 */
     
     lv_label_set_text(lv_flie.lv_back_btn,"菜单");
     lv_obj_align_to(lv_flie.lv_back_btn,parent,LV_ALIGN_RIGHT_MID,-10,0);
     lv_obj_add_flag(lv_flie.lv_back_btn,LV_OBJ_FLAG_CLICKABLE); /* 设置标签可点击 */
     lv_obj_add_event_cb(lv_flie.lv_back_btn,lv_back_btn_event_handler,LV_EVENT_ALL,NULL); /* 设置回调函数 */
     lv_flie.lv_prev_btn = lv_label_create(parent);
-    lv_obj_set_style_text_font(lv_flie.lv_prev_btn,&myFont24,LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(lv_flie.lv_prev_btn,&Font14,LV_STATE_DEFAULT);
     lv_label_set_text(lv_flie.lv_prev_btn,"返回");
     lv_obj_align_to(lv_flie.lv_prev_btn,parent,LV_ALIGN_LEFT_MID,10,0);
     lv_obj_add_flag(lv_flie.lv_prev_btn,LV_OBJ_FLAG_CLICKABLE); /* 设置标签可点击 */
@@ -496,7 +497,7 @@ void lv_general_win_create(lv_obj_t *parent)
 void lv_page_back(lv_obj_t *parent)
 {
     lv_flie.lv_back_obj = lv_obj_create(parent);                                                            /* 创建文件返回对象区域 */
-    lv_obj_set_size(lv_flie.lv_back_obj,lcd_info()->width,myFont24.line_height+10);                              /* 设置改区域的大小 */
+    lv_obj_set_size(lv_flie.lv_back_obj,lcd_info()->width,Font14.line_height+10);                              /* 设置改区域的大小 */
     lv_obj_set_style_bg_color(lv_flie.lv_back_obj,lv_palette_main(LV_PALETTE_GREY),LV_STATE_DEFAULT);       /* 设置该区域的颜色为灰色 */
     lv_obj_set_style_radius(lv_flie.lv_back_obj,0,LV_STATE_DEFAULT);                                        /* 设置圆半径为0 */
     lv_obj_align_to(lv_flie.lv_back_obj,parent,LV_ALIGN_BOTTOM_MID,0,0);                                    /* 设置对齐模式 */
@@ -574,6 +575,15 @@ int main(void)
     lv_port_disp_init();
     lv_port_indev_init();
     lv_port_fs_init();
+
+
+    /* Load the CJK XBF fonts from SD into the SPI-NOR store on first use
+     * (progress is drawn on the LCD, so run after lv_port_disp_init). */
+    if (fonts_init() != 0 || fonts_lvgl_ok() == 0)
+    {
+        (void)fonts_update_font(0, 0, 16, (uint8_t *)"0:", 0xFFFF);
+        (void)fonts_init();
+    }
 
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STK_SIZE, NULL, LVGL_TASK_PRIO, NULL);
     xTaskCreate(led_task, "led", LED_TASK_STK_SIZE, NULL, LED_TASK_PRIO, NULL);

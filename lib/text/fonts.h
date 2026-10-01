@@ -25,6 +25,10 @@ typedef struct __attribute__((packed))
     uint32_t gbk32size;   /* gbk32 size */
     uint32_t lvgl_12addr; /* LVGL XBF 12px address */
     uint32_t lvgl_12size; /* LVGL XBF 12px size */
+    uint32_t lvgl_14addr; /* LVGL XBF 14px address (myFont14) */
+    uint32_t lvgl_14size; /* LVGL XBF 14px size */
+    uint32_t lvgl_18addr; /* LVGL XBF 18px address (myFont18) */
+    uint32_t lvgl_18size; /* LVGL XBF 18px size */
     uint32_t lvgl_24addr; /* LVGL XBF 24px address */
     uint32_t lvgl_24size; /* LVGL XBF 24px size */
     uint32_t lvgl_36addr; /* LVGL XBF 36px address */
@@ -40,8 +44,8 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
 /** @brief  Load the font store descriptor. Returns 0 when it is valid. */
 uint8_t fonts_init(void);
 
-/** @brief  Return 1 when the LVGL XBF Font12 store looks valid (header and
- *  address range), 0 otherwise. */
+/** @brief  Return 1 when all LVGL XBF stores (12/14/18/24px) look valid
+ *  (header and address range), 0 otherwise. */
 uint8_t fonts_lvgl_ok(void);
 
 #endif /* LIB_TEXT_FONTS_H */

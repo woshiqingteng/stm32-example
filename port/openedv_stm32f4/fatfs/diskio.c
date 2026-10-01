@@ -30,7 +30,7 @@
 
 /* NOR flash region handed to FatFs: the first 25 MB of the 32 MB part. */
 #define NOR_FATFS_SECTOR_SIZE   512U
-#define NOR_FATFS_SECTOR_COUNT  (25U * 1024U * 2U)  /* 25 MB / 512 B */
+#define NOR_FATFS_SECTOR_COUNT  (21U * 1024U * 2U)  /* 21 MB / 512 B (font store starts at 21 MB) */
 #define NOR_FATFS_BLOCK_SIZE    8U                  /* 8 sectors = one 4 KB erase block */
 #define NOR_FATFS_BASE    0U
 
