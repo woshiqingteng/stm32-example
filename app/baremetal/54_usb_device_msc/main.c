@@ -10,6 +10,8 @@
 
 #include "bsp.h"
 #include "sdio.h"
+#include "nor.h"
+#include "ftl.h"
 #include "usbd_core.h"
 #include "usbd_handle.h"
 #include "usbd_desc.h"
@@ -44,6 +46,11 @@ int main(void)
         sdio_get_card_info(&info);
         printf("SD Card Size: %lu MB\r\n", (unsigned long)info.total_size_mb);
     }
+
+    /* Bring up every backing medium before USB starts so the MSC enumeration
+     * (which must answer quickly) never has to scan/format them. */
+    nor_init();
+    (void)ftl_init();
 
     (void)USBD_Init(&USBD_Device, &MSC_Desc, DEVICE_FS);
     (void)USBD_RegisterClass(&USBD_Device, USBD_MSC_CLASS);

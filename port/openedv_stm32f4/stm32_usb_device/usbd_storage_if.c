@@ -1,11 +1,7 @@
 /**
  * @file    usbd_storage_if.c
- * @brief   USB device Mass Storage class interface.  A single logical unit is
- *          exposed: the SD card (a USB card reader).
- *
- * Note: exposing NOR/NAND alongside the SD card made Windows fail to enumerate
- * the composite device (the NAND LUN reports a bogus multi-TB capacity), so only
- * the SD is exposed.
+ * @brief   USB device Mass Storage class interface.  Three logical units are
+ *          exposed: SPI NOR flash, NAND flash (via the FTL) and the SD card.
  */
 
 #include "usbd_storage_if.h"
@@ -14,12 +10,12 @@
 #include "ftl.h"
 #include "nand.h"
 
-#define STORAGE_LUN_NBR         1U
+#define STORAGE_LUN_NBR         3U
 #define STORAGE_BLK_SIZE        512U
 
-#define LUN_NOR                 0xFEU
-#define LUN_NAND                0xFFU
-#define LUN_SD                  0U
+#define LUN_NOR                 0U
+#define LUN_NAND                1U
+#define LUN_SD                  2U
 
 /* NOR region exposed to the host: the first 25 MB (the FatFs area). */
 #define NOR_LUN_SECTOR_COUNT    (25U * 1024U * 2U)
@@ -29,7 +25,19 @@ volatile usb_storage_error_t    g_usb_storage_error    = USB_STORAGE_ERROR_NONE;
 
 /* Mass storage inquiry data, one 36 byte record per logical unit. */
 static const int8_t STORAGE_Inquirydata[] = {
-    /* LUN 0: SD */
+    /* LUN 0: NOR */
+    0x00, 0x80, 0x02, 0x02,
+    (STANDARD_INQUIRY_DATA_LEN - 4), 0x00, 0x00, 0x00,
+    'A', 'L', 'I', 'E', 'N', 'T', 'E', 'K',
+    'N', 'O', 'R', ' ', 'F', 'l', 'a', 's', 'h', ' ', 'D', 'i', 's', 'k', ' ', ' ',
+    '1', '.', '0', ' ',
+    /* LUN 1: NAND */
+    0x00, 0x80, 0x02, 0x02,
+    (STANDARD_INQUIRY_DATA_LEN - 4), 0x00, 0x00, 0x00,
+    'A', 'L', 'I', 'E', 'N', 'T', 'E', 'K',
+    'N', 'A', 'N', 'D', ' ', 'F', 'l', 'a', 's', 'h', 'D', 'i', 's', 'k', ' ', ' ',
+    '1', '.', '0', ' ',
+    /* LUN 2: SD */
     0x00, 0x80, 0x02, 0x02,
     (STANDARD_INQUIRY_DATA_LEN - 4), 0x00, 0x00, 0x00,
     'A', 'L', 'I', 'E', 'N', 'T', 'E', 'K',
@@ -59,18 +67,12 @@ USBD_StorageTypeDef USBD_Storage_Interface_fops = {
 
 static int8_t STORAGE_Init(uint8_t lun)
 {
-    if (lun == LUN_NOR)
-    {
-        nor_init();
-        return 0;
-    }
-
-    if (lun == LUN_NAND)
-    {
-        return (ftl_init() == 0U) ? 0 : -1;
-    }
-
-    return (sdio_init() == 0U) ? 0 : -1;
+    /* The NOR, NAND/FTL and SD are brought up once by the application before
+     * USB is started.  Doing it here would block the enumeration (ftl_init()
+     * scans - and can format - the NAND), which makes the host reset the
+     * composite device and drop the other logical units. */
+    (void)lun;
+    return 0;
 }
 
 static int8_t STORAGE_GetCapacity(uint8_t lun, uint32_t *block_num, uint16_t *block_size)
