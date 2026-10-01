@@ -1,5 +1,6 @@
 file(GLOB_RECURSE LVGL_SRC CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/demos/*.c)
 
 # Silence the only two upstream files that trip the project's -Wall/-Wextra.
 set_source_files_properties(
@@ -8,6 +9,9 @@ set_source_files_properties(
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/misc/lv_tlsf.c
     PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter")
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/demos/benchmark/lv_demo_benchmark.c
+    PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-parameter")
 
 add_library(lvgl STATIC EXCLUDE_FROM_ALL ${LVGL_SRC})
 

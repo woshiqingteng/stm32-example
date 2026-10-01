@@ -10,4 +10,4 @@ target_include_directories(lvgl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # bsp_delay carries USE_FREERTOS (and freertos itself under the RTOS build).
 target_link_libraries(lvgl_port
-    PUBLIC lvgl bsp_lcd bsp_touch bsp_delay)
+    PUBLIC lvgl bsp_lcd bsp_touch bsp_delay m)

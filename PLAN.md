@@ -150,11 +150,63 @@ spi/sys/tpad/usart/wdg`）。
   47_sai_record 48_video 49_fpu 50_1_dsp_math 50_2_dsp_fft 53_iap 53_iap_app
   54_usb_device_msc 55_usb_device_audio 56_usb_device_cdc 57_usb_host_msc
   58_usb_host_hid`
-- **freertos（25 + lv_29）**：`02_freertos_port 04_interrupt
+ - **freertos（25 例程）**：`02_freertos_port 04_interrupt
   06_1/06_2/06_3 07_list_item 09_time_slicing 11_1 11_2 13_1 13_2 13_3
   14_1 14_2 14_3 14_4 15_software_timer 16_event_group 17_1 17_2 17_3 17_4
-  18_tickless 19_idle_hook 20_memory` + `lv_29_keyboard`。
-- **lwip（15）**：`lwip_6_freertos 7_netconn_udp 8_netconn_tcp_client
+  18_tickless 19_idle_hook 20_memory`。
+ - **LVGL（38 + 2 官方 demo）**：`lvgl_02_stress lvgl_04_mouse lvgl_09_obj
+  lvgl_10_arc lvgl_11_bar lvgl_12_btn lvgl_13_btnmatrix lvgl_14_canvas
+  lvgl_15_checkbox lvgl_16_dropdown lvgl_17_img lvgl_18_label lvgl_19_line
+  lvgl_20_roller lvgl_21_slider lvgl_22_switch lvgl_23_table lvgl_24_textarea
+  lvgl_25_calendar lvgl_26_chart lvgl_27_colorwheel lvgl_28_imgbtn
+  lvgl_29_keyboard lvgl_30_led lvgl_31_list lvgl_32_meter lvgl_33_msgbox
+  lvgl_34_span lvgl_35_spinbox lvgl_36_spinner lvgl_37_tabview lvgl_38_tileview
+  lvgl_39_win lvgl_44_qrcode lvgl_47_calculator lvgl_49_qrgen lvgl_50_paint
+  lvgl_52_baseconv`
+  + `lvgl_demo_widgets lvgl_demo_benchmark`。
+ - **lwip（15）**：`lwip_6_freertos 7_netconn_udp 8_netconn_tcp_client
   9_netconn_tcp_server 10_socket_udp 10_1_udp_broadcast 10_2_udp_multicast
   11_socket_tcp_client 12_socket_tcp_server 12_1_socket_tcp_server_multi
   13_ntp 14_sntp 16_http 17_aliyun_mqtt 18_onenet_mqtt`。
+
+## 10. 计划：LVGL 例程移植（FreeRTOS，A 类）+ 官方 demo
+
+参考：ALIENTEK `…\3，扩展例程\4，LVGL例程`（LVGL **8.1.1**）；官方 demo 源
+`D:\work\git\lvgl`（**8.3.11**，与 `module/lvgl` 同版本）。
+目标命名：`app/freertos/lvgl_<number>_<name>`。
+
+### 约定
+- 启动层**每 app 内联**（与 FreeRTOS 例程一致）：`bsp_init`/`sdram_init`/`lv_init`
+  /`lv_port_disp_init`/`lv_port_indev_init` + lvgl 任务 + LED 心跳。
+- **本阶段只做 A 类（纯控件，无 SD/SPI-Flash）**；B 类（5/6/7/40-43/45/51）暂不做。
+- **每 app 自带 `GUI_FONT`**（`myFont14/24`，`52` 加 `myFont18`）。
+- demo 代码来自参考 `Middlewares/LVGL/GUI_APP/lv_mainstart.c`，适配 8.1.1→8.3.11。
+- `lv_29_keyboard` → 重命名 `lvgl_29_keyboard` 并换成**完整参考 demo**。
+
+### 阶段 0：公共设施
+- **Vendor demos**：从 `D:\work\git\lvgl/demos` 复制到 `module/lvgl/8.3.11/demos/`：
+  `widgets/`（含 `assets/img_*.c`，排除截图）、`benchmark/`（含 `assets/*.c` 及
+  `*.c.c` 压缩字体，排除截图）、`stress/`、`lv_demos.h`；不复制 `music`/`keypad_encoder`。
+- `module/lvgl/8.3.11/CMakeLists.txt`：`LVGL_SRC` 追加 `demos/**/*.c`
+  （未启用 demo 为空 TU；assets 由 `--gc-sections` 丢弃）；demo 上游告警按需定向抑制。
+- `port/openedv_stm32f4/lvgl/lv_conf_common.h`：开启 A 类基础字体
+  `LV_FONT_MONTSERRAT_10/14/20/30`；`LV_USE_DEMO_*` 保持 0，由各 app 覆盖。
+
+### 阶段 1：A 类（38 个 app）
+每个 app：`main.c` + `FreeRTOSConfig.h`(heap 48KB) + `lv_conf.h`(LV_MEM_ADR/SIZE)
++ `CMakeLists.txt` + `GUI_FONT/`；额外资源 `13→img_user.c`、`17→img_gear.c`、
+`28→img_cool/dry/warm.c`。
+`02_stress 04_mouse 09_obj 10_arc 11_bar 12_btn 13_btnmatrix 14_canvas
+15_checkbox 16_dropdown 17_img 18_label 19_line 20_roller 21_slider 22_switch
+23_table 24_textarea 25_calendar 26_chart 27_colorwheel 28_imgbtn 29_keyboard
+30_led 31_list 32_meter 33_msgbox 34_span 35_spinbox 36_spinner 37_tabview
+38_tileview 39_win 44_qrcode 47_calculator 49_qrgen 50_paint 52_baseconv`
+（`02/04` 调官方 `lv_demo_stress()`）。
+
+### 阶段 2：官方 demo（2 个）
+- `lvgl_demo_widgets`：`LV_USE_DEMO_WIDGETS=1` → `lv_demo_widgets()`。
+- `lvgl_demo_benchmark`：`LV_USE_DEMO_BENCHMARK=1` + Montserrat 字体 → `lv_demo_benchmark()`。
+
+### 阶段 3：验证
+- `tool/build.sh debug all-freertos` RC=0/零告警；逐 app 烧录：帧缓冲非空 + LED
+  心跳 + 无 HardFault（触摸类仅验“绘制正常不崩”）；更新 `freertos_report.md`。

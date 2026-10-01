@@ -1,0 +1,14 @@
+LVGL 8.3.11 (vendored)
+
+Source: upstream LVGL 8.3.11 (https://github.com/lvgl/lvgl).
+
+Notes:
+- src/ is the upstream library. CMakeLists.txt builds src/**/*.c plus the
+  vendored demos/**/*.c (widgets, benchmark, stress).
+- demos/ was copied from the same 8.3.11 tree and trimmed: only widgets
+  (+ assets/*.c), benchmark (+ assets/*.c, including the *.c.c compressed
+  fonts) and stress are kept; music/keypad_encoder, screenshots and
+  non-compiled images were removed. The demo .c files are wrapped in
+  #if LV_USE_DEMO_* so they compile to empty objects unless enabled.
+- Build options live in the port (port/openedv_stm32f4/lvgl/lv_conf_common.h),
+  not in this vendored tree.
