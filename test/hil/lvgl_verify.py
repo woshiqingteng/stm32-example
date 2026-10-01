@@ -58,8 +58,8 @@ def c_image(env, *a):
     fb = env.frame()
     bg = env.px(fb, 2, 2)
     n = 0
-    for x in range(40, 440, 12):
-        for y in range(40, 740, 12):
+    for x in range(2, 480, 4):
+        for y in range(2, 800, 8):
             if env.px(fb, x, y) != bg:
                 n += 1
     fault = hc.faulted(env)
