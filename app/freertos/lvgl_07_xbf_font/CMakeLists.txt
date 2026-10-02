@@ -1,8 +1,6 @@
 add_freertos_app(lvgl_07_xbf_font
     SOURCE  main.c
             GUI_FONT/Font12.c
-            GUI_FONT/Font24.c
-            GUI_FONT/Font36.c
     BSP     nor sdio lcd touch sdram
     LIB     lvgl text)
 

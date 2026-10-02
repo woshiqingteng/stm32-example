@@ -255,9 +255,9 @@ SPI-NOR（XBF）、移植「综合实验」、资源脚本化。
 
 ### B. 字体外置（XBF）
 5. `tool/lvgl_font_c2xbf.py`：解析 `myFont*.c` → XBF `.bin` + `FontXX.c`
-   描述符（`adv_px=(adv_w+8)>>4`、`box_w` 按 `8/bpp` 补齐并重排位图、
-   `line_height/base_line` 写入、`__g_font_buf` 按最大块取尺寸；非零 `ofs_x`
-   告警后继续）。
+   描述符（`adv_px=adv_w`——LvglFontTool 已按像素存储、`box_w` 按 `8/bpp` 补齐
+   并重排位图、`line_height/base_line` 写入、`__g_font_buf` 按最大块取尺寸；
+   非零 `ofs_x` 告警后继续）。
 6. `lib/text`：`_font_info` 增 `lvgl_14/18`（24 复用），`FONT_GBK_PATH`/提醒表
    加 `Font14|18|24.BIN`，扩 `FONTSECSIZE`；`fonts_lvgl_ok` 扩校验 14/18/24。
 7. 一次性迁移全部 myFont 应用到 XBF 描述符 + `f_mount`+`fonts_init/update`；
@@ -278,3 +278,17 @@ SPI-NOR（XBF）、移植「综合实验」、资源脚本化。
 13. 资源流程：本地生成 LVGLBIN(4+8)+XBF → 烧 `54_usb_device_msc` → 拷入 SD 对应目录。
 14. `.gitattributes`：生成字体/图片 `*.c` 标 `-text`。
 15. `add_freertos_app` 保持原样。
+
+### 完成情况（结果）
+- A1–A4、B5–B7、C8–C9、D10–D12 均已完成；`tool/hil.sh lvgl` = 49/49 PASS，
+  `tool/hil.sh lvgl benchmark` 已用 DMA2D + 压缩字库重录（Weighted FPS 23，
+  Opa 95%，压缩场景已正常渲染）。
+- 过程中发现并修复两个关键缺陷：
+  1. 迁移应用 `MEM1_MAX_SIZE` 原为 8 KB，`fonts_update_font`/`fonts_update_fontx`
+     叠加申请导致 `mymalloc` 失败、字库地址写不进去（标签显示黑方块）；提到 16 KB。
+  2. 综合实验图库 `IMAGEINFOADDR=0x1F80000` + `IMAGESECSIZE=256`(1 MB) 越过 32 MB
+     NOR 并回绕擦到 FatFs 区；改为 128 并去掉预擦除扫描。
+- `lib/text` 同时修了 `f_open` 泄漏、去掉全量预擦除扫描、进度每 64 KB 刷新
+  （首刷 ~25–95s，之后启动跳过）。
+- USB MSC 三 LUN：把 `ftl_init` 从枚举路径移到 `main` 启动前，NOR/NAND/SD 均可枚举。
+- 触摸注入钩子（`g_lv_indev_test_*`）+ `lvgl_04/21/29/37/47` tap 断言已加入。

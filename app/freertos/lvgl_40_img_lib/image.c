@@ -43,7 +43,6 @@
  * 25M���������4��ͼƬ��,��ͼƬ��ռ����,���ܶ�!
  */
 /* Image store base in the SPI NOR: 31.5 MB, past the 25 MB font store. */
-#define IMAGEINFOADDR        0x1F80000UL
 
 /* ��������ͼƬ�������Ϣ����ַ����С�� */
 _image_info g_ftinfo;

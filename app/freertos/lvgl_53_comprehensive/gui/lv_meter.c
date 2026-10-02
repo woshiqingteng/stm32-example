@@ -53,8 +53,8 @@ static const meter_image_info meter_image[] =
 {
     {"Thursday"},
     {"November 5th"},
-    {"20��"},
-    {"18��"},
+    {"20°C"},
+    {"18°C"},
 };
 
 /* ��ȡ·���ĸ��� */
