@@ -22,16 +22,15 @@
 #define RTC_DEFAULT_DATE   1U
 #define RTC_PRINT_PERIOD_MS 1000U
 
-static volatile uint32_t g_wakeups;
+static volatile uint32_t g_wakeup_n;
 
-static void rtc_event_cb(rtc_event_t event, uint32_t info, void *user)
+static void rtc_event_cb(rtc_event_t event, void *user)
 {
-    (void)info;
     (void)user;
 
     if (event == RTC_EVENT_WAKEUP)
     {
-        g_wakeups++;
+        g_wakeup_n++;
         led_toggle(LED1);
     }
 }
@@ -69,7 +68,7 @@ int main(void)
 
         printf("Time: %02u:%02u:%02u  Date: 20%02u-%02u-%02u  Week: %u  Wake:%lu\r\n",
                dt.hour, dt.min, dt.sec, dt.year, dt.month, dt.date, dt.week,
-               (unsigned long)g_wakeups);
+               (unsigned long)g_wakeup_n);
 
         led_toggle(LED0);
         delay_ms(RTC_PRINT_PERIOD_MS);

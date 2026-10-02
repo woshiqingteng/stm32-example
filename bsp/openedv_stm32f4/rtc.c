@@ -18,27 +18,14 @@
 #define RTC_ASYNC_PREDIV    0x7FU
 #define RTC_SYNC_PREDIV     0xFFU
 
-/* Gregorian week calculation constants (valid for 1901..2099). */
-#define RTC_CENTURY_BASE       19U
-#define RTC_YEARS_PER_CENTURY  100U
-#define RTC_LEAP_YEAR_INTERVAL 4U
 #define RTC_DAYS_PER_WEEK      7U
-#define RTC_MARCH_MONTH        3U
-#define RTC_FIRST_MONTH        1U
-#define RTC_LAST_MONTH         12U
 
 #define RTC_YEAR_BASE          2000U
 
 static RTC_HandleTypeDef g_rtc_handle;
 static rtc_event_cb_t    g_event_cb;
 static void             *g_event_user;
-static volatile uint32_t g_wakeup_n;
 static uint8_t           g_inited;
-
-static const uint8_t g_week_table[12] =
-{
-    0U, 3U, 3U, 6U, 1U, 4U, 6U, 2U, 5U, 0U, 3U, 5U
-};
 
 uint32_t rtc_read_bkr(uint32_t bkrx)
 {
@@ -80,51 +67,28 @@ rtc_status_t rtc_get(rtc_datetime_t *dt)
     return RTC_OK;
 }
 
-/* Weekday (1..7) for a Gregorian date between 1901 and 2099. */
+/* Weekday (1..7, Monday..Sunday) for a Gregorian date (Sakamoto's algorithm). */
 static uint8_t rtc_calc_week(uint16_t year, uint8_t month, uint8_t day)
 {
+    static const uint8_t month_offset[12] = {0U, 3U, 2U, 5U, 0U, 3U, 5U, 1U, 4U, 6U, 2U, 4U};
     uint16_t temp;
-    uint8_t  year_h;
-    uint8_t  year_l;
 
-    if ((month < RTC_FIRST_MONTH) || (month > RTC_LAST_MONTH))
+    if ((month < 1U) || (month > 12U))
     {
         return 0U;
     }
 
-    /*
-     * Algorithm (valid 1901..2099):
-     *   week = (yy + yy/4 + day + month_table[m] - leap_adjust) mod 7, 1..7
-     * where yy is the year within the century (shifted by 100 for years 2000+),
-     * yy/4 counts leap days, and month_table[] holds the weekday offset of the
-     * first day of each month. For a leap year, January and February predate
-     * 29 Feb, so one day is subtracted before the final modulo.
-     */
-    year_h = (uint8_t)(year / RTC_YEARS_PER_CENTURY);
-    year_l = (uint8_t)(year % RTC_YEARS_PER_CENTURY);
-
-    if (year_h > RTC_CENTURY_BASE)
+    if (month < 3U)
     {
-        year_l = (uint8_t)(year_l + RTC_YEARS_PER_CENTURY);
+        year--;
     }
 
-    temp = (uint16_t)(year_l + (year_l / RTC_LEAP_YEAR_INTERVAL));
-    temp = (uint16_t)(temp % RTC_DAYS_PER_WEEK);
-    temp = (uint16_t)(temp + day + g_week_table[month - RTC_FIRST_MONTH]);
-
-    if (((year_l % RTC_LEAP_YEAR_INTERVAL) == 0U) && (month < RTC_MARCH_MONTH))
-    {
-        temp--;
-    }
+    temp = (uint16_t)(year + (year / 4U) - (year / 100U) + (year / 400U)
+                      + month_offset[month - 1U] + day);
 
     temp %= RTC_DAYS_PER_WEEK;
 
-    if (temp == 0U)
-    {
-        temp = RTC_DAYS_PER_WEEK;
-    }
-
-    return (uint8_t)temp;
+    return (uint8_t)((temp == 0U) ? RTC_DAYS_PER_WEEK : temp); /* 0=Sun -> 7 */
 }
 
 rtc_status_t rtc_set(const rtc_datetime_t *dt)
@@ -218,11 +182,11 @@ static void rtc_clock_config(void)
     }
 }
 
-static void rtc_event_dispatch(rtc_event_t event, uint32_t info)
+static void rtc_event_dispatch(rtc_event_t event)
 {
     if (g_event_cb != NULL)
     {
-        g_event_cb(event, info, g_event_user);
+        g_event_cb(event, g_event_user);
     }
 }
 
@@ -279,7 +243,6 @@ rtc_status_t rtc_init(const rtc_config_t *cfg)
 
     g_event_cb   = NULL;
     g_event_user = NULL;
-    g_wakeup_n   = 0U;
 
     if (cfg != NULL)
     {
@@ -340,8 +303,7 @@ void RTC_WKUP_IRQHandler(void)
     if (__HAL_RTC_WAKEUPTIMER_GET_FLAG(&g_rtc_handle, RTC_FLAG_WUTF) != 0U)
     {
         __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&g_rtc_handle, RTC_FLAG_WUTF);
-        g_wakeup_n++;
-        rtc_event_dispatch(RTC_EVENT_WAKEUP, g_wakeup_n);
+        rtc_event_dispatch(RTC_EVENT_WAKEUP);
     }
 }
 
@@ -353,14 +315,14 @@ void RTC_Alarm_IRQHandler(void)
         (__HAL_RTC_ALARM_GET_FLAG(&g_rtc_handle, RTC_FLAG_ALRAF) != 0U))
     {
         __HAL_RTC_ALARM_CLEAR_FLAG(&g_rtc_handle, RTC_FLAG_ALRAF);
-        rtc_event_dispatch(RTC_EVENT_ALARM, (uint32_t)RTC_ALARM_ID_A);
+        rtc_event_dispatch(RTC_EVENT_ALARM_A);
     }
 
     if ((__HAL_RTC_ALARM_GET_IT_SOURCE(&g_rtc_handle, RTC_IT_ALRB) != 0U) &&
         (__HAL_RTC_ALARM_GET_FLAG(&g_rtc_handle, RTC_FLAG_ALRBF) != 0U))
     {
         __HAL_RTC_ALARM_CLEAR_FLAG(&g_rtc_handle, RTC_FLAG_ALRBF);
-        rtc_event_dispatch(RTC_EVENT_ALARM, (uint32_t)RTC_ALARM_ID_B);
+        rtc_event_dispatch(RTC_EVENT_ALARM_B);
     }
 }
 
@@ -371,6 +333,6 @@ void TAMP_STAMP_IRQHandler(void)
     if (__HAL_RTC_TAMPER_GET_FLAG(&g_rtc_handle, RTC_FLAG_TAMP1F) != 0U)
     {
         __HAL_RTC_TAMPER_CLEAR_FLAG(&g_rtc_handle, RTC_FLAG_TAMP1F);
-        rtc_event_dispatch(RTC_EVENT_TAMPER, 0U);
+        rtc_event_dispatch(RTC_EVENT_TAMPER);
     }
 }

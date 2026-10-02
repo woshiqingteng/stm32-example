@@ -6,8 +6,7 @@
  * source is recorded in backup register 0 (0x5050 = LSE, 0x5051 = LSI).
  *
  * @note Event callbacks run in interrupt context; keep them short and only set
- *       flags for the main loop to handle. The alarm event @c info is the
- *       @ref rtc_alarm_id_t value; the wake-up @c info is the running count.
+ *       flags for the main loop to handle.
  */
 
 #ifndef BSP_RTC_H
@@ -32,7 +31,8 @@ typedef struct
 typedef enum
 {
     RTC_EVENT_WAKEUP = 0,   /*!< Periodic wake-up timer elapsed */
-    RTC_EVENT_ALARM,        /*!< Alarm A/B matched */
+    RTC_EVENT_ALARM_A,      /*!< Alarm A matched */
+    RTC_EVENT_ALARM_B,      /*!< Alarm B matched */
     RTC_EVENT_TAMPER        /*!< Reserved (not implemented) */
 } rtc_event_t;
 
@@ -59,7 +59,7 @@ typedef enum
                                  RTC_ALARM_MASK_MINUTES | RTC_ALARM_MASK_SECONDS)
 
 /** @brief Event callback (interrupt context). */
-typedef void (*rtc_event_cb_t)(rtc_event_t event, uint32_t info, void *user);
+typedef void (*rtc_event_cb_t)(rtc_event_t event, void *user);
 
 /** @brief One-shot RTC configuration. */
 typedef struct
