@@ -34,7 +34,7 @@
 
 
 /* ͼƬ������ռ�õ�����������С(4��ͼƬ��=70408�ֽ�,Լռ18��25QXX����,һ������4K�ֽ�) */
-#define IMAGESECSIZE         256
+#define IMAGESECSIZE         128
 
 
 /* ͼƬ������ʼ��ַ (IMAGEINFOADDR is defined in image.h) */
@@ -216,7 +216,7 @@ uint8_t images_update_image(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, 
     uint8_t *pname;
     uint32_t *buf;
     uint8_t res = 0;
-    uint16_t i, j;
+    uint16_t i;
     FIL *fftemp;
     uint8_t rval = 0;
     res = 0XFF;
@@ -250,23 +250,9 @@ uint8_t images_update_image(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, 
 
     if (rval == 0)          /* ͼƬ���ļ�������. */
     {
-        lcd_show_string(x, y, 240, 320, size, "Erasing sectors... ", color);    /* ��ʾ���ڲ������� */
-
-        for (i = 0; i < IMAGESECSIZE; i++)   /* �Ȳ���ͼƬ������,���д���ٶ� */
-        {
-            images_progress_show(x + 20 * size / 2, y, size, IMAGESECSIZE, i, color);    /* ������ʾ */
-            nor_read((uint8_t *)buf, ((IMAGEINFOADDR / 4096) + i) * 4096, 4096); /* ������������������ */
-
-            for (j = 0; j < 1024; j++)          /* У������ */
-            {
-                if (buf[j] != 0XFFFFFFFF)break; /* ��Ҫ���� */
-            }
-
-            if (j != 1024)
-            {
-                nor_erase_sector((IMAGEINFOADDR / 4096) + i); /* ��Ҫ���������� */
-            }
-        }
+        /* No pre-erase pass: nor_write() erases each sector on demand, and the
+         * old scan erased past the 32 MB chip (addresses wrapped into the
+         * FatFs area). */
 
         for (i = 0; i < IMAGE_UPDATE_REMIND_NUM; i++) /* ���θ���atk01,atk02,atk03,money */
         {

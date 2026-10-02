@@ -75,9 +75,25 @@ void lv_port_disp_init(void)
 
 /* ==================== input ==================== */
 
+/* Test hook (used by the HIL): when g_lv_indev_test_en is non-zero the indev
+ * reports the injected point/state instead of the GT9147.  Disabled by default
+ * and resolved by symbol (see test/hil/lvgl_verify.py). */
+volatile uint8_t g_lv_indev_test_en;
+volatile uint8_t g_lv_indev_test_pr;
+volatile int32_t g_lv_indev_test_x;
+volatile int32_t g_lv_indev_test_y;
+
 static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
     (void)indev_drv;
+
+    if (g_lv_indev_test_en)
+    {
+        data->point.x = (lv_coord_t)g_lv_indev_test_x;
+        data->point.y = (lv_coord_t)g_lv_indev_test_y;
+        data->state   = g_lv_indev_test_pr ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
+        return;
+    }
 
     if (touch_scan(false))
     {

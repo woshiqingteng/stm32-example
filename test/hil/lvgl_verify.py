@@ -151,6 +151,49 @@ def _bench_section(version, weighted, opa, scenes):
     return "\n".join(out)
 
 
+def _tap_collect(x, y):
+    """Collect callback: inject a press/release at (x, y) via lv_port's test
+    hook, then assert the frame changed (a widget reacted)."""
+
+    def _run(page, _boot_lines):
+        env = hc.Env(page)
+        before = env.frame()
+        en = page.symbol("g_lv_indev_test_en")
+        pr = page.symbol("g_lv_indev_test_pr")
+        pxx = page.symbol("g_lv_indev_test_x")
+        pyy = page.symbol("g_lv_indev_test_y")
+        page.poke(pxx, x)
+        page.poke(pyy, y)
+        page.poke(pr, 1)
+        page.poke(en, 1)
+        page.sleep(400)
+        page.poke(pr, 0)
+        page.poke(en, 0)
+        time.sleep(0.3)
+        after = env.frame()
+        n = min(len(before), len(after))
+        diff = sum(1 for i in range(0, n, 2) if before[i : i + 2] != after[i : i + 2])
+        fault = hc.faulted(env)
+        return (
+            (diff >= 100) and (not fault),
+            "tap(%d,%d) changed=%d fault=%s" % (x, y, diff, fault),
+            None,
+        )
+
+    return _run
+
+
+# Touch-driven examples: inject a point that a control reacts to (display is
+# 800x480 landscape).  See tool/notes on the widget layout in each app.
+TAP = {
+    "lvgl_04_mouse": (400, 240),
+    "lvgl_21_slider": (300, 240),
+    "lvgl_29_keyboard": (40, 450),
+    "lvgl_37_tabview": (400, 40),
+    "lvgl_47_calculator": (400, 360),
+}
+
+
 def c_benchmark(page, boot_lines):
     """Collect: run until the benchmark prints its summary, record the FPS
     results (never dump the frame buffer while it runs)."""
@@ -219,14 +262,16 @@ def main():
             apps=[BENCH_APP],
         )
         return
+    apps = default_apps()
     hc.run_apps(
-        default_apps(),
+        apps,
         CHECK,
         ser_kw_fn=ser_kw,
         title_required=False,
         report_path=REPORT,
         title=TITLE,
         default_check=c_draw,
+        collect_map={a: _tap_collect(*TAP[a]) for a in apps if a in TAP},
     )
 
 
