@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "exti.h"
 #include "pwr.h"
 
 #define STOP_LOOP_MS 10U
@@ -18,13 +17,11 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    pwr_wkup_key_init();
+    pwr_wkup_key_init(NULL);
     printf("KEY0: enter stop  WKUP: wake\r\n");
 
     for (;;)
     {
-        exti_poll();
-
         if (key_scan(false) == KEY0)
         {
             printf("Entering stop mode...\r\n");
@@ -32,8 +29,7 @@ int main(void)
 
             pwr_enter_stop();
 
-            /* TODO: inline copy of bsp's PLL config; keep in sync with bsp_init(). */
-            sys_clk_init(360U, 25U, 2U, 8U);
+            (void)sys_clk_init(BSP_PLLN, BSP_PLLM, BSP_PLLP, BSP_PLLQ);
             led_off(LED1);
             printf("Woke from stop mode\r\n");
         }

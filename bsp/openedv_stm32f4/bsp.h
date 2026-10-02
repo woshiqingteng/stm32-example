@@ -17,6 +17,14 @@
  * PCLK2 = HCLK/2 = 90 MHz -> APB2 timer clock = PCLK2 x2 = 180 MHz (TIM1,8..11).
  * Timer update: f = f_TIMxCLK / ((PSC+1)*(ARR+1)). */
 
+/* System clock PLL: HSE 25 MHz -> SYSCLK/HCLK 180 MHz.
+ * PLL48CK = VCO/PLLQ = (HSE/PLLM*PLLN)/PLLQ = (25/25*360)/8 = 45 MHz.
+ * NOTE: open item - USB OTG FS wants 48 MHz. */
+#define BSP_PLLN   360U
+#define BSP_PLLM   25U
+#define BSP_PLLP   2U
+#define BSP_PLLQ   8U
+
 /** @brief  Initialise HAL, system clock, delay, USART1, LEDs and keys. */
 void bsp_init(void);
 

@@ -12,18 +12,11 @@
 #define SLEEP_LOOP_MS 10U
 #define WKUP_DEBOUNCE_WAIT_MS 30U
 
-/** @brief Cause recorded when the MCU wakes from sleep. */
-typedef enum
-{
-    SLEEP_WAKE_NONE = 0,
-    SLEEP_WAKE_WKUP = 1
-} sleep_wake_cause_t;
+static volatile bool g_woke_by_wkup;
 
-static volatile sleep_wake_cause_t g_wake_cause = SLEEP_WAKE_NONE;
-
-static void wkup_hook(void)
+static void wkup_cb(void)
 {
-    g_wake_cause = SLEEP_WAKE_WKUP;
+    g_woke_by_wkup = true;
 }
 
 int main(void)
@@ -33,8 +26,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    pwr_register_wkup_hook(&wkup_hook);
-    pwr_wkup_key_init();
+    pwr_wkup_key_init(&wkup_cb);
     printf("KEY0: enter sleep  WKUP: wake\r\n");
 
     for (;;)
@@ -46,6 +38,7 @@ int main(void)
             printf("Entering sleep mode...\r\n");
             led_on(LED1);
 
+            g_woke_by_wkup = false;          /* clear any stale WK_UP latch */
             pwr_enter_sleep();
 
             /* let the latched WK_UP edge settle past the 20 ms debounce */
@@ -53,15 +46,8 @@ int main(void)
             exti_poll();
 
             led_off(LED1);
-            if (g_wake_cause == SLEEP_WAKE_WKUP)
-            {
-                g_wake_cause = SLEEP_WAKE_NONE;
-                printf("Woke from sleep mode (WKUP)\r\n");
-            }
-            else
-            {
-                printf("Woke from sleep mode\r\n");
-            }
+            printf(g_woke_by_wkup ? "Woke from sleep mode (WKUP)\r\n"
+                                  : "Woke from sleep mode\r\n");
         }
 
         if ((++t % 20U) == 0U)

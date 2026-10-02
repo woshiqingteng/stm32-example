@@ -2,32 +2,29 @@
  * @file    main.c
  * @brief   18_4_standby: KEY0 enters standby mode, WK_UP wakes (system reset).
  *
- * A backup register is used to tell a standby wake-up (backup domain retained)
- * apart from a power-on reset (backup domain reset).
+ * PWR_CSR.SBF is used to tell a standby wake-up apart from a power-on/reset.
  */
 
 #include <stdio.h>
 
 #include "bsp.h"
-#include "exti.h"
 #include "pwr.h"
-#include "rtc.h"
 
-#define STANDBY_BKP_REG    1U
-#define STANDBY_BKP_MAGIC  0x5354414EU  /* "STAN" */
 #define STANDBY_ENTRY_DELAY_MS 50U
 #define STANDBY_LOOP_MS      10U
 
 static void print_boot_cause(void)
 {
-    if (rtc_read_bkr(STANDBY_BKP_REG) == STANDBY_BKP_MAGIC)
+    if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
     {
-        printf("Boot: backup domain retained (returned from standby)\r\n");
+        printf("Boot: returned from standby\r\n");
     }
     else
     {
-        printf("Boot: backup domain reset (power-on reset)\r\n");
+        printf("Boot: power-on/reset\r\n");
     }
+
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
 }
 
 int main(void)
@@ -37,21 +34,12 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (rtc_init(NULL) != RTC_OK)
-    {
-        printf("rtc init failed\r\n");
-    }
-
-    pwr_wkup_key_init();
     print_boot_cause();
-    rtc_write_bkr(STANDBY_BKP_REG, STANDBY_BKP_MAGIC);
 
     printf("KEY0: enter standby  WKUP: wake\r\n");
 
     for (;;)
     {
-        exti_poll();
-
         if (key_scan(false) == KEY0)
         {
             printf("Entering standby mode...\r\n");
