@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "bsp.h"
+#include "nor.h"
 #include "ff.h"
 #include "exfuns.h"
 
@@ -83,6 +84,19 @@ static void fatfs_test(uint8_t idx)
     {
         printf("%s (%s) mount failed (%d)\r\n", drv, g_name[idx], (int)res);
         return;
+    }
+
+    if (idx == 1U)   /* NOR: its partition size changed to 20 MB - rebuild if stale */
+    {
+        uint32_t total = 0U;
+        uint32_t free_kb = 0U;
+
+        if ((exfuns_get_free((uint8_t *)drv, &total, &free_kb) != 0U) ||
+            (total != (uint32_t)(NOR_FATFS_SIZE_BYTE / 1024U)))
+        {
+            (void)f_mkfs(drv, 0, g_work, sizeof(g_work));
+            (void)f_mount(fs[idx], drv, 1);
+        }
     }
 
     {

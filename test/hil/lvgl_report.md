@@ -5,7 +5,7 @@ All LVGL apps run on hardware with `tool/hil.sh lvgl`. The official benchmark ta
 | app | result | detail |
 |---|---|---|
 | lvgl_02_stress | PASS | lcd=''/'' drawn=1794 fault=False led=True |
-| lvgl_04_mouse | PASS | tap(400,240) changed=24911 fault=False |
+| lvgl_04_mouse | PASS | tap(400,240) changed=39027 fault=False |
 | lvgl_05_fs | PASS | lcd=''/'' bg=07e0 fault=False |
 | lvgl_06_font | PASS | lcd=''/'' drawn=3588 fault=False led=True |
 | lvgl_07_xbf_font | PASS | lcd=''/'' content=29 bg=f7be fault=False |
@@ -32,7 +32,7 @@ All LVGL apps run on hardware with `tool/hil.sh lvgl`. The official benchmark ta
 | lvgl_29_keyboard | PASS | tap(40,450) changed=79488 fault=False |
 | lvgl_30_led | PASS | lcd=''/'' drawn=3588 fault=False led=True |
 | lvgl_31_list | PASS | lcd=''/'' drawn=577 fault=False led=True |
-| lvgl_32_meter | PASS | lcd=''/'' drawn=3110 fault=False led=True |
+| lvgl_32_meter | PASS | lcd=''/'' drawn=3103 fault=False led=True |
 | lvgl_33_msgbox | PASS | lcd=''/'' drawn=3588 fault=False led=True |
 | lvgl_34_span | PASS | lcd=''/'' drawn=3588 fault=False led=True |
 | lvgl_35_spinbox | PASS | lcd=''/'' drawn=3517 fault=False led=True |
@@ -40,16 +40,16 @@ All LVGL apps run on hardware with `tool/hil.sh lvgl`. The official benchmark ta
 | lvgl_37_tabview | PASS | tap(400,40) changed=47012 fault=False |
 | lvgl_38_tileview | PASS | lcd=''/'' drawn=3588 fault=False led=True |
 | lvgl_39_win | PASS | lcd=''/'' drawn=2571 fault=False led=True |
-| lvgl_40_img_lib | PASS | lcd=''/'' content=2003 bg=0000 fault=False |
-| lvgl_41_bmp | PASS | lcd=''/'' content=140 bg=24be fault=False |
-| lvgl_42_png | PASS | lcd=''/'' content=17 bg=f7be fault=False |
+| lvgl_40_img_lib | PASS | lcd=''/'' content=11911 bg=0000 fault=False |
+| lvgl_41_bmp | PASS | lcd=''/'' content=660 bg=24be fault=False |
+| lvgl_42_png | PASS | lcd=''/'' content=97 bg=f7be fault=False |
 | lvgl_43_gif | PASS | lcd=''/'' changed=1 fault=False |
 | lvgl_44_qrcode | PASS | lcd=''/'' drawn=3588 fault=False led=True |
-| lvgl_45_jpeg | PASS | lcd=''/'' content=32 bg=24be fault=False |
+| lvgl_45_jpeg | PASS | lcd=''/'' content=234 bg=24be fault=False |
 | lvgl_47_calculator | PASS | tap(400,360) changed=578 fault=False |
 | lvgl_49_qrgen | PASS | lcd=''/'' drawn=2098 fault=False led=True |
 | lvgl_50_paint | PASS | lcd=''/'' drawn=104 fault=False led=True |
-| lvgl_51_filemgr | PASS | lcd=''/'' content=2006 bg=9cf3 fault=False |
+| lvgl_51_filemgr | PASS | lcd=''/'' content=10750 bg=9cf3 fault=False |
 | lvgl_52_baseconv | PASS | lcd=''/'' drawn=361 fault=False led=True |
 | lvgl_53_comprehensive | PASS | lcd=''/'' drawn=3318 fault=False led=True |
 | lvgl_demo_widgets | PASS | lcd=''/'' drawn=1059 fault=False led=True |

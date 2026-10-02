@@ -18,6 +18,7 @@
 #define FLASH_ReadData          0x03U
 #define FLASH_PageProgram       0x02U
 #define FLASH_SectorErase       0x20U
+#define FLASH_BlockErase64k     0xD8U
 #define FLASH_Enable4ByteAddr   0xB7U
 
 #define FLASH_SR3_ADP_BIT       0x02U
@@ -264,6 +265,21 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
     }
 }
 
+void nor_write_erased(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
+{
+    if (addr >= NOR_DEVICE_SIZE_BYTE)
+    {
+        return;
+    }
+
+    if ((addr + datalen) > NOR_DEVICE_SIZE_BYTE)
+    {
+        datalen = (uint16_t)(NOR_DEVICE_SIZE_BYTE - addr);
+    }
+
+    nor_write_nocheck(pbuf, addr, datalen);
+}
+
 void nor_erase_sector(uint32_t saddr)
 {
     saddr *= NOR_SECTOR_SIZE_BYTE;
@@ -279,6 +295,23 @@ void nor_erase_sector(uint32_t saddr)
     NOR_CS_LOW();
     (void)nor_spi_rw(FLASH_SectorErase);
     nor_send_address(saddr);
+    NOR_CS_HIGH();
+    nor_wait_busy();
+}
+
+void nor_erase_block64(uint32_t addr)
+{
+    if (addr >= NOR_DEVICE_SIZE_BYTE)
+    {
+        return;
+    }
+
+    nor_write_enable();
+    nor_wait_busy();
+
+    NOR_CS_LOW();
+    (void)nor_spi_rw(FLASH_BlockErase64k);
+    nor_send_address(addr);
     NOR_CS_HIGH();
     nor_wait_busy();
 }

@@ -292,3 +292,19 @@ SPI-NOR（XBF）、移植「综合实验」、资源脚本化。
   （首刷 ~25–95s，之后启动跳过）。
 - USB MSC 三 LUN：把 `ftl_init` 从枚举路径移到 `main` 启动前，NOR/NAND/SD 均可枚举。
 - 触摸注入钩子（`g_lv_indev_test_*`）+ `lvgl_04/21/29/37/47` tap 断言已加入。
+- NOR 布局单一来源（`bsp/.../nor.h`）：器件容量取自 `NOR_W25Q256JV_SIZE_BYTE`，
+  仅两个策略值（FatFs 20 MB、图库 512 KB），字库基址/大小自动推导并有编译期断言；
+  `nor_read/nor_write/nor_erase_sector` 加了 32 MB 上界保护。MSC 的 NOR LUN = 20 MB。
+
+### 使用须知
+- **空板/空字库首次预热**：SPI-NOR 字库区为空的板子，首次运行任一迁移应用
+  （`lvgl_06/14/…/53`）会做一次 SD→NOR 字库构建，LCD 显示进度，约 25–95s；
+  完成后各应用共享该字库、启动很快。**跑 HIL/演示前先让一个迁移应用跑完首刷**
+  （尤其改过 `NOR_FONT_BASE` 后，字库会被判失效并重建一次）。
+- **USB 盘名（资源管理器）**：卷标由板侧设置——运行一次 `42_fatfs` 会把
+  SD/NOR/NAND 写成 `SD`/`NOR`/`NAND`（`f_setlabel`），之后 `54_usb_device_msc`
+  在电脑上即显示对应名字。
+- **NAND 最大容量**：`54_usb_device_msc` 启动时若 FTL 未覆盖全部好块会执行一次
+  `ftl_format()`（擦除 NAND），使 NAND LUN ≈476 MB；之后不再重格。
+- **NOR 20 MB 迁移**：NOR 分区由 25 MB 改为 20 MB，旧卷不兼容；需重格一次
+  （运行 `42_fatfs` 或在电脑上格式化该盘），否则资源管理器可能显示异常。

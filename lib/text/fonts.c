@@ -180,7 +180,7 @@ static uint8_t fonts_update_fontx(uint16_t x, uint16_t y, uint8_t size, uint8_t 
                 break;
             }
 
-            nor_write(tempbuf, offx + flashaddr, (uint16_t)bread);
+            nor_write_erased(tempbuf, offx + flashaddr, (uint16_t)bread);
             offx += bread;
 
             /* Updating the LCD on every 4 KB chunk is very slow; refresh it
@@ -213,6 +213,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
     uint16_t i;
     FIL *fftemp;
     uint8_t rval = 0;
+    uint32_t total = 0U;
 
     res = 0xFF;
     ftinfo.fontok = 0xFF;
@@ -240,6 +241,7 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
             break;
         }
 
+        total += (uint32_t)f_size(fftemp);
         (void)f_close(fftemp);   /* do not leak the object between opens */
     }
 
@@ -247,9 +249,18 @@ uint8_t fonts_update_font(uint16_t x, uint16_t y, uint8_t size, uint8_t *src, ui
 
     if (rval == 0)
     {
-        /* No pre-erase pass: nor_write() already erases each sector on demand,
-         * and scanning/erasing all FONTSECSIZE sectors (with an LCD update per
-         * sector) made the update take minutes. */
+        /* Erase the target region in 64 KB blocks first (one command per block
+         * instead of a 4 KB read-modify-write erase per sector); the writes
+         * then land on blank sectors. */
+        {
+            uint32_t a;
+            uint32_t end = (uint32_t)NOR_FONT_BASE + (uint32_t)sizeof(ftinfo) + total;
+
+            for (a = (uint32_t)NOR_FONT_BASE; a < end; a += 65536U)
+            {
+                nor_erase_block64(a);
+            }
+        }
 
         for (i = 0; i < FONT_GBK_NUM; i++)
         {

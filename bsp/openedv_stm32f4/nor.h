@@ -55,7 +55,15 @@ void nor_read(uint8_t *pbuf, uint32_t addr, uint16_t datalen);
 /** @brief  Erase-on-demand write of @p datalen bytes starting at @p addr. */
 void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen);
 
+/** @brief  Page-program write into an area already known to be erased (no
+ *  read-back / erase); only use right after erasing the target range. */
+void nor_write_erased(uint8_t *pbuf, uint32_t addr, uint16_t datalen);
+
 /** @brief  Erase sector number @p saddr (each sector is 4 KB). */
 void nor_erase_sector(uint32_t saddr);
+
+/** @brief  Erase the 64 KB block containing @p addr (64 KB aligned); no-op if
+ *  out of range. */
+void nor_erase_block64(uint32_t addr);
 
 #endif /* BSP_NOR_H */
