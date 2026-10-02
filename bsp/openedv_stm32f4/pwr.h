@@ -37,7 +37,9 @@ typedef void (*pwr_wkup_cb_t)(void);
 /** @brief  Initialise the PVD monitor. @param cb may be NULL. */
 void pwr_pvd_init(pwr_pvd_level_t level, pwr_pvd_cb_t cb);
 
-/** @brief  Configure PA0 (WK_UP) as a rising-edge EXTI line. @param cb may be NULL. */
+/** @brief  Configure PA0 (WK_UP) as a rising-edge EXTI line (sleep/stop wake).
+ *          Not required for standby, which wakes via the EWUP hardware path.
+ *          @param cb may be NULL. */
 void pwr_wkup_key_init(pwr_wkup_cb_t cb);
 
 /** @brief  Enter sleep mode (WFI). The HAL tick is resumed before returning. */

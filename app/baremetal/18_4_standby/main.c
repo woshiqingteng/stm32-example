@@ -36,6 +36,9 @@ int main(void)
 
     print_boot_cause();
 
+    /* No wake-pin setup: standby wakes via the WK_UP hardware path (EWUP set in
+     * pwr_enter_standby()); pwr_wkup_key_init() is only for sleep/stop (EXTI0). */
+
     printf("KEY0: enter standby  WKUP: wake\r\n");
 
     for (;;)
