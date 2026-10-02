@@ -10,47 +10,47 @@ All LVGL apps run on hardware with `tool/hil.sh lvgl`. The official benchmark ta
 
 ## Benchmark (`lvgl_demo_benchmark`)
 
-Board: ALIENTEK Apollo STM32F429, 480x800 RGB565 (LTDC), SYSCLK 180 MHz, LVGL 8.3.11. Run: 2026-10-01.
+Board: ALIENTEK Apollo STM32F429, 480x800 RGB565 (LTDC), SYSCLK 180 MHz, LVGL 8.3.11. Run: 2026-10-02.
 
 `LVGL v8.3.11  Benchmark (in csv format)`
 
-- Weighted FPS: **21**
-- Opa. speed: **90%**
+- Weighted FPS: **23**
+- Opa. speed: **95%**
 
 | scene | FPS |
 |---|---|
 | Rectangle | 30 |
-| Rectangle + opa | 12 |
-| Rectangle rounded | 25 |
-| Rectangle rounded + opa | 11 |
-| Circle | 12 |
-| Circle + opa | 5 |
-| Border | 32 |
-| Border + opa | 30 |
-| Border rounded | 29 |
-| Border rounded + opa | 27 |
+| Rectangle + opa | 22 |
+| Rectangle rounded | 27 |
+| Rectangle rounded + opa | 21 |
+| Circle | 14 |
+| Circle + opa | 14 |
+| Border | 33 |
+| Border + opa | 32 |
+| Border rounded | 31 |
+| Border rounded + opa | 29 |
 | Circle border | 10 |
-| Circle border + opa | 8 |
-| Border top | 31 |
-| Border top + opa | 30 |
-| Border left | 31 |
+| Circle border + opa | 10 |
+| Border top | 32 |
+| Border top + opa | 32 |
+| Border left | 32 |
 | Border left + opa | 31 |
-| Border top + left | 30 |
-| Border top + left + opa | 28 |
-| Border left + right | 29 |
-| Border left + right + opa | 28 |
-| Border top + bottom | 30 |
-| Border top + bottom + opa | 28 |
-| Shadow small | 8 |
-| Shadow small + opa | 7 |
-| Shadow small offset | 8 |
-| Shadow small offset + opa | 6 |
-| Shadow large | 2 |
-| Shadow large + opa | 2 |
+| Border top + left | 31 |
+| Border top + left + opa | 30 |
+| Border left + right | 31 |
+| Border left + right + opa | 29 |
+| Border top + bottom | 31 |
+| Border top + bottom + opa | 30 |
+| Shadow small | 10 |
+| Shadow small + opa | 10 |
+| Shadow small offset | 10 |
+| Shadow small offset + opa | 10 |
+| Shadow large | 3 |
+| Shadow large + opa | 3 |
 | Shadow large offset | 3 |
-| Shadow large offset + opa | 2 |
-| Image RGB | 45 |
-| Image RGB + opa | 25 |
+| Shadow large offset + opa | 3 |
+| Image RGB | 59 |
+| Image RGB + opa | 53 |
 | Image ARGB | 20 |
 | Image ARGB + opa | 16 |
 | Image chorma keyed | 21 |
@@ -59,8 +59,8 @@ Board: ALIENTEK Apollo STM32F429, 480x800 RGB565 (LTDC), SYSCLK 180 MHz, LVGL 8.
 | Image indexed + opa | 7 |
 | Image alpha only | 10 |
 | Image alpha only + opa | 9 |
-| Image RGB recolor | 12 |
-| Image RGB recolor + opa | 12 |
+| Image RGB recolor | 19 |
+| Image RGB recolor + opa | 18 |
 | Image ARGB recolor | 12 |
 | Image ARGB recolor + opa | 11 |
 | Image chorma keyed recolor | 13 |
@@ -83,37 +83,37 @@ Board: ALIENTEK Apollo STM32F429, 480x800 RGB565 (LTDC), SYSCLK 180 MHz, LVGL 8.
 | Image ARGB zoom + opa | 15 |
 | Image ARGB zoom anti aliased | 9 |
 | Image ARGB zoom anti aliased + opa | 8 |
-| Text small | 10 |
-| Text small + opa | 10 |
-| Text medium | 10 |
-| Text medium + opa | 10 |
-| Text large | 10 |
-| Text large + opa | 10 |
-| Text small compressed | 16 |
-| Text small compressed + opa | 17 |
-| Text medium compressed | 14 |
-| Text medium compressed + opa | 14 |
-| Text large compressed | 13 |
-| Text large compressed + opa | 13 |
-| Line | 23 |
-| Line + opa | 23 |
-| Arc think | 18 |
-| Arc think + opa | 18 |
-| Arc thick | 18 |
-| Arc thick + opa | 17 |
-| Substr. rectangle | 12 |
+| Text small | 12 |
+| Text small + opa | 12 |
+| Text medium | 12 |
+| Text medium + opa | 12 |
+| Text large | 12 |
+| Text large + opa | 12 |
+| Text small compressed | 9 |
+| Text small compressed + opa | 9 |
+| Text medium compressed | 7 |
+| Text medium compressed + opa | 7 |
+| Text large compressed | 4 |
+| Text large compressed + opa | 4 |
+| Line | 28 |
+| Line + opa | 28 |
+| Arc think | 20 |
+| Arc think + opa | 20 |
+| Arc thick | 21 |
+| Arc thick + opa | 21 |
+| Substr. rectangle | 27 |
 | Substr. rectangle + opa | 37 |
-| Substr. border | 36 |
+| Substr. border | 37 |
 | Substr. border + opa | 37 |
 | Substr. shadow | 34 |
-| Substr. shadow + opa | 33 |
-| Substr. image | 68 |
-| Substr. image + opa | 68 |
-| Substr. line | 60 |
-| Substr. line + opa | 61 |
-| Substr. arc | 16 |
-| Substr. arc + opa | 16 |
-| Substr. text | 33 |
-| Substr. text + opa | 33 |
+| Substr. shadow + opa | 34 |
+| Substr. image | 69 |
+| Substr. image + opa | 70 |
+| Substr. line | 58 |
+| Substr. line + opa | 59 |
+| Substr. arc | 17 |
+| Substr. arc + opa | 17 |
+| Substr. text | 34 |
+| Substr. text + opa | 34 |
 
 <!-- BENCHMARK:END -->
