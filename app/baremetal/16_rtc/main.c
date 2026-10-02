@@ -17,55 +17,58 @@
 #define RTC_DEFAULT_HOUR   12U
 #define RTC_DEFAULT_MIN    0U
 #define RTC_DEFAULT_SEC    0U
-#define RTC_DEFAULT_YEAR   24U
+#define RTC_DEFAULT_YEAR   26U
 #define RTC_DEFAULT_MONTH  1U
 #define RTC_DEFAULT_DATE   1U
-#define RTC_DEFAULT_WEEK   1U
 #define RTC_PRINT_PERIOD_MS 1000U
-#define RTC_WAKEUP_CLOCK      0x4U    /*!< HAL clock-source enum (0x4 = CK_SPRE 16-bit, 1 Hz) */
 
 static volatile uint32_t g_wakeups;
 
-static void rtc_wakeup_cb(void)
+static void rtc_event_cb(rtc_event_t event, uint32_t info, void *user)
 {
-    g_wakeups++;
-    led_toggle(LED1);
+    (void)info;
+    (void)user;
+
+    if (event == RTC_EVENT_WAKEUP)
+    {
+        g_wakeups++;
+        led_toggle(LED1);
+    }
 }
 
 int main(void)
 {
-    uint8_t    hour, min, sec;
-    uint8_t    year, month, date, week;
-    rtc_ampm_t ampm;
+    rtc_datetime_t default_dt = {
+        .year = RTC_DEFAULT_YEAR, .month = RTC_DEFAULT_MONTH, .date = RTC_DEFAULT_DATE,
+        .week = 0U, .hour = RTC_DEFAULT_HOUR, .min = RTC_DEFAULT_MIN, .sec = RTC_DEFAULT_SEC
+    };
+    rtc_config_t cfg = { .wakeup_sec = 1U, .cb = rtc_event_cb };
 
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (rtc_init() != RTC_OK)
+    if (rtc_init(&cfg) != RTC_OK)
     {
         printf("rtc init failed\r\n");
     }
 
     if (rtc_read_bkr(RTC_APP_BKP_REG) != RTC_APP_BKP_MAGIC)
     {
-        (void)rtc_set_time(RTC_DEFAULT_HOUR, RTC_DEFAULT_MIN, RTC_DEFAULT_SEC, RTC_AM_24H);
-        (void)rtc_set_date(RTC_DEFAULT_YEAR, RTC_DEFAULT_MONTH, RTC_DEFAULT_DATE, RTC_DEFAULT_WEEK);
+        (void)rtc_set(&default_dt);
         rtc_write_bkr(RTC_APP_BKP_REG, RTC_APP_BKP_MAGIC);
         printf("rtc: default time/date set\r\n");
     }
 
-    rtc_register_wakeup_hook(&rtc_wakeup_cb);
-    rtc_set_wakeup(RTC_WAKEUP_CLOCK, 0U);   /* 1 Hz periodic wake-up */
     printf("rtc: wakeup timer started (1 Hz)\r\n");
 
     for (;;)
     {
-        rtc_get_time(&hour, &min, &sec, &ampm);
-        rtc_get_date(&year, &month, &date, &week);
+        rtc_datetime_t dt;
+
+        (void)rtc_get(&dt);
 
         printf("Time: %02u:%02u:%02u  Date: 20%02u-%02u-%02u  Week: %u  Wake:%lu\r\n",
-               (unsigned)hour, (unsigned)min, (unsigned)sec,
-               (unsigned)year, (unsigned)month, (unsigned)date, (unsigned)week,
+               dt.hour, dt.min, dt.sec, dt.year, dt.month, dt.date, dt.week,
                (unsigned long)g_wakeups);
 
         led_toggle(LED0);

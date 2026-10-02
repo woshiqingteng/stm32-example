@@ -37,7 +37,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    if (rtc_init() != RTC_OK)
+    if (rtc_init(NULL) != RTC_OK)
     {
         printf("rtc init failed\r\n");
     }

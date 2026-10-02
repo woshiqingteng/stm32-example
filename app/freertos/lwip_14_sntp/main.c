@@ -67,14 +67,20 @@ static void demo_task(void *arg)
         {
             struct tm ti;
             char line[40];
+            rtc_datetime_t dt;
 
             last = g_sntp_time;
 
             lwip_utc8_gmtime(g_sntp_time, &ti);
 
-            rtc_set_date((uint8_t)(ti.tm_year + 1900 - 2000), (uint8_t)(ti.tm_mon + 1),
-                         (uint8_t)ti.tm_mday, (uint8_t)(ti.tm_wday + 1));
-            rtc_set_time((uint8_t)ti.tm_hour, (uint8_t)ti.tm_min, (uint8_t)ti.tm_sec, RTC_AM_24H);
+            dt.year  = (uint8_t)(ti.tm_year + 1900 - 2000);
+            dt.month = (uint8_t)(ti.tm_mon + 1);
+            dt.date  = (uint8_t)ti.tm_mday;
+            dt.week  = 0U;
+            dt.hour  = (uint8_t)ti.tm_hour;
+            dt.min   = (uint8_t)ti.tm_min;
+            dt.sec   = (uint8_t)ti.tm_sec;
+            (void)rtc_set(&dt);
 
             sprintf(line, "20%02d-%02d-%02d %02d:%02d:%02d",
                     ti.tm_year % 100, ti.tm_mon + 1, ti.tm_mday,
@@ -95,7 +101,7 @@ int main(void)
     lcd_display_dir(LCD_DIR_PORTRAIT);
     lcd_clear(WHITE);
 
-    rtc_init();
+    rtc_init(NULL);
 
     if (lwip_comm_init() != 0)
     {
