@@ -3,6 +3,8 @@
  * @brief   Unified USART driver (USART1/USART2) with a shared read/write API;
  *          poll / interrupt / DMA transports are selected through usart_cfg_t.
  *          Line/protocol parsing is deliberately left to the application.
+ *          This interface is HAL-free (own enums); the HAL is used only inside
+ *          usart.c for peripheral/stream initialisation.
  */
 
 #ifndef BSP_USART_H
@@ -10,8 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "stm32f4xx_hal.h"
 
 /** @brief USART instance selector (id, not the CMSIS USARTx pointer macro). */
 typedef enum
@@ -29,18 +29,64 @@ typedef enum
     USART_IO_DMA       /*!< DMA driven (RX is IDLE-drained, no stream IRQ) */
 } usart_io_t;
 
+/** @brief Data word length. */
+typedef enum
+{
+    USART_WORD_8B = 0, /*!< 8 data bits */
+    USART_WORD_9B      /*!< 9 data bits */
+} usart_word_len_t;
+
+/** @brief Stop bits. */
+typedef enum
+{
+    USART_STOP_1 = 0,  /*!< 1 stop bit */
+    USART_STOP_2       /*!< 2 stop bits */
+} usart_stop_bits_t;
+
+/** @brief Parity. */
+typedef enum
+{
+    USART_PAR_NONE = 0, /*!< no parity */
+    USART_PAR_EVEN,     /*!< even parity */
+    USART_PAR_ODD       /*!< odd parity */
+} usart_parity_t;
+
+/** @brief Direction. */
+typedef enum
+{
+    USART_DIR_TX = 0,  /*!< transmit only */
+    USART_DIR_RX,      /*!< receive only */
+    USART_DIR_TX_RX    /*!< transmit and receive */
+} usart_mode_t;
+
+/** @brief Hardware flow control. */
+typedef enum
+{
+    USART_FLOW_NONE = 0, /*!< no flow control */
+    USART_FLOW_RTS,      /*!< RTS */
+    USART_FLOW_CTS,      /*!< CTS */
+    USART_FLOW_RTS_CTS   /*!< RTS + CTS */
+} usart_flow_t;
+
+/** @brief Oversampling. */
+typedef enum
+{
+    USART_OS_16 = 0, /*!< 16x oversampling */
+    USART_OS_8       /*!< 8x oversampling */
+} usart_oversampling_t;
+
 /** @brief USART configuration (all 8N1 frame options are adjustable). */
 typedef struct
 {
     usart_id_t id;
     uint32_t   baudrate;
 
-    uint32_t   word_length;   /*!< UART_WORDLENGTH_8B / _9B */
-    uint32_t   stop_bits;     /*!< UART_STOPBITS_1 / _2 */
-    uint32_t   parity;        /*!< UART_PARITY_NONE / _EVEN / _ODD */
-    uint32_t   mode;          /*!< UART_MODE_TX_RX / TX / RX */
-    uint32_t   hw_flow_ctl;   /*!< UART_HWCONTROL_NONE / RTS / CTS / RTS_CTS */
-    uint32_t   oversampling;  /*!< UART_OVERSAMPLING_16 / _8 */
+    usart_word_len_t     word_length;   /*!< data word length */
+    usart_stop_bits_t    stop_bits;     /*!< stop bits */
+    usart_parity_t       parity;        /*!< parity */
+    usart_mode_t         mode;          /*!< direction */
+    usart_flow_t         hw_flow_ctl;   /*!< hardware flow control */
+    usart_oversampling_t oversampling;  /*!< oversampling */
 
     usart_io_t tx;
     usart_io_t rx;
@@ -55,9 +101,9 @@ typedef struct
  *         Callers needing IT/DMA override .tx/.rx (and .rx_buf/.rx_size) afterwards. */
 #define USART_CFG_DEFAULT(inst) \
     .id = (inst), .baudrate = 115200U, \
-    .word_length = UART_WORDLENGTH_8B, .stop_bits = UART_STOPBITS_1, \
-    .parity = UART_PARITY_NONE, .mode = UART_MODE_TX_RX, \
-    .hw_flow_ctl = UART_HWCONTROL_NONE, .oversampling = UART_OVERSAMPLING_16, \
+    .word_length = USART_WORD_8B, .stop_bits = USART_STOP_1, \
+    .parity = USART_PAR_NONE, .mode = USART_DIR_TX_RX, \
+    .hw_flow_ctl = USART_FLOW_NONE, .oversampling = USART_OS_16, \
     .tx = USART_IO_POLL, .rx = USART_IO_POLL, \
     .irq_preempt = 3U, .irq_sub = 3U
 

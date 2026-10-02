@@ -78,7 +78,10 @@ internal_flash/io_expand/ir/key/led/ov5640/pwmdac/pwr/rng/rs485/rtc/sai/sdio/
 spi/sys/tpad/usart/wdg`）。
 
 - **usart 统一驱动**：`USART_ID_1/2`，tx/rx 可分别 POLL/IT/DMA；行解析在 app。
-  DMA-RX 用 `USART_IT_IDLE` 驱动（循环 DMA + `NDTR`）；TX-DMA 用流 IRQ。
+  接口 `usart.h` **去 HAL**（自有帧选项枚举）；中断收发为**显式标志**实现
+  （`USARTx_IRQHandler`/DMA 流 IRQ 直接判/清标志，无 `HAL_UART_IRQHandler` 与弱回调），
+  HAL 仅用于 `HAL_UART_Init`/`HAL_DMA_Init`/`HAL_DMA_Abort`。DMA-RX 用
+  `USART_IT_IDLE` 驱动（循环 DMA + `NDTR`，不使能流中断）；TX-DMA 用流 IRQ + `TC` 收尾。
 - **LCD**：LTDC RGB（4.3" `0x4384`），帧缓冲在 SDRAM `0xC0000000`；竖屏
   `LCD_DIR_PORTRAIT`；提供 `lcd_display_on/off()`（含背光 PB5）。
 
@@ -308,3 +311,52 @@ SPI-NOR（XBF）、移植「综合实验」、资源脚本化。
   `ftl_format()`（擦除 NAND），使 NAND LUN ≈476 MB；之后不再重格。
 - **NOR 20 MB 迁移**：NOR 分区由 25 MB 改为 20 MB，旧卷不兼容；需重格一次
   （运行 `42_fatfs` 或在电脑上格式化该盘），否则资源管理器可能显示异常。
+
+## 13. 计划：USART 驱动接口去 HAL + 完整显式中断收发
+
+目标：`usart.h` 接口去 HAL（自有枚举）；中断收发改为显式标志，去掉
+`HAL_UART_IRQHandler` 与 `HAL_UART_RxCplt/ErrorCallback`；HAL 仅保留初始化。
+
+### 接口（`usart.h`，去 HAL）
+- 去 `stm32f4xx_hal.h`，仅留 `<stdint.h>`/`<stdbool.h>`。
+- 新增 `usart_word_len_t / usart_stop_bits_t / usart_parity_t / usart_mode_t /
+  usart_flow_t / usart_oversampling_t`；`usart_cfg_t` 六个字段改类型；
+  `USART_CFG_DEFAULT` 用自有枚举。`usart_init` 维持 `void`。
+
+### 实现+端口（`usart.c`）
+- 句柄：`+ volatile bool tx_busy; + const uint8_t *tx_ptr; + uint16_t tx_len;` 删 `rx_byte`。
+- 6 个 `usart_*_to_hal()` 映射，替换 `usart_init` 的 HAL 赋值。
+- HAL 仅保留 `HAL_UART_Init`/`HAL_DMA_Init`/`HAL_DMA_Abort`/`HAL_NVIC_*`/GPIO/RCC。
+- TX：POLL=寄存器 TXE/TC 阻塞写；IT=TXE 逐字节+TC 收尾；DMA=`HAL_DMA_Start`
+  +清流标志+`ENABLE_IT(TC)`，完成后 `HAL_DMA_Abort` 并开 `UART TC IT`。
+- RX：IT 开 `RXNE`（读 DR 直取）；DMA 用 `HAL_DMA_Start`(circular)+`IDLE`（不使能流中断）。
+- `usart_irq()`：TXE / TC / RXNE / ORE / IDLE 五分支。
+- `usart_tx_busy`→自有 `tx_busy`；`__io_putchar` 阻塞等 `tx_busy` 后 POLL 写。
+- 移除：`HAL_UART_IRQHandler`、`HAL_UART_Transmit*`、`HAL_UART_Receive_IT/DMA`、
+  `HAL_UART_Abort*`、`HAL_DMA_IRQHandler`。
+
+### 决策
+D1 HAL 仅初始化；D2 POLL 用自有阻塞写；D3 `USART_IO_IT` 实现显式 TXE；
+D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
+
+### 验证
+`tool/build.sh debug all` 零告警；`python test/run.py test/test_04_usart.py`；
+手测 15_usmart / 19_dma / rs485 / printf 横幅。
+
+### 完成情况（结果）
+- 已完成：`usart.h` 去 HAL（6 个自有帧选项枚举 + `usart_cfg_t`/默认宏改类型）；
+  `usart.c` 端口层显式化——`USARTx_IRQHandler` 处理 RXNE/TXE/TC/ORE/IDLE，
+  DMA 流 IRQ 处理 TC/TE/FE/DME；移除 `HAL_UART_IRQHandler` 与
+  `HAL_UART_RxCplt/ErrorCallback`；HAL 仅保留 `HAL_UART_Init`/`HAL_DMA_Init`/
+  `HAL_DMA_Abort`。`usart_tx_busy` 改用内部 `tx_busy`；`__io_putchar` 先等异步
+  TX 结束再写。
+- 关键修正（实现中发现）：仅用 `HAL_DMA_Start` 不会置位 USART 的 DMA 请求位，
+  必须显式 `CR3.DMAT`（TX）/`CR3.DMAR`（RX），否则 DMA 无请求、传输不动。
+- 命名注意：HAL 同步 USART 头已定义 `USART_PARITY_*`/`USART_MODE_*`/
+  `USART_OVERSAMPLING_*`，故自有枚举改用 `USART_PAR_*`/`USART_DIR_*`/`USART_OS_*`。
+- 验证：`tool/build.sh debug all` 仅 `lvgl_53_comprehensive` 失败，该失败在改动
+  前的 HEAD 上同样存在（与本改动无关，属既有构建问题）；其余 usart 相关 app
+  （`04_usart 15_usmart 19_dma 28_rs485 53_iap 38_camera_stream lvgl_40_img_lib
+  lvgl_51_filemgr`）全部构建通过。`python test/run.py test/test_04_usart.py`
+  = 4/4 PASS（RX IT 行回显/提示/CR 丢弃/超长重启）。`19_dma` 硬件实测：KEY0 →
+  整包发送 → `progress: 100%` → `DMA TX finished`。
