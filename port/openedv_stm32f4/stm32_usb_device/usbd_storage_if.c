@@ -18,7 +18,7 @@
 #define LUN_SD                  2U
 
 /* NOR region exposed to the host: the first 25 MB (the FatFs area). */
-#define NOR_LUN_SECTOR_COUNT    (25U * 1024U * 2U)
+#define NOR_LUN_SECTOR_COUNT    NOR_FATFS_SECTORS   /* expose the NOR FatFs volume (nor.h) */
 
 volatile usb_storage_activity_t g_usb_storage_activity = USB_STORAGE_ACTIVITY_IDLE;
 volatile usb_storage_error_t    g_usb_storage_error    = USB_STORAGE_ERROR_NONE;

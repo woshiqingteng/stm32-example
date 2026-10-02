@@ -85,6 +85,15 @@ static void fatfs_test(uint8_t idx)
         return;
     }
 
+    {
+        char lbl[16];
+
+        /* Volume label shown by the host in Explorer when this volume is
+         * exposed through the USB MSC app. */
+        (void)sprintf(lbl, "%s%s", drv, g_name[idx]);
+        (void)f_setlabel(lbl);
+    }
+
     printf("%s (%s) OK\r\n", drv, g_name[idx]);
     fatfs_list_root(drv);
 

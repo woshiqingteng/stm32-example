@@ -34,7 +34,7 @@
 
 
 /* ͼƬ������ռ�õ�����������С(4��ͼƬ��=70408�ֽ�,Լռ18��25QXX����,һ������4K�ֽ�) */
-#define IMAGESECSIZE         18
+#define IMAGESECSIZE         NOR_IMAGE_SECTORS
 
 
 /* ͼƬ������ʼ��ַ

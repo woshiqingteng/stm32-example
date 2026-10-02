@@ -16,13 +16,11 @@
 #include "delay.h"
 #include "nor.h"
 
-/* 4 GBK fonts + unigbk + LVGL XBF Font12/14/18/24 + descriptor: about 8 MB,
- * 2560 4 KB sectors.  NOR map: 0-21 MB FatFs, 21-31 MB font store, 31.5 MB
- * image store. */
-#define FONTSECSIZE         2560U
-
-/* Font store base offset inside the NOR flash (past the filesystem area). */
-#define FONTINFOADDR        (21UL * 1024UL * 1024UL)
+/* Font store base/size: derived from the NOR layout in nor.h (past the FatFs
+ * volume, filling up to the image store).  Holds the 4 GBK fonts + unigbk +
+ * the LVGL XBF fonts (Font12/14/18/24) + descriptor. */
+#define FONTSECSIZE         NOR_FONT_SECTORS
+#define FONTINFOADDR        NOR_FONT_BASE
 
 _font_info ftinfo;
 

@@ -130,6 +130,16 @@ void nor_read(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
 {
     uint16_t i;
 
+    if (addr >= NOR_DEVICE_SIZE_BYTE)
+    {
+        return;
+    }
+
+    if ((addr + datalen) > NOR_DEVICE_SIZE_BYTE)
+    {
+        datalen = (uint16_t)(NOR_DEVICE_SIZE_BYTE - addr);
+    }
+
     NOR_CS_LOW();
     (void)nor_spi_rw(FLASH_ReadData);
     nor_send_address(addr);
@@ -193,6 +203,16 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
     uint16_t secremain;
     uint16_t i;
 
+    if (addr >= NOR_DEVICE_SIZE_BYTE)
+    {
+        return;
+    }
+
+    if ((addr + datalen) > NOR_DEVICE_SIZE_BYTE)
+    {
+        datalen = (uint16_t)(NOR_DEVICE_SIZE_BYTE - addr);
+    }
+
     secpos    = addr / NOR_SECTOR_SIZE_BYTE;
     secoff    = (uint16_t)(addr % NOR_SECTOR_SIZE_BYTE);
     secremain = (uint16_t)(NOR_SECTOR_SIZE_BYTE - secoff);
@@ -247,6 +267,11 @@ void nor_write(uint8_t *pbuf, uint32_t addr, uint16_t datalen)
 void nor_erase_sector(uint32_t saddr)
 {
     saddr *= NOR_SECTOR_SIZE_BYTE;
+
+    if (saddr >= NOR_DEVICE_SIZE_BYTE)
+    {
+        return;
+    }
 
     nor_write_enable();
     nor_wait_busy();

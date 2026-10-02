@@ -9,6 +9,9 @@
 
 #include <stdint.h>
 
+/** @brief  Device capacity in bytes (W25Q256JV = 256 Mbit = 32 MB). */
+#define NOR_W25Q256JV_SIZE_BYTE  (32U * 1024U * 1024U)
+
 /** @brief  Bring up the SPI bus and chip select. */
 void nor_w25q256jv_dev_init(void);
 

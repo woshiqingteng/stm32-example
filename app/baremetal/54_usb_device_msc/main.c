@@ -12,6 +12,7 @@
 #include "sdio.h"
 #include "nor.h"
 #include "ftl.h"
+#include "nand.h"
 #include "usbd_core.h"
 #include "usbd_handle.h"
 #include "usbd_desc.h"
@@ -51,6 +52,15 @@ int main(void)
      * (which must answer quickly) never has to scan/format them. */
     nor_init();
     (void)ftl_init();
+
+    /* One-time: if the NAND FTL does not cover the full good-block capacity
+     * (e.g. it was left half-initialised), rebuild it so the LUN reports the
+     * maximum usable size.  Destructive (erases the NAND). */
+    if ((uint32_t)nand_dev.valid_blocknum < ((uint32_t)nand_dev.good_blocknum * 90U / 100U))
+    {
+        printf("formatting NAND to full capacity...\r\n");
+        (void)ftl_format();
+    }
 
     (void)USBD_Init(&USBD_Device, &MSC_Desc, DEVICE_FS);
     (void)USBD_RegisterClass(&USBD_Device, USBD_MSC_CLASS);

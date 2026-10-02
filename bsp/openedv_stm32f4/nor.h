@@ -11,8 +11,37 @@
 
 #include <stdint.h>
 
+#include "nor_w25q256jv.h"   /* device capacity (NOR_W25Q256JV_SIZE_BYTE) */
+
 #define NOR_SECTOR_SIZE_BYTE    4096U
 #define NOR_PAGE_SIZE_BYTE      256U
+
+/* ---- NOR layout (single source of truth) --------------------------------
+ * The chip capacity comes from the device driver; only the two partition
+ * sizes are policy.  Everything else is derived so the regions can never
+ * overlap or run past the end of the chip.
+ *
+ *   0 .. NOR_FATFS_SIZE   FatFs volume (exposed as the MSC NOR LUN)
+ *   NOR_FONT_BASE ..      LVGL/GBK font store (fills up to the image store)
+ *   NOR_IMAGE_BASE .. end image store (fast graphics assets)
+ */
+#define NOR_DEVICE_SIZE_BYTE  NOR_W25Q256JV_SIZE_BYTE
+#define NOR_FATFS_SIZE_BYTE   (20U * 1024U * 1024U)   /* FatFs volume size  */
+#define NOR_IMAGE_SIZE_BYTE   (128U * 1024U)          /* image store (512 KB) */
+
+#define NOR_FONT_BASE         (NOR_FATFS_SIZE_BYTE)
+#define NOR_IMAGE_BASE        (NOR_DEVICE_SIZE_BYTE - NOR_IMAGE_SIZE_BYTE)
+#define NOR_FONT_SIZE_BYTE    (NOR_IMAGE_BASE - NOR_FONT_BASE)
+#define NOR_FONT_SECTORS      (NOR_FONT_SIZE_BYTE / NOR_SECTOR_SIZE_BYTE)
+#define NOR_IMAGE_SECTORS     (NOR_IMAGE_SIZE_BYTE / NOR_SECTOR_SIZE_BYTE)
+#define NOR_FATFS_SECTORS     (NOR_FATFS_SIZE_BYTE / 512U)
+
+#if (NOR_FONT_BASE + NOR_FONT_SIZE_BYTE) > NOR_IMAGE_BASE
+#error "NOR font store overlaps the image store"
+#endif
+#if (NOR_IMAGE_BASE + NOR_IMAGE_SIZE_BYTE) > NOR_DEVICE_SIZE_BYTE
+#error "NOR image store exceeds the chip"
+#endif
 
 /** @brief  Bring up the SPI bus and probe the device. */
 void nor_init(void);
