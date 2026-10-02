@@ -7,14 +7,12 @@
 #include "delay.h"
 #include "rng.h"
 
-#define RNG_READY_RETRY_COUNT        10000U
+#define RNG_READY_RETRY_COUNT  10000U
 #define RNG_POLL_US            10U
-#define RNG_RANGE_SPAN_OFFSET  1U
 
 static RNG_HandleTypeDef g_rng_handle;
-static rng_status_t      g_rng_ready = RNG_NOT_READY;
 
-void rng_init(void)
+rng_status_t rng_init(void)
 {
     uint16_t retry = 0U;
 
@@ -24,7 +22,13 @@ void rng_init(void)
     __HAL_RCC_RNG_CLK_ENABLE();
     /* ---- MSP end ---- */
 
-    (void)HAL_RNG_Init(&g_rng_handle);
+    if (HAL_RNG_Init(&g_rng_handle) != HAL_OK)
+    {
+        return RNG_ERROR;
+    }
+
+    /* Discard any stale error flags latched before init. */
+    __HAL_RNG_CLEAR_IT(&g_rng_handle, RNG_IT_CEI | RNG_IT_SEI);
 
     while ((__HAL_RNG_GET_FLAG(&g_rng_handle, RNG_FLAG_DRDY) == RESET) &&
            (retry < RNG_READY_RETRY_COUNT))
@@ -33,41 +37,45 @@ void rng_init(void)
         delay_us(RNG_POLL_US);
     }
 
-    g_rng_ready = (retry < RNG_READY_RETRY_COUNT) ? RNG_READY : RNG_NOT_READY;
+    return (__HAL_RNG_GET_FLAG(&g_rng_handle, RNG_FLAG_DRDY) != RESET) ? RNG_OK : RNG_ERROR;
 }
 
-rng_status_t rng_is_ready(void)
+rng_status_t rng_get(uint32_t *value)
 {
-    return g_rng_ready;
+    if (value == NULL)
+    {
+        return RNG_ERROR;
+    }
+
+    return (HAL_RNG_GenerateRandomNumber(&g_rng_handle, value) == HAL_OK) ? RNG_OK : RNG_ERROR;
 }
 
-uint32_t rng_get_random_num(void)
+rng_status_t rng_get_range(int min, int max, int *value)
 {
-    uint32_t value = 0U;
-
-    (void)HAL_RNG_GenerateRandomNumber(&g_rng_handle, &value);
-
-    return value;
-}
-
-int rng_get_random_range(int min, int max)
-{
-    uint32_t value = 0U;
+    uint32_t raw;
     uint32_t span;
+    uint32_t limit;
 
-    (void)HAL_RNG_GenerateRandomNumber(&g_rng_handle, &value);
+    /* Unsigned subtraction avoids signed overflow for extreme ranges. */
+    span = (uint32_t)max - (uint32_t)min + 1U;
 
-    if (max < min)
+    if ((value == NULL) || (max < min) || (span == 0U))
     {
-        return min;
+        return RNG_ERROR;
     }
 
-    span = (uint32_t)(max - min) + 1U;
+    /* Reject the top values so the modulo has no bias. */
+    limit = (UINT32_MAX / span) * span;
 
-    if (span == 0U)
+    do
     {
-        return min;
-    }
+        if (rng_get(&raw) != RNG_OK)
+        {
+            return RNG_ERROR;
+        }
+    } while (raw >= limit);
 
-    return (int)(value % span) + min;
+    *value = (int)(raw % span) + min;
+
+    return RNG_OK;
 }

@@ -8,23 +8,20 @@
 
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
-
-/** @brief  RNG readiness state. */
+/** @brief  RNG status. */
 typedef enum
 {
-    RNG_NOT_READY = 0,
-    RNG_READY     = 1
+    RNG_OK = 0,
+    RNG_ERROR = 1
 } rng_status_t;
 
 /** @brief  Initialise the RNG and wait (bounded) until it is ready. */
-void rng_init(void);
+rng_status_t rng_init(void);
 
-rng_status_t rng_is_ready(void);
-
-uint32_t rng_get_random_num(void);
+/** @brief  Read a 32-bit random number. */
+rng_status_t rng_get(uint32_t *value);
 
 /** @brief  Read a random number within [min, max] (both inclusive). */
-int rng_get_random_range(int min, int max);
+rng_status_t rng_get_range(int min, int max, int *value);
 
 #endif /* BSP_RNG_H */
