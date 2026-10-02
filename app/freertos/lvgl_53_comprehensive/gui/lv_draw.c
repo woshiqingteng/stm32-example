@@ -1,23 +1,8 @@
 /**
- ****************************************************************************************************
- * @file        lv_draw.h
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       LVGL ���� ʵ��
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_draw.c
+ * @brief   LVGL drawing board demo (touch painting).
  */
- 
+
 #include "lv_draw.h"
 #include "lv_mainstart.h"
 #include "lcd.h"
@@ -29,33 +14,29 @@
 lv_obj_t * lv_touch_cont;
 lv_timer_t *lv_touchtask;
 uint8_t t = 0;
-uint16_t lastpos[10][2];        /* ���һ�ε����� */
+uint16_t lastpos[10][2];        /* last touch data */
 uint8_t maxp = 5;
-/* 10�����ص����ɫ(���ݴ�������) */
+/* colors for the 10 touch points (capacitive touch) */
 const uint16_t POINT_COLOR_TBL[4] = {RED,GREEN,BLUE,GRAY};
-/* ���廭�ʵĴ�С */
+/* brush size */
 uint8_t lv_pensise = 2;
-/* ���廭����ɫ������ */
+/* brush color index */
 uint8_t lv_pencolor = 0;
 
 static lv_point_t line_points1[] = { {0, 0}, {0, 70}, {0, 120}, {0, 180}, {0, 240}, {0, 480} };
 
-/* ����ʵĴ�С�ؼ��� */
+/* brush size widgets */
 lv_obj_t *lv_pen_size_2;
 lv_obj_t *lv_pen_size_5;
 lv_obj_t *lv_pen_size_10;
 lv_obj_t *lv_pen_size_15;
-/* �������ɫ�Ĵ�С�ؼ��� */
+/* brush color widgets */
 lv_obj_t *lv_pen_color_red;
 lv_obj_t *lv_pen_color_green;
 lv_obj_t *lv_pen_color_blue;
 lv_obj_t *lv_pen_color_grey;
 
-/**
- * @brief       ����ص�����
- * @param       event: �¼�
- * @retval      ��
- */
+/* Clear callback. */
 static void lv_rst_event(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -67,14 +48,7 @@ static void lv_rst_event(lv_event_t *event)
     }
 }
 
-/**
- * @brief       ������
- * @param       x1,y1: �������
- * @param       x2,y2: �յ�����
- * @param       size : ������ϸ�̶�
- * @param       color: �ߵ���ɫ
- * @retval      ��
- */
+/* Filled circle with center (x,y) and radius r. */
 static void lcd_fill_circle(uint16_t x, uint16_t y, uint16_t r, uint16_t color)
 {
     int16_t dy;
@@ -91,6 +65,7 @@ static void lcd_fill_circle(uint16_t x, uint16_t y, uint16_t r, uint16_t color)
     }
 }
 
+/* Thick line: point coords, thickness and color. */
 void lcd_draw_bline(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t size, uint16_t color)
 {
     uint16_t t;
@@ -99,13 +74,13 @@ void lcd_draw_bline(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t 
 
     if (x1 < size || x2 < size || y1 < size || y2 < size)return;
 
-    delta_x = x2 - x1;  /* ������������ */
+    delta_x = x2 - x1;  /* coordinate deltas */
     delta_y = y2 - y1;
     row = x1;
     col = y1;
 
-    if (delta_x > 0)incx = 1;       /* ���õ������� */
-    else if (delta_x == 0)incx = 0; /* ��ֱ�� */
+    if (delta_x > 0)incx = 1;       /* step direction */
+    else if (delta_x == 0)incx = 0; /* vertical */
     else
     {
         incx = -1;
@@ -118,7 +93,7 @@ void lcd_draw_bline(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t 
     }
     else if (delta_y == 0)
     {
-        incy = 0;   /* ˮƽ�� */
+        incy = 0;   /* horizontal */
     }
     else
     {
@@ -126,12 +101,12 @@ void lcd_draw_bline(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t 
         delta_y = -delta_y;
     }
 
-    if ( delta_x > delta_y)distance = delta_x; /* ѡȡ�������������� */
+    if ( delta_x > delta_y)distance = delta_x; /* dominant axis */
     else distance = delta_y;
 
-    for (t = 0; t <= distance + 1; t++ )    /* ������� */
+    for (t = 0; t <= distance + 1; t++ )    /* draw */
     {
-        lcd_fill_circle(row, col, size, color); /* ���� */
+        lcd_fill_circle(row, col, size, color); /* draw point */
         xerr += delta_x ;
         yerr += delta_y ;
 
@@ -149,11 +124,7 @@ void lcd_draw_bline(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t 
     }
 }
 
-/**
- * @brief       ���ʴ�С�ص�����
- * @param       event: �¼�
- * @retval      ��
- */
+/* Brush size callback. */
 static void lv_pen_size_event(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -197,11 +168,7 @@ static void lv_pen_size_event(lv_event_t *event)
     }
 }
 
-/**
- * @brief       ��ɫ���ûص�����
- * @param       event: �¼�
- * @retval      ��
- */
+/* Brush color callback. */
 static void lv_pen_color_event(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -262,11 +229,7 @@ static void lv_pen_color_event(lv_event_t *event)
     }
 }
 
-/**
- * @brief       ����������İ����ص�����
- * @param       event: �¼�
- * @retval      ��
- */
+/* Back-to-launcher button callback. */
 static void lv_back_event(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -279,14 +242,10 @@ static void lv_back_event(lv_event_t *event)
         lv_mainstart();
     }
 }
-/**
- * @brief       ����������İ���
- * @param       parent:����
- * @retval      ��
- */
+/* Back-to-launcher button. */
 void lv_btn_back(lv_obj_t * parent)
 {
-    /* ����ʽ��ʼ��ΪĬ��״̬ */
+    /* default-state style */
     static lv_style_t style;
     lv_style_init(&style);
 
@@ -311,11 +270,10 @@ void lv_btn_back(lv_obj_t * parent)
     lv_style_set_text_color(&style, lv_color_white());
     lv_style_set_pad_all(&style, 10);
 
-    /* ��ʼ�����µ���ʽ */
+    /* pressed style */
     static lv_style_t style_pr;
     lv_style_init(&style_pr);
 
-    /* ����ʱ����һ��������� */
     lv_style_set_outline_width(&style_pr, 30);
     lv_style_set_outline_opa(&style_pr, LV_OPA_TRANSP);
 
@@ -324,7 +282,6 @@ void lv_btn_back(lv_obj_t * parent)
     lv_style_set_bg_color(&style_pr, lv_palette_darken(LV_PALETTE_BLUE, 2));
     lv_style_set_bg_grad_color(&style_pr, lv_palette_darken(LV_PALETTE_BLUE, 4));
 
-    /* �������ӹ��� */
     static lv_style_transition_dsc_t trans;
     static lv_style_prop_t props[] = {LV_STYLE_OUTLINE_WIDTH, LV_STYLE_OUTLINE_OPA, 0};
     lv_style_transition_dsc_init(&trans, props, lv_anim_path_linear, 300, 0, NULL);
@@ -332,7 +289,7 @@ void lv_btn_back(lv_obj_t * parent)
     lv_style_set_transition(&style_pr, &trans);
 
     lv_obj_t * btn1 = lv_btn_create(parent);
-    lv_obj_remove_style_all(btn1);                          /* �Ƴ������������ʽ */
+    lv_obj_remove_style_all(btn1);                          /* drop theme style */
     lv_obj_add_style(btn1, &style, 0);
     lv_obj_add_style(btn1, &style_pr, LV_STATE_PRESSED);
     lv_obj_set_size(btn1, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -344,15 +301,11 @@ void lv_btn_back(lv_obj_t * parent)
     lv_obj_center(label);
 }
 
-/**
- * @brief       �����Ļ�������Ͻ���ʾ"RST"
- * @param       parent:����
- * @retval      ��
- */
+/* Clear the screen and build the toolbar (RST, pen size/color). */
 void lv_load_draw_dialog(lv_obj_t *parent)
 {
-    lcd_clear(WHITE);       /* ���� */
-    lcd_show_string(lcd_info()->width - 24, 0, 200, 16, 16, "RST", BLUE); /* ��ʾ�������� */
+    lcd_clear(WHITE);       /* clear */
+    lcd_show_string(lcd_info()->width - 24, 0, 200, 16, 16, "RST", BLUE); /* clear area label */
   
     #define TOP_OFFSET  5
     lv_obj_t * RST_btn = lv_label_create(parent);
@@ -453,16 +406,12 @@ void lv_load_draw_dialog(lv_obj_t *parent)
     lv_line_set_points(line1, line_points1, 6); 
     lv_obj_align_to(line1,lv_pen_size,LV_ALIGN_OUT_LEFT_TOP,0,-50);
 
-    lv_btn_back(parent);/* �������������水�� */
+    lv_btn_back(parent);/* back button */
     
 }
 
 
-/**
- * @brief       ���ݴ��������Ժ���
- * @param       ��
- * @retval      ��
- */
+/* Capacitive touch-screen test. */
 void ctp_test(void)
 {
     if (lcd_info()->id == 0X1018)maxp = 10;
@@ -473,7 +422,7 @@ void ctp_test(void)
     {
         if (g_touch.pressed && (t < (int)g_touch.count))
         {
-            if (g_touch.x[t] < lv_obj_get_width(lv_touch_cont) - lv_obj_get_width(lv_obj_get_child(lv_touch_cont,1)) - 10 && g_touch.y[t] < lv_obj_get_height(lv_touch_cont))  /* ��������Ļ��Χ�� */
+            if (g_touch.x[t] < lv_obj_get_width(lv_touch_cont) - lv_obj_get_width(lv_obj_get_child(lv_touch_cont,1)) - 10 && g_touch.y[t] < lv_obj_get_height(lv_touch_cont))  /* inside the canvas */
             {
                 if (lastpos[t][0] == 0XFFFF)
                 {
@@ -481,7 +430,7 @@ void ctp_test(void)
                     lastpos[t][1] = g_touch.y[t];
                 }
 
-                lcd_draw_bline(lastpos[t][0], lastpos[t][1], g_touch.x[t], g_touch.y[t], lv_pensise, POINT_COLOR_TBL[lv_pencolor]); /* ���� */
+                lcd_draw_bline(lastpos[t][0], lastpos[t][1], g_touch.x[t], g_touch.y[t], lv_pensise, POINT_COLOR_TBL[lv_pencolor]); /* draw */
                 lastpos[t][0] = g_touch.x[t];
                 lastpos[t][1] = g_touch.y[t];
 
@@ -494,20 +443,16 @@ void ctp_test(void)
     }    
 }
 
-/**
- * @brief       ���败�������Ժ���
- * @param       ��
- * @retval      ��
- */
+/* Resistive touch-screen test. */
 void rtp_test(void)
 {
     touch_scan(false);
 
-    if (g_touch.pressed)  /* ������������ */
+    if (g_touch.pressed)  /* pressed */
     {
         if (g_touch.x[0] < lv_obj_get_width(lv_touch_cont) - lv_obj_get_width(lv_obj_get_child(lv_touch_cont,1)) - 10 && g_touch.y[0] < lv_obj_get_height(lv_touch_cont))
         {
-             lcd_fill_circle(g_touch.x[0], g_touch.y[0], 4U, POINT_COLOR_TBL[lv_pencolor]);   /* ���� */
+             lcd_fill_circle(g_touch.x[0], g_touch.y[0], 4U, POINT_COLOR_TBL[lv_pencolor]);   /* draw point */
         }
     }
 }
@@ -518,22 +463,18 @@ void lv_touch_task(lv_timer_t *task)
 
     if (g_touch.type & 0X80)
     {
-        ctp_test(); /* ���������� */
+        ctp_test(); /* capacitive */
     }
     else
     {
-        rtp_test(); /* ���������� */
+        rtp_test(); /* resistive */
     }
 }
 
-/**
- * @brief       ���败�������Ժ���
- * @param       ��
- * @retval      ��
- */
+/* Demo entry. */
 void lv_draw_demo(void)
 {
-    if (lcd_info()->dir == LCD_DIR_PORTRAIT)    /* ����ģʽ, x������Ҫ�任 */
+    if (lcd_info()->dir == LCD_DIR_PORTRAIT)    /* portrait: rotate the display */
     {
         lv_disp_set_rotation(lv_disp_get_default(), LV_DISP_ROT_90);
     }

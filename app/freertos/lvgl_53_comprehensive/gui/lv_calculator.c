@@ -1,21 +1,6 @@
 /**
- ****************************************************************************************************
- * @file        lv_calculator.c
- * @author      正点原子团队(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       LVGL 计算器 实验
- * @license     Copyright (c) 2020-2032, 广州市星翼电子科技有限公司
- ****************************************************************************************************
- * @attention
- *
- * 实验平台:正点原子 阿波罗 F429开发板
- * 在线视频:www.yuanzige.com
- * 技术论坛:www.openedv.com
- * 公司网址:www.alientek.com
- * 购买地址:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_calculator.c
+ * @brief   LVGL scientific calculator.
  */
 
 #include "lvgl.h"
@@ -35,9 +20,9 @@ static const char * kb_map_num[36] = {
                                     "0", "+/-", ".", "=", ""};
 
 lv_obj_t * lv_calculator_cont;
-lv_obj_t * phone_ta;               /* 账号文字区域控件 */
+lv_obj_t * phone_ta;               /* input text area */
 lv_obj_t * label_dec;
-static double calc_x1 = 0; /* 2个操作数 */
+static double calc_x1 = 0; /* first operand */
 int lv_calc_x1 = 0;
 int lv_calc_num = 0;
 int lv_calc_pos = 0;
@@ -54,36 +39,25 @@ char lv_chx_buf[100];
 lv_font_t lv_font_ttf_36;
                                     
 
-/* π值 */
+/* pi */
 #define CALC_PI 3.1415926535897932384626433832795
 
-/**
-  * @brief  格式化显示
-  * @param  res:要转换的数据,最大支持0XFFFF
-  * @param  fmt:0:十进制
-                1:十六进制
-                2:二进制
-  * @retval 无
-  */
+/* Show x2 in HEX (FMT key). */
 void calc_fmt_show(int x2,const char * buf,uint8_t fmt)
 {
-    x2 = atof((const char *)buf); /* 转换为数字 */
+    x2 = atof((const char *)buf); /* to number */
     char *fmtstr="";
     char outbuf[17];
     char fmt_chx_buf[100];
     memset(fmt_chx_buf, 0, sizeof(fmt_chx_buf));
     fmtstr="HEX";
-    sprintf((char*)outbuf,"%X",x2); /* 输出结果到outbuf里面 */
+    sprintf((char*)outbuf,"%X",x2); /* format the result */
     lv_textarea_set_text(phone_ta,(const char *)outbuf);
     strcat((char *)fmt_chx_buf, fmtstr);
     lv_label_set_text(label_dec,fmt_chx_buf);
 }
 
-/**
-  * @brief  获取计算加减乘除标志
-  * @param  ctype:计算的类型
-  * @retval 返回计算类型
-  */
+/* Update the operator label. */
 uint8_t lv_math_calc_label(uint8_t ctype)
 {
     char *chx;
@@ -91,19 +65,19 @@ uint8_t lv_math_calc_label(uint8_t ctype)
   
     switch(ctype)
     {
-        case 0:/* 加法计算 */
+        case 0:/* add */
           chx = "+";
           break;
-       case 1:/* 减法计算 */
+       case 1:/* subtract */
           chx = "-";
           break;
-       case 2:/* 乘法计算 */
+       case 2:/* multiply */
           chx = "*";
           break;
-       case 3:/* 除法计算 */
+       case 3:/* divide */
           chx = "/";
           break;
-       case 4:/* x^y次方计算 */
+       case 4:/* power */
           chx = "x ^ y";
           break;
     }
@@ -114,33 +88,27 @@ uint8_t lv_math_calc_label(uint8_t ctype)
     return  ctype;
 }
 
-/**
-  * @brief  等于=按键计算
-  * @param  x1:获取第一个数值
-  * @param  x2:获取第二个数值
-  * @param  ctype:计算的类型
-  * @retval 返回计算数值
-  */
+/* Apply the binary operator. */
 double lv_math_calc(double x1,double x2,uint8_t ctype)
 {
     switch(ctype)
     {
-        case 0:/* 加法 */
+        case 0:/* add */
           x1=x1+x2;
           break;
-        case 1:/* 减法 */
+        case 1:/* subtract */
           x1=x1-x2;
           break;
-        case 2:/* 乘法 */
+        case 2:/* multiply */
           x1=x1*(x2);
           break;
-        case 3:/* 除法 */
+        case 3:/* divide */
           x1=x1/(x2);
           break;
-        case 4:/* x^y次方 */
+        case 4:/* power */
           x1=pow(x1,x2);
           break;
-        case 5:/* 没有任何运算符 */
+        case 5:/* no operator */
           x1=x2;
           break;
     }
@@ -148,51 +116,44 @@ double lv_math_calc(double x1,double x2,uint8_t ctype)
     return x1;
 }
 
-/**
-  * @brief  计算特殊的类型
-  * @param  x1:获取第一个数值
-  * @param  x2:无
-  * @param  buf:获取的字符串
-  * @param  ctype:计算的类型
-  * @retval 无
-  */
+/* Apply a unary/scientific function. */
 void lv_calc_exe(double *x1,double *x2,const char * buf,uint8_t ctype)
 {
-    *x1 = atof((const char *)buf); /* 转换为数字 */
+    *x1 = atof((const char *)buf); /* to number */
     char *chx;
     memset(lv_chx_buf, 0, sizeof(lv_chx_buf));
     
     switch(ctype)
     {
-        case 0:/* sin计算 */
-          *x1 = sin((*x1*CALC_PI)/180);/* 转换为角度计算结果 */
+        case 0:/* sin */
+          *x1 = sin((*x1*CALC_PI)/180);/* degrees -> radians */
           chx = "sin";
           break;
-        case 1:/* cos计算 */
-          *x1 = cos((*x1*CALC_PI)/180);/* 转换为角度计算结果 */
+        case 1:/* cos */
+          *x1 = cos((*x1*CALC_PI)/180);/* degrees -> radians */
           chx = "cos";
           break;
-        case 2:/* tan计算 */
-          *x1 = tan((*x1*CALC_PI)/180);/* 转换为角度计算结果 */
+        case 2:/* tan */
+          *x1 = tan((*x1*CALC_PI)/180);/* degrees -> radians */
           chx = "tan";
           break;
-        case 3:/* log计算 */
+        case 3:/* log10 */
           *x1 = log10(*x1);
           chx = "log";
           break;
-        case 4:/* ln计算 */
+        case 4:/* ln */
           *x1 = log(*x1);
           chx = "ln";
           break;
-        case 5:/* x^2计算 */
+        case 5:/* x^2 */
           *x1 = *x1*(*x1);
           chx = "x^2";
           break;
-        case 6:/* 开方计算 */
+        case 6:/* sqrt */
           *x1=sqrt(*x1);
           chx = "^";
           break;
-        case 7:/* 倒数计算 */
+        case 7:/* 1/x */
           *x1=1/(*x1);
           chx = "1/x";
           break;
@@ -203,12 +164,7 @@ void lv_calc_exe(double *x1,double *x2,const char * buf,uint8_t ctype)
     lv_label_set_text(label_dec,lv_chx_buf);
 }
 
-/**
-  * @brief  回调函数
-  * @param  obj  :对象
-  * @param  event:事件
-  * @retval 无
-  */
+/* Keypad / draw callback. */
 static void lv_event_handler(lv_event_t *event)
 {
     char str[25];
@@ -320,7 +276,7 @@ static void lv_event_handler(lv_event_t *event)
             lv_cbp_and_negativee = 0;
             lv_cbp_and_negative = 0;
         }
-        else if(txt == kb_map_num[15]) /* 删除一个字符 */
+        else if(txt == kb_map_num[15]) /* DEL: remove one char */
         {
             if (calc_ec == 0)
             {
@@ -410,7 +366,7 @@ static void lv_event_handler(lv_event_t *event)
        }
        else if (txt == kb_map_num[31]) /* +/- */
        {
-           cbp_and_negative = atof((const char *)lv_textarea_get_text(phone_ta)); /* 转换为数字 */
+           cbp_and_negative = atof((const char *)lv_textarea_get_text(phone_ta)); /* to number */
            cbp_and_negative = - cbp_and_negative;
            memset(str, 0, sizeof(str));
            sprintf(str,"%g",cbp_and_negative);
@@ -446,7 +402,7 @@ static void lv_event_handler(lv_event_t *event)
             }
             lv_math_flag = lv_math_calc_label(1);
        }
-       else if (txt == kb_map_num[27]) /* X */
+       else if (txt == kb_map_num[27]) /* * */
        {
             lv_calc_math = 1;
             if (lv_math_x1 == 0)
@@ -503,11 +459,7 @@ static void lv_event_handler(lv_event_t *event)
     }
 }
 
-/**
-  * @brief  返回按键回调函数
-  * @param  event:事件
-  * @retval 无
-  */
+/* Back-button callback. */
 void lv_calculator_back_btn_event_handler(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -521,15 +473,11 @@ void lv_calculator_back_btn_event_handler(lv_event_t *event)
     else if(code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST)
     {
         lv_obj_del(lv_calculator_cont);
-        lv_mainstart();/* 打开登录窗体 */
+        lv_mainstart();/* reopen the launcher */
     }
 }
 
-/**
-  * @brief  测试
-  * @param  无
-  * @retval 无
-  */
+/* Demo entry. */
 void lv_calculator_demo(void)
 {
     lv_general_dev.lv_general_win_create = NULL;
@@ -555,39 +503,39 @@ void lv_calculator_demo(void)
   
     lv_obj_t * btnm1 = lv_btnmatrix_create(lv_calculator_cont);
     lv_btnmatrix_set_map(btnm1, kb_map_num);
-    lv_btnmatrix_set_btn_width(btnm1, 0, 5);                                /* 设置第一行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 0, 5);                                /* row 1 widths */
     lv_btnmatrix_set_btn_width(btnm1, 1, 5);
     lv_btnmatrix_set_btn_width(btnm1, 2, 5);
     lv_btnmatrix_set_btn_width(btnm1, 3, 5);
     lv_btnmatrix_set_btn_width(btnm1, 4, 5);
 
     lv_btnmatrix_set_btn_width(btnm1, 5, 5);
-    lv_btnmatrix_set_btn_width(btnm1, 6, 5);                                /* 设置第二行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 6, 5);                                /* row 2 widths */
     lv_btnmatrix_set_btn_width(btnm1, 7, 5);
     lv_btnmatrix_set_btn_width(btnm1, 8, 5);
     lv_btnmatrix_set_btn_width(btnm1, 9, 5);
 
     lv_btnmatrix_set_btn_width(btnm1, 10, 1);
-    lv_btnmatrix_set_btn_width(btnm1, 11, 1);                               /* 设置第三行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 11, 1);                               /* row 3 widths */
     lv_btnmatrix_set_btn_width(btnm1, 12, 1);
     lv_btnmatrix_set_btn_width(btnm1, 13, 7);
     lv_btnmatrix_set_btn_width(btnm1, 14, 7);
 
     lv_btnmatrix_set_btn_width(btnm1, 15, 1);
     lv_btnmatrix_set_btn_width(btnm1, 16, 1);
-    lv_btnmatrix_set_btn_width(btnm1, 17, 1);                                /* 设置第四行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 17, 1);                                /* row 4 widths */
     lv_btnmatrix_set_btn_width(btnm1, 18, 7);
     lv_btnmatrix_set_btn_width(btnm1, 19, 7);
 
     lv_btnmatrix_set_btn_width(btnm1, 20, 1);
     lv_btnmatrix_set_btn_width(btnm1, 21, 1);
-    lv_btnmatrix_set_btn_width(btnm1, 22, 1);                                /* 设置第五行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 22, 1);                                /* row 5 widths */
     lv_btnmatrix_set_btn_width(btnm1, 23, 7);
     lv_btnmatrix_set_btn_width(btnm1, 24, 7);
 
     lv_btnmatrix_set_btn_width(btnm1, 25, 1);
     lv_btnmatrix_set_btn_width(btnm1, 26, 5);
-    lv_btnmatrix_set_btn_width(btnm1, 27, 5);                                /* 设置第六行按钮宽度 */
+    lv_btnmatrix_set_btn_width(btnm1, 27, 5);                                /* row 6 widths */
     lv_btnmatrix_set_btn_width(btnm1, 28, 5);
     lv_btnmatrix_set_btn_width(btnm1, 29, 5);
 
@@ -597,11 +545,11 @@ void lv_calculator_demo(void)
     lv_obj_add_event_cb(btnm1, lv_event_handler, LV_EVENT_ALL, NULL);
 //    lv_obj_set_style_text_font(btnm1,&myFont18,0);
 
-    /* 创建输入框 */
+    /* input text area */
     phone_ta = lv_textarea_create(lv_calculator_cont);
     lv_textarea_set_text(phone_ta, "0");
-    lv_textarea_set_one_line(phone_ta, true);           /* 将文本区域配置为一行或恢复正常 */
-    lv_textarea_set_cursor_click_pos(phone_ta,false);   /* 隐藏光标 */
+    lv_textarea_set_one_line(phone_ta, true);           /* single line */
+    lv_textarea_set_cursor_click_pos(phone_ta,false);   /* hide the cursor */
     lv_obj_set_size(phone_ta, lv_obj_get_width(lv_scr_act()) - 20,lv_font_montserrat_14.line_height * 4 + 20);
     lv_obj_clear_flag(phone_ta, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align_to(phone_ta, btnm1, LV_ALIGN_OUT_TOP_MID, 0, -50);

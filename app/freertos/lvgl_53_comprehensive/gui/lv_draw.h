@@ -1,26 +1,10 @@
 /**
- ****************************************************************************************************
- * @file        lv_draw.h
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       LVGL ���� ʵ��
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_draw.h
+ * @brief   LVGL drawing demo.
  */
- 
-#ifndef __LV_DRAW_H
-#define __LV_DRAW_H
 
+#ifndef LV_DRAW_H
+#define LV_DRAW_H
 
 void lv_draw_demo(void);
 

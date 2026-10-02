@@ -1,21 +1,6 @@
 /**
- ****************************************************************************************************
- * @file        lv_setting.c
- * @author      正点原子团队(ALIENTEK)
- * @version     V1.0
- * @date        2020-03-23
- * @brief       设置系统实验
- * @license     Copyright (c) 2020-2032, 广州市星翼电子科技有限公司
- ****************************************************************************************************
- * @attention
- *
- * 实验平台:正点原子 阿波罗 F429开发板
- * 在线视频:www.yuanzige.com
- * 技术论坛:www.openedv.com
- * 公司网址:www.alientek.com
- * 购买地址:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_setting.c
+ * @brief   Settings system demo.
  */
 
 #include "lvgl.h"
@@ -24,7 +9,7 @@
 #include "lv_mainstart.h"
 
 
-/* 图片库存放在磁盘中的路径 */
+/* settings icon bitmap paths on the SD card */
 char *const SET_IMAGE_GBK_PATH[8] =
 {
     "0:/PICTURE/LVGLBIN/network_port.bin",
@@ -60,15 +45,15 @@ static const setting_app_image_info setting_app_image[] =
 
 lv_obj_t* lv_setting_obj;
 
-/* 获取路径的个数 */
+/* number of settings entries */
 #define setting_image_mun (int)(sizeof(setting_app_image)/sizeof(setting_app_image[0]))
 
 lv_obj_t* lv_setting_app_t[setting_image_mun];
 
-/* 设置一个app名字数组 */
+/* settings name array */
 lv_obj_t* lv_setting_app_name[setting_image_mun];
 
-/* 设置一个app图片数组 */
+/* settings image array */
 lv_obj_t* lv_setting_app_img[setting_image_mun];
 
 
@@ -102,12 +87,7 @@ void lv_clear_arc(void)
     lv_anim_start(&a);
 }
 
-/**
-  * @brief  APP按键回调函数
-  * @param  obj  :对象
-  * @param  event:事件
-  * @retval 无
-  */
+/* Settings icon click callback. */
 static void lv_setting_control_event_handler(lv_event_t* event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -120,14 +100,14 @@ static void lv_setting_control_event_handler(lv_event_t* event)
         {
             if (obj == lv_setting_app_t[i])
             {
-                setting_app_readly_list[i] = 1; /* app就绪表位置1 */
+                setting_app_readly_list[i] = 1; /* mark ready */
             }
         }
 
-        lv_setting_trigger_bit = ((unsigned int)lv_clz((setting_app_readly_list)));     /* 计算前导指令 */
-        setting_app_readly_list[lv_setting_trigger_bit] = 0;                            /* 该位清零就绪表 */
+        lv_setting_trigger_bit = ((unsigned int)lv_clz((setting_app_readly_list)));     /* find the triggered bit */
+        setting_app_readly_list[lv_setting_trigger_bit] = 0;                            /* clear it */
         
-        switch (lv_setting_trigger_bit)                                                 /* 根据该位做相应的函数 */
+        switch (lv_setting_trigger_bit)                                                 /* dispatch */
         {
             case 1:
             case 2:
@@ -136,31 +116,31 @@ static void lv_setting_control_event_handler(lv_event_t* event)
             case 6:
             case 7:
             case 8:
-                /* 以下有实现的功能，请删除这两个注释 */
-                //lv_obj_del(lv_app_parent);                                                      /* 界面切换使用删除方法 */
-                //lv_app_parent = NULL;                                                           /* 主界面的容器设置为空 */
+                /* Uncomment these when the feature is implemented: */
+                //lv_obj_del(lv_app_parent);                                                      /* delete the view */
+                //lv_app_parent = NULL;                                                           /* main container = none */
                 switch (lv_setting_trigger_bit)
                 {
                     case 1:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 2:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 3:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 4:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 6:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 7:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                     case 8:
-                        /* 未实现 */
+                        /* not implemented */
                         break;
                 }
                 break;
@@ -186,11 +166,7 @@ void lv_arc(lv_obj_t* lv_parent)
     lv_obj_update_layout(clear_arc);
 }
 
-/**
-  * @brief  返回按键回调函数
-  * @param  event:事件
-  * @retval 无
-  */
+/* Back-button callback. */
 void lv_write_back_btn_event_handler(lv_event_t* event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -204,15 +180,11 @@ void lv_write_back_btn_event_handler(lv_event_t* event)
     else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST)
     {
         lv_obj_del(lv_setting_obj);
-        lv_mainstart();                    /* 打开登录窗体 */
+        lv_mainstart();                    /* reopen the launcher */
     }
 }
 
-/**
-  * @brief  实例
-  * @param  无
-  * @retval 无
-  */
+/* Demo entry. */
 void lv_setting_demo(void)
 {
     int line_feed_num = 0;

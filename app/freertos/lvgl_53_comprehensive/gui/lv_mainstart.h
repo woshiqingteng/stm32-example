@@ -1,41 +1,25 @@
 /**
- ****************************************************************************************************
- * @file        lv_mainstart.h
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       LVGL�ۺ� ʵ��
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_mainstart.h
+ * @brief   LVGL comprehensive demo launcher.
  */
- 
-#ifndef __LV_MAINSTART_H
-#define __LV_MAINSTART_H
+
+#ifndef LV_MAINSTART_H
+#define LV_MAINSTART_H
+
 #include "lvgl.h"
 #include "exfuns.h"
 
-
- /* ���ؿ����� */
+/* sub-window control block */
 typedef struct
 {
-    void (*lv_general_win_create)(void); /* ��ʼ�����ؿ����� */
+    void (*lv_general_win_create)(void); /* create the sub-window */
     lv_obj_t* parent;
     lv_event_cb_t lv_back_event;
 } lv_m_general;
 
-#define BACK_BTN_TITLE    LV_SYMBOL_LEFT" Back\n"   /* ���ذ����������� */
+#define BACK_BTN_TITLE    LV_SYMBOL_LEFT" Back\n"   /* back button text */
 
-extern lv_m_general lv_general_dev;     /* ���ؿ����� */
-
+extern lv_m_general lv_general_dev;     /* sub-window control */
 
 void lv_general_win_create(void);
 int lv_clz(unsigned int  app_readly_list[]);

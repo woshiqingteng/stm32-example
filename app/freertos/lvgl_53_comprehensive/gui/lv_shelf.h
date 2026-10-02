@@ -1,28 +1,11 @@
 /**
- ****************************************************************************************************
- * @file        lv_shelf.h
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2020-03-23
- * @brief       ���ز���ʵ��
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_shelf.h
+ * @brief   On-board test demo.
  */
- 
-#ifndef __SHELF_H
-#define __SHELF_H
 
+#ifndef SHELF_H
+#define SHELF_H
 
 void lv_shelf_demo(void);
-
 
 #endif

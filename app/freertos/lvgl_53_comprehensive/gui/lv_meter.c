@@ -1,21 +1,6 @@
- /**
- ****************************************************************************************************
- * @file        lv_meter.c
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2020-03-29
- * @brief       LVGL ʱ��
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+/**
+ * @file    lv_meter.c
+ * @brief   LVGL clock demo.
  */
 
 #include "lv_meter.h"
@@ -24,7 +9,7 @@
 
 LV_IMG_DECLARE(img_hand)
 
-/* ͼƬ�����ڴ����е�·�� */
+/* clock bitmap paths on the SD card */
 char *const METER_IMAGE_GBK_PATH[3] =
 {
     "0:/PICTURE/LVGLBIN/lv_bg.bin",
@@ -57,7 +42,7 @@ static const meter_image_info meter_image[] =
     {"18°C"},
 };
 
-/* ��ȡ·���ĸ��� */
+/* number of image paths */
 #define meter_image_mun (int)(sizeof(meter_image)/sizeof(meter_image[0]))
 
 int mis_mun = 0;
@@ -66,11 +51,7 @@ int hin_mun = 0;
 int lv_hin_mun = 0;
 int n = 1;
 
-/**
-  * @brief  ���ذ����ص�����
-  * @param  event:�¼�
-  * @retval ��
-  */
+/* Back-button callback. */
 void lv_meter_back_btn_event_handler(lv_event_t* event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -85,15 +66,11 @@ void lv_meter_back_btn_event_handler(lv_event_t* event)
     {
         lv_obj_del(lv_meter_cont);
         lv_timer_del(lv_meter_timer);
-        lv_mainstart();/* �򿪵�¼���� */
+        lv_mainstart();/* reopen the launcher */
     }
 }
 
-/**
-  * @brief  ʱ�ӵ�ֵ
-  * @param  task:����
-  * @retval ��
-  */
+/* Clock tick: advance second/minute/hour indicators. */
 void lv_meter_vlaue(lv_timer_t* task)
 {
     static char lv_time_buf[32];
@@ -112,28 +89,28 @@ void lv_meter_vlaue(lv_timer_t* task)
         n = 1;
     }
 
-    if (min_mun == 12 * n && (mis_mun == 0)) /* ����ָ���Ϊ5���� */
+    if (min_mun == 12 * n && (mis_mun == 0)) /* minute hand advances every 5 minutes */
     {
         n++;
         hin_mun++;
     }
 
-    if (hin_mun % 5 == 0 && (min_mun == 60) && hin_mun != 0) /* ����ָ����5�ı���ʱ��lv_hin_mun��1 */
+    if (hin_mun % 5 == 0 && (min_mun == 60) && hin_mun != 0) /* bump lv_hin_mun every 5 minutes */
     {
         lv_hin_mun++;
     }
 
-    if (min_mun >= 60) /* ���ִ��ڵ���60ʱ������0 */
+    if (min_mun >= 60) /* wrap minutes */
     {
         min_mun = 0;
     }
 
-    if (lv_hin_mun >= 12) /* ʱָ��60��Ϊ5�ֲ�����12 */
+    if (lv_hin_mun >= 12) /* wrap hour (12h dial) */
     {
         lv_hin_mun = 0;
     }
 
-    if (hin_mun >= 60)  /* ��ʱָ����ڵ���60ʱ��ʱ��0 */
+    if (hin_mun >= 60)  /* wrap hours */
     {
         hin_mun = 0;
     }
@@ -145,6 +122,7 @@ void lv_meter_vlaue(lv_timer_t* task)
     lv_meter_set_indicator_end_value(meter, indic_hour, hin_mun);
 }
 
+/* Demo entry. */
 void lv_meter_demo(void)
 {
     lv_general_dev.lv_general_win_create = NULL;
@@ -237,19 +215,18 @@ void lv_meter_demo(void)
     lv_line_set_points(line2, line_points2, 4);
     lv_obj_align_to(line2, lv_label2, LV_ALIGN_OUT_LEFT_MID, 40, -20);
 
-    /*����һ�����ӿ̶�*/
-    /*360�ȷ�Χ��61���̶�(���һ�к͵�һ���ص�)*/
+    /* minute scale: 61 ticks over 360 degrees */
     lv_meter_scale_t* scale_min = lv_meter_add_scale(meter);
     lv_meter_set_scale_ticks(meter, scale_min, 61, 1, 10, lv_palette_main(LV_PALETTE_GREY));
     lv_meter_set_scale_range(meter, scale_min, 0, 60, 360, 270);
 
-    /*Ϊ����ʱ�䴴����һ���̶ȡ���ֻ���Ӿ��ϵģ�ֻ������Ҫ�Ľ���*/
+    /* hour scale: visual only, major ticks */
     lv_meter_scale_t* scale_hour = lv_meter_add_scale(meter);
-    lv_meter_set_scale_ticks(meter, scale_hour, 12, 0, 0, lv_palette_main(LV_PALETTE_GREY)); /* 12 ���� */
-    lv_meter_set_scale_major_ticks(meter, scale_hour, 1, 2, 20, lv_color_black(), 10);       /* ÿһ�����Ķ�����Ҫ�� */
-    lv_meter_set_scale_range(meter, scale_hour, 1, 12, 330, 300);                            /* [1..12] ֵ��һ������������Բ */
+    lv_meter_set_scale_ticks(meter, scale_hour, 12, 0, 0, lv_palette_main(LV_PALETTE_GREY)); /* 12 ticks */
+    lv_meter_set_scale_major_ticks(meter, scale_hour, 1, 2, 20, lv_color_black(), 10);       /* major ticks */
+    lv_meter_set_scale_range(meter, scale_hour, 1, 12, 330, 300);                            /* [1..12] */
 
-    /* ��ͼƬ������ָ�� */
+    /* needle images */
     indic_second = lv_meter_add_needle_img(meter, scale_min, &img_hand, 5, 5);
     indic_min = lv_meter_add_needle_img(meter, scale_min, &img_hand, 5, 5);
     indic_hour = lv_meter_add_needle_img(meter, scale_min, &img_hand, 5, 5);

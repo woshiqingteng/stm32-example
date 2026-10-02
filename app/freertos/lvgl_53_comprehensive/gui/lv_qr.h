@@ -1,27 +1,12 @@
 /**
- ****************************************************************************************************
- * @file        lv_qr.h
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       ��ά��������
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_qr.h
+ * @brief   QR code window.
  */
- 
-#ifndef __LV_QR_H
-#define __LV_QR_H
-#include "lvgl.h"
 
+#ifndef LV_QR_H
+#define LV_QR_H
+
+#include "lvgl.h"
 
 void lv_qr_windowm(void);
 

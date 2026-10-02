@@ -1,23 +1,8 @@
 /**
- ****************************************************************************************************
- * @file        lv_mainstart.c
- * @author      正点原子团队(ALIENTEK)
- * @version     V1.0
- * @date        2022-03-23
- * @brief       LVGL综合 实验
- * @license     Copyright (c) 2020-2032, 广州市星翼电子科技有限公司
- ****************************************************************************************************
- * @attention
- *
- * 实验平台:正点原子 阿波罗 F429开发板
- * 在线视频:www.yuanzige.com
- * 技术论坛:www.openedv.com
- * 公司网址:www.alientek.com
- * 购买地址:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_mainstart.c
+ * @brief   LVGL comprehensive demo launcher.
  */
- 
+
 #include "lv_mainstart.h"
 #include "exfuns.h"
 #include "malloc.h"
@@ -30,7 +15,6 @@
 #include "lv_setting.h"
 #include "lv_calculator.h"
 #include "lv_meter.h"
-#include "lv_scale.h"
 #include "lv_scale.h"
 #include "lvgl.h"
 #include <stdio.h>
@@ -49,7 +33,7 @@ typedef struct
 }app_image_info;
 
 
-/* 图片库存放在磁盘中的路径 */
+/* app icon bitmap paths on the SD card */
 char *const IMAGE_GBK_PATH[8] =
 {
     "0:/PICTURE/LVGLBIN/Calculator.bin",
@@ -77,25 +61,19 @@ static const app_image_info app_image[] =
     {"Draw","绘画",304,140},
 };
 
-/* 获取路径的个数 */
+/* number of app entries */
 #define image_mun (int)(sizeof(app_image)/sizeof(app_image[0]))
-/* 设置一个app数组 */
+/* app object / name / image arrays */
 lv_obj_t *lv_app_t[image_mun];
-/* 设置一个app名字数组 */
 lv_obj_t *lv_app_name[image_mun];
-/* 设置一个app图片数组 */
 lv_obj_t* lv_app_img[image_mun];
-/* app就绪表 */
+/* app ready table */
 unsigned int  app_readly_list[32];
-/* app触发位 */
+/* app trigger bit */
 int lv_trigger_bit = 0;
 
 
-/**
-  * @brief  返回按键
-  * @param  无
-  * @retval 无
-  */
+/* Create the back button. */
 void lv_general_win_create(void)
 {
     #define TOP_OFFSET  -10
@@ -107,11 +85,7 @@ void lv_general_win_create(void)
     lv_obj_add_event_cb(back_btn, lv_general_dev.lv_back_event, LV_EVENT_ALL, NULL);
 }
 
-/**
-  * @brief  计算前导置零
-  * @param  无
-  * @retval 无
-  */
+/* Count leading zeros in the ready table. */
 int lv_clz(unsigned int  app_readly_list[])
 {
     int bit = 0;
@@ -129,12 +103,7 @@ int lv_clz(unsigned int  app_readly_list[])
     return bit;
 }
 
-/**
-  * @brief  APP按键回调函数
-  * @param  obj  :对象
-  * @param  event:事件
-  * @retval 无
-  */
+/* App icon click callback: switch to the selected demo. */
 static void lv_imgbtn_control_event_handler(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
@@ -147,50 +116,46 @@ static void lv_imgbtn_control_event_handler(lv_event_t *event)
         {
             if (obj == lv_app_t[i])
             {
-                app_readly_list[i] = 1 ;                                       /* app就绪表位置1 */
+                app_readly_list[i] = 1 ;                                       /* mark ready */
             }
         }
 
-        lv_trigger_bit = ((unsigned int)lv_clz((app_readly_list)));            /* 计算前导指令 */
-        app_readly_list[lv_trigger_bit] = 0;                                   /* 该位清零就绪表 */
-        lv_obj_del(lv_app_parent);                                             /* 界面切换使用删除方法 */
-        lv_app_parent = NULL;                                                  /* 主界面的容器设置为空 */
+        lv_trigger_bit = ((unsigned int)lv_clz((app_readly_list)));            /* find the triggered bit */
+        app_readly_list[lv_trigger_bit] = 0;                                   /* clear it */
+        lv_obj_del(lv_app_parent);                                             /* delete the launcher view */
+        lv_app_parent = NULL;                                                  /* main container = none */
 
-        switch(lv_trigger_bit)                                                 /* 根据该位做相应的函数 */
+        switch(lv_trigger_bit)                                                 /* dispatch */
         {
             case 1:
-              lv_calculator_demo();                                            /* 计算器(完成) */
+              lv_calculator_demo();                                            /* calculator */
               break;
             case 2:
-              lv_file_demo();                                                  /* 文件管理系统(完成) */
+              lv_file_demo();                                                  /* file manager */
               break;
             case 3:
-              lv_scale_demo();                                                 /* 进制转换系统(完成) */
+              lv_scale_demo();                                                 /* base converter */
               break;
             case 4:
-              lv_setting_demo();                                               /* 设置系统(完成) */
+              lv_setting_demo();                                               /* settings */
               break;
             case 5:
-              lv_shelf_demo();                                                 /* 板载测试系统(完成) */
+              lv_shelf_demo();                                                 /* on-board test */
               break;
             case 6:
-              lv_meter_demo();                                                 /* 时钟(未完成) */
+              lv_meter_demo();                                                 /* clock */
               break;
             case 7:
-              lv_qr_windowm();                                                 /* 二维码制作(完成) */
+              lv_qr_windowm();                                                 /* QR code */
               break;
             case 8:
-              lv_draw_demo();                                                  /* 绘画(完成) */
+              lv_draw_demo();                                                  /* drawing */
               break;
         }
     }
 }
 
-/**
-  * @brief  APP显示
-  * @param  parent:父类对象
-  * @retval 无
-  */
+/* Lay out the app icons in a grid. */
 void lv_mid_cont_add_app(lv_obj_t *parent)
 {
     int line_feed_num = 0;
@@ -270,19 +235,20 @@ void lv_mid_cont_add_app(lv_obj_t *parent)
     }
 }
 
+/* Status-bar icons (top-left, date, top-right). */
 void lv_app_icon(lv_obj_t *praten)
 {
-    /* 左上角图标 */
+    /* top-left icons */
     lv_obj_t* lv_letf_acon = lv_label_create(praten);
     lv_label_set_text(lv_letf_acon, LV_SYMBOL_WIFI " " LV_SYMBOL_AUDIO);
     lv_obj_align(lv_letf_acon,LV_ALIGN_TOP_LEFT,-5,-10);
     lv_obj_set_style_text_color(lv_letf_acon, lv_color_make(255, 255, 255), LV_STATE_DEFAULT);
-    /* 中间的时间 */
+    /* date */
     lv_obj_t* lv_timer = lv_label_create(praten);
     lv_label_set_text(lv_timer, "2022/1/20");
     lv_obj_align(lv_timer, LV_ALIGN_TOP_MID, 0, -10);
     lv_obj_set_style_text_color(lv_timer, lv_color_make(255, 255, 255), LV_STATE_DEFAULT);
-    /* 右上角图标 */
+    /* top-right icons */
     lv_obj_t* lv_right_acon = lv_label_create(praten);
     lv_label_set_text(lv_right_acon, LV_SYMBOL_BATTERY_3 " " LV_SYMBOL_USB);
     lv_obj_align(lv_right_acon, LV_ALIGN_TOP_RIGHT, 5, -10);
@@ -290,11 +256,7 @@ void lv_app_icon(lv_obj_t *praten)
 
 }
 
-/**
-  * @brief  主界面
-  * @param  无
-  * @retval 无
-  */
+/* Main window. */
 void lv_main_window(void)
 {
     lv_obj_t *lv_main_cont = lv_obj_create(lv_scr_act());
@@ -306,12 +268,8 @@ void lv_main_window(void)
     lv_app_icon(lv_main_cont);
 }
 
-/**
-  * @brief  LVGL 入口
-  * @param  无
-  * @retval 无
-  */
+/* LVGL entry. */
 void lv_mainstart(void)
 {
-    lv_main_window();       /* 进入页面 */
+    lv_main_window();       /* show the launcher */
 }

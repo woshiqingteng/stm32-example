@@ -1,60 +1,44 @@
 /**
- ****************************************************************************************************
- * @file        lv_file.c
- * @author      ����ԭ���Ŷ�(ALIENTEK)
- * @version     V1.0
- * @date        2020-03-23
- * @brief       �ļ�����ϵͳ
- * @license     Copyright (c) 2020-2032, �������������ӿƼ����޹�˾
- ****************************************************************************************************
- * @attention
- *
- * ʵ��ƽ̨:����ԭ�� ������ F429������
- * ������Ƶ:www.yuanzige.com
- * ������̳:www.openedv.com
- * ��˾��ַ:www.alientek.com
- * �����ַ:openedv.taobao.com
- *
- ****************************************************************************************************
+ * @file    lv_file.h
+ * @brief   File manager.
  */
 
-#ifndef __LV_FILE_H
-#define __LV_FILE_H
+#ifndef LV_FILE_H
+#define LV_FILE_H
 #include "lvgl.h"
 #include "exfuns.h"
 
-
-#define LIST_SIZE    100   /* �����ļ��к��ļ������������ж��� */
-#define FILE_SEZE    1992  /* ���ö�ȡ�ļ����ݵĴ�С�����ж��� */
+#define LIST_SIZE    100   /* max list rows / stored paths */
+#define FILE_SEZE    1992  /* text read buffer size */
 
 typedef struct
 {
-    lv_obj_t * list;          /* �б��ؼ� */
-    lv_obj_t *lv_page_obj;    /* �������Ķ��� */
-    lv_obj_t * list_btn[LIST_SIZE]; /* �����б��������� */
-    uint8_t list_flie_nuber;  /* �洢�ı��к��ļ������� */
-    FRESULT fr;               /* ���ļ�����ֵ */
-    DIR lv_dir;               /* ��ȡ��Ŀ¼ */
-    FILINFO SD_fno;           /* �ļ���Ϣ�ṹ�� */
-    char *pname;              /* ��·�����ļ��� */
-    char *lv_pname;           /* ��ȡ�ļ��� */
-    char *lv_pname_shift;     /* ��ȡ�ļ����м�洢 */
-    const char* lv_pash;      /* ��ȡ·�� */
-    int lv_suffix_flag;       /* ����׺��־λ */
-    int lv_prev_file_flag;    /* ��һ���ļ�·����־λ */
-    char *lv_prev_file[LIST_SIZE];  /* �洢�ļ�·�� */
-    const void *image_scr;    /* ����ļ�����ͼƬ�����ĵ� */
-    lv_obj_t * lv_back_obj;   /* ���巵��/�˵��Ķ��� */
-    lv_obj_t * lv_prev_btn;   /* ���ذ��� */
-    lv_obj_t * lv_back_btn;   /* �˵����� */
-    lv_obj_t *lv_page_cont;   /* ��ʾ�ı������� */
-    char rbuf[FILE_SEZE];     /* ��ȡ�ı������ݴ�С */
-    lv_obj_t *lv_return_page; /* ��ȡ��ʾ��ҳ�� */
-    lv_obj_t *lv_image_read;  /* ��ȡͼƬ���� */
+    lv_obj_t * list;          /* list widget */
+    lv_obj_t *lv_page_obj;    /* paging main object */
+    lv_obj_t * list_btn[LIST_SIZE]; /* list buttons */
+    uint8_t list_flie_nuber;  /* number of list rows/files */
+    FRESULT fr;               /* FatFs result */
+    DIR lv_dir;               /* directory handle */
+    FILINFO SD_fno;           /* file info */
+    char *pname;              /* path + file name */
+    char *lv_pname;           /* file name */
+    char *lv_pname_shift;     /* file name scratch */
+    const char* lv_pash;      /* current path */
+    int lv_suffix_flag;       /* suffix flag */
+    int lv_prev_file_flag;    /* previous-file path flag */
+    char *lv_prev_file[LIST_SIZE];  /* stored file paths */
+    const void *image_scr;    /* image displayed with the file */
+    lv_obj_t * lv_back_obj;   /* back/menu button object */
+    lv_obj_t * lv_prev_btn;   /* back button */
+    lv_obj_t * lv_back_btn;   /* menu button */
+    lv_obj_t *lv_page_cont;   /* text content area */
+    char rbuf[FILE_SEZE];     /* text read buffer */
+    lv_obj_t *lv_return_page; /* returned page */
+    lv_obj_t *lv_image_read;  /* read image object */
     lv_obj_t *lv_file_cont;
 }lv_file_struct;
 
-/* ������ԣ��������Դ���ĵ�termΪ1ʱ��û�д��󣬵�termΪ0ʱ��������������� */
+/* Assert helper: hangs when term is 0 (used for the file manager). */
 #define FILE_ASSERT(term)                                                                                   \
 do                                                                                                          \
 {                                                                                                           \
