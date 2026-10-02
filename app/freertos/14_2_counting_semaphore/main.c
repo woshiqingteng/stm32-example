@@ -31,7 +31,7 @@ static TaskHandle_t      s_start_task;
 static void show_count(UBaseType_t v)
 {
     char b[24];
-    snprintf(b, sizeof(b), "Notify Value:  %lu", (unsigned long)v);
+    snprintf(b, sizeof(b), "Notify Value:  %lu", v);
     lcd_show_string(54, 111, 200, 16, LCD_FONT_SIZE_16, b, BLUE);
 }
 

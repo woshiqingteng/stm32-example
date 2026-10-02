@@ -46,8 +46,8 @@ static void task1(void *argument)
         printf("name\tprio\tnumber\r\n");
         for (i = 0U; i < tcount; i++)
         {
-            printf("%s\t%ld\t%ld\r\n", arr[i].pcTaskName,
-                   (unsigned long)arr[i].uxCurrentPriority, (unsigned long)arr[i].xTaskNumber);
+            printf("%s\t%lu\t%lu\r\n", arr[i].pcTaskName,
+                   arr[i].uxCurrentPriority, arr[i].xTaskNumber);
         }
         myfree(SRAMIN, arr);
     }
@@ -61,9 +61,9 @@ static void task1(void *argument)
         if (info != NULL)
         {
             vTaskGetInfo(h, info, pdTRUE, eInvalid);
-            printf("name=%s number=%ld state=%d prio=%ld base=%ld highwater=%u\r\n",
-                   info->pcTaskName, (unsigned long)info->xTaskNumber, (int)info->eCurrentState,
-                   (unsigned long)info->uxCurrentPriority, (unsigned long)info->uxBasePriority,
+            printf("name=%s number=%lu state=%d prio=%lu base=%lu highwater=%u\r\n",
+                   info->pcTaskName, info->xTaskNumber, (int)info->eCurrentState,
+                   info->uxCurrentPriority, info->uxBasePriority,
                    (unsigned)info->usStackHighWaterMark);
             myfree(SRAMIN, info);
         }
