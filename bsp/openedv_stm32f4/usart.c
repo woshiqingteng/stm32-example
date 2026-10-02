@@ -15,20 +15,35 @@
 #include "stm32f4xx_hal.h"
 #include "usart.h"
 
-/* ===== constants / DMA streams ===== */
+/* ===== constants ===== */
 
-/* USART1: TX = DMA2_Stream7/ch4, RX = DMA2_Stream2/ch4. */
-#define USART1_TX_DMA_STREAM   DMA2_Stream7
-#define USART1_RX_DMA_STREAM   DMA2_Stream2
-#define USART_TX_DMA_CHANNEL   DMA_CHANNEL_4
-#define USART_RX_DMA_CHANNEL   DMA_CHANNEL_4
-#define USART1_TX_DMA_IRQn     DMA2_Stream7_IRQn
+#define USART_TX_MAX_WORD 0xFFFFU /* max bytes per IT/DMA transfer (16-bit NDTR) */
 
-/* USART2: TX = DMA1_Stream6/ch4, RX = DMA1_Stream5/ch4 (shared with DAC; the
- * IDLE-driven RX does not request the stream IRQ, so there is no symbol clash). */
-#define USART2_TX_DMA_STREAM   DMA1_Stream6
-#define USART2_RX_DMA_STREAM   DMA1_Stream5
-#define USART2_TX_DMA_IRQn     DMA1_Stream6_IRQn
+/* ===== hardware descriptors ===== */
+
+/* USART1: TX = DMA2_Stream7/ch4, RX = DMA2_Stream2/ch4.
+ * USART2: TX = DMA1_Stream6/ch4, RX = DMA1_Stream5/ch4 (the IDLE-driven RX does
+ * not request the stream IRQ, so Stream5 can be shared with the DAC). */
+typedef struct
+{
+    USART_TypeDef      *instance;
+    uint32_t            gpio_af;
+    uint16_t            gpio_pins;
+    IRQn_Type           irqn;
+    DMA_TypeDef        *dma;            /* DMA1 / DMA2 (clock + controller) */
+    DMA_Stream_TypeDef *tx_stream;
+    DMA_Stream_TypeDef *rx_stream;
+    uint32_t            dma_channel;    /* same channel for TX and RX */
+    IRQn_Type           tx_dma_irqn;
+} usart_hw_t;
+
+static const usart_hw_t g_hw[USART_ID_NUM] =
+{
+    { USART1, GPIO_AF7_USART1, GPIO_PIN_9 | GPIO_PIN_10, USART1_IRQn,
+      DMA2, DMA2_Stream7, DMA2_Stream2, DMA_CHANNEL_4, DMA2_Stream7_IRQn },
+    { USART2, GPIO_AF7_USART2, GPIO_PIN_2 | GPIO_PIN_3,  USART2_IRQn,
+      DMA1, DMA1_Stream6, DMA1_Stream5, DMA_CHANNEL_4, DMA1_Stream6_IRQn },
+};
 
 /* ===== context ===== */
 
@@ -101,75 +116,47 @@ static uint32_t usart_oversampling_to_hal(usart_oversampling_t v)
 
 /* ===== DMA setup ===== */
 
-static void usart_dma_clear_flags(DMA_HandleTypeDef *hdma)
+static void usart_dma_config(DMA_HandleTypeDef *hdma, DMA_Stream_TypeDef *stream,
+                             uint32_t channel, uint32_t direction, uint32_t mode)
 {
-    __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma) |
-                               __HAL_DMA_GET_HT_FLAG_INDEX(hdma) |
-                               __HAL_DMA_GET_TE_FLAG_INDEX(hdma) |
-                               __HAL_DMA_GET_FE_FLAG_INDEX(hdma) |
-                               __HAL_DMA_GET_DME_FLAG_INDEX(hdma));
+    hdma->Instance                     = stream;
+    hdma->Init.Channel                 = channel;
+    hdma->Init.Direction               = direction;
+    hdma->Init.PeriphInc               = DMA_PINC_DISABLE;
+    hdma->Init.MemInc                  = DMA_MINC_ENABLE;
+    hdma->Init.PeriphDataAlignment     = DMA_PDATAALIGN_BYTE;
+    hdma->Init.MemDataAlignment        = DMA_MDATAALIGN_BYTE;
+    hdma->Init.Mode                    = mode;
+    hdma->Init.Priority                = DMA_PRIORITY_MEDIUM;
+    hdma->Init.FIFOMode                = DMA_FIFOMODE_DISABLE;
 }
 
-static void usart_dma_tx_init(usart_handle_t *handle, const usart_cfg_t *cfg)
+static void usart_dma_tx_init(usart_handle_t *handle, const usart_hw_t *hw,
+                              const usart_cfg_t *cfg)
 {
-    if (cfg->id == USART_ID_1)
-    {
-        __HAL_RCC_DMA2_CLK_ENABLE();
-        handle->hdma_tx.Instance = USART1_TX_DMA_STREAM;
-    }
-    else
-    {
-        __HAL_RCC_DMA1_CLK_ENABLE();
-        handle->hdma_tx.Instance = USART2_TX_DMA_STREAM;
-    }
+    if (hw->dma == DMA2) { __HAL_RCC_DMA2_CLK_ENABLE(); }
+    else                 { __HAL_RCC_DMA1_CLK_ENABLE(); }
 
-    handle->hdma_tx.Init.Channel             = USART_TX_DMA_CHANNEL;
-    handle->hdma_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
-    handle->hdma_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
-    handle->hdma_tx.Init.MemInc              = DMA_MINC_ENABLE;
-    handle->hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    handle->hdma_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-    handle->hdma_tx.Init.Mode                = DMA_NORMAL;
-    handle->hdma_tx.Init.Priority            = DMA_PRIORITY_MEDIUM;
-    handle->hdma_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
-
+    usart_dma_config(&handle->hdma_tx, hw->tx_stream, hw->dma_channel,
+                     DMA_MEMORY_TO_PERIPH, DMA_NORMAL);
     __HAL_LINKDMA(&handle->huart, hdmatx, handle->hdma_tx);
-
     HAL_DMA_DeInit(&handle->hdma_tx);
     (void)HAL_DMA_Init(&handle->hdma_tx);
 
-    HAL_NVIC_SetPriority((cfg->id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn,
-                         cfg->irq_preempt, cfg->irq_sub);
-    HAL_NVIC_EnableIRQ((cfg->id == USART_ID_1) ? USART1_TX_DMA_IRQn : USART2_TX_DMA_IRQn);
+    HAL_NVIC_SetPriority(hw->tx_dma_irqn, cfg->irq_preempt, cfg->irq_sub);
+    HAL_NVIC_EnableIRQ(hw->tx_dma_irqn);
 }
 
 /* RX DMA: circular transfer into handle->buf; bytes are handed over on the
  * USART IDLE interrupt. The DMA stream IRQ is intentionally not enabled. */
-static void usart_dma_rx_init(usart_handle_t *handle, const usart_cfg_t *cfg)
+static void usart_dma_rx_init(usart_handle_t *handle, const usart_hw_t *hw)
 {
-    if (cfg->id == USART_ID_1)
-    {
-        __HAL_RCC_DMA2_CLK_ENABLE();
-        handle->hdma_rx.Instance = USART1_RX_DMA_STREAM;
-    }
-    else
-    {
-        __HAL_RCC_DMA1_CLK_ENABLE();
-        handle->hdma_rx.Instance = USART2_RX_DMA_STREAM;
-    }
+    if (hw->dma == DMA2) { __HAL_RCC_DMA2_CLK_ENABLE(); }
+    else                 { __HAL_RCC_DMA1_CLK_ENABLE(); }
 
-    handle->hdma_rx.Init.Channel             = USART_RX_DMA_CHANNEL;
-    handle->hdma_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
-    handle->hdma_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
-    handle->hdma_rx.Init.MemInc              = DMA_MINC_ENABLE;
-    handle->hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    handle->hdma_rx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
-    handle->hdma_rx.Init.Mode                = DMA_CIRCULAR;
-    handle->hdma_rx.Init.Priority            = DMA_PRIORITY_MEDIUM;
-    handle->hdma_rx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
-
+    usart_dma_config(&handle->hdma_rx, hw->rx_stream, hw->dma_channel,
+                     DMA_PERIPH_TO_MEMORY, DMA_CIRCULAR);
     __HAL_LINKDMA(&handle->huart, hdmarx, handle->hdma_rx);
-
     HAL_DMA_DeInit(&handle->hdma_rx);
     (void)HAL_DMA_Init(&handle->hdma_rx);
 
@@ -202,6 +189,27 @@ static void usart_tx_wait(usart_handle_t *handle, const uint8_t *data, uint16_t 
 
 /* ===== receive paths ===== */
 
+/* Deliver one byte: callback first, then the ring buffer (drop when full). */
+static bool usart_rx_deliver(usart_handle_t *handle, uint8_t byte)
+{
+    if (handle->cb != 0)
+    {
+        handle->cb(byte);
+    }
+    if ((handle->buf != 0) && (handle->size != 0U))
+    {
+        uint16_t next = (uint16_t)((handle->head + 1U) % handle->size);
+
+        if (next != handle->tail)
+        {
+            handle->buf[handle->head] = byte;
+            handle->head = next;
+            return true;
+        }
+    }
+    return false;
+}
+
 /* Hand the bytes written by the circular DMA since the last IDLE to the callback. */
 static void usart_dma_idle(usart_handle_t *handle)
 {
@@ -209,14 +217,7 @@ static void usart_dma_idle(usart_handle_t *handle)
 
     while (handle->head != pos)
     {
-        uint8_t byte = handle->buf[handle->head];
-
-        if (handle->cb != 0)
-        {
-            handle->cb(byte);
-        }
-        handle->head = (uint16_t)((handle->head + 1U) % handle->size);
-        if (handle->head == handle->tail)
+        if (!usart_rx_deliver(handle, handle->buf[handle->head]))
         {
             break; /* full: drop the rest until read drains */
         }
@@ -227,17 +228,18 @@ static void usart_dma_idle(usart_handle_t *handle)
 
 void usart_init(const usart_cfg_t *cfg)
 {
-    usart_handle_t  *handle;
-    GPIO_InitTypeDef gpio_init = {0};
-    usart_io_t       tx;
-    usart_io_t       rx;
-    IRQn_Type        irqn;
+    usart_handle_t   *handle;
+    const usart_hw_t *hw;
+    GPIO_InitTypeDef  gpio_init = {0};
+    usart_io_t        tx;
+    usart_io_t        rx;
 
     if (cfg->id >= USART_ID_NUM)
     {
         return;
     }
     handle = &g_uart[cfg->id];
+    hw     = &g_hw[cfg->id];
     tx = cfg->tx;
     rx = cfg->rx;
 
@@ -275,22 +277,11 @@ void usart_init(const usart_cfg_t *cfg)
     handle->tx_len  = 0U;
 
     /* ---- MSP begin: clocks + GPIO AF + NVIC ---- */
-    if (cfg->id == USART_ID_1)
-    {
-        __HAL_RCC_USART1_CLK_ENABLE();
-        handle->huart.Instance = USART1;
-        gpio_init.Alternate    = GPIO_AF7_USART1;
-        gpio_init.Pin          = GPIO_PIN_9 | GPIO_PIN_10;
-        irqn                   = USART1_IRQn;
-    }
-    else
-    {
-        __HAL_RCC_USART2_CLK_ENABLE();
-        handle->huart.Instance = USART2;
-        gpio_init.Alternate    = GPIO_AF7_USART2;
-        gpio_init.Pin          = GPIO_PIN_2 | GPIO_PIN_3;
-        irqn                   = USART2_IRQn;
-    }
+    if (cfg->id == USART_ID_1) { __HAL_RCC_USART1_CLK_ENABLE(); }
+    else                       { __HAL_RCC_USART2_CLK_ENABLE(); }
+    handle->huart.Instance = hw->instance;
+    gpio_init.Alternate    = hw->gpio_af;
+    gpio_init.Pin          = hw->gpio_pins;
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
     gpio_init.Mode  = GPIO_MODE_AF_PP;
@@ -300,8 +291,8 @@ void usart_init(const usart_cfg_t *cfg)
 
     if ((tx != USART_IO_POLL) || (rx != USART_IO_POLL))
     {
-        HAL_NVIC_SetPriority(irqn, cfg->irq_preempt, cfg->irq_sub);
-        HAL_NVIC_EnableIRQ(irqn);
+        HAL_NVIC_SetPriority(hw->irqn, cfg->irq_preempt, cfg->irq_sub);
+        HAL_NVIC_EnableIRQ(hw->irqn);
     }
     /* ---- MSP end ---- */
 
@@ -316,7 +307,7 @@ void usart_init(const usart_cfg_t *cfg)
 
     if (tx == USART_IO_DMA)
     {
-        usart_dma_tx_init(handle, cfg);
+        usart_dma_tx_init(handle, hw, cfg);
     }
 
     if (rx == USART_IO_IT)
@@ -325,7 +316,7 @@ void usart_init(const usart_cfg_t *cfg)
     }
     else if (rx == USART_IO_DMA)
     {
-        usart_dma_rx_init(handle, cfg);
+        usart_dma_rx_init(handle, hw);
     }
 }
 
@@ -357,7 +348,7 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
         return false;
     }
     handle = &g_uart[id];
-    n = (len > 0xFFFFU) ? 0xFFFFU : (uint16_t)len;
+    n = (len > USART_TX_MAX_WORD) ? USART_TX_MAX_WORD : (uint16_t)len;
 
     if (handle->tx == USART_IO_IT)
     {
@@ -371,7 +362,7 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
 
     if (handle->tx == USART_IO_DMA)
     {
-        usart_dma_clear_flags(&handle->hdma_tx);
+        __HAL_DMA_CLEAR_FLAG(&handle->hdma_tx, __HAL_DMA_GET_TC_FLAG_INDEX(&handle->hdma_tx));
         __HAL_UART_CLEAR_FLAG(&handle->huart, UART_FLAG_TC);
         __HAL_UART_DISABLE_IT(&handle->huart, UART_IT_TC);
         handle->tx_busy = true;
@@ -481,22 +472,7 @@ static void usart_irq(usart_handle_t *handle)
     if ((handle->rx == USART_IO_IT) &&
         (__HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE) != RESET))
     {
-        uint8_t byte = (uint8_t)huart->Instance->DR;
-
-        if (handle->cb != 0)
-        {
-            handle->cb(byte);
-        }
-        if ((handle->buf != 0) && (handle->size != 0U))
-        {
-            uint16_t next = (uint16_t)((handle->head + 1U) % handle->size);
-
-            if (next != handle->tail)
-            {
-                handle->buf[handle->head] = byte;
-                handle->head = next;
-            }
-        }
+        (void)usart_rx_deliver(handle, (uint8_t)huart->Instance->DR);
     }
 
     /* Overrun: clear it so reception continues (RX IT/DMA only). */
@@ -530,15 +506,17 @@ void USART2_IRQHandler(void)
 static void usart_dma_tx_irq(usart_handle_t *handle)
 {
     DMA_HandleTypeDef *hdma = &handle->hdma_tx;
+    bool               tc   = (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma)) != RESET);
 
-    if (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma)) != RESET)
+    (void)HAL_DMA_Abort(hdma);
+
+    if (tc)
     {
-        (void)HAL_DMA_Abort(hdma);
         __HAL_UART_ENABLE_IT(&handle->huart, UART_IT_TC); /* wait for the shifter */
     }
     else
     {
-        (void)HAL_DMA_Abort(hdma); /* TE/FE/DME: release the busy flag */
+        /* TE/FE/DME: release the busy flag. */
         CLEAR_BIT(handle->huart.Instance->CR3, USART_CR3_DMAT);
         handle->tx_busy = false;
     }

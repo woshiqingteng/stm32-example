@@ -360,3 +360,10 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
   lvgl_51_filemgr`）全部构建通过。`python test/run.py test/test_04_usart.py`
   = 4/4 PASS（RX IT 行回显/提示/CR 丢弃/超长重启）。`19_dma` 硬件实测：KEY0 →
   整包发送 → `progress: 100%` → `DMA TX finished`。
+- 后续精简（同一节）：`usart.c` 改为**硬件描述符表 `g_hw[]`**（instance/AF/pins/
+  IRQn/`DMA_TypeDef*`/TX-RX stream/channel/TX-DMA-IRQn），去掉重复的 per-id 分支；
+  新增 `usart_dma_config()` 公共配置、`usart_rx_deliver()` 统一接收投递（RXNE 与
+  DMA-IDLE 共用）；DMA 启动前只需清 TC 标志；`usart_dma_tx_irq()` 提取公共
+  `HAL_DMA_Abort`；`0xFFFFU` → `USART_TX_MAX_WORD`。DMA 时钟使能在两个 DMA init
+  内各内联一份（不新增 helper）。channel 入表：F4 各 USART 的 DMA 通道不同
+  （USART1/2/3、UART4/5 为 4，USART6 为 5），故按实例存放。
