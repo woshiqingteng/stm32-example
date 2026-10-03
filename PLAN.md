@@ -564,3 +564,17 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 - `usart_init` GPIO 块改用 `gpio_hw_setup(&hw->gpio_tx/gpio_rx)`。
 - 结果：5 app 构建零告警；HIL 20_1(POLL)/19_dma(TX DMA，100% finished)/
   test_04_usart(4/4，RX IT)/38_camera_stream(启动) 通过。
+
+## 20. 修复 RGB 面板初始清屏只覆盖一半
+
+现象：无摄像头时运行 38_camera_stream，逻辑屏下部（后 320 行）出现彩条。
+
+根因：`ltdc_init()` 末尾 `ltdc_clear(WHITE)` 在 `g_ltdc_dev.dir` 仍为静态零值
+（`LTDC_DIR_PORTRAIT`）而 `width/height` 已是原生 800/480 时执行；`ltdc_fill()`
+的 portrait 分支把 `ex` 由 799 裁到 479，只清了 480×480，物理列 480–799
+（= 逻辑 y 480–799）残留未初始化 SDRAM。有摄像头时后续会再 `lcd_clear()`，故仅
+无摄像头路径可见。
+
+修复：把初始清屏从 `ltdc_init()` 移到 `lcd_init()` 的 `lcd_display_dir()` 之后，
+使方向/尺寸一致，`lcd_clear(WHITE)` 覆盖整个面板。HIL `peek` 核验原未清区与
+framebuffer 末字均为 `0xFFFFFFFF`。

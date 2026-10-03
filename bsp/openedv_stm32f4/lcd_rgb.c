@@ -433,5 +433,4 @@ void ltdc_init(const lcd_rgb_cfg_t *panel)
 
     ltdc_select_layer(LTDC_ACTIVE_LAYER_0);
     LTDC_BL(1);
-    ltdc_clear(LTDC_COLOR_WHITE);
 }

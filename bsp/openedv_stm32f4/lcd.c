@@ -100,6 +100,7 @@ void lcd_init(void)
     {
         ltdc_init(panel);
         lcd_display_dir(LCD_DIR_PORTRAIT);
+        lcd_clear(WHITE);
     }
 }
 
