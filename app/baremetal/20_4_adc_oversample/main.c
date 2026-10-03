@@ -15,12 +15,14 @@
 #define ADC_OVERSAMPLE_SHIFT_DIV 4U
 #define ADC_VREF_MV              3300U
 #define ADC_FULL_SCALE_COUNT     65536U
-#define ADC_LOOP_MS              10U
-#define BLINK_TICKS              2U
+#define ADC_LOOP_MS              200U
 
-static const adc_channel_t g_chan[1] = { ADC_CH5 };
-static uint16_t            g_adc_buf[ADC_DMA_BUF_LEN_SAMPLE];
-static volatile bool       g_adc_ready;
+/* Timing: ADCCLK = PCLK2/4 = 90/4 = 22.5 MHz; Tconv = (480+12)/22.5MHz ~= 21.9us.
+ * A one-shot block of 2560 samples takes ~56 ms and is re-armed after each
+ * processed block; the 200 ms loop refreshes at ~5 Hz. */
+
+static uint16_t          g_adc_buf[ADC_DMA_BUF_LEN_SAMPLE];
+static volatile bool     g_adc_ready;
 
 static void on_adc_oversample(uint16_t offset)
 {
@@ -28,16 +30,39 @@ static void on_adc_oversample(uint16_t offset)
     g_adc_ready = true;
 }
 
+static void adc_show(void)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+    uint32_t raw;
+    uint32_t mv;
+
+    for (i = 0U; i < ADC_DMA_BUF_LEN_SAMPLE; i++)
+    {
+        sum += g_adc_buf[i];
+    }
+
+    /* Oversampling by 256 adds 4 bits: /group-count averages the 10 groups to a
+     * 256-sample sum, then >>4 scales it to a 16-bit result (full scale 65536). */
+    raw  = sum / ADC_DMA_GROUP_COUNT;
+    raw >>= ADC_OVERSAMPLE_SHIFT_DIV;
+    mv   = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
+
+    printf("ovs raw:%u vol:%lu.%03luV\r\n",
+           (unsigned int)raw,
+           (unsigned long)(mv / 1000U),
+           (unsigned long)(mv % 1000U));
+}
+
 int main(void)
 {
-    uint32_t  blink = 0U;
-    adc_cfg_t cfg   = { ADC_CFG_DEFAULT };
+    adc_cfg_t cfg = { ADC_CFG_DEFAULT };
 
     bsp_init();
 
     cfg.mode     = ADC_MODE_DMA;
     cfg.dma_mode = ADC_DMA_ONESHOT;
-    cfg.chans    = g_chan;
+    cfg.chans    = (const adc_channel_t[]){ ADC_CH5 };
     cfg.nchans   = 1U;
     cfg.dma_buf  = g_adc_buf;
     cfg.dma_len  = ADC_DMA_BUF_LEN_SAMPLE;
@@ -50,34 +75,12 @@ int main(void)
     {
         if (g_adc_ready)
         {
-            uint32_t sum = 0U;
-            uint32_t i;
-            uint32_t raw;
-            uint32_t mv;
-
             g_adc_ready = false;
-            for (i = 0U; i < ADC_DMA_BUF_LEN_SAMPLE; i++)
-            {
-                sum += g_adc_buf[i];
-            }
-
-            raw  = sum / ADC_DMA_GROUP_COUNT;
-            raw >>= ADC_OVERSAMPLE_SHIFT_DIV;
-            mv   = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
-
-            printf("ovs raw:%u vol:%lu.%03luV\r\n",
-                   (unsigned int)raw,
-                   (unsigned long)(mv / 1000U),
-                   (unsigned long)(mv % 1000U));
-
-            adc_dma_start(ADC_ID_1);
-
-            if ((++blink % BLINK_TICKS) == 0U)
-            {
-                led_toggle(LED0);
-            }
+            adc_show();
+            adc_dma_start(ADC_ID_1);   /* re-arm the one-shot block */
         }
 
+        led_toggle(LED0);              /* run indicator */
         delay_ms(ADC_LOOP_MS);
     }
 }
