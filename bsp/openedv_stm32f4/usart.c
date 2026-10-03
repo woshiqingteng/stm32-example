@@ -14,6 +14,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "usart.h"
+#include "ringbuf.h"
 
 /* ===== constants ===== */
 
@@ -55,10 +56,7 @@ typedef struct
     DMA_HandleTypeDef     hdma_rx;
     usart_io_t            tx;
     usart_io_t            rx;
-    uint8_t              *buf;
-    uint16_t              size;
-    volatile uint16_t     head;    /* write index (DMA position after IDLE) */
-    volatile uint16_t     tail;    /* read index (usart_read) */
+    ringbuf_t             rb;      /* RX ring (head = DMA position after IDLE) */
     volatile usart_rx_cb_t cb;
     volatile bool         tx_busy; /* asynchronous (IT/DMA) transmit in progress */
     const uint8_t        *volatile tx_ptr; /* TX IT cursor */
@@ -148,7 +146,7 @@ static void usart_dma_tx_init(usart_handle_t *handle, const usart_hw_t *hw,
     HAL_NVIC_EnableIRQ(hw->tx_dma_irqn);
 }
 
-/* RX DMA: circular transfer into handle->buf; bytes are handed over on the
+/* RX DMA: circular transfer into handle->rb.buf; bytes are handed over on the
  * USART IDLE interrupt. The DMA stream IRQ is intentionally not enabled. */
 static void usart_dma_rx_init(usart_handle_t *handle, const usart_hw_t *hw)
 {
@@ -165,7 +163,7 @@ static void usart_dma_rx_init(usart_handle_t *handle, const usart_hw_t *hw)
     SET_BIT(handle->huart.Instance->CR3, USART_CR3_DMAR);
     __HAL_UART_ENABLE_IT(&handle->huart, UART_IT_IDLE);
     (void)HAL_DMA_Start(&handle->hdma_rx, (uint32_t)&handle->huart.Instance->DR,
-                        (uint32_t)handle->buf, handle->size);
+                        (uint32_t)handle->rb.buf, handle->rb.size);
 }
 
 /* ===== transmit paths ===== */
@@ -210,28 +208,17 @@ static bool usart_rx_deliver(usart_handle_t *handle, uint8_t byte)
     {
         handle->cb(byte);
     }
-    if ((handle->buf != 0) && (handle->size != 0U))
-    {
-        uint16_t next = (uint16_t)((handle->head + 1U) % handle->size);
-
-        if (next != handle->tail)
-        {
-            handle->buf[handle->head] = byte;
-            handle->head = next;
-            return true;
-        }
-    }
-    return false;
+    return ringbuf_put(&handle->rb, byte);
 }
 
 /* Hand the bytes written by the circular DMA since the last IDLE to the callback. */
 static void usart_dma_idle(usart_handle_t *handle)
 {
-    uint16_t pos = (uint16_t)(handle->size - __HAL_DMA_GET_COUNTER(&handle->hdma_rx));
+    uint16_t pos = (uint16_t)(handle->rb.size - __HAL_DMA_GET_COUNTER(&handle->hdma_rx));
 
-    while (handle->head != pos)
+    while (handle->rb.head != pos)
     {
-        if (!usart_rx_deliver(handle, handle->buf[handle->head]))
+        if (!usart_rx_deliver(handle, handle->rb.buf[handle->rb.head]))
         {
             break; /* full: drop the rest until read drains */
         }
@@ -282,10 +269,7 @@ void usart_init(const usart_cfg_t *cfg)
 
     handle->tx      = tx;
     handle->rx      = rx;
-    handle->buf     = cfg->rx_buf;
-    handle->size    = cfg->rx_size;
-    handle->head    = 0U;
-    handle->tail    = 0U;
+    ringbuf_init(&handle->rb, cfg->rx_buf, cfg->rx_size);
     handle->tx_busy = false;
     handle->tx_ptr  = 0;
     handle->tx_len  = 0U;
@@ -421,10 +405,9 @@ uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout
     {
         if ((handle->rx == USART_IO_IT) || (handle->rx == USART_IO_DMA))
         {
-            if (handle->tail != handle->head)
+            if (ringbuf_get(&handle->rb, &data[n]))
             {
-                data[n++] = handle->buf[handle->tail];
-                handle->tail = (uint16_t)((handle->tail + 1U) % handle->size);
+                n++;
                 start = HAL_GetTick(); /* timeout is per byte (inter-byte) */
                 continue;
             }

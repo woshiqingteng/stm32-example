@@ -19,7 +19,7 @@ bsp_library(bsp_key
     key.c)
 bsp_library(bsp_usart
     usart.c)
-target_link_libraries(bsp_usart PUBLIC drv_uart)
+target_link_libraries(bsp_usart PUBLIC drv_uart PRIVATE common)
 bsp_library(bsp_core
     bsp.c)
 target_link_libraries(bsp_core PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)

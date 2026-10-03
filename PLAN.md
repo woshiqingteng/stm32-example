@@ -8,9 +8,10 @@
 
 ## 1. 分层与工程结构
 
-依赖方向（严格下行）：`platform < module < bsp < port < lib < app`
+依赖方向（严格下行）：`common < platform < module < bsp < port < lib < app`
 
 ```
+common/     硬件/平台无关的纯 C 工具（`bitops.h`、`ringbuf.h`），header-only
 platform/   SoC/HAL：soc（启动/向量/syscalls/HAL）、drivers
 module/     上游源码（按版本目录）：stm32_hal, freertos, lwip, lvgl, mbedtls,
             fatfs, tinyusb, cherryusb, cmsis_dsp, ijg_libjpeg, tjpgd, stm32_usb_*
@@ -372,3 +373,7 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
   `HAL_GetTick` 超时（`usart_tx_wait` 返回 `bool`）；DMA 使能 TE/FE/DME 中断，
   出错时 abort+清 `DMAT`+释放 `tx_busy`（修复"仅 TC 中断→错误时 `tx_busy`
   永真死等"）；不对外暴露错误查询。
+- 通用工具层：新增根级 `common/`（header-only；`bitops.h` 全 `COMMON_` 前缀、
+  `ringbuf.h` SPSC 透明环形缓冲），置于依赖栈最底；组件按需显式链接
+  （`bsp_usart` 以 `PRIVATE common`）。`usart.c` 的内联 RX 环形缓冲迁移为
+  `ringbuf_t`（head/tail/buf/size、满判据不变），行为等价。

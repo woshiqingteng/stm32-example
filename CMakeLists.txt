@@ -28,6 +28,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_subdirectory(common)
 add_subdirectory(platform)
 add_subdirectory(module)
 add_subdirectory(bsp)
