@@ -27,7 +27,7 @@ static uint32_t adc_read_avg(adc_channel_t ch)
 
     for (i = 0U; i < ADC_AVG_COUNT; i++)
     {
-        sum += adc_read(ch);
+        sum += adc_read(ADC_ID_1, ch);
         delay_ms(ADC_AVG_DELAY_MS);
     }
     return sum / ADC_AVG_COUNT;

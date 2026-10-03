@@ -70,7 +70,7 @@ int main(void)
                    (unsigned long)(mv / 1000U),
                    (unsigned long)(mv % 1000U));
 
-            adc_dma_start();
+            adc_dma_start(ADC_ID_1);
 
             if ((++blink % BLINK_TICKS) == 0U)
             {

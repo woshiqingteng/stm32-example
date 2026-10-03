@@ -433,3 +433,35 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
 - 约束：同一 app 不可混用 `adc_read` 与 DMA（同属 ADC1）；CIRCULAR 下勿重复
   `adc_dma_start`。
 - 提交注记：驱动与 8 个 app 相互依赖，为保持每次提交可构建，合并为**单个提交**。
+
+## 15. ADC 驱动内聚化（adc_hw_t / adc_handle_t / id API）
+
+目标：参照 `usart_hw_t`，把 ADC 的硬件事实集中到按 id 的描述符表，状态聚合为
+单一上下文，去掉冗余 static 函数；公共 API 增加 `adc_id_t`。
+
+### 接口（`adc.h`）
+- 新增 `adc_id_t {ADC_ID_1, ADC_ID_2, ADC_ID_3, ADC_ID_NUM}`；`adc_cfg_t` 首字段
+  `id`；`ADC_CFG_DEFAULT` 首项 `.id = ADC_ID_1`。
+- `adc_read(adc_id_t id, adc_channel_t ch)`、`adc_dma_start(adc_id_t id)`。
+- id 越界/未初始化：`adc_read` 返回 0，`adc_dma_start` 直接返回。
+
+### 实现（`adc.c`）
+- `adc_hw_t{instance,common,gpio,dma,dma_stream,dma_channel,dma_irqn,ch_hal[],ch_pin[]}`
+  + `g_adc_hw[ADC_ID_NUM]`（指定初始化；**仅 ADC1 有效**，ADC2/3 预留并拒绝）。
+- `adc_handle_t{hw,poll,dma,dma_stream,cfg,dma_buf,dma_cb}` + `g_adc[ADC_ID_NUM]`。
+- 选项映射改文件级表 `g_res_hal/g_smp_hal/g_clk_hal`（带界钳制）；删 3 个映射函数
+  与 `adc_channel_pin`；static 函数降为 4 个：`adc_instance_config`、
+  `adc_channel_config`、`adc_gpio_analog`、`adc_dma_irq`。
+- 中断多分支抽成 `adc_dma_irq(adc_handle_t*)`，入口守卫 `hw==0 || Instance==0`；
+  向量 `DMA2_Stream4_IRQHandler` 调 `adc_dma_irq(&g_adc[ADC_ID_1])`。
+
+### 应用
+8 个 app 更新为 id API（20_1/21/22_1/22_3/23 的 `adc_read`，20_4 的
+`adc_dma_start`）；20_2/20_3 用默认 `cfg.id`。
+
+### 完成情况（结果）
+- `adc.h` 增 `adc_id_t`/`cfg.id`/id API；`adc.c` 改为 `adc_hw_t` 表 + `adc_handle_t`
+  上下文 + 文件级映射表；static 函数 7→4；`DMA2_Stream4_IRQHandler` 转为
+  `adc_dma_irq()` + 守卫。
+- ADC2/ADC3 预留（`instance=0`），`adc_init` 对未接实例直接返回。
+- 8 个 app 更新为 id API；构建零告警；HIL 冒烟 20_1/20_2/20_3/20_4/21 通过。

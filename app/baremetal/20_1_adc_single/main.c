@@ -32,7 +32,7 @@ int main(void)
 
         for (i = 0U; i < ADC_AVG_COUNT; i++)
         {
-            sum += adc_read(ADC_CH5);
+            sum += adc_read(ADC_ID_1, ADC_CH5);
             delay_ms(ADC_AVG_DELAY_MS);
         }
         raw = sum / ADC_AVG_COUNT;

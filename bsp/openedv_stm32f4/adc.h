@@ -27,6 +27,15 @@ typedef enum
 
 #define ADC_SCAN_CH_NUM 6U /*!< external channels used by the scan DMA mode */
 
+/** @brief ADC instance selector. Only ADC_ID_1 is wired on this board. */
+typedef enum
+{
+    ADC_ID_1 = 0, /*!< ADC1 */
+    ADC_ID_2,     /*!< ADC2 (reserved, not wired) */
+    ADC_ID_3,     /*!< ADC3 (reserved, not wired) */
+    ADC_ID_NUM
+} adc_id_t;
+
 /** @brief Acquisition transport. */
 typedef enum
 {
@@ -79,6 +88,7 @@ typedef void (*adc_dma_cb_t)(uint16_t offset);
 /** @brief One-shot ADC configuration. */
 typedef struct
 {
+    adc_id_t             id;            /*!< which ADC instance */
     adc_mode_t           mode;          /*!< poll or DMA */
     adc_dma_mode_t       dma_mode;      /*!< valid when mode == ADC_MODE_DMA */
     adc_resolution_t     resolution;
@@ -93,9 +103,9 @@ typedef struct
     adc_dma_cb_t         dma_cb;
 } adc_cfg_t;
 
-/** @brief 12-bit, 480 cycles, PCLK/4, poll mode, no DMA. */
+/** @brief ADC1, 12-bit, 480 cycles, PCLK/4, poll mode, no DMA. */
 #define ADC_CFG_DEFAULT \
-    .mode = ADC_MODE_POLL, .dma_mode = ADC_DMA_ONESHOT, \
+    .id = ADC_ID_1, .mode = ADC_MODE_POLL, .dma_mode = ADC_DMA_ONESHOT, \
     .resolution = ADC_RES_12B, .sample_time = ADC_SAMPLE_480C, .clock = ADC_CLK_DIV4, \
     .chans = 0, .nchans = 0U, .dma_buf = 0, .dma_len = 0U, \
     .dma_half_cb = false, .dma_cb = 0
@@ -106,10 +116,10 @@ typedef struct
  */
 void adc_init(const adc_cfg_t *cfg);
 
-/** @brief Poll one conversion and return its raw result. */
-uint32_t adc_read(adc_channel_t ch);
+/** @brief Poll one conversion on @p id and return its raw result (0 if invalid). */
+uint32_t adc_read(adc_id_t id, adc_channel_t ch);
 
 /** @brief Arm one DMA block (ONESHOT re-arm); CIRCULAR needs this only once. */
-void adc_dma_start(void);
+void adc_dma_start(adc_id_t id);
 
 #endif /* BSP_ADC_H */

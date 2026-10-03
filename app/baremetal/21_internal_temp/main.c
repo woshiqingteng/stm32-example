@@ -34,7 +34,7 @@ int main(void)
 
         for (i = 0U; i < TEMP_AVG_COUNT; i++)
         {
-            sum += adc_read(ADC_TEMP_CH);
+            sum += adc_read(ADC_ID_1, ADC_TEMP_CH);
             delay_ms(TEMP_AVG_DELAY_MS);
         }
         mv = (sum / TEMP_AVG_COUNT) * ADC_VREF_MV / ADC_FULL_SCALE_COUNT;
