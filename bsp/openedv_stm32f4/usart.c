@@ -61,7 +61,6 @@ typedef struct
     volatile uint16_t     tail;    /* read index (usart_read) */
     volatile usart_rx_cb_t cb;
     volatile bool         tx_busy; /* asynchronous (IT/DMA) transmit in progress */
-    volatile bool         tx_error; /* last write ended in DMA error / POLL timeout */
     const uint8_t        *volatile tx_ptr; /* TX IT cursor */
     volatile uint16_t     tx_len;  /* TX IT bytes left */
 } usart_handle_t;
@@ -287,10 +286,9 @@ void usart_init(const usart_cfg_t *cfg)
     handle->size    = cfg->rx_size;
     handle->head    = 0U;
     handle->tail    = 0U;
-    handle->tx_busy  = false;
-    handle->tx_error = false;
-    handle->tx_ptr   = 0;
-    handle->tx_len   = 0U;
+    handle->tx_busy = false;
+    handle->tx_ptr  = 0;
+    handle->tx_len  = 0U;
 
     /* ---- MSP begin: clocks + GPIO AF + NVIC ---- */
     if (cfg->id == USART_ID_1) { __HAL_RCC_USART1_CLK_ENABLE(); }
@@ -354,15 +352,6 @@ bool usart_tx_busy(usart_id_t id)
     return g_uart[id].tx_busy;
 }
 
-bool usart_tx_error(usart_id_t id)
-{
-    if (id >= USART_ID_NUM)
-    {
-        return true;
-    }
-    return g_uart[id].tx_error;
-}
-
 bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
 {
     usart_handle_t *handle;
@@ -375,7 +364,6 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
     }
     handle = &g_uart[id];
     n = (uint16_t)len;
-    handle->tx_error = false;
 
     if (handle->tx == USART_IO_IT)
     {
@@ -408,7 +396,6 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
     {
         if (!usart_tx_wait(handle, data, n))
         {
-            handle->tx_error = true;
             return false;
         }
         return true;
@@ -550,10 +537,9 @@ static void usart_dma_tx_irq(usart_handle_t *handle)
     }
     else
     {
-        /* TE/FE/DME: abort, latch the error and release the busy flag. */
+        /* TE/FE/DME: abort and release the busy flag. */
         CLEAR_BIT(handle->huart.Instance->CR3, USART_CR3_DMAT);
-        handle->tx_error = true;
-        handle->tx_busy  = false;
+        handle->tx_busy = false;
     }
 }
 

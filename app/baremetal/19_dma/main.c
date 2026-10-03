@@ -80,11 +80,6 @@ int main(void)
                     led_toggle(LED0);
                     delay_ms(DMA_TX_POLL_DELAY_MS);
                 }
-                if (usart_tx_error(USART_ID_1))
-                {
-                    printf("DMA TX error\r\n");
-                    break;
-                }
 
                 offset = (uint16_t)(offset + chunk);
                 printf("progress: %u%%\r\n",

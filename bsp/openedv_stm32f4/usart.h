@@ -119,16 +119,12 @@ void usart_init(const usart_cfg_t *cfg);
  * @return true when accepted (IT/DMA) or fully sent (POLL); false on bad
  *         arguments, oversized @p len, or a busy transmitter.
  * @note   POLL blocks with a per-byte 100 ms timeout; after an asynchronous
- *         write poll usart_tx_busy() for completion and usart_tx_error() for
- *         the result.
+ *         write poll usart_tx_busy() for completion.
  */
 bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len);
 
 /** @brief  True while an asynchronous (IT/DMA) transmit is in progress. */
 bool usart_tx_busy(usart_id_t id);
-
-/** @brief  True if the last accepted write ended with a DMA error or a POLL timeout. */
-bool usart_tx_error(usart_id_t id);
 
 /**
  * @brief  Receive up to @p len bytes.
