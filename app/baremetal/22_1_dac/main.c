@@ -15,6 +15,9 @@
 #define VREF_MV            3300U
 #define ADC_AVG_COUNT      10U
 #define ADC_AVG_DELAY_MS   5U
+#define APP_LOOP_MS       10U
+#define LED_BLINK_MS      500U
+#define LED_BLINK_TICKS   (LED_BLINK_MS / APP_LOOP_MS)
 
 static void dac_show(uint16_t code)
 {
@@ -43,6 +46,7 @@ static void dac_show(uint16_t code)
 int main(void)
 {
     uint16_t code = DAC_FULL_SCALE_COUNT / 2U;
+    uint32_t  blink = 0U;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
@@ -75,7 +79,10 @@ int main(void)
             led_toggle(LED1);          /* action LED */
         }
 
-        led_toggle(LED0);              /* run LED, tied to the loop delay */
-        delay_ms(50U);
+        if ((++blink % LED_BLINK_TICKS) == 0U)
+        {
+            led_toggle(LED0);      /* run indicator, ~500 ms */
+        }
+        delay_ms(APP_LOOP_MS);
     }
 }

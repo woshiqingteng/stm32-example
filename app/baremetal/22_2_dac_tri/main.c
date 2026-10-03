@@ -60,13 +60,14 @@ int main(void)
     printf(APP_BANNER "\r\n");
     adc_init(NULL);
 
-    cfg.mode    = DAC_MODE_WAVE;
-    cfg.channel = DAC_CH1;
-    cfg.buf     = g_tri_buf;
-    cfg.len     = TRI_WAVE_LEN;
-    cfg.timer   = DAC_TIMER_6;
-    cfg.arr     = TRI_TIMER_ARR;
-    cfg.psc     = TRI_TIMER_PSC;
+    cfg.mode          = DAC_MODE_WAVE;
+    cfg.channel       = DAC_CH1;
+    cfg.buffer_enable = true;
+    cfg.buf           = g_tri_buf;
+    cfg.len           = TRI_WAVE_LEN;
+    cfg.timer         = DAC_TIMER_6;
+    cfg.arr           = TRI_TIMER_ARR;
+    cfg.psc           = TRI_TIMER_PSC;
     dac_init(&cfg);
     dac_start();
 
