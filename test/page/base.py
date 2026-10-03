@@ -6,8 +6,6 @@ peek/poke, flashing, UART) shared by all board pages.
 from __future__ import annotations
 
 import logging
-import os
-import platform
 import socket
 import subprocess
 import threading
@@ -44,21 +42,8 @@ class BasePage:
         args += ["-f", s.TARGET_CFG]
         return args + list(extra)
 
-    def connect(self, retries=2) -> bool:
-        """Check that the CMSIS-DAP probe + target are reachable.
-
-        On failure the adapter is software-reset (see reset_adapter) and the
-        check is retried, which recovers a wedged probe without a re-plug.
-        """
-        for attempt in range(1, retries + 1):
-            if self._probe_alive():
-                return True
-            if attempt < retries:
-                self.reset_adapter()
-        return False
-
-    def _probe_alive(self) -> bool:
-        """One-shot OpenOCD init/shutdown check of probe + target."""
+    def connect(self) -> bool:
+        """One-shot check that the CMSIS-DAP probe + target are reachable."""
         args = self._oc_args(["-c", "init", "-c", "shutdown"])
         self.log.info("connect: %s", " ".join(args))
         try:
@@ -70,54 +55,6 @@ class BasePage:
         self.log.debug("openocd output:\n%s", out)
         ok = ("Interface ready" in out) and ("DPIDR" in out)
         self.log.info("connect ok=%s", ok)
-        return ok
-
-    def _run_cmd(self, args, timeout=30) -> bool:
-        try:
-            r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
-        except Exception as exc:  # noqa: BLE001
-            self.log.error("command failed: %s (%s)", args, exc)
-            return False
-        if r.returncode != 0:
-            tail = ((r.stdout or "") + (r.stderr or "")).strip().splitlines()
-            self.log.info("command rc=%d: %s", r.returncode, tail[-1] if tail else "")
-        return r.returncode == 0
-
-    def reset_adapter(self) -> bool:
-        """Software-reset a wedged debug adapter (equivalent to a re-plug) by
-        restarting its USB PnP device with ``pnputil /restart-device``.
-
-        The instance id is ``setting.ADAPTER_INSTANCE``. A direct call works when
-        the process is elevated; otherwise a single elevated (UAC) call is made.
-        The device node is never force-removed (that detaches the probe until a
-        reboot/re-plug).
-        """
-        if platform.system() != "Windows":
-            return False
-        inst = getattr(self.setting, "ADAPTER_INSTANCE", "")
-        if not inst:
-            return False
-
-        sysroot = os.environ.get("SystemRoot", r"C:\Windows")
-        pnputil = os.path.join(sysroot, "System32", "pnputil.exe")
-        self.log.warning("resetting debug adapter: %s", inst)
-
-        ok = self._run_cmd([pnputil, "/restart-device", inst])
-        if not ok:
-            self.log.info("direct pnputil reset failed; retrying elevated (UAC)")
-            ps = os.path.join(
-                sysroot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"
-            )
-            script = (
-                "Start-Process -Verb RunAs -Wait -WindowStyle Hidden "
-                "-FilePath '{p}' -ArgumentList '/restart-device','{i}'"
-            ).format(p=pnputil, i=inst)
-            ok = self._run_cmd([ps, "-NoProfile", "-Command", script], timeout=60)
-        if ok:
-            self.log.info("debug adapter reset ok; waiting for re-enumeration")
-            time.sleep(4)
-        else:
-            self.log.error("debug adapter reset failed")
         return ok
 
     def start(self):
@@ -254,9 +191,7 @@ class BasePage:
 
     # -- control ------------------------------------------------------------
     def program(self, binpath, retries=5):
-        """Flash ``binpath``; on failure reset the target and, if the probe looks
-        wedged (repeated failures), software-reset the adapter and reopen."""
-        adapter_reset = False
+        """Flash ``binpath``; on failure reset the chip and retry."""
         for attempt in range(1, retries + 1):
             try:
                 self.cmd("reset halt", timeout=10)
@@ -279,20 +214,10 @@ class BasePage:
                 "program failed (attempt %d/%d), resetting target", attempt, retries
             )
             self.recover()
-            if (attempt >= 2) and (not adapter_reset):
-                adapter_reset = True
-                if self.reset_adapter():
-                    self.reopen()
             time.sleep(0.5)
         raise RuntimeError(
             "flash failed after {} attempts: {}".format(retries, binpath)
         )
-
-    def reopen(self):
-        """Close and re-open the persistent OpenOCD session (after an adapter
-        reset the old USB handle is invalid)."""
-        self.close()
-        self.start()
 
     def recover(self):
         """Best-effort target recovery after a failed operation."""
