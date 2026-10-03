@@ -146,7 +146,7 @@ spi/sys/tpad/usart/wdg`）。
   09_2_atim_oc 09_3_atim_cplm 09_4_atim_pwmin 10_tpad 11_oled 12_lcd_mcu
   13_sdram 14_lcd_rgb 15_usmart 16_rtc 17_rng 18_1_pvd 18_2_sleep 18_3_stop
   18_4_standby 19_dma 20_1_adc_single 20_2_adc_dma 20_3_adc_multi_dma
-  20_4_adc_oversample 21_internal_temp 22_1_dac 22_2_dac_tri 22_3_dac_sine
+  20_4_adc_oversample 21_adc_tempsensor 22_1_dac 22_2_dac_tri 22_3_dac_sine
   23_pwm_dac 24_i2c_eeprom 25_i2c_extend_io 26_i2c_als 27_spi_nor 28_rs485
   29_can 30_touch_screen 31_ir 32_1wire_temp 33_1wire_humi 34_i2c_magnet
   35_i2c_imu 36_spi_wireless 37_internal_flash 38_camera_stream 39_malloc
@@ -416,7 +416,7 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
 
 ### 验证
 `tool/build.sh debug 20_1_adc_single 20_2_adc_dma 20_3_adc_multi_dma
-20_4_adc_oversample 21_internal_temp 22_1_dac 22_3_dac_sine 23_pwm_dac`；手测/HIL。
+20_4_adc_oversample 21_adc_tempsensor 22_1_dac 22_3_dac_sine 23_pwm_dac`；手测/HIL。
 
 ### 完成情况（结果）
 - `adc.h` 去 HAL（自有 `adc_channel_t` + mode/dma_mode/resolution/sample_time/clock

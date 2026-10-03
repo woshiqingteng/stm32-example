@@ -1,6 +1,6 @@
 /**
  * @file    main.c
- * @brief   21_internal_temp: internal temperature sensor read (ADC1 channel 18).
+ * @brief   21_adc_tempsensor: internal temperature sensor read (ADC1 channel 18).
  *          Temperature is reported as degrees * 100 over USART1.
  */
 
