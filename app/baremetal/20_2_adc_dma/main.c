@@ -26,6 +26,26 @@ static void on_adc_dma(uint16_t offset)
     g_adc_ready  = true;
 }
 
+static void adc_show(void)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+    uint32_t raw;
+    uint32_t mv;
+
+    for (i = 0U; i < ADC_HALF_LEN_SAMPLE; i++)
+    {
+        sum += g_adc_buf[g_adc_offset + i];
+    }
+    raw = sum / ADC_HALF_LEN_SAMPLE;
+    mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
+
+    printf("dma raw:%u vol:%lu.%03luV\r\n",
+           (unsigned int)raw,
+           (unsigned long)(mv / 1000U),
+           (unsigned long)(mv % 1000U));
+}
+
 int main(void)
 {
     adc_cfg_t cfg   = { ADC_CFG_DEFAULT };
@@ -48,26 +68,11 @@ int main(void)
     {
         if (g_adc_ready)
         {
-            uint32_t sum = 0U;
-            uint32_t i;
-            uint32_t raw;
-            uint32_t mv;
-
             g_adc_ready = false;
-            for (i = 0U; i < ADC_HALF_LEN_SAMPLE; i++)
-            {
-                sum += g_adc_buf[g_adc_offset + i];
-            }
-            raw = sum / ADC_HALF_LEN_SAMPLE;
-            mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
-
-            printf("dma raw:%u vol:%lu.%03luV\r\n",
-                   (unsigned int)raw,
-                   (unsigned long)(mv / 1000U),
-                   (unsigned long)(mv % 1000U));
+            adc_show();
         }
 
-        led_toggle(LED0);
+        led_toggle(LED0);          /* run indicator */
         delay_ms(ADC_LOOP_MS);
     }
 }

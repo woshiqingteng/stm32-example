@@ -27,6 +27,17 @@ static uint32_t adc_read_avg(void)
     return sum / ADC_AVG_COUNT;
 }
 
+static void adc_show(void)
+{
+    uint32_t raw = adc_read_avg();
+    uint32_t mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
+
+    printf("ch5 raw:%u vol:%lu.%03luV\r\n",
+           (unsigned int)raw,
+           (unsigned long)(mv / 1000U),
+           (unsigned long)(mv % 1000U));
+}
+
 int main(void)
 {
     bsp_init();
@@ -35,15 +46,8 @@ int main(void)
 
     for (;;)
     {
-        uint32_t raw = adc_read_avg();
-        uint32_t mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
-
-        printf("ch5 raw:%u vol:%lu.%03luV\r\n",
-               (unsigned int)raw,
-               (unsigned long)(mv / 1000U),
-               (unsigned long)(mv % 1000U));
-
-        led_toggle(LED0);
+        adc_show();
+        led_toggle(LED0);          /* run indicator */
         delay_ms(ADC_SAMPLE_PERIOD_MS);
     }
 }
