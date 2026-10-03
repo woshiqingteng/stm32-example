@@ -1,85 +1,82 @@
 /**
  * @file    adc.c
- * @brief   ADC1 driver: polled channel read and single/scan DMA acquisition.
+ * @brief   ADC1 pure driver: polled single read and DMA acquisition.
  *
- * MSP content (clock/GPIO/NVIC/DMA) is inlined into the init functions instead
- * of HAL_ADC_MspInit().
+ * Only acquisition lives here. MSP content (clock/GPIO/NVIC/DMA) is inlined and
+ * the DMA completion is handled explicitly (no HAL weak callbacks). Averaging,
+ * voltage and temperature conversion belong to the application.
  */
 
 #include "stm32f4xx_hal.h"
 #include "adc.h"
 #include "delay.h"
 
-#define ADC_INSTANCE            ADC1
-#define ADC_DMA_STREAM          DMA2_Stream4
-#define ADC_DMA_CHANNEL_ID      DMA_CHANNEL_0
-#define ADC_DMA_IRQN            DMA2_Stream4_IRQn
+#define ADC_INSTANCE          ADC1
+#define ADC_DMA_STREAM        DMA2_Stream4
+#define ADC_DMA_CHANNEL_ID    DMA_CHANNEL_0
+#define ADC_DMA_IRQN          DMA2_Stream4_IRQn
+#define ADC_POLL_TIMEOUT_MS   10U
 
-#define ADC_GPIO_PORT           GPIOA
-#define ADC_SINGLE_GPIO_PIN     GPIO_PIN_5
-#define ADC_SCAN_GPIO_PINS      (GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | \
-                                 GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5)
+/* ===== channel / option mapping (own enum -> HAL) ===== */
 
-#define ADC_SINGLE_CONV_COUNT     1U
-#define ADC_RANK_FIRST          1U
-#define ADC_POLL_TIMEOUT_MS     10U
-#define ADC_AVG_DELAY_MS        5U
-
-#define ADC_TEMP_AVG_COUNT      10U
-#define ADC_VREF_VOLT           3.3f
-#define ADC_FULL_SCALE_COUNT        4096.0f
-#define ADC_TEMP_V25_VOLT            0.76f
-#define ADC_TEMP_SLOPE_VOLT_PER_DEGC          0.0025f
-#define ADC_TEMP_OFFSET_DEGC         25.0f
-#define ADC_TEMP_SCALE          100.0f
-
-typedef enum
+static const uint32_t g_adc_ch_hal[ADC_CH_NUM] =
 {
-    ADC_DMA_MODE_NONE = 0,
-    ADC_DMA_MODE_SINGLE = 1,
-    ADC_DMA_MODE_SCAN = 2,
-} adc_dma_mode_t;
-
-/** @brief Per-mode DMA acquisition description selected at init time. */
-typedef struct
-{
-    ADC_HandleTypeDef *handle;          /*!< ADC instance for this mode */
-    FunctionalState    scan;            /*!< scan conversion enable */
-    uint32_t           conversions;     /*!< regular conversions per sequence */
-    uint32_t           gpio_pins;       /*!< analog input pins to configure */
-    void             (*apply_channels)(ADC_HandleTypeDef *hadc); /*!< rank setup */
-} adc_dma_ops_t;
-
-static const adc_channel_t g_adc_scan_channels[ADC_SCAN_CH_NUM] =
-{
-    ADC_CH0, ADC_CH1, ADC_CH2, ADC_CH3, ADC_CH4, ADC_CH5,
+    ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
+    ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_18, /* ADC_TEMP_CH */
 };
 
-static ADC_HandleTypeDef g_adc_handle;
-static ADC_HandleTypeDef g_adc_dma_handle;
-static ADC_HandleTypeDef g_adc_scan_handle;
-static DMA_HandleTypeDef g_adc_dma_stream;
-static adc_dma_cb_t      g_adc_dma_hook;
-static uint16_t         *g_adc_dma_buf;
-static const adc_dma_ops_t *g_adc_dma_active;
-
-static void adc_gpio_config(uint32_t pins)
+static uint32_t adc_res_to_hal(adc_resolution_t v)
 {
-    GPIO_InitTypeDef gpio_init = {0};
-
-    gpio_init.Pin  = pins;
-    gpio_init.Mode = GPIO_MODE_ANALOG;
-    gpio_init.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ADC_GPIO_PORT, &gpio_init);
+    switch (v)
+    {
+        case ADC_RES_10B: return ADC_RESOLUTION_10B;
+        case ADC_RES_8B:  return ADC_RESOLUTION_8B;
+        case ADC_RES_6B:  return ADC_RESOLUTION_6B;
+        default:          return ADC_RESOLUTION_12B;
+    }
 }
+
+static uint32_t adc_sample_to_hal(adc_sample_time_t v)
+{
+    static const uint32_t cycles[8] =
+    {
+        ADC_SAMPLETIME_3CYCLES, ADC_SAMPLETIME_15CYCLES, ADC_SAMPLETIME_28CYCLES,
+        ADC_SAMPLETIME_56CYCLES, ADC_SAMPLETIME_84CYCLES, ADC_SAMPLETIME_112CYCLES,
+        ADC_SAMPLETIME_144CYCLES, ADC_SAMPLETIME_480CYCLES,
+    };
+
+    return cycles[(v < 8) ? (uint32_t)v : 7U];
+}
+
+static uint32_t adc_clock_to_hal(adc_clock_t v)
+{
+    static const uint32_t presc[4] =
+    {
+        ADC_CLOCK_SYNC_PCLK_DIV2, ADC_CLOCK_SYNC_PCLK_DIV4,
+        ADC_CLOCK_SYNC_PCLK_DIV6, ADC_CLOCK_SYNC_PCLK_DIV8,
+    };
+
+    return presc[(v < 4) ? (uint32_t)v : 1U];
+}
+
+/* ===== state ===== */
+
+static ADC_HandleTypeDef g_adc;          /* polled */
+static ADC_HandleTypeDef g_adc_dma;      /* DMA */
+static DMA_HandleTypeDef g_adc_dma_stream;
+static adc_cfg_t         g_cfg;
+static uint16_t         *g_dma_buf;
+static adc_dma_cb_t      g_dma_cb;
+
+/* ===== helpers ===== */
 
 static void adc_instance_config(ADC_HandleTypeDef *hadc, FunctionalState scan,
                                 uint32_t conversions, FunctionalState continuous,
                                 FunctionalState dma_continuous)
 {
     hadc->Instance = ADC_INSTANCE;
-    hadc->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV4; /* f_ADC = PCLK2/4 = 90/4 = 22.5 MHz */
-    hadc->Init.Resolution            = ADC_RESOLUTION_12B;
+    hadc->Init.ClockPrescaler        = adc_clock_to_hal(g_cfg.clock);
+    hadc->Init.Resolution            = adc_res_to_hal(g_cfg.resolution);
     hadc->Init.DataAlign             = ADC_DATAALIGN_RIGHT;
     hadc->Init.ScanConvMode          = scan;
     hadc->Init.EOCSelection          = (scan == ENABLE) ? ADC_EOC_SEQ_CONV : ADC_EOC_SINGLE_CONV;
@@ -90,144 +87,72 @@ static void adc_instance_config(ADC_HandleTypeDef *hadc, FunctionalState scan,
     hadc->Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     hadc->Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     hadc->Init.DMAContinuousRequests = dma_continuous;
-    HAL_ADC_Init(hadc);
+    (void)HAL_ADC_Init(hadc);
 }
 
-static void adc_channel_config(ADC_HandleTypeDef *hadc, adc_channel_t channel, uint32_t rank)
+static void adc_channel_config(ADC_HandleTypeDef *hadc, adc_channel_t ch, uint32_t rank)
 {
     ADC_ChannelConfTypeDef channel_config = {0};
 
-    channel_config.Channel      = channel;
+    channel_config.Channel      = g_adc_ch_hal[(ch < ADC_CH_NUM) ? (uint32_t)ch : 0U];
     channel_config.Rank         = rank;
-    channel_config.SamplingTime = ADC_SAMPLE_TIME;
+    channel_config.SamplingTime = adc_sample_to_hal(g_cfg.sample_time);
     channel_config.Offset       = 0U;
-    HAL_ADC_ConfigChannel(hadc, &channel_config);
+    (void)HAL_ADC_ConfigChannel(hadc, &channel_config);
 }
 
-static void adc_dma_channels_single(ADC_HandleTypeDef *hadc)
+static uint32_t adc_channel_pin(adc_channel_t ch)
 {
-    adc_channel_config(hadc, ADC_CH5, ADC_RANK_FIRST);
+    return (ch <= ADC_CH5) ? (uint32_t)(1UL << (uint32_t)ch) : 0U; /* CH0..5 -> PA0..PA5 */
 }
 
-static void adc_dma_channels_scan(ADC_HandleTypeDef *hadc)
+static void adc_gpio_analog(uint32_t pins)
 {
-    uint32_t i;
+    GPIO_InitTypeDef gpio = {0};
 
-    for (i = 0U; i < (uint32_t)ADC_SCAN_CH_NUM; i++)
+    if (pins == 0U)
     {
-        adc_channel_config(hadc, g_adc_scan_channels[i], (uint32_t)(i + ADC_RANK_FIRST));
+        return;
     }
+    gpio.Pin  = pins;
+    gpio.Mode = GPIO_MODE_ANALOG;
+    gpio.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &gpio);
 }
 
-/* Indexed by adc_dma_mode_t; the single/scan entries carry everything that
- * differs between the two acquisition modes. */
-static const adc_dma_ops_t g_adc_dma_ops[3] =
-{
-    { 0,                  DISABLE, 0U,                    0U,                0 },
-    { &g_adc_dma_handle,  DISABLE, ADC_SINGLE_CONV_COUNT,   ADC_SINGLE_GPIO_PIN, &adc_dma_channels_single },
-    { &g_adc_scan_handle, ENABLE,  (uint32_t)ADC_SCAN_CH_NUM, ADC_SCAN_GPIO_PINS, &adc_dma_channels_scan },
-};
+/* ===== public API ===== */
 
-void adc_init(void)
+void adc_init(const adc_cfg_t *cfg)
 {
-    /* ---- MSP begin: clock + GPIO ---- */
+    static const adc_cfg_t cfg_default = { ADC_CFG_DEFAULT };
+    uint32_t i;
+    uint32_t pins = 0U;
+
+    g_cfg = (cfg != 0) ? *cfg : cfg_default;
+
     __HAL_RCC_ADC1_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    adc_gpio_config(ADC_SINGLE_GPIO_PIN);
-    /* ---- MSP end ---- */
+    /* Polled handle uses PA5 (single channel). */
+    adc_gpio_analog(GPIO_PIN_5);
+    adc_instance_config(&g_adc, DISABLE, 1U, DISABLE, DISABLE);
 
-    adc_instance_config(&g_adc_handle, DISABLE, ADC_SINGLE_CONV_COUNT, DISABLE, DISABLE);
-}
-
-uint32_t adc_get_result(adc_channel_t channel)
-{
-    adc_channel_config(&g_adc_handle, channel, ADC_RANK_FIRST);
-
-    HAL_ADC_Start(&g_adc_handle);
-    HAL_ADC_PollForConversion(&g_adc_handle, ADC_POLL_TIMEOUT_MS);
-
-    return (uint32_t)HAL_ADC_GetValue(&g_adc_handle);
-}
-
-uint32_t adc_get_result_average(adc_channel_t channel, uint8_t times)
-{
-    uint32_t sum = 0U;
-    uint8_t  i;
-
-    if (times == 0U)
-    {
-        return 0U;
-    }
-
-    for (i = 0U; i < times; i++)
-    {
-        sum += adc_get_result(channel);
-        delay_ms(ADC_AVG_DELAY_MS);
-    }
-
-    return sum / times;
-}
-
-/* Enable the internal temperature sensor and the VREFINT channel. */
-static void adc_enable_temp_sensor(void)
-{
-    SET_BIT(ADC->CCR, ADC_CCR_TSVREFE);
-}
-
-void adc_temp_init(void)
-{
-    adc_init();
-    adc_enable_temp_sensor();
-}
-
-int16_t adc_get_temperature(void)
-{
-    uint32_t raw     = adc_get_result_average(ADC_TEMP_CH, ADC_TEMP_AVG_COUNT);
-    float    voltage = (float)raw * ADC_VREF_VOLT / ADC_FULL_SCALE_COUNT;
-    float    temp    = ((voltage - ADC_TEMP_V25_VOLT) / ADC_TEMP_SLOPE_VOLT_PER_DEGC + ADC_TEMP_OFFSET_DEGC) * ADC_TEMP_SCALE;
-
-    return (int16_t)temp;
-}
-
-static void adc_dma_arm(uint16_t len)
-{
-    ADC_HandleTypeDef *hadc;
-
-    if ((g_adc_dma_active == 0) || (g_adc_dma_active->handle == 0))
+    if (g_cfg.mode != ADC_MODE_DMA)
     {
         return;
     }
 
-    hadc = g_adc_dma_active->handle;
+    g_dma_buf = g_cfg.dma_buf;
+    g_dma_cb  = g_cfg.dma_cb;
 
-    /* Stop the ADC so HAL_ADC_Start_DMA re-enables it and restarts the scan
-     * sequence from rank 1 (matches the previous arm behaviour). */
-    __HAL_ADC_DISABLE(hadc);
-    (void)HAL_ADC_Start_DMA(hadc, (uint32_t *)g_adc_dma_buf, (uint32_t)len);
-}
-
-static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
-{
-    const adc_dma_ops_t *ops;
-    ADC_HandleTypeDef   *hadc;
-
-    if ((mode != ADC_DMA_MODE_SINGLE) && (mode != ADC_DMA_MODE_SCAN))
+    for (i = 0U; i < (uint32_t)g_cfg.nchans; i++)
     {
-        return;
+        pins |= adc_channel_pin(g_cfg.chans[i]);
     }
+    adc_gpio_analog(pins);
 
-    ops  = &g_adc_dma_ops[mode];
-    hadc = ops->handle;
-
-    (void)len; /* the transfer length is supplied by adc_dma_arm()/HAL_ADC_Start_DMA(). */
-
-    /* ---- MSP begin: clocks + GPIO + NVIC ---- */
-    __HAL_RCC_ADC1_CLK_ENABLE();
+    /* ---- MSP begin: DMA clock + NVIC ---- */
     __HAL_RCC_DMA2_CLK_ENABLE();
-
-    adc_gpio_config(ops->gpio_pins);
-
     HAL_NVIC_SetPriority(ADC_DMA_IRQN, 3U, 3U);
     HAL_NVIC_EnableIRQ(ADC_DMA_IRQN);
     /* ---- MSP end ---- */
@@ -239,55 +164,100 @@ static void adc_dma_config(uint16_t *buf, uint16_t len, adc_dma_mode_t mode)
     g_adc_dma_stream.Init.MemInc              = DMA_MINC_ENABLE;
     g_adc_dma_stream.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
     g_adc_dma_stream.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
-    g_adc_dma_stream.Init.Mode                = DMA_NORMAL;
+    g_adc_dma_stream.Init.Mode                = (g_cfg.dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
     g_adc_dma_stream.Init.Priority            = DMA_PRIORITY_MEDIUM;
-    HAL_DMA_Init(&g_adc_dma_stream);
+    g_adc_dma_stream.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
+    (void)HAL_DMA_Init(&g_adc_dma_stream);
 
-    __HAL_LINKDMA(hadc, DMA_Handle, g_adc_dma_stream);
+    __HAL_LINKDMA(&g_adc_dma, DMA_Handle, g_adc_dma_stream);
 
-    adc_instance_config(hadc, ops->scan, ops->conversions, ENABLE, ENABLE);
-    ops->apply_channels(hadc);
+    adc_instance_config(&g_adc_dma,
+                        (g_cfg.nchans > 1U) ? ENABLE : DISABLE,
+                        (uint32_t)g_cfg.nchans, ENABLE, ENABLE);
+    for (i = 0U; i < (uint32_t)g_cfg.nchans; i++)
+    {
+        adc_channel_config(&g_adc_dma, g_cfg.chans[i], (uint32_t)(i + 1U));
+    }
 
-    g_adc_dma_buf    = buf;
-    g_adc_dma_active = ops;
+    adc_dma_start();
 }
 
-void adc_dma_init(uint16_t *buf, uint16_t len)
+uint32_t adc_read(adc_channel_t ch)
 {
-    adc_dma_config(buf, len, ADC_DMA_MODE_SINGLE);
+    if (ch == ADC_TEMP_CH)
+    {
+        SET_BIT(ADC->CCR, ADC_CCR_TSVREFE);
+    }
+
+    adc_channel_config(&g_adc, ch, 1U);
+    (void)HAL_ADC_Start(&g_adc);
+    (void)HAL_ADC_PollForConversion(&g_adc, ADC_POLL_TIMEOUT_MS);
+
+    return (uint32_t)HAL_ADC_GetValue(&g_adc);
 }
 
-void adc_dma_start(uint16_t len)
+void adc_dma_start(void)
 {
-    adc_dma_arm(len);
+    if ((g_cfg.mode != ADC_MODE_DMA) || (g_dma_buf == 0) || (g_cfg.dma_len == 0U))
+    {
+        return;
+    }
+
+    /* Restart the sequence from rank 1 and let the ADC stabilise after ADON. */
+    __HAL_ADC_DISABLE(&g_adc_dma);
+    __HAL_ADC_CLEAR_FLAG(&g_adc_dma, ADC_FLAG_EOC | ADC_FLAG_OVR);
+
+    SET_BIT(ADC1->CR2, ADC_CR2_DMA);
+    if (HAL_DMA_Start(&g_adc_dma_stream, (uint32_t)&ADC1->DR,
+                      (uint32_t)g_dma_buf, g_cfg.dma_len) != HAL_OK)
+    {
+        CLEAR_BIT(ADC1->CR2, ADC_CR2_DMA);
+        return;
+    }
+
+    __HAL_DMA_ENABLE_IT(&g_adc_dma_stream, DMA_IT_TC | DMA_IT_TE | DMA_IT_FE | DMA_IT_DME
+                                           | (g_cfg.dma_half_cb ? DMA_IT_HT : 0U));
+
+    __HAL_ADC_ENABLE(&g_adc_dma);
+    delay_us(ADC_STAB_DELAY_US);
+    SET_BIT(ADC1->CR2, ADC_CR2_SWSTART);
 }
 
-void adc_scan_dma_init(uint16_t *buf, uint16_t len)
-{
-    adc_dma_config(buf, len, ADC_DMA_MODE_SCAN);
-}
-
-void adc_scan_dma_start(uint16_t len)
-{
-    adc_dma_arm(len);
-}
-
-void adc_register_dma_hook(adc_dma_cb_t cb)
-{
-    g_adc_dma_hook = cb;
-}
+/* ===== interrupts ===== */
 
 void DMA2_Stream4_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&g_adc_dma_stream);
-}
+    DMA_HandleTypeDef *hdma = &g_adc_dma_stream;
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-    (void)hadc;
-
-    if (g_adc_dma_hook != 0)
+    if (g_cfg.dma_half_cb &&
+        (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma)) != RESET))
     {
-        g_adc_dma_hook();
+        __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma));
+        if (g_dma_cb != 0)
+        {
+            g_dma_cb(0U);
+        }
+    }
+
+    if (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma)) != RESET)
+    {
+        __HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma));
+        if (g_cfg.dma_mode == ADC_DMA_ONESHOT)
+        {
+            (void)HAL_DMA_Abort(hdma);
+            CLEAR_BIT(ADC1->CR2, ADC_CR2_DMA);
+        }
+        if (g_dma_cb != 0)
+        {
+            g_dma_cb((uint16_t)(g_cfg.dma_len / 2U));
+        }
+    }
+
+    if ((__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TE_FLAG_INDEX(hdma)) != RESET) ||
+        (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_FE_FLAG_INDEX(hdma)) != RESET) ||
+        (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_DME_FLAG_INDEX(hdma)) != RESET))
+    {
+        (void)HAL_DMA_Abort(hdma);
+        CLEAR_BIT(ADC1->CR2, ADC_CR2_DMA);
     }
 }

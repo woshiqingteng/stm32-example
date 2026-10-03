@@ -8,74 +8,76 @@
 #include "bsp.h"
 #include "adc.h"
 
-#define ADC_SCAN_SAMPLE_COUNT     50U
-#define ADC_DMA_BUF_LEN_SAMPLE      (ADC_SCAN_SAMPLE_COUNT * ADC_SCAN_CH_NUM)
-#define ADC_VREF_MV          3300U
-#define ADC_VREF_UV          (ADC_VREF_MV * 1000U)
-#define ADC_UV_PER_VOLT      1000000U
-#define ADC_UV_PER_MV        1000U
-#define ADC_FULL_SCALE_COUNT       4096U
-#define ADC_LOOP_MS   10U
-#define BLINK_PERIOD_MS         5U
+#define ADC_SCAN_SAMPLE_COUNT   50U
+#define ADC_DMA_BUF_LEN_SAMPLE  (ADC_SCAN_SAMPLE_COUNT * ADC_SCAN_CH_NUM)
+#define ADC_VREF_MV             3300U
+#define ADC_FULL_SCALE_COUNT    4096U
+#define ADC_LOOP_MS             10U
+#define BLINK_TICKS             5U
 
-typedef enum
+static const adc_channel_t g_scan[ADC_SCAN_CH_NUM] =
 {
-    ADC_SCAN_IDLE = 0,
-    ADC_SCAN_DONE = 1,
-} adc_scan_state_t;
+    ADC_CH0, ADC_CH1, ADC_CH2, ADC_CH3, ADC_CH4, ADC_CH5,
+};
+static uint16_t          g_adc_buf[ADC_DMA_BUF_LEN_SAMPLE];
+static volatile bool     g_adc_ready;
 
-static uint16_t                  g_adc_buf[ADC_DMA_BUF_LEN_SAMPLE];
-static volatile adc_scan_state_t g_adc_state = ADC_SCAN_IDLE;
-
-static void on_adc_scan_complete(void)
+static void on_adc_scan(uint16_t offset)
 {
-    g_adc_state = ADC_SCAN_DONE;
+    (void)offset;
+    g_adc_ready = true;
 }
 
 int main(void)
 {
-    uint32_t blink = 0U;
+    uint32_t  blink = 0U;
+    adc_cfg_t cfg   = { ADC_CFG_DEFAULT };
 
     bsp_init();
-    adc_scan_dma_init(g_adc_buf, ADC_DMA_BUF_LEN_SAMPLE);
-    adc_register_dma_hook(&on_adc_scan_complete);
-    adc_scan_dma_start(ADC_DMA_BUF_LEN_SAMPLE);
+
+    cfg.mode     = ADC_MODE_DMA;
+    cfg.dma_mode = ADC_DMA_CIRCULAR;
+    cfg.chans    = g_scan;
+    cfg.nchans   = ADC_SCAN_CH_NUM;
+    cfg.dma_buf  = g_adc_buf;
+    cfg.dma_len  = ADC_DMA_BUF_LEN_SAMPLE;
+    cfg.dma_cb   = on_adc_scan;
+    adc_init(&cfg);
+
     printf(APP_BANNER "\r\n");
 
     for (;;)
     {
-        if (g_adc_state == ADC_SCAN_DONE)
+        if (g_adc_ready)
         {
             uint32_t ch;
+
+            g_adc_ready = false;
 
             for (ch = 0U; ch < (uint32_t)ADC_SCAN_CH_NUM; ch++)
             {
                 uint32_t sum = 0U;
                 uint32_t i;
                 uint32_t raw;
-                uint32_t micro;
+                uint32_t mv;
 
                 for (i = 0U; i < ADC_SCAN_SAMPLE_COUNT; i++)
                 {
                     sum += g_adc_buf[i * (uint32_t)ADC_SCAN_CH_NUM + ch];
                 }
-
-                raw   = sum / ADC_SCAN_SAMPLE_COUNT;
-                micro = (uint32_t)(((uint64_t)raw * ADC_VREF_UV) / ADC_FULL_SCALE_COUNT);
+                raw = sum / ADC_SCAN_SAMPLE_COUNT;
+                mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
 
                 printf("ch%u raw:%u vol:%lu.%03luV\r\n",
                        (unsigned int)ch,
                        (unsigned int)raw,
-                       (unsigned long)(micro / ADC_UV_PER_VOLT),
-                       (unsigned long)((micro % ADC_UV_PER_VOLT) / ADC_UV_PER_MV));
+                       (unsigned long)(mv / 1000U),
+                       (unsigned long)(mv % 1000U));
             }
 
             printf("\r\n");
 
-            g_adc_state = ADC_SCAN_IDLE;
-            adc_scan_dma_start(ADC_DMA_BUF_LEN_SAMPLE);
-
-            if ((++blink % BLINK_PERIOD_MS) == 0U)
+            if ((++blink % BLINK_TICKS) == 0U)
             {
                 led_toggle(LED0);
             }

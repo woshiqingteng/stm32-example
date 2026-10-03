@@ -17,9 +17,25 @@
 static const uint16_t g_sin_psc[] = { 29U, 2U };
 static const char *const g_sin_label[] = { "~3kHz", "~30kHz" };
 
+#define ADC_AVG_COUNT     10U
+#define ADC_AVG_DELAY_MS  5U
+
+static uint32_t adc_read_avg(adc_channel_t ch)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+
+    for (i = 0U; i < ADC_AVG_COUNT; i++)
+    {
+        sum += adc_read(ch);
+        delay_ms(ADC_AVG_DELAY_MS);
+    }
+    return sum / ADC_AVG_COUNT;
+}
+
 static void dac_sine_show(uint8_t idx)
 {
-    uint32_t adc = adc_get_result_average(ADC_CH4, 10U);
+    uint32_t adc = adc_read_avg(ADC_CH4);
 
     printf("sine %s  ADC(Pin4): %lu\r\n", g_sin_label[idx], (unsigned long)adc);
 }
@@ -30,7 +46,7 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    adc_init();
+    adc_init(NULL);
 
     dac_sine_init(SIN_TIMER_ARR, g_sin_psc[idx]);
     dac_sine_start();

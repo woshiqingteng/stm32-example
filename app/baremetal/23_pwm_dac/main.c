@@ -16,11 +16,27 @@
 /* TIM9/APB2: 180 MHz/((1+1)*256) = 351.5625 kHz */
 #define PWMDAC_STEP_MV   100U
 
+#define ADC_AVG_COUNT     10U
+#define ADC_AVG_DELAY_MS  5U
+
+static uint32_t adc_read_avg(adc_channel_t ch)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+
+    for (i = 0U; i < ADC_AVG_COUNT; i++)
+    {
+        sum += adc_read(ch);
+        delay_ms(ADC_AVG_DELAY_MS);
+    }
+    return sum / ADC_AVG_COUNT;
+}
+
 static void pwmdac_show(void)
 {
     uint16_t code = (uint16_t)pwmdac_get_code();
     uint16_t vol = (uint16_t)(((uint32_t)code * PWMDAC_VREF_MV) / (PWMDAC_ARR + 1U));
-    uint32_t adc = adc_get_result_average(ADC_CH3, 10U);
+    uint32_t adc = adc_read_avg(ADC_CH3);
     uint32_t adc_mv = (adc * PWMDAC_VREF_MV) / 4095U;
 
     printf("PWM: %3u %u.%03uV  ADC: %4lu %lu.%03luV\r\n", (unsigned)code,
@@ -36,7 +52,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     pwmdac_init(PWMDAC_ARR, PWMDAC_PSC);
-    adc_init();
+    adc_init(NULL);
     pwmdac_set(vol);
 
     printf("WKUP: +  KEY0: -\r\n");

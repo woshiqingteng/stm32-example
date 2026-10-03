@@ -377,3 +377,59 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
   `ringbuf.h` SPSC 透明环形缓冲），置于依赖栈最底；组件按需显式链接
   （`bsp_usart` 以 `PRIVATE common`）。`usart.c` 的内联 RX 环形缓冲迁移为
   `ringbuf_t`（head/tail/buf/size、满判据不变），行为等价。
+
+## 14. 计划：ADC 纯驱动重构（HAL-free 接口 + 原始采样）
+
+目标：ADC1 只做"采样"——HAL-free 接口、`adc_init(cfg)` 配置结构；**不含平均/
+电压/温度等算法**（全部移到 app）。DMA 配置并入 `adc_init`，完成中断显式化
+（去 HAL 弱回调）。
+
+### 接口（`adc.h`，HAL-free）
+- 自有 `adc_channel_t`（`ADC_CH0..5`、`ADC_TEMP_CH`、`ADC_CH_NUM`）与
+  `ADC_SCAN_CH_NUM=6`。
+- `adc_mode_t{POLL,DMA}`、`adc_dma_mode_t{ONESHOT,CIRCULAR}`、
+  `adc_resolution_t`、`adc_sample_time_t`、`adc_clock_t{DIV2/4/6/8}`。
+- `adc_dma_cb_t(uint16_t offset)`（半满=0，全满=dma_len/2）。
+- `adc_cfg_t{mode,dma_mode,resolution,sample_time,clock,chans,nchans,dma_buf,
+  dma_len,dma_half_cb,dma_cb}` + `ADC_CFG_DEFAULT`。
+- API：`adc_init(cfg)`（NULL→默认；DMA 模式配置并启动首轮）、`adc_read(ch)`
+  （轮询原始值，`ADC_TEMP_CH` 自动开 `TSVREFE`）、`adc_dma_start()`（ONESHOT 重装）。
+- 移除：`adc_get_result_average`、`adc_temp_init`/`adc_get_temperature`、
+  `adc_dma_init`/`adc_scan_dma_*`、`adc_register_dma_hook`、旧
+  `adc_sample_time_t`/`ADC_SAMPLE_TIME`、`ops` 表、`stm32f4xx_hal.h`。
+
+### 实现（`adc.c`，HAL 仅 init）
+- 2 个 handle：`g_adc`(轮询) + `g_adc_dma`(DMA)；通道/分辨率/采样/时钟映射表。
+- `adc_init`：PA5 模拟 + 轮询 handle；DMA 模式再加 DMA2_Stream4 配置（按
+  `dma_mode` 选 CIRCULAR/NORMAL）、按 `nchans` 配扫描/rank、NVIC、缓冲/回调，
+  末尾调用 `adc_dma_start()`。
+- `adc_dma_start`：`__HAL_ADC_DISABLE`→清 EOC/OVR→`SET CR2.DMA`→`HAL_DMA_Start`
+  →使能 DMA `TC|TE|FE|DME`(+`HT`)→`__HAL_ADC_ENABLE`→`delay_us(3)`→`SWSTART`。
+- `DMA2_Stream4_IRQHandler`：HT→回调(0)；TC→ONESHOT 时 Abort+清 DMAT，回调
+  (dma_len/2)；TE/FE/DME→Abort+清 DMAT。**不使能 ADC OVR 中断**（无需 ADC IRQ）。
+- 约束：同一 app 不可混用 `adc_read` 与 DMA；CIRCULAR 下勿重复 `adc_dma_start`。
+
+### 应用迁移（8 个）
+- 20_1 POLL（平均/电压内联 + `BLINK_TICKS`）；20_2 CIRCULAR+HT（双缓冲）；
+  20_3 CIRCULAR 扫描；20_4 ONESHOT（重装）；21 温度整数换算（app）；
+  22_1/22_3/23 轮询平均（app）。
+
+### 验证
+`tool/build.sh debug 20_1_adc_single 20_2_adc_dma 20_3_adc_multi_dma
+20_4_adc_oversample 21_internal_temp 22_1_dac 22_3_dac_sine 23_pwm_dac`；手测/HIL。
+
+### 完成情况（结果）
+- `adc.h` 去 HAL（自有 `adc_channel_t` + mode/dma_mode/resolution/sample_time/clock
+  枚举 + `adc_cfg_t`/`ADC_CFG_DEFAULT`）；API = `adc_init(cfg)` / `adc_read(ch)` /
+  `adc_dma_start()`。移除平均/电压/温度算法、旧 `adc_sample_time_t`、`ops` 表。
+- DMA 并入 `adc_init`；完成中断显式（HT/TC/TE/FE/DME），ONESHOT 在 TC 处 Abort 后
+  可重装，CIRCULAR 自由运行；未使能 ADC OVR 中断（无需 ADC IRQ）。
+- 8 个 app 迁移：20_1 POLL（平均/电压/`BLINK_TICKS` 内联）、20_2 CIRCULAR+HT
+  （双缓冲）、20_3 CIRCULAR 扫描、20_4 ONESHOT（重装）、21 温度整数换算、
+  22_1/22_3/23 轮询平均内联。
+- 验证：8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 串口实测 20_1
+  `ch5 vol:3.29V`、20_2 `dma vol:3.29V`、20_3 六通道 `ch0..ch5`、
+  20_4 `ovs raw:65430 vol:3.294V`、21 `TEMP: 39.4C`。
+- 约束：同一 app 不可混用 `adc_read` 与 DMA（同属 ADC1）；CIRCULAR 下勿重复
+  `adc_dma_start`。
+- 提交注记：驱动与 8 个 app 相互依赖，为保持每次提交可构建，合并为**单个提交**。

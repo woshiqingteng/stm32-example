@@ -13,11 +13,26 @@
 
 #define DAC_STEP_COUNT     256U
 #define DAC_MV_FULL  3300U
+#define ADC_AVG_COUNT      10U
+#define ADC_AVG_DELAY_MS   5U
+
+static uint32_t adc_read_avg(adc_channel_t ch)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+
+    for (i = 0U; i < ADC_AVG_COUNT; i++)
+    {
+        sum += adc_read(ch);
+        delay_ms(ADC_AVG_DELAY_MS);
+    }
+    return sum / ADC_AVG_COUNT;
+}
 
 static void dac_show(uint16_t code)
 {
     uint32_t millivolt = ((uint32_t)code * DAC_MV_FULL) / DAC_FULL_SCALE_COUNT;
-    uint32_t adc = adc_get_result_average(ADC_CH4, 10U);
+    uint32_t adc = adc_read_avg(ADC_CH4);
     uint32_t adc_mv = (adc * DAC_MV_FULL) / DAC_FULL_SCALE_COUNT;
 
     printf("DAC: %4u %lu.%03luV  ADC: %4lu %lu.%03luV\r\n", (unsigned)code,
@@ -33,7 +48,7 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
     dac_init();
-    adc_init();
+    adc_init(NULL);
     dac_set(DAC_CH1, code);
 
     printf("WKUP: +  KEY0: -\r\n");
