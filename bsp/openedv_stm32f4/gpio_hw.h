@@ -1,10 +1,10 @@
 /**
  * @file    gpio_hw.h
- * @brief   Generic GPIO hardware attribute (port + clock + electrical config).
+ * @brief   Generic GPIO pin hardware attribute (port + clock + one pin + config).
  *
- * Shared by board drivers (ADC, USART, ...) that embed a gpio_hw_t to describe
- * how one GPIO port is configured. The pin mask is passed to gpio_hw_setup()
- * per use so a single descriptor can serve several pin groups.
+ * Shared by board drivers (ADC, USART, ...) that embed gpio_hw_t (one per pin)
+ * to describe how a single GPIO pin is configured. Drivers assemble several
+ * entries when they own several pins with possibly different configurations.
  */
 
 #ifndef BSP_GPIO_HW_H
@@ -14,32 +14,30 @@
 
 #include "stm32f4xx_hal.h"
 
-/** @brief GPIO hardware attributes for one port. */
+/** @brief GPIO hardware attributes for one pin. */
 typedef struct
 {
     GPIO_TypeDef *port;      /*!< GPIOA / GPIOB / ... */
     uint32_t      rcc_en;    /*!< RCC AHB1ENR clock-enable bit */
+    uint16_t      pin;       /*!< the single GPIO_PIN_x */
     uint32_t      mode;      /*!< GPIO_MODE_* */
     uint32_t      pull;      /*!< GPIO_PULL* */
     uint32_t      speed;     /*!< GPIO_SPEED_FREQ_* */
     uint32_t      alternate; /*!< GPIO_AFx_* (0 for non-AF modes) */
 } gpio_hw_t;
 
-/**
- * @brief  Enable the port clock and configure @p pins with the descriptor.
- * @param  pins GPIO_PIN_x mask (0 is a no-op).
- */
-static inline void gpio_hw_setup(const gpio_hw_t *hw, uint16_t pins)
+/** @brief Enable the port clock and configure the descriptor's pin. */
+static inline void gpio_hw_setup(const gpio_hw_t *hw)
 {
     GPIO_InitTypeDef gpio = {0};
 
-    if (pins == 0U)
+    if (hw->pin == 0U)
     {
         return;
     }
     SET_BIT(RCC->AHB1ENR, hw->rcc_en);
 
-    gpio.Pin       = pins;
+    gpio.Pin       = hw->pin;
     gpio.Mode      = hw->mode;
     gpio.Pull      = hw->pull;
     gpio.Speed     = hw->speed;

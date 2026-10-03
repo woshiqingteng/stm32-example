@@ -517,3 +517,27 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 - 新增 `dma_hw.h`；`adc_hw_t` 内嵌 `dma_hw_t`，DMA 硬件事实全部来自 `g_adc_hw` 表；
   `adc_init` 的 DMA 初始化收敛为一次 `dma_hw_setup`；NVIC 仍由驱动负责。
 - 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_3/20_4/21 通过。
+
+## 18. 单 pin gpio_hw_t 与 ADC 多 pin 组装 / DMA 工作副本入句柄
+
+目标：`gpio_hw_t` 改为"单 pin 一配置"；ADC 在自身 hw 表内组装多个单 pin 描述符；
+运行时可变的 DMA 工作描述符存入句柄。
+
+### `gpio_hw.h`
+- `gpio_hw_t { port, rcc_en, pin, mode, pull, speed, alternate }`（单 pin）。
+- `static inline void gpio_hw_setup(const gpio_hw_t *hw)`（用 `hw->pin`，无参）。
+
+### `adc.c`
+- `adc_hw_t`（只放静态硬件参数）：`dma_hw_t dma` 基座、`gpio_hw_t gpio_poll`
+  （专用轮询脚 PA5）、`gpio_hw_t gpio[ADC_CH_NUM]`（每通道单 pin，temp pin=0）、
+  `ch_hal[]`、instance/common/adc_rcc_en。
+- `adc_handle_t` 增 `dma_hw_t dma_cfg`（运行时工作副本；`dma` 已被 ADC 句柄占用，
+  故命名 `dma_cfg`）；`adc_init` 直接指定 `mode` 后 `dma_hw_setup`。
+- `adc_init`：`gpio_hw_setup(&hw->gpio_poll)`（轮询）；DMA 逐通道
+  `gpio_hw_setup(&hw->gpio[ch])`；`h->dma_cfg = hw->dma; h->dma_cfg.mode=…;`。
+- `adc_read` 不改（轮询 pin 已在 init 配好）。
+
+### 完成情况（结果）
+- `gpio_hw_t` 单 pin + `gpio_hw_setup(hw)`；ADC `gpio_poll`+`gpio[]` 组装于表内；
+  DMA 工作副本 `adc_handle_t.dma_cfg`（mode 直接指定），无一次性栈拷贝。
+- 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_2/20_3/20_4/21 通过。

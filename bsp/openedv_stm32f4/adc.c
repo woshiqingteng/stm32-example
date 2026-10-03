@@ -44,9 +44,8 @@ typedef struct
     ADC_Common_TypeDef *common;      /* ADC123_COMMON (CCR / TSVREFE) */
     uint32_t            adc_rcc_en;  /* RCC_APB2ENR_ADC1EN */
     dma_hw_t            dma;         /* generic DMA stream attributes */
-    gpio_hw_t           gpio;        /* generic GPIO attributes */
-    uint16_t            poll_pins;   /* analog pins configured for polling */
-    uint16_t            ch_pin[ADC_CH_NUM]; /* GPIO_PIN_x per channel id (0 = none) */
+    gpio_hw_t           gpio_poll;   /* dedicated analog pin for polling */
+    gpio_hw_t           gpio[ADC_CH_NUM]; /* analog pin per channel (temp: pin = 0) */
     uint32_t            ch_hal[ADC_CH_NUM]; /* ADC_CHANNEL_x per channel id (not GPIO) */
 } adc_hw_t;
 
@@ -73,11 +72,17 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
             .mem_burst      = DMA_MBURST_SINGLE,
             .periph_burst   = DMA_PBURST_SINGLE,
         },
-        .gpio        = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_MODE_ANALOG,
+        .gpio_poll   = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_5, GPIO_MODE_ANALOG,
                          GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
-        .poll_pins   = GPIO_PIN_5,
-        .ch_pin      = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3,
-                         GPIO_PIN_4, GPIO_PIN_5, 0U },
+        .gpio        = {
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_0, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_1, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_2, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_3, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_4, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_5, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+            { 0 }, /* ADC_TEMP_CH: no pin */
+        },
         .ch_hal      = { ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
                          ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_18 },
     },
@@ -93,6 +98,7 @@ typedef struct
     ADC_HandleTypeDef poll;
     ADC_HandleTypeDef dma;
     DMA_HandleTypeDef dma_stream;
+    dma_hw_t          dma_cfg;    /* runtime working copy (mode specified here) */
     adc_cfg_t         cfg;
     uint16_t         *dma_buf;
     adc_dma_cb_t      dma_cb;
@@ -188,7 +194,6 @@ void adc_init(const adc_cfg_t *cfg)
     const adc_hw_t  *hw;
     adc_handle_t    *h;
     uint32_t         i;
-    uint32_t         pins = 0U;
 
     if ((c->id >= ADC_ID_NUM) || (g_adc_hw[c->id].instance == 0))
     {
@@ -203,8 +208,8 @@ void adc_init(const adc_cfg_t *cfg)
     SET_BIT(RCC->APB2ENR, hw->adc_rcc_en);
     /* ---- MSP end ---- */
 
-    /* Polled handle uses the poll analog pins. */
-    gpio_hw_setup(&hw->gpio, hw->poll_pins);
+    /* Polled handle uses the dedicated poll analog pin. */
+    gpio_hw_setup(&hw->gpio_poll);
     adc_instance_config(&h->poll, hw, c, DISABLE, 1U, DISABLE, DISABLE);
 
     if (c->mode != ADC_MODE_DMA)
@@ -217,14 +222,14 @@ void adc_init(const adc_cfg_t *cfg)
 
     for (i = 0U; i < (uint32_t)c->nchans; i++)
     {
-        pins |= hw->ch_pin[(c->chans[i] < ADC_CH_NUM) ? (uint32_t)c->chans[i] : 0U];
+        uint32_t ch = (c->chans[i] < ADC_CH_NUM) ? (uint32_t)c->chans[i] : 0U;
+        gpio_hw_setup(&hw->gpio[ch]);
     }
-    gpio_hw_setup(&hw->gpio, pins);
 
-    /* Generic stream setup (clock + Init + HAL_DMA_Init); mode is per-config. */
-    dma_hw_t dma = hw->dma;
-    dma.mode = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
-    dma_hw_setup(&h->dma_stream, &dma);
+    /* Generic stream setup (clock + Init + HAL_DMA_Init); mode specified directly. */
+    h->dma_cfg = hw->dma;
+    h->dma_cfg.mode = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
+    dma_hw_setup(&h->dma_stream, &h->dma_cfg);
 
     __HAL_LINKDMA(&h->dma, DMA_Handle, h->dma_stream);
 
