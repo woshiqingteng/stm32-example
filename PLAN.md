@@ -491,3 +491,29 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
   表；`adc_gpio_analog` 删除（static 4→3）；`adc.c` 无 `__HAL_RCC_*_CLK_ENABLE`/
   `== GPIOA`/`== DMA2`。
 - 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_3/21 通过。
+
+## 17. 通用 dma_hw_t 与 ADC 内嵌
+
+目标：参照 `gpio_hw_t`，抽出可复用的 DMA 流硬件属性类型，供 ADC 等驱动内嵌；
+`dma_hw_setup()` 一次完成"时钟 + Init + HAL_DMA_Init"（NVIC 归驱动）。
+
+### 新文件 `bsp/openedv_stm32f4/dma_hw.h`（header-only）
+- `dma_hw_t { rcc_en, stream, irqn, channel, direction, periph_inc, mem_inc,
+  periph_align, mem_align, mode, priority, fifo_mode, fifo_threshold, mem_burst,
+  periph_burst }`（身份 + 全部 `DMA_InitTypeDef` 字段；变体 2 全通用）。
+- `static inline dma_hw_setup(DMA_HandleTypeDef*, const dma_hw_t*)`：`SET_BIT` 使能
+  `RCC->AHB1ENR` 时钟 + 原样填 Init + `HAL_DMA_Init`；不含 NVIC。
+- 仅 `#include <stdint.h>` + `"stm32f4xx_hal.h"`，不依赖驱动头。
+
+### `adc.c`
+- `adc_hw_t`：`{dma_rcc_en, dma_stream, dma_channel, dma_irqn}` → `dma_hw_t dma`。
+- 表内 `.dma = { … DMA2_Stream4 / DMA_CHANNEL_0 / PERIPH_TO_MEMORY / HALFWORD /
+  NORMAL / MEDIUM / FIFO_DISABLE … }`。
+- `adc_init`：`dma_hw_t dma = hw->dma; dma.mode = cfg 决定; dma_hw_setup(&h->dma_stream,
+  &dma);` 替换逐字段 `Init` 赋值；NVIC 用 `hw->dma.irqn`；删除 `SET_BIT(AHB1ENR,
+  hw->dma_rcc_en)`。
+
+### 完成情况（结果）
+- 新增 `dma_hw.h`；`adc_hw_t` 内嵌 `dma_hw_t`，DMA 硬件事实全部来自 `g_adc_hw` 表；
+  `adc_init` 的 DMA 初始化收敛为一次 `dma_hw_setup`；NVIC 仍由驱动负责。
+- 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_3/20_4/21 通过。

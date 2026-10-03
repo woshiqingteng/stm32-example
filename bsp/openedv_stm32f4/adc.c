@@ -12,6 +12,7 @@
 #include "adc.h"
 #include "delay.h"
 #include "gpio_hw.h"
+#include "dma_hw.h"
 
 #define ADC_POLL_TIMEOUT_MS 10U
 
@@ -42,10 +43,7 @@ typedef struct
     ADC_TypeDef        *instance;
     ADC_Common_TypeDef *common;      /* ADC123_COMMON (CCR / TSVREFE) */
     uint32_t            adc_rcc_en;  /* RCC_APB2ENR_ADC1EN */
-    uint32_t            dma_rcc_en;  /* RCC_AHB1ENR_DMA2EN */
-    DMA_Stream_TypeDef *dma_stream;
-    uint32_t            dma_channel;
-    IRQn_Type           dma_irqn;
+    dma_hw_t            dma;         /* generic DMA stream attributes */
     gpio_hw_t           gpio;        /* generic GPIO attributes */
     uint16_t            poll_pins;   /* analog pins configured for polling */
     uint16_t            ch_pin[ADC_CH_NUM]; /* GPIO_PIN_x per channel id (0 = none) */
@@ -58,10 +56,23 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
         .instance    = ADC1,
         .common      = ADC,
         .adc_rcc_en  = RCC_APB2ENR_ADC1EN,
-        .dma_rcc_en  = RCC_AHB1ENR_DMA2EN,
-        .dma_stream  = DMA2_Stream4,
-        .dma_channel = DMA_CHANNEL_0,
-        .dma_irqn    = DMA2_Stream4_IRQn,
+        .dma         = {
+            .rcc_en         = RCC_AHB1ENR_DMA2EN,
+            .stream         = DMA2_Stream4,
+            .irqn           = DMA2_Stream4_IRQn,
+            .channel        = DMA_CHANNEL_0,
+            .direction      = DMA_PERIPH_TO_MEMORY,
+            .periph_inc     = DMA_PINC_DISABLE,
+            .mem_inc        = DMA_MINC_ENABLE,
+            .periph_align   = DMA_PDATAALIGN_HALFWORD,
+            .mem_align      = DMA_MDATAALIGN_HALFWORD,
+            .mode           = DMA_NORMAL,
+            .priority       = DMA_PRIORITY_MEDIUM,
+            .fifo_mode      = DMA_FIFOMODE_DISABLE,
+            .fifo_threshold = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+            .mem_burst      = DMA_MBURST_SINGLE,
+            .periph_burst   = DMA_PBURST_SINGLE,
+        },
         .gpio        = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_MODE_ANALOG,
                          GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
         .poll_pins   = GPIO_PIN_5,
@@ -188,9 +199,8 @@ void adc_init(const adc_cfg_t *cfg)
     h->hw  = hw;
     h->cfg = *c;
 
-    /* ---- MSP begin: clocks (GPIO clock is enabled inside gpio_hw_setup) ---- */
+    /* ---- MSP begin: ADC clock (GPIO/DMA clocks come from the generic setup) ---- */
     SET_BIT(RCC->APB2ENR, hw->adc_rcc_en);
-    SET_BIT(RCC->AHB1ENR, hw->dma_rcc_en);
     /* ---- MSP end ---- */
 
     /* Polled handle uses the poll analog pins. */
@@ -211,24 +221,17 @@ void adc_init(const adc_cfg_t *cfg)
     }
     gpio_hw_setup(&hw->gpio, pins);
 
-    /* ---- MSP begin: DMA NVIC ---- */
-    HAL_NVIC_SetPriority(hw->dma_irqn, 3U, 3U);
-    HAL_NVIC_EnableIRQ(hw->dma_irqn);
-    /* ---- MSP end ---- */
-
-    h->dma_stream.Instance                 = hw->dma_stream;
-    h->dma_stream.Init.Channel             = hw->dma_channel;
-    h->dma_stream.Init.Direction           = DMA_PERIPH_TO_MEMORY;
-    h->dma_stream.Init.PeriphInc           = DMA_PINC_DISABLE;
-    h->dma_stream.Init.MemInc              = DMA_MINC_ENABLE;
-    h->dma_stream.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    h->dma_stream.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
-    h->dma_stream.Init.Mode                = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
-    h->dma_stream.Init.Priority            = DMA_PRIORITY_MEDIUM;
-    h->dma_stream.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
-    (void)HAL_DMA_Init(&h->dma_stream);
+    /* Generic stream setup (clock + Init + HAL_DMA_Init); mode is per-config. */
+    dma_hw_t dma = hw->dma;
+    dma.mode = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
+    dma_hw_setup(&h->dma_stream, &dma);
 
     __HAL_LINKDMA(&h->dma, DMA_Handle, h->dma_stream);
+
+    /* ---- MSP begin: DMA NVIC (driver-owned) ---- */
+    HAL_NVIC_SetPriority(hw->dma.irqn, 3U, 3U);
+    HAL_NVIC_EnableIRQ(hw->dma.irqn);
+    /* ---- MSP end ---- */
 
     adc_instance_config(&h->dma, hw, c, (c->nchans > 1U) ? ENABLE : DISABLE,
                         (uint32_t)c->nchans, ENABLE, ENABLE);
