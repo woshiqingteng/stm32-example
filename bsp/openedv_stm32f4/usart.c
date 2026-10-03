@@ -15,6 +15,8 @@
 #include "stm32f4xx_hal.h"
 #include "usart.h"
 #include "ringbuf.h"
+#include "gpio_hw.h"
+#include "dma_hw.h"
 
 /* ===== constants ===== */
 
@@ -28,23 +30,66 @@
  * not request the stream IRQ, so Stream5 can be shared with the DAC). */
 typedef struct
 {
-    USART_TypeDef      *instance;
-    uint32_t            gpio_af;
-    uint16_t            gpio_pins;
-    IRQn_Type           irqn;
-    DMA_TypeDef        *dma;            /* DMA1 / DMA2 (clock + controller) */
-    DMA_Stream_TypeDef *tx_stream;
-    DMA_Stream_TypeDef *rx_stream;
-    uint32_t            dma_channel;    /* same channel for TX and RX */
-    IRQn_Type           tx_dma_irqn;
+    USART_TypeDef *instance;
+    IRQn_Type      irqn;     /* USARTx_IRQn */
+    gpio_hw_t      gpio_tx;  /* TX pin (AF push-pull) */
+    gpio_hw_t      gpio_rx;  /* RX pin (AF push-pull) */
+    dma_hw_t       tx_dma;   /* MEMORY_TO_PERIPH, DMA_NORMAL */
+    dma_hw_t       rx_dma;   /* PERIPH_TO_MEMORY, DMA_CIRCULAR (IDLE-drained) */
 } usart_hw_t;
 
 static const usart_hw_t g_hw[USART_ID_NUM] =
 {
-    { USART1, GPIO_AF7_USART1, GPIO_PIN_9 | GPIO_PIN_10, USART1_IRQn,
-      DMA2, DMA2_Stream7, DMA2_Stream2, DMA_CHANNEL_4, DMA2_Stream7_IRQn },
-    { USART2, GPIO_AF7_USART2, GPIO_PIN_2 | GPIO_PIN_3,  USART2_IRQn,
-      DMA1, DMA1_Stream6, DMA1_Stream5, DMA_CHANNEL_4, DMA1_Stream6_IRQn },
+    {
+        .instance = USART1, .irqn = USART1_IRQn,
+        .gpio_tx  = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_9,  GPIO_MODE_AF_PP,
+                      GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF7_USART1 },
+        .gpio_rx  = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_10, GPIO_MODE_AF_PP,
+                      GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF7_USART1 },
+        .tx_dma   = {
+            .rcc_en = RCC_AHB1ENR_DMA2EN, .stream = DMA2_Stream7, .irqn = DMA2_Stream7_IRQn,
+            .channel = DMA_CHANNEL_4, .direction = DMA_MEMORY_TO_PERIPH,
+            .periph_inc = DMA_PINC_DISABLE, .mem_inc = DMA_MINC_ENABLE,
+            .periph_align = DMA_PDATAALIGN_BYTE, .mem_align = DMA_MDATAALIGN_BYTE,
+            .mode = DMA_NORMAL, .priority = DMA_PRIORITY_MEDIUM,
+            .fifo_mode = DMA_FIFOMODE_DISABLE, .fifo_threshold = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+            .mem_burst = DMA_MBURST_SINGLE, .periph_burst = DMA_PBURST_SINGLE,
+        },
+        .rx_dma   = {
+            .rcc_en = RCC_AHB1ENR_DMA2EN, .stream = DMA2_Stream2, .irqn = DMA2_Stream2_IRQn,
+            .channel = DMA_CHANNEL_4, .direction = DMA_PERIPH_TO_MEMORY,
+            .periph_inc = DMA_PINC_DISABLE, .mem_inc = DMA_MINC_ENABLE,
+            .periph_align = DMA_PDATAALIGN_BYTE, .mem_align = DMA_MDATAALIGN_BYTE,
+            .mode = DMA_CIRCULAR, .priority = DMA_PRIORITY_MEDIUM,
+            .fifo_mode = DMA_FIFOMODE_DISABLE, .fifo_threshold = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+            .mem_burst = DMA_MBURST_SINGLE, .periph_burst = DMA_PBURST_SINGLE,
+        },
+    },
+    {
+        .instance = USART2, .irqn = USART2_IRQn,
+        .gpio_tx  = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_2, GPIO_MODE_AF_PP,
+                      GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF7_USART2 },
+        .gpio_rx  = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_3, GPIO_MODE_AF_PP,
+                      GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF7_USART2 },
+        .tx_dma   = {
+            .rcc_en = RCC_AHB1ENR_DMA1EN, .stream = DMA1_Stream6, .irqn = DMA1_Stream6_IRQn,
+            .channel = DMA_CHANNEL_4, .direction = DMA_MEMORY_TO_PERIPH,
+            .periph_inc = DMA_PINC_DISABLE, .mem_inc = DMA_MINC_ENABLE,
+            .periph_align = DMA_PDATAALIGN_BYTE, .mem_align = DMA_MDATAALIGN_BYTE,
+            .mode = DMA_NORMAL, .priority = DMA_PRIORITY_MEDIUM,
+            .fifo_mode = DMA_FIFOMODE_DISABLE, .fifo_threshold = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+            .mem_burst = DMA_MBURST_SINGLE, .periph_burst = DMA_PBURST_SINGLE,
+        },
+        .rx_dma   = {
+            .rcc_en = RCC_AHB1ENR_DMA1EN, .stream = DMA1_Stream5, .irqn = DMA1_Stream5_IRQn,
+            .channel = DMA_CHANNEL_4, .direction = DMA_PERIPH_TO_MEMORY,
+            .periph_inc = DMA_PINC_DISABLE, .mem_inc = DMA_MINC_ENABLE,
+            .periph_align = DMA_PDATAALIGN_BYTE, .mem_align = DMA_MDATAALIGN_BYTE,
+            .mode = DMA_CIRCULAR, .priority = DMA_PRIORITY_MEDIUM,
+            .fifo_mode = DMA_FIFOMODE_DISABLE, .fifo_threshold = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+            .mem_burst = DMA_MBURST_SINGLE, .periph_burst = DMA_PBURST_SINGLE,
+        },
+    },
 };
 
 /* ===== context ===== */
@@ -115,49 +160,22 @@ static uint32_t usart_oversampling_to_hal(usart_oversampling_t v)
 
 /* ===== DMA setup ===== */
 
-static void usart_dma_config(DMA_HandleTypeDef *hdma, DMA_Stream_TypeDef *stream,
-                             uint32_t channel, uint32_t direction, uint32_t mode)
-{
-    hdma->Instance                     = stream;
-    hdma->Init.Channel                 = channel;
-    hdma->Init.Direction               = direction;
-    hdma->Init.PeriphInc               = DMA_PINC_DISABLE;
-    hdma->Init.MemInc                  = DMA_MINC_ENABLE;
-    hdma->Init.PeriphDataAlignment     = DMA_PDATAALIGN_BYTE;
-    hdma->Init.MemDataAlignment        = DMA_MDATAALIGN_BYTE;
-    hdma->Init.Mode                    = mode;
-    hdma->Init.Priority                = DMA_PRIORITY_MEDIUM;
-    hdma->Init.FIFOMode                = DMA_FIFOMODE_DISABLE;
-}
-
 static void usart_dma_tx_init(usart_handle_t *handle, const usart_hw_t *hw,
                               const usart_cfg_t *cfg)
 {
-    if (hw->dma == DMA2) { __HAL_RCC_DMA2_CLK_ENABLE(); }
-    else                 { __HAL_RCC_DMA1_CLK_ENABLE(); }
-
-    usart_dma_config(&handle->hdma_tx, hw->tx_stream, hw->dma_channel,
-                     DMA_MEMORY_TO_PERIPH, DMA_NORMAL);
+    dma_hw_setup(&handle->hdma_tx, &hw->tx_dma);
     __HAL_LINKDMA(&handle->huart, hdmatx, handle->hdma_tx);
-    HAL_DMA_DeInit(&handle->hdma_tx);
-    (void)HAL_DMA_Init(&handle->hdma_tx);
 
-    HAL_NVIC_SetPriority(hw->tx_dma_irqn, cfg->irq_preempt, cfg->irq_sub);
-    HAL_NVIC_EnableIRQ(hw->tx_dma_irqn);
+    HAL_NVIC_SetPriority(hw->tx_dma.irqn, cfg->irq_preempt, cfg->irq_sub);
+    HAL_NVIC_EnableIRQ(hw->tx_dma.irqn);
 }
 
 /* RX DMA: circular transfer into handle->rb.buf; bytes are handed over on the
  * USART IDLE interrupt. The DMA stream IRQ is intentionally not enabled. */
 static void usart_dma_rx_init(usart_handle_t *handle, const usart_hw_t *hw)
 {
-    if (hw->dma == DMA2) { __HAL_RCC_DMA2_CLK_ENABLE(); }
-    else                 { __HAL_RCC_DMA1_CLK_ENABLE(); }
-
-    usart_dma_config(&handle->hdma_rx, hw->rx_stream, hw->dma_channel,
-                     DMA_PERIPH_TO_MEMORY, DMA_CIRCULAR);
+    dma_hw_setup(&handle->hdma_rx, &hw->rx_dma);
     __HAL_LINKDMA(&handle->huart, hdmarx, handle->hdma_rx);
-    HAL_DMA_DeInit(&handle->hdma_rx);
-    (void)HAL_DMA_Init(&handle->hdma_rx);
 
     /* Start the circular transfer; only IDLE is used to drain it. */
     SET_BIT(handle->huart.Instance->CR3, USART_CR3_DMAR);
@@ -231,7 +249,6 @@ void usart_init(const usart_cfg_t *cfg)
 {
     usart_handle_t   *handle;
     const usart_hw_t *hw;
-    GPIO_InitTypeDef  gpio_init = {0};
     usart_io_t        tx;
     usart_io_t        rx;
 
@@ -278,14 +295,8 @@ void usart_init(const usart_cfg_t *cfg)
     if (cfg->id == USART_ID_1) { __HAL_RCC_USART1_CLK_ENABLE(); }
     else                       { __HAL_RCC_USART2_CLK_ENABLE(); }
     handle->huart.Instance = hw->instance;
-    gpio_init.Alternate    = hw->gpio_af;
-    gpio_init.Pin          = hw->gpio_pins;
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-
-    gpio_init.Mode  = GPIO_MODE_AF_PP;
-    gpio_init.Pull  = GPIO_PULLUP;
-    gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    HAL_GPIO_Init(GPIOA, &gpio_init);
+    gpio_hw_setup(&hw->gpio_tx);
+    gpio_hw_setup(&hw->gpio_rx);
 
     if ((tx != USART_IO_POLL) || (rx != USART_IO_POLL))
     {

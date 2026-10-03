@@ -13,8 +13,7 @@
 #define ADC_HALF_LEN_SAMPLE     (ADC_DMA_BUF_LEN_SAMPLE / 2U)
 #define ADC_VREF_MV             3300U
 #define ADC_FULL_SCALE_COUNT    4096U
-#define ADC_LOOP_MS             10U
-#define BLINK_TICKS             10U
+#define ADC_LOOP_MS             200U
 
 static const adc_channel_t g_chan[1] = { ADC_CH5 };
 static uint16_t            g_adc_buf[ADC_DMA_BUF_LEN_SAMPLE];
@@ -29,7 +28,6 @@ static void on_adc_dma(uint16_t offset)
 
 int main(void)
 {
-    uint32_t  blink = 0U;
     adc_cfg_t cfg   = { ADC_CFG_DEFAULT };
 
     bsp_init();
@@ -67,13 +65,9 @@ int main(void)
                    (unsigned int)raw,
                    (unsigned long)(mv / 1000U),
                    (unsigned long)(mv % 1000U));
-
-            if ((++blink % BLINK_TICKS) == 0U)
-            {
-                led_toggle(LED0);
-            }
         }
 
+        led_toggle(LED0);
         delay_ms(ADC_LOOP_MS);
     }
 }

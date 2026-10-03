@@ -547,3 +547,20 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 - 去重：删除与 `gpio[ADC_CH5]` 重复的 `gpio_poll`，POLL 分支配固定
   `gpio[ADC_POLL_CH]`（`#define ADC_POLL_CH ADC_CH5`）；`adc_hw_t` 只保留静态硬件
   （`adc_rcc_en`→`rcc_en`），运行时经参数传入，helper 保持 `static`。
+
+## 19. usart_hw 内嵌 gpio_hw/dma_hw
+
+目标：`usart_hw_t` 不再散列 `gpio_af`/`gpio_pins`/`dma`/`tx_stream`/`rx_stream`/
+`dma_channel`/`tx_dma_irqn`，改为内嵌 `gpio_hw_t`（`gpio_tx`/`gpio_rx`）与
+`dma_hw_t`（`tx_dma`/`rx_dma`），复用 `gpio_hw_setup()`/`dma_hw_setup()`。
+
+- `usart_hw_t { instance, irqn, gpio_tx, gpio_rx, tx_dma, rx_dma }`。
+  - `tx_dma`：MEMORY_TO_PERIPH / DMA_NORMAL；`rx_dma`：PERIPH_TO_MEMORY /
+    DMA_CIRCULAR（IDLE-drained，流 IRQ 不使用，`irqn` 仅记录）。
+  - `.tx_dma/.rx_dma` 用 designated 初始化；`.gpio_tx/.gpio_rx` positional（同 adc）。
+- 删除 `usart_dma_config()`；`usart_dma_tx_init/rx_init` 改用 `dma_hw_setup`
+  （含时钟 + Init + HAL_DMA_Init）；**删除冗余 `HAL_DMA_DeInit`**（`HAL_DMA_Init`
+  自身 disable 流并清标志，且每实例仅一次 DMA 初始化）。
+- `usart_init` GPIO 块改用 `gpio_hw_setup(&hw->gpio_tx/gpio_rx)`。
+- 结果：5 app 构建零告警；HIL 20_1(POLL)/19_dma(TX DMA，100% finished)/
+  test_04_usart(4/4，RX IT)/38_camera_stream(启动) 通过。
