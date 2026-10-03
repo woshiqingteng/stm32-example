@@ -1,49 +1,81 @@
 /**
  * @file    dac.h
- * @brief   DAC1 driver: software-triggered channel output and timer-triggered
- *          DMA triangle/sine wave generation.
+ * @brief   DAC1 pure driver: software-triggered output and timer-triggered DMA
+ *          waveform playback. This interface is HAL-free (own enums); the HAL is
+ *          used only inside dac.c for peripheral/stream initialisation. The
+ *          waveform buffer is supplied by the caller.
  */
 
 #ifndef BSP_DAC_H
 #define BSP_DAC_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
-/** @brief DAC1 output channels: PA4 = channel 1, PA5 = channel 2. */
+/** @brief DAC1 output channel (driver value, not the HAL DAC_CHANNEL_x macro). */
 typedef enum
 {
-    DAC_CH1 = 1,
-    DAC_CH2 = 2,
+    DAC_CH1 = 0, /*!< PA4 */
+    DAC_CH2,     /*!< PA5 */
+    DAC_CH_NUM
 } dac_channel_t;
+
+/** @brief Output mode. */
+typedef enum
+{
+    DAC_MODE_SW = 0, /*!< software-triggered single value (dac_set) */
+    DAC_MODE_WAVE    /*!< timer-triggered DMA waveform (dac_start/dac_stop) */
+} dac_mode_t;
+
+/** @brief Timer used to pace the wave DMA (mode == DAC_MODE_WAVE). */
+typedef enum
+{
+    DAC_TIMER_6 = 0, /*!< TIM6 TRGO */
+    DAC_TIMER_7,     /*!< TIM7 TRGO */
+    DAC_TIMER_NUM
+} dac_timer_t;
 
 /** @brief 12-bit full-scale DAC code. */
 #define DAC_FULL_SCALE_COUNT 4095U
 
-/** @brief  Initialise DAC1 channels 1 and 2 for software-triggered output. */
-void dac_init(void);
+/** @brief Output full-scale voltage (mV). */
+#define DAC_VREF_MV 3300U
 
-/** @brief  Write a 12-bit right-aligned value to a channel (DAC_CH1/DAC_CH2). */
-void dac_set(uint32_t channel, uint16_t value);
+/** @brief One-shot DAC configuration. */
+typedef struct
+{
+    dac_mode_t      mode;           /*!< SW output or timer+DMA wave */
+    dac_channel_t   channel;        /*!< output channel */
+    bool            buffer_enable;  /*!< output buffer on/off */
 
-/** @brief  Write an output voltage (0..3300 mV) to a channel. */
-void dac_set_voltage(uint32_t channel, uint16_t millivolt);
+    dac_timer_t     timer;          /*!< valid when mode == DAC_MODE_WAVE */
+    const uint16_t *buf;            /*!< caller waveform, one period */
+    uint16_t        len;            /*!< samples in buf */
+    uint16_t        arr;            /*!< timer auto-reload (Period) */
+    uint16_t        psc;            /*!< timer prescaler */
+} dac_cfg_t;
 
-/** @brief  Configure DAC1 channel 1 triangle output driven by TIM6 TRGO + DMA. */
-void dac_triangle_init(uint16_t arr, uint16_t psc);
+/** @brief DAC1, channel 1, software mode, output buffer off. */
+#define DAC_CFG_DEFAULT \
+    .mode = DAC_MODE_SW, .channel = DAC_CH1, .buffer_enable = false, \
+    .timer = DAC_TIMER_6, .buf = 0, .len = 0U, .arr = 0U, .psc = 0U
 
-/** @brief  Start the triangle wave configured by dac_triangle_init(). */
-void dac_triangle_start(void);
+/**
+ * @brief  Initialise DAC1 according to @p cfg (NULL selects DAC_CFG_DEFAULT).
+ *         Configuration only: a waveform is started by dac_start().
+ */
+void dac_init(const dac_cfg_t *cfg);
 
-/** @brief  Stop the triangle wave. */
-void dac_triangle_stop(void);
+/** @brief Start (or re-arm) the wave configured by dac_init(). No-op in SW mode. */
+void dac_start(void);
 
-/** @brief  Configure DAC1 channel 1 sine output driven by TIM7 TRGO + DMA. */
-void dac_sine_init(uint16_t arr, uint16_t psc);
+/** @brief Stop the wave. No-op in SW mode. */
+void dac_stop(void);
 
-/** @brief  Start the sine wave configured by dac_sine_init(). */
-void dac_sine_start(void);
+/** @brief Write a 12-bit right-aligned value to a channel. */
+void dac_set(dac_channel_t channel, uint16_t value);
 
-/** @brief  Stop the sine wave. */
-void dac_sine_stop(void);
+/** @brief Write an output voltage (0..DAC_VREF_MV) to a channel. */
+void dac_set_voltage(dac_channel_t channel, uint16_t millivolt);
 
 #endif /* BSP_DAC_H */

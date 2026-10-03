@@ -594,3 +594,22 @@ framebuffer 末字均为 `0xFFFFFFFF`。
 - `22_1_dac`/`22_3_dac_sine` 回读由 CH4(PA4) 改为 **CH5(PA5)**（与例程一致）；
   `@brief`/串口标签同步（`ADC(Pin5)`）。
 - 结果：接跳线后回读与设定一致。
+
+## 22. DAC 驱动重构成 ADC 风格（hw 表/句柄/自有枚举/复用 gpio+dma）
+
+目标：`dac.c/.h` 与 `adc.c/.h` 同构——私有硬件描述符表 + 句柄 + 自有枚举
+HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/触发。
+
+- `dac.h`（HAL-free）：`dac_channel_t{DAC_CH1=0,DAC_CH2,..}`、
+  `dac_mode_t{SW,WAVE}`、`dac_timer_t{DAC_TIMER_6,DAC_TIMER_7}`、
+  `DAC_FULL_SCALE_COUNT`/`DAC_VREF_MV`、`dac_cfg_t` + `DAC_CFG_DEFAULT`；
+  API：`dac_init(cfg)`（只配置）/`dac_start()`/`dac_stop()`/`dac_set()`/
+  `dac_set_voltage()`。波形缓冲由 app 提供（`buf`/`len`）。
+- `dac.c`：`dac_hw_t`（instance/rcc_en/`gpio[]`/`ch_hal[]`/`dma[]`，HAL 宏）+
+  `dac_tim_hw_t g_dac_tim[]`（TIM6/TIM7→TRGO）+ `dac_handle_t g_dac`；
+  `dac_channel_config`/`dac_timer_config`；`dac_start` 手写
+  `SET_BIT(DAC->CR,DMAENx)` + `HAL_DMA_Start` + `HAL_TIM_Base_Start`
+  （弃用 `HAL_DAC_Start_DMA`/`HAL_DMA_IRQHandler`，不用 DMA 中断）。
+- app：`22_1`→`dac_init(NULL)`；`22_2` 三角表移入 app；`22_3` 正弦在 app 生成
+  （`sinf`），换频用 `dac_stop→dac_init→dac_start`。
+- 结果：构建零告警；HIL（PA4↔PA5 跳线）22_1 回读 ~2047、22_2/22_3 波形存在。

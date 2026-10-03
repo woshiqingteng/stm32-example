@@ -46,7 +46,7 @@ int main(void)
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    dac_init();
+    dac_init(NULL);
     adc_init(NULL);
     dac_set(DAC_CH1, code);
 
