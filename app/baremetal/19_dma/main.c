@@ -1,13 +1,14 @@
 /**
  * @file    main.c
- * @brief   19_dma: USART1 TX over DMA (facade: bsp/usart_dma).
+ * @brief   19_dma: USART1 TX over DMA (facade: bsp/usart).
  *
- * KEY0 starts a ~6 KB transfer. The buffer is sent in chunks so that progress
- * can be reported over the same USART between DMA transfers (printing while the
- * USART is driven by DMA would corrupt the byte stream).
+ * KEY0 starts a ~6 KB transfer. The buffer is sent in chunks so progress can be
+ * reported over the same USART between DMA transfers; the driver serialises
+ * printf with the DMA, so printing mid-transfer would simply block.
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "bsp.h"
 
@@ -22,6 +23,7 @@
 static const char DMA_TX_LINE[] = "USART1 TX DMA: 0123456789\r\n";
 static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE_BYTE];
 
+/* Fill with whole lines (the sub-line tail of the buffer stays unused). */
 static uint16_t dma_fill_buffer(void)
 {
     uint16_t line_len = (uint16_t)(sizeof(DMA_TX_LINE) - DMA_TX_LINE_TERM_LEN_BYTE);
@@ -29,12 +31,7 @@ static uint16_t dma_fill_buffer(void)
 
     while (((uint32_t)i + line_len) <= DMA_TX_BUF_SIZE_BYTE)
     {
-        uint16_t k;
-
-        for (k = 0U; k < line_len; k++)
-        {
-            g_tx_buf[i + k] = (uint8_t)DMA_TX_LINE[k];
-        }
+        memcpy(&g_tx_buf[i], DMA_TX_LINE, line_len);
         i = (uint16_t)(i + line_len);
     }
     return i;
@@ -73,7 +70,11 @@ int main(void)
                     chunk = DMA_TX_CHUNK_BYTE;
                 }
 
-                (void)usart_write(USART_ID_1, &g_tx_buf[offset], chunk);
+                if (!usart_write(USART_ID_1, &g_tx_buf[offset], chunk))
+                {
+                    printf("DMA TX error\r\n");
+                    break;
+                }
                 while (usart_tx_busy(USART_ID_1))
                 {
                     led_toggle(LED0);
