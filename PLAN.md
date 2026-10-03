@@ -578,3 +578,19 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 修复：把初始清屏从 `ltdc_init()` 移到 `lcd_init()` 的 `lcd_display_dir()` 之后，
 使方向/尺寸一致，`lcd_clear(WHITE)` 覆盖整个面板。HIL `peek` 核验原未清区与
 framebuffer 末字均为 `0xFFFFFFFF`。
+
+## 21. DAC 只启动已用通道；DAC 示例回读改 PA5
+
+对照正点原子 `实验22-1`/`实验22-3`：DAC 出 **PA4(DAC1_OUT1)**，ADC 入
+**PA5(ADC1_IN5)**，回读 DAC 电压需用跳线把 **PA4↔PA5** 短接。
+
+问题：旧 `dac_init()` 同时 `ConfigChannel`+`Start` **通道1(PA4) 与通道2(PA5)**，
+且 CH2 值恒 0、输出缓冲 `DAC_OUTPUTBUFFER_DISABLE`（高阻）。接上 PA4↔PA5 跳线后，
+两路未缓冲输出分压 → 回读≈半（2047 → ~1024）。
+
+修复：
+- `dac_init()` 只初始化并启动 **CH1**（PA4）；CH2(PA5) 保持三态，避免分压。
+  （`dac_triangle_init`/`dac_sine_init` 本就用 CH1，不动。）
+- `22_1_dac`/`22_3_dac_sine` 回读由 CH4(PA4) 改为 **CH5(PA5)**（与例程一致）；
+  `@brief`/串口标签同步（`ADC(Pin5)`）。
+- 结果：接跳线后回读与设定一致。

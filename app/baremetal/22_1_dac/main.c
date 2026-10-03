@@ -2,7 +2,7 @@
  * @file    main.c
  * @brief   22_1_dac: DAC1 channel 1 (PA4) interactive output. WK_UP/KEY0 step
  *          the code; the programmed code, its voltage and an ADC read-back of
- *          the pin are printed over USART1.
+ *          PA5 (jumpered to the DAC output PA4) are printed over USART1.
  */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@ static void dac_show(uint16_t code)
 
     for (i = 0U; i < ADC_AVG_COUNT; i++)
     {
-        sum += adc_read(ADC_ID_1, ADC_CH4);
+        sum += adc_read(ADC_ID_1, ADC_CH5);
         delay_ms(ADC_AVG_DELAY_MS);
     }
     adc    = sum / ADC_AVG_COUNT;

@@ -68,7 +68,7 @@ void dac_init(void)
     __HAL_RCC_DAC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    dac_gpio_config(DAC_CH1_GPIO_PIN | DAC_CH2_GPIO_PIN);
+    dac_gpio_config(DAC_CH1_GPIO_PIN);
     /* ---- MSP end ---- */
 
     g_dac_handle.Instance = DAC_INSTANCE;
@@ -77,10 +77,11 @@ void dac_init(void)
     channel_config.DAC_Trigger      = DAC_TRIGGER_NONE;
     channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
 
+    /* Only channel 1 is initialised and started. Channel 2 (PA5) is left
+     * tri-stated: starting it at 0 with the output buffer disabled would load
+     * a PA4<->PA5 jumper and halve the DAC read-back voltage. */
     HAL_DAC_ConfigChannel(&g_dac_handle, &channel_config, DAC_CHANNEL_1);
-    HAL_DAC_ConfigChannel(&g_dac_handle, &channel_config, DAC_CHANNEL_2);
     HAL_DAC_Start(&g_dac_handle, DAC_CHANNEL_1);
-    HAL_DAC_Start(&g_dac_handle, DAC_CHANNEL_2);
 }
 
 void dac_set(uint32_t channel, uint16_t value)

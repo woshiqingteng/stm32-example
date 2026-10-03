@@ -35,9 +35,9 @@ static uint32_t adc_read_avg(adc_channel_t ch)
 
 static void dac_sine_show(uint8_t idx)
 {
-    uint32_t adc = adc_read_avg(ADC_CH4);
+    uint32_t adc = adc_read_avg(ADC_CH5);
 
-    printf("sine %s  ADC(Pin4): %lu\r\n", g_sin_label[idx], (unsigned long)adc);
+    printf("sine %s  ADC(Pin5): %lu\r\n", g_sin_label[idx], (unsigned long)adc);
 }
 
 int main(void)
