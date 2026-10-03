@@ -43,7 +43,7 @@ typedef struct
 {
     dac_mode_t      mode;           /*!< SW output or timer+DMA wave */
     dac_channel_t   channel;        /*!< output channel */
-    bool            buffer_enable;  /*!< output buffer on/off */
+    bool            buffer_enable;  /*!< output buffer; off by default, enable for heavier loads */
 
     dac_timer_t     timer;          /*!< valid when mode == DAC_MODE_WAVE */
     const uint16_t *buf;            /*!< caller waveform, one period */
@@ -60,6 +60,8 @@ typedef struct
 /**
  * @brief  Initialise DAC1 according to @p cfg (NULL selects DAC_CFG_DEFAULT).
  *         Configuration only: a waveform is started by dac_start().
+ *         Reconfiguring while a wave is running is not supported; call
+ *         dac_stop() first.
  */
 void dac_init(const dac_cfg_t *cfg);
 

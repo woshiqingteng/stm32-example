@@ -1,12 +1,14 @@
 /**
  * @file    main.c
  * @brief   22_2_dac_tri: DAC1 channel 1 triangle wave played from an
- *          application buffer by TIM6 TRGO + DMA1 (circular).
+ *          application buffer by TIM6 TRGO + DMA1 (circular); an ADC read-back
+ *          of PA5 (jumpered to the DAC output PA4) is printed over USART1.
  */
 
 #include <stdio.h>
 
 #include "bsp.h"
+#include "adc.h"
 #include "dac.h"
 
 #define TRI_TIMER_ARR 899U
@@ -14,6 +16,9 @@
 /* f_sample = 90 MHz/((0+1)*900) = 100 kHz; /100 samples -> ~1 kHz */
 
 #define TRI_WAVE_LEN 100U
+
+#define ADC_AVG_COUNT     10U
+#define ADC_AVG_DELAY_MS  5U
 
 /* One full triangle period: 50 rising samples followed by 50 falling. */
 static const uint16_t g_tri_buf[TRI_WAVE_LEN] =
@@ -30,12 +35,33 @@ static const uint16_t g_tri_buf[TRI_WAVE_LEN] =
      752,  669,  585,  501,  418,  334,  251,  167,   84,    0,
 };
 
+static uint32_t adc_read_avg(adc_channel_t ch)
+{
+    uint32_t sum = 0U;
+    uint32_t i;
+
+    for (i = 0U; i < ADC_AVG_COUNT; i++)
+    {
+        sum += adc_read(ADC_ID_1, ch);
+        delay_ms(ADC_AVG_DELAY_MS);
+    }
+    return sum / ADC_AVG_COUNT;
+}
+
+static void tri_show(void)
+{
+    uint32_t adc = adc_read_avg(ADC_CH5);
+
+    printf("tri ADC(Pin5): %lu\r\n", (unsigned long)adc);
+}
+
 int main(void)
 {
     dac_cfg_t cfg = { DAC_CFG_DEFAULT };
 
     bsp_init();
     printf(APP_BANNER "\r\n");
+    adc_init(NULL);
 
     cfg.mode    = DAC_MODE_WAVE;
     cfg.channel = DAC_CH1;
@@ -51,6 +77,7 @@ int main(void)
 
     for (;;)
     {
+        tri_show();
         led_toggle(LED0);
         delay_ms(500U);
     }

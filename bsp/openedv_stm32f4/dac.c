@@ -22,7 +22,7 @@ typedef struct
     uint32_t     rcc_en;             /* RCC_APB1ENR_DACEN */
     gpio_hw_t    gpio[DAC_CH_NUM];   /* PA4 / PA5 analog output */
     uint32_t     ch_hal[DAC_CH_NUM]; /* DAC_CHANNEL_1 / DAC_CHANNEL_2 */
-    dma_hw_t     dma[DAC_CH_NUM];    /* streaming DMA per channel */
+    dma_hw_t     dma[DAC_CH_NUM];    /* streaming DMA per channel (dma.irqn unused: no DMA interrupt) */
 } dac_hw_t;
 
 static const dac_hw_t g_dac_hw =
@@ -109,12 +109,25 @@ static void dac_channel_config(dac_handle_t *h)
     h->dac.Instance = h->hw->instance;
     (void)HAL_DAC_Init(&h->dac);
 
-    trigger = (h->cfg.mode == DAC_MODE_WAVE) ? g_dac_tim[h->cfg.timer].trig_hal
-                                             : DAC_TRIGGER_NONE;
+    if (h->cfg.mode == DAC_MODE_WAVE)
+    {
+        trigger = g_dac_tim[h->cfg.timer].trig_hal;
+    }
+    else
+    {
+        trigger = DAC_TRIGGER_NONE;
+    }
 
-    channel_config.DAC_Trigger      = trigger;
-    channel_config.DAC_OutputBuffer = h->cfg.buffer_enable ? DAC_OUTPUTBUFFER_ENABLE
-                                                           : DAC_OUTPUTBUFFER_DISABLE;
+    if (h->cfg.buffer_enable)
+    {
+        channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+    }
+    else
+    {
+        channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
+    }
+    channel_config.DAC_Trigger = trigger;
+
     (void)HAL_DAC_ConfigChannel(&h->dac, &channel_config, h->hw->ch_hal[h->cfg.channel]);
     (void)HAL_DAC_Start(&h->dac, h->hw->ch_hal[h->cfg.channel]);
 }
@@ -147,10 +160,18 @@ void dac_init(const dac_cfg_t *cfg)
     const dac_cfg_t *c = (cfg != 0) ? cfg : &cfg_default;
     dac_handle_t    *h = &g_dac;
 
-    if ((c->channel >= DAC_CH_NUM) || (c->timer >= DAC_TIMER_NUM))
+    if ((c->channel >= DAC_CH_NUM) ||
+        ((c->mode != DAC_MODE_SW) && (c->mode != DAC_MODE_WAVE)))
     {
-        return;
+        return; /* invalid channel or mode */
     }
+    if ((c->mode == DAC_MODE_WAVE) && (c->timer >= DAC_TIMER_NUM))
+    {
+        return; /* timer is selected in wave mode only */
+    }
+
+    /* Reconfiguring while a wave is running is not supported: call dac_stop()
+     * first (HAL_DAC_ConfigChannel would rewrite TSEL/TEN with EN set). */
     h->hw  = &g_dac_hw;
     h->cfg = *c;
 
@@ -162,6 +183,7 @@ void dac_init(const dac_cfg_t *cfg)
     {
         dac_timer_config(h);
     }
+    /* DAC_MODE_SW: software output only, no timer/DMA. */
 }
 
 void dac_start(void)
@@ -176,13 +198,19 @@ void dac_start(void)
         return;
     }
 
-    dmaen = (h->cfg.channel == DAC_CH1) ? DAC_CR_DMAEN1 : DAC_CR_DMAEN2;
-    dhr   = (h->cfg.channel == DAC_CH1) ? (uint32_t)&h->hw->instance->DHR12R1
-                                        : (uint32_t)&h->hw->instance->DHR12R2;
+    if (h->cfg.channel == DAC_CH1)
+    {
+        dmaen = DAC_CR_DMAEN1;
+        dhr   = (uint32_t)&h->hw->instance->DHR12R1;
+    }
+    else
+    {
+        dmaen = DAC_CR_DMAEN2;
+        dhr   = (uint32_t)&h->hw->instance->DHR12R2;
+    }
 
-    /* Generic stream setup (clock + Init + HAL_DMA_Init); mode is circular. */
+    /* Generic stream setup (clock + Init + HAL_DMA_Init); the table is circular. */
     h->dma_cfg = h->hw->dma[h->cfg.channel];
-    h->dma_cfg.mode = DMA_CIRCULAR;
     dma_hw_setup(&h->dma, &h->dma_cfg);
 
     /* Hand-written DAC DMA enable, then start the stream and the trigger timer.
@@ -206,7 +234,14 @@ void dac_stop(void)
         return;
     }
 
-    dmaen = (h->cfg.channel == DAC_CH1) ? DAC_CR_DMAEN1 : DAC_CR_DMAEN2;
+    if (h->cfg.channel == DAC_CH1)
+    {
+        dmaen = DAC_CR_DMAEN1;
+    }
+    else
+    {
+        dmaen = DAC_CR_DMAEN2;
+    }
 
     (void)HAL_TIM_Base_Stop(&h->tim);
     (void)HAL_DMA_Abort(&h->dma);
