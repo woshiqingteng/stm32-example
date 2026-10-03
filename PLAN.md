@@ -367,3 +367,8 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
   `HAL_DMA_Abort`；`0xFFFFU` → `USART_TX_MAX_WORD`。DMA 时钟使能在两个 DMA init
   内各内联一份（不新增 helper）。channel 入表：F4 各 USART 的 DMA 通道不同
   （USART1/2/3、UART4/5 为 4，USART6 为 5），故按实例存放。
+- 写通路加固：`usart_write` 显式列出 POLL 分支判定（不再用隐式 `else`）；单次
+  `len` 上限 64 KiB，超出直接返回 `false`；POLL 改为逐字节 100 ms
+  `HAL_GetTick` 超时（`usart_tx_wait` 返回 `bool`）；DMA 使能 TE/FE/DME 中断并在
+  错误时锁存 `tx_error`（修复"仅 TC 中断→错误时 `tx_busy` 永真死等"）；新增
+  `usart_tx_error(id)` 查询（DMA 错误与 POLL 超时统一）。`19_dma` 消费该查询。

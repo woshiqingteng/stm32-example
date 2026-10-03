@@ -18,7 +18,7 @@
 #define DMA_TX_LINE_TERM_LEN_BYTE  1U
 #define DMA_TX_PROGRESS_SCALE_PERCENT 100U
 #define DMA_TX_POLL_DELAY_MS  1U
-#define DMA_TX_LOOP_MS  100U
+#define DMA_TX_LOOP_MS  200U
 
 static const char DMA_TX_LINE[] = "USART1 TX DMA: 0123456789\r\n";
 static uint8_t    g_tx_buf[DMA_TX_BUF_SIZE_BYTE];
@@ -79,6 +79,11 @@ int main(void)
                 {
                     led_toggle(LED0);
                     delay_ms(DMA_TX_POLL_DELAY_MS);
+                }
+                if (usart_tx_error(USART_ID_1))
+                {
+                    printf("DMA TX error\r\n");
+                    break;
                 }
 
                 offset = (uint16_t)(offset + chunk);

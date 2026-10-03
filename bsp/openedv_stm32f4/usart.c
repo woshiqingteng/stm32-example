@@ -18,6 +18,7 @@
 /* ===== constants ===== */
 
 #define USART_TX_MAX_WORD 0xFFFFU /* max bytes per IT/DMA transfer (16-bit NDTR) */
+#define USART_TX_TIMEOUT_MS 100U  /* per-byte POLL wait budget (ms) */
 
 /* ===== hardware descriptors ===== */
 
@@ -60,6 +61,7 @@ typedef struct
     volatile uint16_t     tail;    /* read index (usart_read) */
     volatile usart_rx_cb_t cb;
     volatile bool         tx_busy; /* asynchronous (IT/DMA) transmit in progress */
+    volatile bool         tx_error; /* last write ended in DMA error / POLL timeout */
     const uint8_t        *volatile tx_ptr; /* TX IT cursor */
     volatile uint16_t     tx_len;  /* TX IT bytes left */
 } usart_handle_t;
@@ -169,22 +171,35 @@ static void usart_dma_rx_init(usart_handle_t *handle, const usart_hw_t *hw)
 
 /* ===== transmit paths ===== */
 
-static void usart_tx_wait(usart_handle_t *handle, const uint8_t *data, uint16_t len)
+/* Blocking transmit with a per-byte timeout; returns false when it stalls. */
+static bool usart_tx_wait(usart_handle_t *handle, const uint8_t *data, uint16_t len)
 {
+    uint32_t start;
     uint16_t i;
 
     for (i = 0U; i < len; i++)
     {
+        start = HAL_GetTick();
         while (__HAL_UART_GET_FLAG(&handle->huart, UART_FLAG_TXE) == RESET)
         {
+            if ((HAL_GetTick() - start) >= USART_TX_TIMEOUT_MS)
+            {
+                return false;
+            }
         }
         handle->huart.Instance->DR = data[i];
     }
 
+    start = HAL_GetTick();
     while (__HAL_UART_GET_FLAG(&handle->huart, UART_FLAG_TC) == RESET)
     {
+        if ((HAL_GetTick() - start) >= USART_TX_TIMEOUT_MS)
+        {
+            return false;
+        }
     }
     __HAL_UART_CLEAR_FLAG(&handle->huart, UART_FLAG_TC);
+    return true;
 }
 
 /* ===== receive paths ===== */
@@ -272,9 +287,10 @@ void usart_init(const usart_cfg_t *cfg)
     handle->size    = cfg->rx_size;
     handle->head    = 0U;
     handle->tail    = 0U;
-    handle->tx_busy = false;
-    handle->tx_ptr  = 0;
-    handle->tx_len  = 0U;
+    handle->tx_busy  = false;
+    handle->tx_error = false;
+    handle->tx_ptr   = 0;
+    handle->tx_len   = 0U;
 
     /* ---- MSP begin: clocks + GPIO AF + NVIC ---- */
     if (cfg->id == USART_ID_1) { __HAL_RCC_USART1_CLK_ENABLE(); }
@@ -338,17 +354,28 @@ bool usart_tx_busy(usart_id_t id)
     return g_uart[id].tx_busy;
 }
 
+bool usart_tx_error(usart_id_t id)
+{
+    if (id >= USART_ID_NUM)
+    {
+        return true;
+    }
+    return g_uart[id].tx_error;
+}
+
 bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
 {
     usart_handle_t *handle;
     uint16_t        n;
 
-    if ((id >= USART_ID_NUM) || (data == 0) || (len == 0U) || usart_tx_busy(id))
+    if ((id >= USART_ID_NUM) || (data == 0) || (len == 0U) ||
+        (len > USART_TX_MAX_WORD) || usart_tx_busy(id))
     {
         return false;
     }
     handle = &g_uart[id];
-    n = (len > USART_TX_MAX_WORD) ? USART_TX_MAX_WORD : (uint16_t)len;
+    n = (uint16_t)len;
+    handle->tx_error = false;
 
     if (handle->tx == USART_IO_IT)
     {
@@ -359,8 +386,7 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
         __HAL_UART_ENABLE_IT(&handle->huart, UART_IT_TXE);
         return true;
     }
-
-    if (handle->tx == USART_IO_DMA)
+    else if (handle->tx == USART_IO_DMA)
     {
         __HAL_DMA_CLEAR_FLAG(&handle->hdma_tx, __HAL_DMA_GET_TC_FLAG_INDEX(&handle->hdma_tx));
         __HAL_UART_CLEAR_FLAG(&handle->huart, UART_FLAG_TC);
@@ -375,12 +401,20 @@ bool usart_write(usart_id_t id, const uint8_t *data, uint32_t len)
             handle->tx_busy = false;
             return false;
         }
-        __HAL_DMA_ENABLE_IT(&handle->hdma_tx, DMA_IT_TC);
+        __HAL_DMA_ENABLE_IT(&handle->hdma_tx, DMA_IT_TC | DMA_IT_TE | DMA_IT_FE | DMA_IT_DME);
+        return true;
+    }
+    else if (handle->tx == USART_IO_POLL)
+    {
+        if (!usart_tx_wait(handle, data, n))
+        {
+            handle->tx_error = true;
+            return false;
+        }
         return true;
     }
 
-    usart_tx_wait(handle, data, n);
-    return true;
+    return false; /* unknown transport mode */
 }
 
 uint32_t usart_read(usart_id_t id, uint8_t *data, uint32_t len, uint32_t timeout)
@@ -516,9 +550,10 @@ static void usart_dma_tx_irq(usart_handle_t *handle)
     }
     else
     {
-        /* TE/FE/DME: release the busy flag. */
+        /* TE/FE/DME: abort, latch the error and release the busy flag. */
         CLEAR_BIT(handle->huart.Instance->CR3, USART_CR3_DMAT);
-        handle->tx_busy = false;
+        handle->tx_error = true;
+        handle->tx_busy  = false;
     }
 }
 
@@ -547,7 +582,7 @@ int __io_putchar(int ch)
     while (handle->tx_busy)
     {
     }
-    usart_tx_wait(handle, &byte, 1U);
+    (void)usart_tx_wait(handle, &byte, 1U);
 
     return ch;
 }
