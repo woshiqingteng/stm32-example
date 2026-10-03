@@ -465,3 +465,29 @@ D4 自有 `tx_busy`；D5 `__io_putchar` 阻塞等待。
   `adc_dma_irq()` + 守卫。
 - ADC2/ADC3 预留（`instance=0`），`adc_init` 对未接实例直接返回。
 - 8 个 app 更新为 id API；构建零告警；HIL 冒烟 20_1/20_2/20_3/20_4/21 通过。
+
+## 16. 通用 gpio_hw_t 与 ADC 硬件内聚
+
+目标：抽出可复用的"GPIO 硬件属性"类型到 bsp 私有共享头，供 ADC 等驱动内嵌；
+ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
+
+### 新文件 `bsp/openedv_stm32f4/gpio_hw.h`（header-only）
+- `gpio_hw_t { port, rcc_en, mode, pull, speed, alternate }`（配置型；引脚掩码
+  由调用方按用途给出）。
+- `static inline gpio_hw_setup(const gpio_hw_t*, uint16_t pins)`：使能端口
+  `RCC->AHB1ENR` 时钟 + `HAL_GPIO_Init`。
+- 不依赖任何驱动头；`adc_hw_t`/`usart_hw_t` 等仍各自私有。
+
+### `adc.c`
+- `adc_hw_t`：增 `adc_rcc_en`(APB2ENR_ADC1EN)、`dma_rcc_en`(AHB1ENR_DMA2EN)、
+  内嵌 `gpio_hw_t gpio`、`poll_pins`；保留 `ch_pin[]`(GPIO) 与 `ch_hal[]`(ADC 通道)；
+  删 `DMA_TypeDef *dma`。
+- 时钟改 `SET_BIT(RCC->APB2ENR, adc_rcc_en)` + `SET_BIT(RCC->AHB1ENR, dma_rcc_en)`；
+  GPIO 时钟/配置走 `gpio_hw_setup(&hw->gpio, poll_pins|pins)`。
+- 删除 `adc_gpio_analog`（→ static 函数 4→3）。
+
+### 完成情况（结果）
+- 新增 `gpio_hw.h`；`adc_hw_t` 内嵌 `gpio_hw_t`，时钟/引脚事实全部来自 `g_adc_hw`
+  表；`adc_gpio_analog` 删除（static 4→3）；`adc.c` 无 `__HAL_RCC_*_CLK_ENABLE`/
+  `== GPIOA`/`== DMA2`。
+- 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_3/21 通过。

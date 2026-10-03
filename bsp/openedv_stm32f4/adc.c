@@ -11,6 +11,7 @@
 #include "stm32f4xx_hal.h"
 #include "adc.h"
 #include "delay.h"
+#include "gpio_hw.h"
 
 #define ADC_POLL_TIMEOUT_MS 10U
 
@@ -40,13 +41,15 @@ typedef struct
 {
     ADC_TypeDef        *instance;
     ADC_Common_TypeDef *common;      /* ADC123_COMMON (CCR / TSVREFE) */
-    GPIO_TypeDef       *gpio;
-    DMA_TypeDef        *dma;
+    uint32_t            adc_rcc_en;  /* RCC_APB2ENR_ADC1EN */
+    uint32_t            dma_rcc_en;  /* RCC_AHB1ENR_DMA2EN */
     DMA_Stream_TypeDef *dma_stream;
     uint32_t            dma_channel;
     IRQn_Type           dma_irqn;
-    uint32_t            ch_hal[ADC_CH_NUM]; /* ADC_CHANNEL_x per channel id */
+    gpio_hw_t           gpio;        /* generic GPIO attributes */
+    uint16_t            poll_pins;   /* analog pins configured for polling */
     uint16_t            ch_pin[ADC_CH_NUM]; /* GPIO_PIN_x per channel id (0 = none) */
+    uint32_t            ch_hal[ADC_CH_NUM]; /* ADC_CHANNEL_x per channel id (not GPIO) */
 } adc_hw_t;
 
 static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
@@ -54,15 +57,18 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
     {
         .instance    = ADC1,
         .common      = ADC,
-        .gpio        = GPIOA,
-        .dma         = DMA2,
+        .adc_rcc_en  = RCC_APB2ENR_ADC1EN,
+        .dma_rcc_en  = RCC_AHB1ENR_DMA2EN,
         .dma_stream  = DMA2_Stream4,
         .dma_channel = DMA_CHANNEL_0,
         .dma_irqn    = DMA2_Stream4_IRQn,
-        .ch_hal      = { ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
-                         ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_18 },
+        .gpio        = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_MODE_ANALOG,
+                         GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
+        .poll_pins   = GPIO_PIN_5,
         .ch_pin      = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3,
                          GPIO_PIN_4, GPIO_PIN_5, 0U },
+        .ch_hal      = { ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
+                         ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_18 },
     },
     { .instance = 0 }, /* ADC_ID_2: reserved (not wired) */
     { .instance = 0 }, /* ADC_ID_3: reserved (not wired) */
@@ -116,20 +122,6 @@ static void adc_channel_config(ADC_HandleTypeDef *hadc, const adc_hw_t *hw,
     channel_config.SamplingTime = g_smp_hal[(cfg->sample_time < 8) ? (uint32_t)cfg->sample_time : 7U];
     channel_config.Offset       = 0U;
     (void)HAL_ADC_ConfigChannel(hadc, &channel_config);
-}
-
-static void adc_gpio_analog(GPIO_TypeDef *port, uint32_t pins)
-{
-    GPIO_InitTypeDef gpio = {0};
-
-    if (pins == 0U)
-    {
-        return;
-    }
-    gpio.Pin  = pins;
-    gpio.Mode = GPIO_MODE_ANALOG;
-    gpio.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(port, &gpio);
 }
 
 /* Explicit DMA completion (no HAL weak callbacks). */
@@ -196,15 +188,13 @@ void adc_init(const adc_cfg_t *cfg)
     h->hw  = hw;
     h->cfg = *c;
 
-    /* ---- MSP begin: clocks ---- */
-    if (c->id == ADC_ID_1) { __HAL_RCC_ADC1_CLK_ENABLE(); }
-    if (hw->gpio == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); }
-    if (hw->dma == DMA2)   { __HAL_RCC_DMA2_CLK_ENABLE(); }
-    else                   { __HAL_RCC_DMA1_CLK_ENABLE(); }
+    /* ---- MSP begin: clocks (GPIO clock is enabled inside gpio_hw_setup) ---- */
+    SET_BIT(RCC->APB2ENR, hw->adc_rcc_en);
+    SET_BIT(RCC->AHB1ENR, hw->dma_rcc_en);
     /* ---- MSP end ---- */
 
-    /* Polled handle uses PA5 (single channel). */
-    adc_gpio_analog(hw->gpio, GPIO_PIN_5);
+    /* Polled handle uses the poll analog pins. */
+    gpio_hw_setup(&hw->gpio, hw->poll_pins);
     adc_instance_config(&h->poll, hw, c, DISABLE, 1U, DISABLE, DISABLE);
 
     if (c->mode != ADC_MODE_DMA)
@@ -219,7 +209,7 @@ void adc_init(const adc_cfg_t *cfg)
     {
         pins |= hw->ch_pin[(c->chans[i] < ADC_CH_NUM) ? (uint32_t)c->chans[i] : 0U];
     }
-    adc_gpio_analog(hw->gpio, pins);
+    gpio_hw_setup(&hw->gpio, pins);
 
     /* ---- MSP begin: DMA NVIC ---- */
     HAL_NVIC_SetPriority(hw->dma_irqn, 3U, 3U);
