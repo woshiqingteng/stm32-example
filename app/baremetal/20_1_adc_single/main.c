@@ -14,23 +14,20 @@
 #define ADC_FULL_SCALE_COUNT  4096U
 #define ADC_SAMPLE_PERIOD_MS  100U   /* plus ADC_AVG_COUNT * ADC_AVG_DELAY_MS below */
 
-static uint32_t adc_read_avg(void)
+static void adc_show(void)
 {
     uint32_t sum = 0U;
     uint32_t i;
+    uint32_t raw;
+    uint32_t mv;
 
     for (i = 0U; i < ADC_AVG_COUNT; i++)
     {
         sum += adc_read(ADC_ID_1, ADC_CH5);
         delay_ms(ADC_AVG_DELAY_MS);
     }
-    return sum / ADC_AVG_COUNT;
-}
-
-static void adc_show(void)
-{
-    uint32_t raw = adc_read_avg();
-    uint32_t mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
+    raw = sum / ADC_AVG_COUNT;
+    mv  = (raw * ADC_VREF_MV) / ADC_FULL_SCALE_COUNT;
 
     printf("ch5 raw:%u vol:%lu.%03luV\r\n",
            (unsigned int)raw,
