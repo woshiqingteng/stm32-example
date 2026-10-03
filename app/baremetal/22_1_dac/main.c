@@ -12,31 +12,30 @@
 #include "dac.h"
 
 #define DAC_STEP_COUNT     256U
-#define DAC_MV_FULL  3300U
+#define VREF_MV            3300U
 #define ADC_AVG_COUNT      10U
 #define ADC_AVG_DELAY_MS   5U
 
-static uint32_t adc_read_avg(adc_channel_t ch)
+static void dac_show(uint16_t code)
 {
     uint32_t sum = 0U;
     uint32_t i;
+    uint32_t adc;
+    uint32_t dac_mv;
+    uint32_t adc_mv;
+
+    dac_mv = ((uint32_t)code * VREF_MV) / DAC_FULL_SCALE_COUNT;
 
     for (i = 0U; i < ADC_AVG_COUNT; i++)
     {
-        sum += adc_read(ADC_ID_1, ch);
+        sum += adc_read(ADC_ID_1, ADC_CH4);
         delay_ms(ADC_AVG_DELAY_MS);
     }
-    return sum / ADC_AVG_COUNT;
-}
-
-static void dac_show(uint16_t code)
-{
-    uint32_t millivolt = ((uint32_t)code * DAC_MV_FULL) / DAC_FULL_SCALE_COUNT;
-    uint32_t adc = adc_read_avg(ADC_CH4);
-    uint32_t adc_mv = (adc * DAC_MV_FULL) / DAC_FULL_SCALE_COUNT;
+    adc    = sum / ADC_AVG_COUNT;
+    adc_mv = (adc * VREF_MV) / DAC_FULL_SCALE_COUNT;
 
     printf("DAC: %4u %lu.%03luV  ADC: %4lu %lu.%03luV\r\n", (unsigned)code,
-           (unsigned long)(millivolt / 1000U), (unsigned long)(millivolt % 1000U),
+           (unsigned long)(dac_mv / 1000U), (unsigned long)(dac_mv % 1000U),
            (unsigned long)adc,
            (unsigned long)(adc_mv / 1000U), (unsigned long)(adc_mv % 1000U));
 }
@@ -73,9 +72,10 @@ int main(void)
             code = next;
             dac_set(DAC_CH1, code);
             dac_show(code);
-            led_toggle(LED0);
+            led_toggle(LED1);          /* action LED */
         }
 
+        led_toggle(LED0);              /* run LED, tied to the loop delay */
         delay_ms(50U);
     }
 }
