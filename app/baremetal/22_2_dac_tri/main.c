@@ -17,6 +17,7 @@
 
 #define TRI_WAVE_LEN 100U
 
+#define APP_LOOP_MS       500U
 #define ADC_AVG_COUNT     10U
 #define ADC_AVG_DELAY_MS  5U
 
@@ -35,22 +36,18 @@ static const uint16_t g_tri_buf[TRI_WAVE_LEN] =
      752,  669,  585,  501,  418,  334,  251,  167,   84,    0,
 };
 
-static uint32_t adc_read_avg(adc_channel_t ch)
+static void tri_show(void)
 {
     uint32_t sum = 0U;
     uint32_t i;
+    uint32_t adc;
 
     for (i = 0U; i < ADC_AVG_COUNT; i++)
     {
-        sum += adc_read(ADC_ID_1, ch);
+        sum += adc_read(ADC_ID_1, ADC_CH5);
         delay_ms(ADC_AVG_DELAY_MS);
     }
-    return sum / ADC_AVG_COUNT;
-}
-
-static void tri_show(void)
-{
-    uint32_t adc = adc_read_avg(ADC_CH5);
+    adc = sum / ADC_AVG_COUNT;
 
     printf("tri ADC(Pin5): %lu\r\n", (unsigned long)adc);
 }
@@ -78,7 +75,7 @@ int main(void)
     for (;;)
     {
         tri_show();
-        led_toggle(LED0);
-        delay_ms(500U);
+        led_toggle(LED0);          /* run indicator, ~500 ms */
+        delay_ms(APP_LOOP_MS);
     }
 }
