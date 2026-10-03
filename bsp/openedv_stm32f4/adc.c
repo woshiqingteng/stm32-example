@@ -95,10 +95,10 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
 typedef struct
 {
     const adc_hw_t   *hw;
-    ADC_HandleTypeDef poll;
-    ADC_HandleTypeDef dma;
-    DMA_HandleTypeDef dma_stream;
-    dma_hw_t          dma_cfg;    /* runtime working copy (mode specified here) */
+    ADC_HandleTypeDef adc_poll;
+    ADC_HandleTypeDef adc_dma;
+    DMA_HandleTypeDef adc_dma_stream;
+    dma_hw_t          adc_dma_cfg; /* runtime working copy (mode specified here) */
     adc_cfg_t         cfg;
     uint16_t         *dma_buf;
     adc_dma_cb_t      dma_cb;
@@ -146,11 +146,11 @@ static void adc_dma_irq(adc_handle_t *h)
 {
     DMA_HandleTypeDef *hdma;
 
-    if ((h->hw == 0) || (h->dma_stream.Instance == 0))
+    if ((h->hw == 0) || (h->adc_dma_stream.Instance == 0))
     {
         return;
     }
-    hdma = &h->dma_stream;
+    hdma = &h->adc_dma_stream;
 
     if (h->cfg.dma_half_cb &&
         (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_HT_FLAG_INDEX(hdma)) != RESET))
@@ -208,44 +208,47 @@ void adc_init(const adc_cfg_t *cfg)
     SET_BIT(RCC->APB2ENR, hw->adc_rcc_en);
     /* ---- MSP end ---- */
 
-    /* Polled handle uses the dedicated poll analog pin. */
-    gpio_hw_setup(&hw->gpio_poll);
-    adc_instance_config(&h->poll, hw, c, DISABLE, 1U, DISABLE, DISABLE);
-
-    if (c->mode != ADC_MODE_DMA)
+    if (c->mode == ADC_MODE_POLL)
     {
-        return;
+        gpio_hw_setup(&hw->gpio_poll);
+        adc_instance_config(&h->adc_poll, hw, c, DISABLE, 1U, DISABLE, DISABLE);
     }
-
-    h->dma_buf = c->dma_buf;
-    h->dma_cb  = c->dma_cb;
-
-    for (i = 0U; i < (uint32_t)c->nchans; i++)
+    else if (c->mode == ADC_MODE_DMA)
     {
-        uint32_t ch = (c->chans[i] < ADC_CH_NUM) ? (uint32_t)c->chans[i] : 0U;
-        gpio_hw_setup(&hw->gpio[ch]);
+        h->dma_buf = c->dma_buf;
+        h->dma_cb  = c->dma_cb;
+
+        for (i = 0U; i < (uint32_t)c->nchans; i++)
+        {
+            uint32_t ch = (c->chans[i] < ADC_CH_NUM) ? (uint32_t)c->chans[i] : 0U;
+            gpio_hw_setup(&hw->gpio[ch]);
+        }
+
+        /* Generic stream setup (clock + Init + HAL_DMA_Init); mode specified directly. */
+        h->adc_dma_cfg = hw->dma;
+        h->adc_dma_cfg.mode = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
+        dma_hw_setup(&h->adc_dma_stream, &h->adc_dma_cfg);
+
+        __HAL_LINKDMA(&h->adc_dma, DMA_Handle, h->adc_dma_stream);
+
+        /* ---- MSP begin: DMA NVIC (driver-owned) ---- */
+        HAL_NVIC_SetPriority(hw->dma.irqn, 3U, 3U);
+        HAL_NVIC_EnableIRQ(hw->dma.irqn);
+        /* ---- MSP end ---- */
+
+        adc_instance_config(&h->adc_dma, hw, c, (c->nchans > 1U) ? ENABLE : DISABLE,
+                            (uint32_t)c->nchans, ENABLE, ENABLE);
+        for (i = 0U; i < (uint32_t)c->nchans; i++)
+        {
+            adc_channel_config(&h->adc_dma, hw, c, c->chans[i], (uint32_t)(i + 1U));
+        }
+
+        adc_dma_start(c->id);
     }
-
-    /* Generic stream setup (clock + Init + HAL_DMA_Init); mode specified directly. */
-    h->dma_cfg = hw->dma;
-    h->dma_cfg.mode = (c->dma_mode == ADC_DMA_CIRCULAR) ? DMA_CIRCULAR : DMA_NORMAL;
-    dma_hw_setup(&h->dma_stream, &h->dma_cfg);
-
-    __HAL_LINKDMA(&h->dma, DMA_Handle, h->dma_stream);
-
-    /* ---- MSP begin: DMA NVIC (driver-owned) ---- */
-    HAL_NVIC_SetPriority(hw->dma.irqn, 3U, 3U);
-    HAL_NVIC_EnableIRQ(hw->dma.irqn);
-    /* ---- MSP end ---- */
-
-    adc_instance_config(&h->dma, hw, c, (c->nchans > 1U) ? ENABLE : DISABLE,
-                        (uint32_t)c->nchans, ENABLE, ENABLE);
-    for (i = 0U; i < (uint32_t)c->nchans; i++)
+    else
     {
-        adc_channel_config(&h->dma, hw, c, c->chans[i], (uint32_t)(i + 1U));
+        return; /* unknown transport */
     }
-
-    adc_dma_start(c->id);
 }
 
 uint32_t adc_read(adc_id_t id, adc_channel_t ch)
@@ -257,9 +260,9 @@ uint32_t adc_read(adc_id_t id, adc_channel_t ch)
         return 0U;
     }
     h = &g_adc[id];
-    if (h->hw == 0)
+    if ((h->hw == 0) || (h->cfg.mode != ADC_MODE_POLL))
     {
-        return 0U;
+        return 0U; /* only polled instances can adc_read() */
     }
 
     if (ch == ADC_TEMP_CH)
@@ -267,11 +270,11 @@ uint32_t adc_read(adc_id_t id, adc_channel_t ch)
         SET_BIT(h->hw->common->CCR, ADC_CCR_TSVREFE);
     }
 
-    adc_channel_config(&h->poll, h->hw, &h->cfg, ch, 1U);
-    (void)HAL_ADC_Start(&h->poll);
-    (void)HAL_ADC_PollForConversion(&h->poll, ADC_POLL_TIMEOUT_MS);
+    adc_channel_config(&h->adc_poll, h->hw, &h->cfg, ch, 1U);
+    (void)HAL_ADC_Start(&h->adc_poll);
+    (void)HAL_ADC_PollForConversion(&h->adc_poll, ADC_POLL_TIMEOUT_MS);
 
-    return (uint32_t)HAL_ADC_GetValue(&h->poll);
+    return (uint32_t)HAL_ADC_GetValue(&h->adc_poll);
 }
 
 void adc_dma_start(adc_id_t id)
@@ -290,21 +293,21 @@ void adc_dma_start(adc_id_t id)
     }
 
     /* Restart the sequence from rank 1 and let the ADC stabilise after ADON. */
-    __HAL_ADC_DISABLE(&h->dma);
-    __HAL_ADC_CLEAR_FLAG(&h->dma, ADC_FLAG_EOC | ADC_FLAG_OVR);
+    __HAL_ADC_DISABLE(&h->adc_dma);
+    __HAL_ADC_CLEAR_FLAG(&h->adc_dma, ADC_FLAG_EOC | ADC_FLAG_OVR);
 
     SET_BIT(h->hw->instance->CR2, ADC_CR2_DMA);
-    if (HAL_DMA_Start(&h->dma_stream, (uint32_t)&h->hw->instance->DR,
+    if (HAL_DMA_Start(&h->adc_dma_stream, (uint32_t)&h->hw->instance->DR,
                       (uint32_t)h->dma_buf, h->cfg.dma_len) != HAL_OK)
     {
         CLEAR_BIT(h->hw->instance->CR2, ADC_CR2_DMA);
         return;
     }
 
-    __HAL_DMA_ENABLE_IT(&h->dma_stream, DMA_IT_TC | DMA_IT_TE | DMA_IT_FE | DMA_IT_DME
-                                         | (h->cfg.dma_half_cb ? DMA_IT_HT : 0U));
+    __HAL_DMA_ENABLE_IT(&h->adc_dma_stream, DMA_IT_TC | DMA_IT_TE | DMA_IT_FE | DMA_IT_DME
+                                            | (h->cfg.dma_half_cb ? DMA_IT_HT : 0U));
 
-    __HAL_ADC_ENABLE(&h->dma);
+    __HAL_ADC_ENABLE(&h->adc_dma);
     delay_us(ADC_STAB_DELAY_US);
     SET_BIT(h->hw->instance->CR2, ADC_CR2_SWSTART);
 }

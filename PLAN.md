@@ -541,3 +541,6 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 - `gpio_hw_t` 单 pin + `gpio_hw_setup(hw)`；ADC `gpio_poll`+`gpio[]` 组装于表内；
   DMA 工作副本 `adc_handle_t.dma_cfg`（mode 直接指定），无一次性栈拷贝。
 - 8 个 app 构建零告警；`adc.c` 强制重编零告警；HIL 冒烟 20_1/20_2/20_3/20_4/21 通过。
+- 后续重命名：句柄成员统一前缀 `adc_poll`/`adc_dma`/`adc_dma_stream`/`adc_dma_cfg`；
+  `adc_init` 改为**显式 poll/DMA 分支**（仅 POLL 分支配轮询脚与轮询句柄），
+  `adc_read` 增加 `mode == ADC_MODE_POLL` 守卫。
