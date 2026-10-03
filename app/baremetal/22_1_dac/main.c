@@ -48,7 +48,7 @@ int main(void)
     printf(APP_BANNER "\r\n");
     dac_init(NULL);
     adc_init(NULL);
-    dac_set(DAC_CH1, code);
+    dac_write(DAC_CH1, code);
 
     printf("WKUP: +  KEY0: -\r\n");
     dac_show(code);
@@ -70,7 +70,7 @@ int main(void)
         if (next != code)
         {
             code = next;
-            dac_set(DAC_CH1, code);
+            dac_write(DAC_CH1, code);
             dac_show(code);
             led_toggle(LED1);          /* action LED */
         }

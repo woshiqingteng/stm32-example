@@ -23,7 +23,7 @@ typedef enum
 /** @brief Output mode. */
 typedef enum
 {
-    DAC_MODE_SW = 0, /*!< software-triggered single value (dac_set) */
+    DAC_MODE_SW = 0, /*!< software-triggered single value (dac_write) */
     DAC_MODE_WAVE    /*!< timer-triggered DMA waveform (dac_start/dac_stop) */
 } dac_mode_t;
 
@@ -37,9 +37,6 @@ typedef enum
 
 /** @brief 12-bit full-scale DAC code. */
 #define DAC_FULL_SCALE_COUNT 4095U
-
-/** @brief Output full-scale voltage (mV). */
-#define DAC_VREF_MV 3300U
 
 /** @brief One-shot DAC configuration. */
 typedef struct
@@ -72,10 +69,7 @@ void dac_start(void);
 /** @brief Stop the wave. No-op in SW mode. */
 void dac_stop(void);
 
-/** @brief Write a 12-bit right-aligned value to a channel. */
-void dac_set(dac_channel_t channel, uint16_t value);
-
-/** @brief Write an output voltage (0..DAC_VREF_MV) to a channel. */
-void dac_set_voltage(dac_channel_t channel, uint16_t millivolt);
+/** @brief Write a 12-bit right-aligned code to a channel. */
+void dac_write(dac_channel_t channel, uint16_t value);
 
 #endif /* BSP_DAC_H */

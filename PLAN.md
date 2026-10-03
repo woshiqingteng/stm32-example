@@ -602,9 +602,10 @@ HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/
 
 - `dac.h`（HAL-free）：`dac_channel_t{DAC_CH1=0,DAC_CH2,..}`、
   `dac_mode_t{SW,WAVE}`、`dac_timer_t{DAC_TIMER_6,DAC_TIMER_7}`、
-  `DAC_FULL_SCALE_COUNT`/`DAC_VREF_MV`、`dac_cfg_t` + `DAC_CFG_DEFAULT`；
-  API：`dac_init(cfg)`（只配置）/`dac_start()`/`dac_stop()`/`dac_set()`/
-  `dac_set_voltage()`。波形缓冲由 app 提供（`buf`/`len`）。
+  `DAC_FULL_SCALE_COUNT`、`dac_cfg_t` + `DAC_CFG_DEFAULT`；
+  API：`dac_init(cfg)`（只配置）/`dac_start()`/`dac_stop()`/`dac_write()`（原始码）。
+  波形缓冲由 app 提供（`buf`/`len`）；电压换算归 app（已删
+  `dac_set_voltage()`/`DAC_VREF_MV`，与 ADC 一致）。
 - `dac.c`：`dac_hw_t`（instance/rcc_en/`gpio[]`/`ch_hal[]`/`dma[]`，HAL 宏）+
   `dac_tim_hw_t g_dac_tim[]`（TIM6/TIM7→TRGO）+ `dac_handle_t g_dac`；
   `dac_channel_config`/`dac_timer_config`；`dac_start` 手写

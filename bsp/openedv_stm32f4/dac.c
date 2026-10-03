@@ -214,7 +214,7 @@ void dac_stop(void)
     (void)HAL_DAC_Stop(&h->dac, h->hw->ch_hal[h->cfg.channel]);
 }
 
-void dac_set(dac_channel_t channel, uint16_t value)
+void dac_write(dac_channel_t channel, uint16_t value)
 {
     if ((g_dac.hw == 0) || (channel >= DAC_CH_NUM))
     {
@@ -225,16 +225,4 @@ void dac_set(dac_channel_t channel, uint16_t value)
         value = DAC_FULL_SCALE_COUNT;
     }
     (void)HAL_DAC_SetValue(&g_dac.dac, g_dac.hw->ch_hal[channel], DAC_ALIGN_12B_R, value);
-}
-
-void dac_set_voltage(dac_channel_t channel, uint16_t millivolt)
-{
-    uint32_t code;
-
-    if (millivolt > DAC_VREF_MV)
-    {
-        millivolt = DAC_VREF_MV;
-    }
-    code = ((uint32_t)millivolt * (DAC_FULL_SCALE_COUNT + 1U)) / DAC_VREF_MV;
-    dac_set(channel, (uint16_t)code);
 }
