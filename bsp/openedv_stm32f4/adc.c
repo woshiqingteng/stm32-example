@@ -15,6 +15,7 @@
 #include "dma_hw.h"
 
 #define ADC_POLL_TIMEOUT_MS 10U
+#define ADC_POLL_CH ADC_CH5   /* ADC-owned poll pin (PA5) */
 
 /* ===== option mapping (own enum -> HAL) ===== */
 
@@ -42,9 +43,8 @@ typedef struct
 {
     ADC_TypeDef        *instance;
     ADC_Common_TypeDef *common;      /* ADC123_COMMON (CCR / TSVREFE) */
-    uint32_t            adc_rcc_en;  /* RCC_APB2ENR_ADC1EN */
+    uint32_t            rcc_en;      /* RCC_APB2ENR_ADC1EN */
     dma_hw_t            dma;         /* generic DMA stream attributes */
-    gpio_hw_t           gpio_poll;   /* dedicated analog pin for polling */
     gpio_hw_t           gpio[ADC_CH_NUM]; /* analog pin per channel (temp: pin = 0) */
     uint32_t            ch_hal[ADC_CH_NUM]; /* ADC_CHANNEL_x per channel id (not GPIO) */
 } adc_hw_t;
@@ -54,7 +54,7 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
     {
         .instance    = ADC1,
         .common      = ADC,
-        .adc_rcc_en  = RCC_APB2ENR_ADC1EN,
+        .rcc_en      = RCC_APB2ENR_ADC1EN,
         .dma         = {
             .rcc_en         = RCC_AHB1ENR_DMA2EN,
             .stream         = DMA2_Stream4,
@@ -72,8 +72,6 @@ static const adc_hw_t g_adc_hw[ADC_ID_NUM] =
             .mem_burst      = DMA_MBURST_SINGLE,
             .periph_burst   = DMA_PBURST_SINGLE,
         },
-        .gpio_poll   = { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_5, GPIO_MODE_ANALOG,
-                         GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
         .gpio        = {
             { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_0, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
             { GPIOA, RCC_AHB1ENR_GPIOAEN, GPIO_PIN_1, GPIO_MODE_ANALOG, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW, 0U },
@@ -205,12 +203,12 @@ void adc_init(const adc_cfg_t *cfg)
     h->cfg = *c;
 
     /* ---- MSP begin: ADC clock (GPIO/DMA clocks come from the generic setup) ---- */
-    SET_BIT(RCC->APB2ENR, hw->adc_rcc_en);
+    SET_BIT(RCC->APB2ENR, hw->rcc_en);
     /* ---- MSP end ---- */
 
     if (c->mode == ADC_MODE_POLL)
     {
-        gpio_hw_setup(&hw->gpio_poll);
+        gpio_hw_setup(&hw->gpio[ADC_POLL_CH]);
         adc_instance_config(&h->adc_poll, hw, c, DISABLE, 1U, DISABLE, DISABLE);
     }
     else if (c->mode == ADC_MODE_DMA)

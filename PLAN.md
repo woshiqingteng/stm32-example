@@ -544,3 +544,6 @@ ADC 的 GPIO/时钟硬件事实全部进 `adc_hw_t`。
 - 后续重命名：句柄成员统一前缀 `adc_poll`/`adc_dma`/`adc_dma_stream`/`adc_dma_cfg`；
   `adc_init` 改为**显式 poll/DMA 分支**（仅 POLL 分支配轮询脚与轮询句柄），
   `adc_read` 增加 `mode == ADC_MODE_POLL` 守卫。
+- 去重：删除与 `gpio[ADC_CH5]` 重复的 `gpio_poll`，POLL 分支配固定
+  `gpio[ADC_POLL_CH]`（`#define ADC_POLL_CH ADC_CH5`）；`adc_hw_t` 只保留静态硬件
+  （`adc_rcc_en`→`rcc_en`），运行时经参数传入，helper 保持 `static`。
