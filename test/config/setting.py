@@ -21,6 +21,12 @@ ADAPTER = "cmsis-dap"
 ADAPTER_SERIAL = ""
 TARGET_CFG = "target/stm32f4x.cfg"
 
+# Windows PnP instance id of the on-board ATK CMSIS-DAP. When OpenOCD reports a
+# wedged adapter (e.g. "CMSIS-DAP command mismatch"), the framework software-
+# resets it with `pnputil /restart-device` (equivalent to a re-plug). Empty
+# disables the auto-reset.
+ADAPTER_INSTANCE = r"USB\VID_04D8&PID_00DF\ATK_20210914"
+
 # --- Target flash ------------------------------------------------------------
 FLASH_ADDR = 0x08000000
 
