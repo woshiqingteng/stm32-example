@@ -32,6 +32,8 @@ static void expand_show(void)
     {
         uint8_t ex = io_expand_read_bit(IO_EXPAND_EX);   /* reading clears INT */
 
+        printf("INT EX_IO:%u\r\n", (unsigned)ex);
+
         if (ex == 0U)
         {
             led_toggle(LED1);
