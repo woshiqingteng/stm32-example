@@ -1,6 +1,6 @@
 /**
  * @file    main.c
- * @brief   25_i2c_extend_io: PCF8574 8-bit IO expander demo (after the vendor
+ * @brief   25_i2c_io_expand: PCF8574 8-bit IO expander demo (after the vendor
  *          example). KEY0 toggles the buzzer; the expander INT line is polled
  *          and reading EX_IO clears it (LED1 mirrors the EX_IO input). LED0 is
  *          the run heartbeat. Status is reported over USART1.

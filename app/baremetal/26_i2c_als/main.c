@@ -11,12 +11,20 @@
 
 #define SAMPLE_PERIOD_MS   200U
 
-int main(void)
+/* Read one IR/PS/ALS sample and report it. */
+static void als_show(void)
 {
     uint16_t ir;
     uint16_t ps;
     uint16_t als;
 
+    als_read(&ir, &ps, &als);
+
+    printf("IR:%u PS:%u ALS:%u\r\n", ir, ps, als);
+}
+
+int main(void)
+{
     bsp_init();
     printf(APP_BANNER "\r\n");
 
@@ -27,10 +35,7 @@ int main(void)
 
     for (;;)
     {
-        als_read(&ir, &ps, &als);
-
-        printf("IR:%u PS:%u ALS:%u\r\n", ir, ps, als);
-
+        als_show();
         led_toggle(LED0);
         delay_ms(SAMPLE_PERIOD_MS);
     }

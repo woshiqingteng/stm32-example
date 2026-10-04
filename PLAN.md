@@ -147,7 +147,7 @@ spi/sys/tpad/usart/wdg`）。
   13_sdram 14_lcd_rgb 15_usmart 16_rtc 17_rng 18_1_pvd 18_2_sleep 18_3_stop
   18_4_standby 19_dma 20_1_adc_single 20_2_adc_dma 20_3_adc_multi_dma
   20_4_adc_oversample 21_adc_tempsensor 22_1_dac 22_2_dac_tri 22_3_dac_sine
-  23_pwm_dac 24_i2c_eeprom 25_i2c_extend_io 26_i2c_als 27_spi_nor 28_rs485
+  23_pwm_dac 24_i2c_eeprom 25_i2c_io_expand 26_i2c_als 27_spi_nor 28_rs485
   29_can 30_touch_screen 31_ir 32_1wire_temp 33_1wire_humi 34_i2c_magnet
   35_i2c_imu 36_spi_wireless 37_internal_flash 38_camera_stream 39_malloc
   40_sdio_sdcard 41_nand 42_fatfs 43_font 44_image 45_camera_storage 46_sai_audio
