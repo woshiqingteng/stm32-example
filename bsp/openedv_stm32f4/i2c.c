@@ -690,6 +690,7 @@ static bool i2c_it_wait(void)
     {
         if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
         {
+            SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
             __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
             return false;
         }
@@ -727,11 +728,21 @@ static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
         g_it.phase = 0U;
     }
 
+
+
+    /* The peripheral may have been left mid-transfer by a previous (failed)
+     * transaction: toggling PE resets the state machine (BUSY/MSL/...). */
+    if ((g_i2c_hw.instance->SR2 & (I2C_SR2_BUSY | I2C_SR2_MSL)) != 0U)
+    {
+        __HAL_I2C_DISABLE(&g_i2c_handle);
+        __HAL_I2C_ENABLE(&g_i2c_handle);
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS | I2C_CR1_START | I2C_CR1_STOP);
     NVIC_ClearPendingIRQ(I2C2_EV_IRQn);
     NVIC_ClearPendingIRQ(I2C2_ER_IRQn);
     SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-    __HAL_I2C_ENABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
     SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    __HAL_I2C_ENABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
 
     return i2c_it_wait();
 }
@@ -815,7 +826,7 @@ void I2C2_EV_IRQHandler(void)
     }
     else if ((sr2 & I2C_SR2_TRA) != 0U)   /* transmitter */
     {
-        if ((g_it.kind == I2C_IT_MEMR) && (g_it.phase == 0U))
+        if (g_it.kind == I2C_IT_MEMR)
         {
             i2c_it_mem_prefix();   /* driven by a TXE or BTF event */
         }
@@ -825,9 +836,13 @@ void I2C2_EV_IRQHandler(void)
             {
                 g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
             }
-            else
+            else if (g_it.kind == I2C_IT_TX)
             {
                 __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+            }
+            else
+            {
+                /* MEM read phase: keep BUF enabled so RXNE can fire. */
             }
         }
         else if ((sr1 & I2C_SR1_BTF) != 0U)
