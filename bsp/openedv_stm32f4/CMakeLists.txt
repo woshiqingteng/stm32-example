@@ -68,9 +68,6 @@ target_link_libraries(bsp_adc PUBLIC drv_adc)
 bsp_library(bsp_dac
     dac.c)
 target_link_libraries(bsp_dac PUBLIC drv_dac bsp_tim m)
-bsp_library(bsp_pwmdac
-    pwmdac.c)
-target_link_libraries(bsp_pwmdac PUBLIC bsp_tim)
 
 # memory
 bsp_library(bsp_internal_flash
@@ -205,7 +202,7 @@ target_link_libraries(bsp_all INTERFACE
     bsp_tim bsp_rtc bsp_wdg
     bsp_i2c bsp_spi bsp_io_expand
     bsp_can bsp_rs485 bsp_wireless bsp_ir
-    bsp_adc bsp_dac bsp_pwmdac
+    bsp_adc bsp_dac
     bsp_internal_flash bsp_sdram bsp_nand bsp_ftl bsp_nor bsp_eeprom bsp_sdio
     bsp_lcd bsp_lcd_rgb bsp_oled bsp_touch bsp_tpad
     bsp_dcmi bsp_ov5640 bsp_codec bsp_sai

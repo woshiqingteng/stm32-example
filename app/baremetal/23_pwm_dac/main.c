@@ -9,10 +9,11 @@
 
 #include "bsp.h"
 #include "adc.h"
-#include "pwmdac.h"
+#include "tim.h"
 
 #define PWMDAC_ARR       255U
 #define PWMDAC_PSC       1U
+#define PWMDAC_VREF_MV   3300U
 /* TIM9/APB2: 180 MHz/((1+1)*256) = 351.5625 kHz */
 #define PWMDAC_STEP_MV   100U
 
@@ -22,9 +23,22 @@
 #define LED_BLINK_MS      500U
 #define LED_BLINK_TICKS   (LED_BLINK_MS / APP_LOOP_MS)
 
+/* Set the filtered-PWM output voltage (vol in mV). */
+static void pwmdac_set(uint16_t vol)
+{
+    uint32_t ccr;
+
+    if (vol > PWMDAC_VREF_MV)
+    {
+        vol = PWMDAC_VREF_MV;
+    }
+    ccr = ((uint32_t)vol * (PWMDAC_ARR + 1U)) / PWMDAC_VREF_MV;
+    tim_set(TIM_ID_9, TIM_CH2, TIM_PARAM_CCR, ccr);
+}
+
 static void pwmdac_show(void)
 {
-    uint16_t code   = (uint16_t)pwmdac_get_code();
+    uint16_t code   = (uint16_t)tim_get(TIM_ID_9, TIM_CH2, TIM_PARAM_CCR);
     uint16_t vol    = (uint16_t)(((uint32_t)code * PWMDAC_VREF_MV) / (PWMDAC_ARR + 1U));
     uint32_t sum    = 0U;
     uint32_t i;
@@ -47,12 +61,22 @@ static void pwmdac_show(void)
 
 int main(void)
 {
+    tim_cfg_t cfg  = { TIM_CFG_DEFAULT };
     uint16_t vol   = PWMDAC_VREF_MV / 2U;
     uint32_t blink = 0U;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    pwmdac_init(PWMDAC_ARR, PWMDAC_PSC);
+
+    cfg.id       = TIM_ID_9;
+    cfg.mode     = TIM_MODE_PWM;
+    cfg.channel  = TIM_CH2;
+    cfg.polarity = TIM_POL_HIGH;
+    cfg.pull     = TIM_PULL_UP;
+    cfg.arr      = PWMDAC_ARR;
+    cfg.psc      = PWMDAC_PSC;
+    tim_init(&cfg);
+
     adc_init(NULL);
     pwmdac_set(vol);
 

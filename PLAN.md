@@ -75,7 +75,7 @@ tool/build.sh [debug|release] <app|all|all-freertos> [<app> ...] [--flash]
 | `sdram` | `sdram_w9825g6kh.h` | | |
 
 其余为板级单层驱动（`adc/atim/btim/can/dac/dcmi/delay/exti/ftl/gtim/i2c/iap/
-internal_flash/io_expand/ir/key/led/ov5640/pwmdac/pwr/rng/rs485/rtc/sai/sdio/
+internal_flash/io_expand/ir/key/led/ov5640/pwr/rng/rs485/rtc/sai/sdio/
 spi/sys/tpad/usart/wdg`）。
 
 - **usart 统一驱动**：`USART_ID_1/2`，tx/rx 可分别 POLL/IT/DMA；行解析在 app。
@@ -618,7 +618,7 @@ HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/
 ## 23. TIM 驱动重构成 ADC/USART 风格（单一 tim.{c,h}）
 
 目标：用**单一 HAL-free 驱动** `tim.{c,h}` 替换 `btim/gtim/atim`，并折入
-`dac/pwmdac/ir/tpad/usmart(TIM4)/videoplayer(TIM7)`；算法逻辑全部外移。
+`dac/ir/tpad/usmart(TIM4)/videoplayer(TIM7)`（pwmdac 删除、内联到 23）；算法逻辑外移。
 
 ### 公共接口（4 函数 / 6 参数）
 - 类型：`tim_id_t{TIM_ID_1..14}`、`tim_mode_t{BASE,PWM,OC,IC,COUNTER,PWMIN,CPLM,NPWM}`、
@@ -656,7 +656,7 @@ HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/
   `g_tpad_default_val`(tpad)。
 
 ### CMake
-`bsp_dac/pwmdac/ir/tpad → bsp_tim`；`lib_mjpeg: bsp_btim→bsp_tim`；
+`bsp_dac/ir/tpad → bsp_tim`（删 bsp_pwmdac）；`lib_mjpeg: bsp_btim→bsp_tim`；
 `lib_usmart: bsp_gtim→bsp_tim`；阶段 7 改 `bsp_all`；15 app `BSP→tim`（38 去多余 gtim）。
 
 ### 行为变化
@@ -664,7 +664,7 @@ HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/
 
 ### 分阶段
 1 建 `tim.{c,h}`(BASE/PWM/IC) → 2 补 OC/COUNTER/PWMIN/CPLM/NPWM → 3 CMake+迁 07/08
-→ 4 迁 09 → 5 迁 38/45/49/50/fr → 6 折入 pwmdac/ir/tpad/dac/usmart/videoplayer+修 ir.h
+→ 4 迁 09 → 5 迁 38/45/49/50/fr → 6 折入 ir/tpad/dac/usmart/videoplayer、删 pwmdac+修 ir.h
 → 7 删旧文件+bsp_all+全量回归。
 
 ### 验证
