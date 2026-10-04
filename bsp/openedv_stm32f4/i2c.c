@@ -338,6 +338,20 @@ static void i2c_hw_bus_reset(i2c_handle_t *h)
     SET_BIT(h->hw->instance->CR1, I2C_CR1_PE);
 }
 
+/* Release the hardware transport (STOP, interrupts off, DMA aborted) before a
+ * transfer is discarded or the bus is re-configured. */
+static void i2c_abort(i2c_handle_t *h)
+{
+    if (h->io == I2C_IO_SW)
+    {
+        return;
+    }
+    SET_BIT(h->hw->instance->CR1, I2C_CR1_STOP);
+    __HAL_I2C_DISABLE_IT(&h->hi2c, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+    (void)HAL_DMA_Abort(&h->hdma[I2C_DMA_TX]);
+    (void)HAL_DMA_Abort(&h->hdma[I2C_DMA_RX]);
+}
+
 /* Wait until __FLAG__ == WANT (SET/RESET). false on timeout. */
 static bool i2c_hw_wait(i2c_handle_t *h, uint32_t flag, FlagStatus want)
 {
@@ -1107,69 +1121,97 @@ static void i2c_hw_bus_recover(i2c_handle_t *h)
     delay_us(5U);
 }
 
+/* Bring up the hardware I2C2 transport: configure first, then recover the bus
+ * only if it is actually held (BUSY) - never unconditionally before init. */
+static void i2c_hw_init(i2c_handle_t *h)
+{
+    __HAL_RCC_I2C2_CLK_ENABLE();
+    gpio_hw_setup(&h->hw->scl);
+    gpio_hw_setup(&h->hw->sda);
+
+    h->hi2c.Instance             = h->hw->instance;
+    h->hi2c.Init.ClockSpeed      = h->speed_hz;
+    h->hi2c.Init.DutyCycle       = I2C_DUTYCYCLE_2;
+    h->hi2c.Init.OwnAddress1     = 0U;
+    h->hi2c.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
+    h->hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    h->hi2c.Init.OwnAddress2     = 0U;
+    h->hi2c.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    h->hi2c.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
+    (void)HAL_I2C_Init(&h->hi2c);
+
+    if ((h->hw->instance->SR2 & I2C_SR2_BUSY) != 0U)
+    {
+        i2c_hw_bus_reset(h);   /* the bus is held by a stuck slave */
+    }
+
+    /* DMA streams. */
+    dma_hw_setup(&h->hdma[I2C_DMA_TX], &h->hw->dma[I2C_DMA_TX]);
+    dma_hw_setup(&h->hdma[I2C_DMA_RX], &h->hw->dma[I2C_DMA_RX]);
+
+    /* NVIC: I2C events/errors (IT + DMA) and the two DMA streams. */
+    HAL_NVIC_SetPriority(h->hw->ev_irqn, 3U, 3U);
+    HAL_NVIC_EnableIRQ(h->hw->ev_irqn);
+    HAL_NVIC_SetPriority(h->hw->er_irqn, 3U, 3U);
+    HAL_NVIC_EnableIRQ(h->hw->er_irqn);
+    HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_TX].irqn, 3U, 3U);
+    HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_TX].irqn);
+    HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_RX].irqn, 3U, 3U);
+    HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_RX].irqn);
+}
+
+/* Bring up the software bit-bang transport. */
+static void i2c_sw_init(i2c_handle_t *h)
+{
+    gpio_hw_t scl = h->hw->scl;
+    gpio_hw_t sda = h->hw->sda;
+
+    scl.mode      = GPIO_MODE_OUTPUT_PP;
+    scl.alternate = 0U;
+    sda.mode      = GPIO_MODE_OUTPUT_OD;
+    sda.alternate = 0U;
+    gpio_hw_setup(&scl);
+    gpio_hw_setup(&sda);
+    i2c_sw_stop(h);
+}
+
 void i2c_init(const i2c_cfg_t *cfg)
 {
     static const i2c_cfg_t cfg_default = { I2C_CFG_DEFAULT };
     i2c_handle_t    *h = &g_bus[I2C_BUS];
     const i2c_cfg_t *c = cfg;
+    uint32_t         speed;
 
+    if ((c == 0) && h->ready)
+    {
+        return;   /* already initialised; a NULL cfg is a no-op */
+    }
     if (c == 0)
     {
-        if (h->ready)
-        {
-            return;
-        }
         c = &cfg_default;
     }
+    speed = (c->speed_hz != 0U) ? c->speed_hz : 100000U;
 
-    h->hw       = &g_hw[I2C_BUS];
+    if (h->ready && (h->io == c->io) && (h->speed_hz == speed))
+    {
+        return;   /* same configuration: nothing to do */
+    }
+
+    h->hw = &g_hw[I2C_BUS];
+    if (h->ready)
+    {
+        i2c_abort(h);   /* release the previous transport before re-configuring */
+    }
     h->io       = c->io;
-    h->speed_hz = (c->speed_hz != 0U) ? c->speed_hz : 100000U;
+    h->speed_hz = speed;
 
     if (h->io != I2C_IO_SW)
     {
-        __HAL_RCC_I2C2_CLK_ENABLE();
-        i2c_hw_bus_recover(h);
-        gpio_hw_setup(&h->hw->scl);
-        gpio_hw_setup(&h->hw->sda);
-
-        h->hi2c.Instance             = h->hw->instance;
-        h->hi2c.Init.ClockSpeed      = h->speed_hz;
-        h->hi2c.Init.DutyCycle       = I2C_DUTYCYCLE_2;
-        h->hi2c.Init.OwnAddress1     = 0U;
-        h->hi2c.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
-        h->hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-        h->hi2c.Init.OwnAddress2     = 0U;
-        h->hi2c.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-        h->hi2c.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
-        (void)HAL_I2C_Init(&h->hi2c);
-
-        /* DMA streams. */
-        dma_hw_setup(&h->hdma[I2C_DMA_TX], &h->hw->dma[I2C_DMA_TX]);
-        dma_hw_setup(&h->hdma[I2C_DMA_RX], &h->hw->dma[I2C_DMA_RX]);
-
-        /* NVIC: I2C events/errors (IT + DMA) and the two DMA streams. */
-        HAL_NVIC_SetPriority(h->hw->ev_irqn, 3U, 3U);
-        HAL_NVIC_EnableIRQ(h->hw->ev_irqn);
-        HAL_NVIC_SetPriority(h->hw->er_irqn, 3U, 3U);
-        HAL_NVIC_EnableIRQ(h->hw->er_irqn);
-        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_TX].irqn, 3U, 3U);
-        HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_TX].irqn);
-        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_RX].irqn, 3U, 3U);
-        HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_RX].irqn);
+        i2c_hw_init(h);
     }
     else
     {
-        gpio_hw_t scl = h->hw->scl;
-        gpio_hw_t sda = h->hw->sda;
-
-        scl.mode      = GPIO_MODE_OUTPUT_PP;
-        scl.alternate = 0U;
-        sda.mode      = GPIO_MODE_OUTPUT_OD;
-        sda.alternate = 0U;
-        gpio_hw_setup(&scl);
-        gpio_hw_setup(&sda);
-        i2c_sw_stop(h);
+        i2c_sw_init(h);
     }
 
     h->ready = true;
