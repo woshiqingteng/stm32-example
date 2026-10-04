@@ -293,6 +293,28 @@ static bool i2c_sw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
 /*                       hardware I2C2 backend (flag macros)             */
 /* ===================================================================== */
 
+/* Master transfer context (shared by the poll / interrupt transports). */
+enum { I2C_IT_TX = 0, I2C_IT_RX, I2C_IT_MEMR };
+
+static struct
+{
+    uint8_t        kind;
+    uint8_t        addr7;
+    uint8_t        phase;     /* MEMR: 0 = prefix write, 1 = read */
+    uint8_t        event;     /* MEMR prefix: HAL-style EventCount */
+    const uint8_t *wbuf;
+    uint16_t       wlen, widx;
+    uint8_t       *rbuf;
+    uint16_t       rlen, ridx;
+    volatile bool  done;
+    volatile bool  error;
+} g_it;
+
+#define I2C_IT_RETRY   3U   /* re-try a transaction that left the bus stuck */
+
+/* Shared protocol engine (defined with the interrupt transport below). */
+static void i2c_proto_step(uint32_t sr1, uint32_t sr2);
+
 /* Wait until __FLAG__ == WANT (SET/RESET). false on timeout. */
 static bool i2c_hw_wait(uint32_t flag, FlagStatus want)
 {
@@ -355,285 +377,85 @@ static bool i2c_hw_probe(uint8_t addr7)
     return true;
 }
 
-/* Master transmit (mirrors HAL_I2C_Master_Transmit). */
-static bool i2c_hw_write(uint8_t addr7, const uint8_t *buf, uint16_t len)
+/* Generic polled transfer: set the context up, start, then drive the shared
+ * protocol engine from the main loop (exactly the events the IT ISR feeds), so
+ * the poll / interrupt / DMA transports share one read tail and MEM prefix. */
+static bool i2c_hw_poll(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
+                        uint8_t *rbuf, uint16_t rlen)
 {
-    uint16_t i   = 0U;
-    uint16_t rem = len;
+    uint32_t start;
 
-    if (len == 0U)
+    g_it.addr7 = addr7;
+    g_it.wbuf  = wbuf;
+    g_it.wlen  = wlen;
+    g_it.rbuf  = rbuf;
+    g_it.rlen  = rlen;
+    if (rlen == 0U)
     {
-        return i2c_hw_probe(addr7);
+        g_it.kind  = I2C_IT_TX;
+        g_it.phase = 0U;
     }
-    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    else if (wlen == 0U)
     {
-        return false;
-    }
-    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
-
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
-    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
-    if (!i2c_hw_wait_addr())
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-
-    while (rem > 0U)
-    {
-        if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
-        {
-            i2c_hw_stop();
-            return false;
-        }
-        g_i2c_hw.instance->DR = buf[i++];
-        rem--;
-        if ((__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_BTF) == SET) && (rem != 0U))
-        {
-            g_i2c_hw.instance->DR = buf[i++];
-            rem--;
-        }
-        if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
-        {
-            i2c_hw_stop();
-            return false;
-        }
-    }
-    i2c_hw_stop();
-    return true;
-}
-
-/* Master receive tail (mirrors HAL_I2C_Master_Receive): the read address has
- * been ACKed and ADDR is still set. */
-static bool i2c_hw_read_tail(uint8_t *buf, uint16_t len)
-{
-    uint16_t i = 0U;
-    uint16_t n = len;
-
-    if (n == 0U)
-    {
-        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-        i2c_hw_stop();
-        return true;
-    }
-    if (n == 1U)
-    {
-        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-        i2c_hw_stop();
-    }
-    else if (n == 2U)
-    {
-        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
-        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        g_it.kind  = I2C_IT_RX;
+        g_it.phase = 1U;
     }
     else
     {
-        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        g_it.kind  = I2C_IT_MEMR;
+        g_it.phase = 0U;
     }
+    g_it.widx  = 0U;
+    g_it.ridx  = 0U;
+    g_it.event = 0U;
+    g_it.done  = false;
+    g_it.error = false;
 
-    while (n > 0U)
-    {
-        if (n <= 3U)
-        {
-            if (n == 1U)
-            {
-                if (!i2c_hw_wait(I2C_FLAG_RXNE, SET))
-                {
-                    return false;
-                }
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n--;
-            }
-            else if (n == 2U)
-            {
-                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
-                {
-                    return false;
-                }
-                i2c_hw_stop();
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n -= 2U;
-            }
-            else /* n == 3 */
-            {
-                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
-                {
-                    return false;
-                }
-                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n--;
-                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
-                {
-                    return false;
-                }
-                i2c_hw_stop();
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n--;
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n--;
-            }
-        }
-        else
-        {
-            if (!i2c_hw_wait(I2C_FLAG_RXNE, SET))
-            {
-                return false;
-            }
-            buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-            n--;
-            if (__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_BTF) == SET)
-            {
-                if (n == 3U)
-                {
-                    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-                }
-                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
-                n--;
-            }
-        }
-    }
-    return true;
-}
-
-/* Master receive (mirrors HAL_I2C_Master_Receive). */
-static bool i2c_hw_read(uint8_t addr7, uint8_t *buf, uint16_t len)
-{
     if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
     {
         return false;
     }
     CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
     SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-
     SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
-    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
-    if (!i2c_hw_wait_addr())
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    return i2c_hw_read_tail(buf, len);
-}
 
-/* Register read: write 1/2-byte prefix then (repeated start) read
- * (mirrors I2C_RequestMemoryRead + HAL_I2C_Master_Receive). */
-static bool i2c_hw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
-                              uint8_t *rbuf, uint16_t rlen)
-{
-    if ((wlen != 1U) && (wlen != 2U))
+    start = HAL_GetTick();
+    while (!g_it.done)
     {
-        return false;
-    }
-    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
-    {
-        return false;
-    }
-    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        uint32_t sr1;
+        uint32_t sr2;
 
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
-    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
-    if (!i2c_hw_wait_addr())
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-
-    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    g_i2c_hw.instance->DR = wbuf[0];
-    if (wlen == 2U)
-    {
-        if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+        if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
         {
             i2c_hw_stop();
             return false;
         }
-        g_i2c_hw.instance->DR = wbuf[1];
+        sr1 = g_i2c_hw.instance->SR1;   /* read SR1 before SR2 (clears ADDR) */
+        sr2 = g_i2c_hw.instance->SR2;
+        i2c_proto_step(sr1, sr2);
     }
-    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);   /* repeated start */
-    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
-    if (!i2c_hw_wait_addr())
-    {
-        i2c_hw_stop();
-        return false;
-    }
-    return i2c_hw_read_tail(rbuf, rlen);
+    return !g_it.error;
 }
 
 /* ===================================================================== */
 /*                       hardware I2C2 interrupt transport               */
 /* ===================================================================== */
 
-enum { I2C_IT_TX = 0, I2C_IT_RX, I2C_IT_MEMR };
-
-static struct
-{
-    uint8_t        kind;
-    uint8_t        addr7;
-    uint8_t        phase;     /* MEMR: 0 = prefix write, 1 = read */
-    uint8_t        event;     /* MEMR prefix: HAL-style EventCount */
-    const uint8_t *wbuf;
-    uint16_t       wlen, widx;
-    uint8_t       *rbuf;
-    uint16_t       rlen, ridx;
-    volatile bool  done;
-    volatile bool  error;
-} g_it;
-
-#define I2C_IT_RETRY   3U   /* re-try a transaction that left the bus stuck */
-
 static void i2c_hw_bus_recover(void);   /* defined with the HW back-end */
 
-static bool i2c_it_is_read(void)
+static bool i2c_is_read(void)
 {
     return (g_it.kind == I2C_IT_RX) || ((g_it.kind == I2C_IT_MEMR) && (g_it.phase != 0U));
 }
 
-static void i2c_it_done(void)
+static void i2c_done(void)
 {
     __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
     g_it.done = true;
 }
 
 /* Read tail for the IT receiver (mirrors I2C_MasterReceive_RXNE/BTF). */
-static void i2c_it_rx_ne(void)
+static void i2c_proto_rxne(void)
 {
     uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
 
@@ -650,7 +472,7 @@ static void i2c_it_rx_ne(void)
         CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
         SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
         g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
-        i2c_it_done();
+        i2c_done();
     }
     else
     {
@@ -658,7 +480,7 @@ static void i2c_it_rx_ne(void)
     }
 }
 
-static void i2c_it_rx_btf(void)
+static void i2c_proto_rx_btf(void)
 {
     uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
 
@@ -678,7 +500,7 @@ static void i2c_it_rx_btf(void)
         SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
         g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
         g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
-        i2c_it_done();
+        i2c_done();
     }
     else
     {
@@ -779,7 +601,7 @@ static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
 /* MEM register-prefix state machine (mirrors I2C_MemoryTransmit_TXE_BTF): send
  * the address bytes, then a repeated start, then flush. Driven by a TXE or BTF
  * event. */
-static void i2c_it_mem_prefix(void)
+static void i2c_proto_mem_prefix(void)
 {
     if (g_it.event == 0U)
     {
@@ -808,99 +630,86 @@ static void i2c_it_mem_prefix(void)
     }
 }
 
-void I2C2_EV_IRQHandler(void)
+/* ===== protocol engine =====
+ * One set of phase handlers shared by the poll / interrupt / DMA transports.
+ * The flag order and the per-count read tail follow the interrupt
+ * implementation (i2c_proto_rxne / i2c_proto_rx_btf). */
+
+static void i2c_proto_sb(void)
 {
-    uint32_t sr1 = g_i2c_hw.instance->SR1;
-    uint32_t sr2 = g_i2c_hw.instance->SR2;
+    uint8_t rw = i2c_is_read() ? 1U : 0U;
 
-    if ((sr1 & I2C_SR1_SB) != 0U)
-    {
-        uint8_t rw = i2c_it_is_read() ? 1U : 0U;
+    g_i2c_hw.instance->DR = i2c_ll_dev(g_it.addr7, rw);
+}
 
-        g_i2c_hw.instance->DR = i2c_ll_dev(g_it.addr7, rw);
-    }
-    else if ((sr1 & I2C_SR1_ADDR) != 0U)
+/* Per-count ACK/POS policy for a master read (shared with the DMA transport). */
+static void i2c_proto_addr_flags(uint16_t n)
+{
+    if (n == 1U)
     {
-        if (i2c_it_is_read())
-        {
-            uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
-
-            if (n == 0U)
-            {
-                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
-                i2c_it_done();
-            }
-            else if (n == 1U)
-            {
-                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-            }
-            else if (n == 2U)
-            {
-                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
-                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-            }
-            else
-            {
-                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-            }
-        }
-        else
-        {
-            __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
-        }
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
     }
-    else if ((sr2 & I2C_SR2_TRA) != 0U)   /* transmitter */
+    else if (n == 2U)
     {
-        if (g_it.kind == I2C_IT_MEMR)
-        {
-            i2c_it_mem_prefix();   /* driven by a TXE or BTF event */
-        }
-        else if (((sr1 & I2C_SR1_TXE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
-        {
-            if (g_it.widx < g_it.wlen)
-            {
-                g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
-            }
-            else if (g_it.kind == I2C_IT_TX)
-            {
-                __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
-            }
-            else
-            {
-                /* MEM read phase: keep BUF enabled so RXNE can fire. */
-            }
-        }
-        else if ((sr1 & I2C_SR1_BTF) != 0U)
-        {
-            if (g_it.widx < g_it.wlen)
-            {
-                g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
-            }
-            else
-            {
-                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
-                i2c_it_done();
-            }
-        }
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
     }
-    else   /* receiver */
+    else
     {
-        if (((sr1 & I2C_SR1_RXNE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
-        {
-            i2c_it_rx_ne();
-        }
-        else if ((sr1 & I2C_SR1_BTF) != 0U)
-        {
-            i2c_it_rx_btf();
-        }
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
     }
 }
 
-void I2C2_ER_IRQHandler(void)
+static void i2c_proto_addr(void)
+{
+    if (i2c_is_read())
+    {
+        uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
+
+        if (n == 0U)
+        {
+            __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+            SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+            i2c_done();
+        }
+        else
+        {
+            i2c_proto_addr_flags(n);
+            __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        }
+    }
+    else
+    {
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+    }
+}
+
+static void i2c_proto_tx_txe(void)
+{
+    if (g_it.widx < g_it.wlen)
+    {
+        g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
+    }
+    else
+    {
+        __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+    }
+}
+
+static void i2c_proto_tx_btf(void)
+{
+    if (g_it.widx < g_it.wlen)
+    {
+        g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
+    }
+    else
+    {
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+        i2c_done();
+    }
+}
+
+static void i2c_proto_error(void)
 {
     uint32_t err = (I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_OVR);
 
@@ -912,6 +721,66 @@ void I2C2_ER_IRQHandler(void)
         g_it.error = true;
         g_it.done  = true;
     }
+}
+
+/* Route one bus event (snapshot of SR1/SR2) to the phase handlers. */
+static void i2c_proto_step(uint32_t sr1, uint32_t sr2)
+{
+    if (g_it.done)
+    {
+        return;
+    }
+    if ((sr1 & (I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_OVR)) != 0U)
+    {
+        i2c_proto_error();
+    }
+    else if ((sr1 & I2C_SR1_SB) != 0U)
+    {
+        i2c_proto_sb();
+    }
+    else if ((sr1 & I2C_SR1_ADDR) != 0U)
+    {
+        i2c_proto_addr();
+    }
+    else if ((sr2 & I2C_SR2_TRA) != 0U)   /* transmitter */
+    {
+        if (g_it.kind == I2C_IT_MEMR)
+        {
+            i2c_proto_mem_prefix();   /* driven by a TXE or BTF event */
+        }
+        else if (((sr1 & I2C_SR1_TXE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
+        {
+            i2c_proto_tx_txe();
+        }
+        else if ((sr1 & I2C_SR1_BTF) != 0U)
+        {
+            i2c_proto_tx_btf();
+        }
+    }
+    else   /* receiver */
+    {
+        if (((sr1 & I2C_SR1_RXNE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
+        {
+            i2c_proto_rxne();
+        }
+        else if ((sr1 & I2C_SR1_BTF) != 0U)
+        {
+            i2c_proto_rx_btf();
+        }
+    }
+}
+
+void I2C2_EV_IRQHandler(void)
+{
+    uint32_t sr1 = g_i2c_hw.instance->SR1;
+    uint32_t sr2 = g_i2c_hw.instance->SR2;
+
+    i2c_proto_step(sr1, sr2);
+}
+
+void I2C2_ER_IRQHandler(void)
+{
+    i2c_proto_error();
 }
 
 /* ===================================================================== */
@@ -1041,22 +910,8 @@ static bool i2c_dma_arm_rx(uint8_t *buf, uint16_t len)
  * complete callback). */
 static bool i2c_dma_rx_finish(uint16_t len)
 {
-    if (len == 1U)
-    {
-        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
-    }
-    else if (len == 2U)
-    {
-        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
-        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
-    }
-    else
-    {
-        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
-    }
+    i2c_proto_addr_flags(len);
+    SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
     __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
 
     if (!i2c_dma_wait(I2C_DMA_RX))
@@ -1317,7 +1172,7 @@ bool i2c_write(i2c_device_t dev, const uint8_t *buf, uint16_t len)
     {
         return i2c_dma_write(addr7, buf, len);
     }
-    return i2c_hw_write(addr7, buf, len);
+    return i2c_hw_poll(addr7, buf, len, 0, 0U);
 }
 
 bool i2c_read(i2c_device_t dev, uint8_t *buf, uint16_t len)
@@ -1346,7 +1201,7 @@ bool i2c_read(i2c_device_t dev, uint8_t *buf, uint16_t len)
     {
         return i2c_dma_read(addr7, buf, len);
     }
-    return i2c_hw_read(addr7, buf, len);
+    return i2c_hw_poll(addr7, 0, 0U, buf, len);
 }
 
 bool i2c_write_read(i2c_device_t dev,
@@ -1381,5 +1236,5 @@ bool i2c_write_read(i2c_device_t dev,
     {
         return i2c_dma_write_read(addr7, wbuf, wlen, rbuf, rlen);
     }
-    return i2c_hw_write_read(addr7, wbuf, wlen, rbuf, rlen);
+    return i2c_hw_poll(addr7, wbuf, wlen, rbuf, rlen);
 }
