@@ -13,7 +13,7 @@
 
 #include "bsp.h"
 #include "dcmi.h"
-#include "gtim.h"
+#include "tim.h"
 #include "io_expand.h"
 #include "lcd.h"
 #include "ov5640.h"
@@ -52,6 +52,40 @@ static char          g_last_path[32];
 static uint32_t         g_line_buf[2][CAM_OUT_WIDTH_PIXEL / 2U];
 static volatile uint16_t g_cam_curline;
 
+/* 1 Hz frame-rate counter (moved out of the timer driver). */
+static volatile uint32_t g_frame_count;
+static volatile uint32_t g_frame_rate;
+
+static void frame_tick(void)
+{
+    g_frame_rate  = g_frame_count;
+    g_frame_count = 0U;
+    printf("frame:%u\r\n", (unsigned int)g_frame_rate);
+}
+
+static void frame_inc(void)
+{
+    g_frame_count++;
+}
+
+static uint32_t frame_rate(void)
+{
+    return g_frame_rate;
+}
+
+static void frame_init(void)
+{
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
+    /* TIM14: 90 MHz / (9000 * 10000) = 1 Hz. */
+    cfg.id        = TIM_ID_14;
+    cfg.mode      = TIM_MODE_BASE;
+    cfg.arr       = 10000U - 1U;
+    cfg.psc       = 9000U - 1U;
+    cfg.update_cb = &frame_tick;
+    tim_init(&cfg);
+}
+
 static void cam_line_cb(void)
 {
     uint16_t *pbuf;
@@ -75,7 +109,7 @@ static void cam_line_cb(void)
 static void cam_frame_cb(void)
 {
     g_cam_curline = CAM_TOP;
-    gtim_frame_inc();
+    frame_inc();
     led_toggle(LED1);
 }
 
@@ -318,7 +352,7 @@ int main(void)
     g_cam_curline = CAM_TOP;
     (void)ov5640_outsize_set(4U, 0U, CAM_OUT_WIDTH_PIXEL, CAM_OUT_HEIGHT_PIXEL);
 
-    gtim_frame_init();
+    frame_init();
     cam_status(0U, sd_ok);
     dcmi_start();
 
@@ -342,7 +376,7 @@ int main(void)
         {
             cam_show_jpeg(sd_ok);
         }
-        fps = gtim_frame_rate();
+        fps = frame_rate();
 
         if (fps != last_fps)
         {

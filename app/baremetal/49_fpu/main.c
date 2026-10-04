@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "btim.h"
+#include "tim.h"
 #include "lcd.h"
 #include "sdram.h"
 
@@ -120,8 +120,16 @@ int main(void)
     julia_clut_init();
 
     /* ARR=65535 -> 65536*0.1 ms = 6.55 s overflow; ticks/10 = ms */
-    btim_timx_int_init(65535U, (uint16_t)FPU_TIMER_PSC);
-    btim_timx_int_register(&on_tim6);
+    {
+        tim_cfg_t tim_cfg = { TIM_CFG_DEFAULT };
+
+        tim_cfg.id        = TIM_ID_6;
+        tim_cfg.mode      = TIM_MODE_BASE;
+        tim_cfg.arr       = 65535U;
+        tim_cfg.psc       = (uint16_t)FPU_TIMER_PSC;
+        tim_cfg.update_cb = &on_tim6;
+        tim_init(&tim_cfg);
+    }
 
     width  = lcd_info()->width;
     height = lcd_info()->height;
@@ -169,10 +177,10 @@ int main(void)
             led_off(LED1);
         }
 
-        TIM6->CNT = 0U;
+        tim_set(TIM_ID_6, TIM_CH1, TIM_PARAM_COUNT, 0U);
         g_timeout = 0U;
         julia_draw(width, height, g_zoom_tbl[zoom_idx]);
-        ticks = (uint32_t)TIM6->CNT + ((uint32_t)g_timeout * 65536U);
+        ticks = tim_get(TIM_ID_6, TIM_CH1, TIM_PARAM_COUNT) + ((uint32_t)g_timeout * 65536U);
 
         sprintf(buf, "%s zoom:%u runtime:%lu.%lums", FPU_MODE_TEXT,
                 (unsigned)g_zoom_tbl[zoom_idx],

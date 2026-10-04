@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "bsp.h"
-#include "btim.h"
+#include "tim.h"
 #include "arm_math.h"
 
 #define FFT_LENGTH_SAMPLE      1024U       /* FFT length: 16, 64, 256 or 1024 */
@@ -53,8 +53,16 @@ int main(void)
 
     bsp_init();
 
-    btim_timx_int_init(65535U, 90U - 1U); /* 1 MHz, ~65 ms overflow */
-    btim_timx_int_register(&on_tim6);
+    {
+        tim_cfg_t tim_cfg = { TIM_CFG_DEFAULT };
+
+        tim_cfg.id        = TIM_ID_6;
+        tim_cfg.mode      = TIM_MODE_BASE;
+        tim_cfg.arr       = 65535U;
+        tim_cfg.psc       = 90U - 1U;
+        tim_cfg.update_cb = &on_tim6;
+        tim_init(&tim_cfg);
+    }
 
     printf(APP_BANNER "\r\n");
 
@@ -77,10 +85,10 @@ int main(void)
         {
             fft_signal_fill();
 
-            TIM6->CNT  = 0U;
+            tim_set(TIM_ID_6, TIM_CH1, TIM_PARAM_COUNT, 0U);
             g_timeout  = 0U;
             arm_cfft_radix4_f32(&scfft, g_fft_inputbuf);
-            t0 = (uint32_t)TIM6->CNT + ((uint32_t)g_timeout * 65536U); /* us */
+            t0 = tim_get(TIM_ID_6, TIM_CH1, TIM_PARAM_COUNT) + ((uint32_t)g_timeout * 65536U); /* us */
 
             arm_cmplx_mag_f32(g_fft_inputbuf, g_fft_outputbuf, FFT_LENGTH_SAMPLE);
 

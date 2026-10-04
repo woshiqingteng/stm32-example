@@ -12,7 +12,7 @@
 #include "lcd.h"
 #include "sdram.h"
 #include "malloc.h"
-#include "btim.h"
+#include "tim.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -40,9 +40,15 @@ static void run_ticks_cb(void)
 
 void rtos_runtime_timer_init(void)
 {
-    btim_timx_int_register(run_ticks_cb);
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     /* 90 MHz / ((899+1)*(9+1)) = 10 kHz */
-    btim_timx_int_init(9U, 899U);
+    cfg.id        = TIM_ID_6;
+    cfg.mode      = TIM_MODE_BASE;
+    cfg.arr       = 9U;
+    cfg.psc       = 899U;
+    cfg.update_cb = run_ticks_cb;
+    tim_init(&cfg);
 }
 
 static TaskHandle_t s_start_task;

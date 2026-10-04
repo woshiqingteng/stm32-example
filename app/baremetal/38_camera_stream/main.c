@@ -16,7 +16,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "btim.h"
+#include "tim.h"
 #include "dcmi.h"
 #include "lcd.h"
 #include "ov5640.h"
@@ -357,8 +357,16 @@ int main(void)
     lcd_init();
 
     /* 90 MHz / (9000 * 10000) = 1 Hz -> per-second FPS */
-    btim_timx_int_init(10000U - 1U, 9000U - 1U);
-    btim_timx_int_register(&fps_cb);
+    {
+        tim_cfg_t tim_cfg = { TIM_CFG_DEFAULT };
+
+        tim_cfg.id        = TIM_ID_6;
+        tim_cfg.mode      = TIM_MODE_BASE;
+        tim_cfg.arr       = 10000U - 1U;
+        tim_cfg.psc       = 9000U - 1U;
+        tim_cfg.update_cb = &fps_cb;
+        tim_init(&tim_cfg);
+    }
 
     lcd_show_string(30, 50, 200, 16, LCD_FONT_SIZE_16, "STM32", RED);
     lcd_show_string(30, 70, 200, 16, LCD_FONT_SIZE_16, "OV5640 TEST", RED);

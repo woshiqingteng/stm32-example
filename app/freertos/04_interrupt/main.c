@@ -17,8 +17,7 @@
 #include "lcd.h"
 #include "sdram.h"
 #include "delay.h"
-#include "btim.h"
-#include "gtim.h"
+#include "tim.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -54,12 +53,22 @@ static void start_task(void *argument)
     taskENTER_CRITICAL();
 
     /* Same period as the reference; priorities copied from the reference. */
-    gtim_timx_int_init(TIM_ARR, TIM_PSC);          /* TIM3 */
-    btim_timx_int_init(TIM_ARR, TIM_PSC);          /* TIM6 */
-    gtim_timx_int_register(on_tim3);
-    btim_timx_int_register(on_tim6);
-    HAL_NVIC_SetPriority(TIM3_IRQn, 4, 0);         /* above MAX_SYSCALL (5) */
-    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 6, 0);     /* below MAX_SYSCALL (5) */
+    {
+        tim_cfg_t cfg3 = { TIM_CFG_DEFAULT };
+        tim_cfg_t cfg6 = { TIM_CFG_DEFAULT };
+
+        cfg3.id = TIM_ID_3; cfg3.mode = TIM_MODE_BASE;
+        cfg3.arr = TIM_ARR; cfg3.psc = TIM_PSC;
+        cfg3.irq_prio = 4U; cfg3.irq_sub = 0U;      /* above MAX_SYSCALL (5) */
+        cfg3.update_cb = on_tim3;
+        tim_init(&cfg3);
+
+        cfg6.id = TIM_ID_6; cfg6.mode = TIM_MODE_BASE;
+        cfg6.arr = TIM_ARR; cfg6.psc = TIM_PSC;
+        cfg6.irq_prio = 6U; cfg6.irq_sub = 0U;      /* below MAX_SYSCALL (5) */
+        cfg6.update_cb = on_tim6;
+        tim_init(&cfg6);
+    }
 
     (void)xTaskCreate(task1, "task1", TASK1_STK_SIZE, NULL, TASK1_PRIO, NULL);
     vTaskDelete(s_start_task);
