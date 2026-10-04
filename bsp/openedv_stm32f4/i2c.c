@@ -617,6 +617,10 @@ static struct
     volatile bool  error;
 } g_it;
 
+#define I2C_IT_RETRY   3U   /* re-try a transaction that left the bus stuck */
+
+static void i2c_hw_bus_recover(void);   /* defined with the HW back-end */
+
 static bool i2c_it_is_read(void)
 {
     return (g_it.kind == I2C_IT_RX) || ((g_it.kind == I2C_IT_MEMR) && (g_it.phase != 0U));
@@ -701,16 +705,13 @@ static bool i2c_it_wait(void)
 static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
                         uint8_t *rbuf, uint16_t rlen)
 {
+    uint8_t attempt;
+
     g_it.addr7 = addr7;
     g_it.wbuf  = wbuf;
     g_it.wlen  = wlen;
-    g_it.widx  = 0U;
     g_it.rbuf  = rbuf;
     g_it.rlen  = rlen;
-    g_it.ridx  = 0U;
-    g_it.event = 0U;
-    g_it.done  = false;
-    g_it.error = false;
 
     if (rlen == 0U)
     {
@@ -728,23 +729,51 @@ static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
         g_it.phase = 0U;
     }
 
-
-
-    /* The peripheral may have been left mid-transfer by a previous (failed)
-     * transaction: toggling PE resets the state machine (BUSY/MSL/...). */
-    if ((g_i2c_hw.instance->SR2 & (I2C_SR2_BUSY | I2C_SR2_MSL)) != 0U)
+    for (attempt = 0U; attempt < I2C_IT_RETRY; attempt++)
     {
-        __HAL_I2C_DISABLE(&g_i2c_handle);
-        __HAL_I2C_ENABLE(&g_i2c_handle);
-    }
-    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS | I2C_CR1_START | I2C_CR1_STOP);
-    NVIC_ClearPendingIRQ(I2C2_EV_IRQn);
-    NVIC_ClearPendingIRQ(I2C2_ER_IRQn);
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
-    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
-    __HAL_I2C_ENABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+        if (attempt == 0U)
+        {
+            /* A previous transfer may have left the peripheral mid-transfer:
+             * toggling PE resets the state machine (BUSY/MSL/...). */
+            if ((g_i2c_hw.instance->SR2 & (I2C_SR2_BUSY | I2C_SR2_MSL)) != 0U)
+            {
+                __HAL_I2C_DISABLE(&g_i2c_handle);
+                __HAL_I2C_ENABLE(&g_i2c_handle);
+            }
+        }
+        else
+        {
+            /* Retry: the device may hold the bus low after a failed transfer.
+             * Bit-bang it free, restore the AF pins, re-init and re-enable. */
+            __HAL_I2C_DISABLE(&g_i2c_handle);
+            i2c_hw_bus_recover();
+            gpio_hw_setup(&g_i2c_hw.scl);
+            gpio_hw_setup(&g_i2c_hw.sda);
+            (void)HAL_I2C_Init(&g_i2c_handle);
+            SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_PE);
+        }
 
-    return i2c_it_wait();
+        g_it.widx  = 0U;
+        g_it.ridx  = 0U;
+        g_it.event = 0U;
+        g_it.done  = false;
+        g_it.error = false;
+        g_it.phase = (g_it.kind == I2C_IT_RX) ? 1U : 0U;
+
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS | I2C_CR1_START | I2C_CR1_STOP);
+        NVIC_ClearPendingIRQ(I2C2_EV_IRQn);
+        NVIC_ClearPendingIRQ(I2C2_ER_IRQn);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+        __HAL_I2C_ENABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+
+        if (i2c_it_wait())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /* MEM register-prefix state machine (mirrors I2C_MemoryTransmit_TXE_BTF): send
