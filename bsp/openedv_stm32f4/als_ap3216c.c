@@ -5,7 +5,6 @@
 
 #include <stddef.h>
 
-#include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "als_ap3216c.h"
 #include "delay.h"
@@ -18,6 +17,18 @@
 #define ALS_AP3216C_DATA_REG    0x0AU
 #define ALS_AP3216C_RESET       0x04U   /* software reset       */
 #define ALS_AP3216C_ALS_PS_IR   0x03U   /* enable ALS + PS + IR */
+
+/* Data registers (0x0A..0x0F). Each channel's high bits sit in the low
+ * register's spare bits:
+ *   IR  = (IR_H  << 2) | (IR_L  & 0x03)
+ *   ALS = (ALS_H << 8) |  ALS_L
+ *   PS  = ((PS_H & 0x3F) << 4) | (PS_L & 0x0F)
+ *   IR_OF = IR_L.bit7 (1 = invalid), PS_OF = PS_L.bit6 (1 = invalid). */
+#define AP3216C_IR_OF     0x80U
+#define AP3216C_PS_OF     0x40U
+#define AP3216C_IR_L_MASK 0x03U
+#define AP3216C_PS_L_MASK 0x0FU
+#define AP3216C_PS_H_MASK 0x3FU
 
 static void ap3216c_write_reg(uint8_t reg, uint8_t data)
 {
@@ -54,6 +65,7 @@ uint8_t als_ap3216c_init(void)
 void als_ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als)
 {
     uint8_t buf[ALS_AP3216C_DATA_LEN_BYTE];
+    uint8_t ir_l, ir_h, als_l, als_h, ps_l, ps_h;
     uint8_t i;
 
     for (i = 0U; i < ALS_AP3216C_DATA_LEN_BYTE; i++)
@@ -61,23 +73,16 @@ void als_ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als)
         buf[i] = ap3216c_read_reg((uint8_t)(ALS_AP3216C_DATA_REG + i));
     }
 
-    if ((buf[0] & 0x80U) != 0U)
-    {
-        *ir = 0U;   /* IR_OF set: IR reading invalid */
-    }
-    else
-    {
-        *ir = (uint16_t)(((uint16_t)buf[1] << 2) | (buf[0] & 0x03U));
-    }
+    ir_l  = buf[0];
+    ir_h  = buf[1];
+    als_l = buf[2];
+    als_h = buf[3];
+    ps_l  = buf[4];
+    ps_h  = buf[5];
 
-    *als = (uint16_t)(((uint16_t)buf[3] << 8) | buf[2]);
-
-    if ((buf[4] & 0x40U) != 0U)
-    {
-        *ps = 0U;   /* PS data invalid */
-    }
-    else
-    {
-        *ps = (uint16_t)(((uint16_t)(buf[5] & 0x3FU) << 4) | (buf[4] & 0x0FU));
-    }
+    *ir  = ((ir_l & AP3216C_IR_OF) != 0U) ? 0U
+          : (uint16_t)(((uint16_t)ir_h << 2) | (ir_l & AP3216C_IR_L_MASK));
+    *als = (uint16_t)(((uint16_t)als_h << 8) | als_l);
+    *ps  = ((ps_l & AP3216C_PS_OF) != 0U) ? 0U
+          : (uint16_t)(((uint16_t)(ps_h & AP3216C_PS_H_MASK) << 4) | (ps_l & AP3216C_PS_L_MASK));
 }
