@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "btim.h"
+#include "tim.h"
 
 #define BTIM_ARR 5000U
 #define BTIM_PSC 9000U
@@ -20,11 +20,17 @@ static void on_tim6(void)
 
 int main(void)
 {
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    btim_timx_int_register(&on_tim6);
-    btim_timx_int_init(BTIM_ARR - 1U, BTIM_PSC - 1U);
+    cfg.id        = TIM_ID_6;
+    cfg.mode      = TIM_MODE_BASE;
+    cfg.arr       = BTIM_ARR - 1U;
+    cfg.psc       = BTIM_PSC - 1U;
+    cfg.update_cb = &on_tim6;
+    tim_init(&cfg);
 
     for (;;)
     {

@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "gtim.h"
+#include "tim.h"
 
 #define GTIM_PWM_ARR        500U
 #define GTIM_PWM_PSC        90U
@@ -24,12 +24,21 @@ typedef enum
 
 int main(void)
 {
+    tim_cfg_t       cfg  = { TIM_CFG_DEFAULT };
     int16_t         duty = 0;
     gtim_pwm_ramp_t ramp = GTIM_PWM_RAMP_UP;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_pwm_chy_init(GTIM_PWM_ARR - 1U, GTIM_PWM_PSC - 1U);
+
+    cfg.id       = TIM_ID_3;
+    cfg.mode     = TIM_MODE_PWM;
+    cfg.channel  = TIM_CH4;
+    cfg.polarity = TIM_POL_LOW;
+    cfg.pull     = TIM_PULL_UP;
+    cfg.arr      = GTIM_PWM_ARR - 1U;
+    cfg.psc      = GTIM_PWM_PSC - 1U;
+    tim_init(&cfg);
 
     for (;;)
     {
@@ -46,7 +55,7 @@ int main(void)
             ramp = GTIM_PWM_RAMP_UP;
         }
 
-        gtim_timx_pwm_chy_set((uint16_t)duty);
+        tim_set(TIM_ID_3, TIM_CH4, TIM_PARAM_CCR, (uint16_t)duty);
 
         delay_ms(GTIM_PWM_LOOP_MS);
     }

@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "gtim.h"
+#include "tim.h"
 
 #define GTIM_CAP_ARR     0xFFFFFFFFU
 #define GTIM_CAP_PSC     90U
@@ -30,37 +30,34 @@ static volatile cap_state_t g_cap_state     = CAP_IDLE;
 static volatile uint32_t    g_cap_overflows = 0U;
 static volatile uint64_t    g_cap_width     = 0U;
 
-/* Capture/overflow callback: runs in the TIM5 interrupt. */
-static gtim_cap_event_t cap_event(uint32_t value, gtim_cap_event_t event)
+/* Capture callback: runs in the TIM5 capture interrupt. */
+static tim_edge_t cap_event(tim_cap_ch_t ch, uint32_t value, tim_edge_t edge)
 {
-    gtim_cap_event_t next = GTIM_CAP_RISING;
+    tim_edge_t next = TIM_EDGE_RISING;
+
+    (void)ch;
 
     switch (g_cap_state)
     {
     case CAP_IDLE:
-        if (event == GTIM_CAP_RISING)
+        if (edge == TIM_EDGE_RISING)
         {
             g_cap_overflows = 0U;
             g_cap_state     = CAP_RISING;
-            next            = GTIM_CAP_FALLING;   /* measure the high level */
+            next            = TIM_EDGE_FALLING;   /* measure the high level */
         }
         break;
 
     case CAP_RISING:
-        switch (event)
+        if (edge == TIM_EDGE_FALLING)
         {
-        case GTIM_CAP_OVERFLOW:
-            g_cap_overflows++;
-            break;
-
-        case GTIM_CAP_FALLING:
             g_cap_width = ((uint64_t)g_cap_overflows << 32) + (uint64_t)value;
             g_cap_state = CAP_READY;
-            next        = GTIM_CAP_RISING;
-            break;
-
-        default:
-            break;
+            next        = TIM_EDGE_RISING;
+        }
+        else
+        {
+            next = TIM_EDGE_FALLING;
         }
         break;
 
@@ -71,6 +68,15 @@ static gtim_cap_event_t cap_event(uint32_t value, gtim_cap_event_t event)
     }
 
     return next;
+}
+
+/* Update callback: a 32-bit wrap while a high level is in progress. */
+static void cap_overflow(void)
+{
+    if (g_cap_state == CAP_RISING)
+    {
+        g_cap_overflows++;
+    }
 }
 
 /* Print a 64-bit value in decimal without relying on %llu (nano.specs). */
@@ -127,10 +133,21 @@ static void print_duration(uint64_t us)
 
 int main(void)
 {
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_cap_chy_init(GTIM_CAP_ARR, GTIM_CAP_PSC - 1U);
-    gtim_timx_cap_chy_register(&cap_event);
+
+    cfg.id         = TIM_ID_5;
+    cfg.mode       = TIM_MODE_IC;
+    cfg.channel    = TIM_CH1;
+    cfg.polarity   = TIM_POL_HIGH;
+    cfg.pull       = TIM_PULL_DOWN;
+    cfg.arr        = GTIM_CAP_ARR;
+    cfg.psc        = GTIM_CAP_PSC - 1U;
+    cfg.update_cb  = &cap_overflow;
+    cfg.capture_cb = &cap_event;
+    tim_init(&cfg);
 
     for (;;)
     {

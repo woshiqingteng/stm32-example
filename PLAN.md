@@ -614,3 +614,59 @@ HAL-free 接口 + 复用 `gpio_hw_setup`/`dma_hw_setup` + 手写 DAC DMA 使能/
 - app：`22_1`→`dac_init(NULL)`；`22_2` 三角表移入 app；`22_3` 正弦在 app 生成
   （`sinf`），换频用 `dac_stop→dac_init→dac_start`。
 - 结果：构建零告警；HIL（PA4↔PA5 跳线）22_1 回读 ~2047、22_2/22_3 波形存在。
+
+## 23. TIM 驱动重构成 ADC/USART 风格（单一 tim.{c,h}）
+
+目标：用**单一 HAL-free 驱动** `tim.{c,h}` 替换 `btim/gtim/atim`，并折入
+`dac/pwmdac/ir/tpad/usmart(TIM4)/videoplayer(TIM7)`；算法逻辑全部外移。
+
+### 公共接口（4 函数 / 6 参数）
+- 类型：`tim_id_t{TIM_ID_1..14}`、`tim_mode_t{BASE,PWM,OC,IC,COUNTER,PWMIN,CPLM,NPWM}`、
+  `tim_channel_t{CH1..4}`、`tim_polarity_t`、`tim_pull_t`、`tim_cap_ch_t{CH1..4}`、
+  `tim_edge_t{RISING,FALLING}`（无 OVERFLOW，C10）。
+- 回调：`tim_cb_t update_cb(void)`（更新/溢出/超时）；
+  `tim_cap_cb_t capture_cb(ch,value,edge)->edge`（捕获；IC 用返回值定下次沿）。
+- `tim_cfg_t{ id,mode,channel,polarity,pull,ic_filter,arr,psc,irq_prio,irq_sub,
+  update_cb,capture_cb }` + `TIM_CFG_DEFAULT`。
+- API：`tim_init(cfg)`（配置并启动；NPWM 亦启动、空闲自停）/`tim_enable(id,on)`/
+  `tim_set(id,ch,param,value)`/`tim_get(id,ch,param)`（返回 `uint32_t`）。
+- 参数：`TIM_PARAM_CCR/COUNT/FLAG/PSC/DTG/BURST`；`TIM_FLAG_UPDATE=1<<0`、
+  `TIM_FLAG_CC=1<<1`（get=挂起掩码，set=清掩码）。
+
+### 内部
+- `g_tim_hw[TIM_ID_NUM]`：`instance / volatile uint32_t *rcc_reg / rcc_en / irqn /
+  cc_irqn` + 内嵌 `gpio_hw_t gpio[TIM_CH_NUM]`（AF_PP，speed=HIGH）；`instance==0` 守卫。
+- 句柄 `g_tim[TIM_ID_NUM]`（htim + 回调 + npwm_remain + cap_edge）。
+- 中断向量：`TIM1_UP_TIM10 / TIM1_CC / TIM2 / TIM3 / TIM5 / TIM6_DAC / TIM7 /
+  TIM8_UP_TIM13 / TIM8_CC / TIM8_TRG_COM_TIM14`（TIM4/TIM9 无）；单向量(TIM2/3/5)依次
+  调 update+cc。
+- `tim_init` 显式 `switch(mode)`；Init 字段显式（ClockDiv CPLM=DIV4 余 DIV1；
+  ARPE NPWM/OC/CPLM=ENABLE 余 DISABLE；OCFast=DISABLE）。
+- 特例分支（仿 `ADC_TEMP_CH`）：`TIM2_CH1` 且 `mode==IC` → PA5，否则描述符引脚；
+  CPLM 三脚（PE9/PE8/PE15）分支内局部常量。
+
+### 迁移映射 / 算法外移
+- `*_init→tim_init`；`*_register→cfg.update_cb/capture_cb`；`set→tim_set`；
+  `cnt get→tim_get(COUNT)`/`restart→tim_set(COUNT,0)`；`pwmin→capture_cb+update_cb
+  +tim_set(PSC)`；`49/50 TIM6->CNT→tim_get(COUNT)`；`usmart→COUNT/FLAG`；
+  `videoplayer→tim_init/tim_enable`（删自带 TIM7 handler）。
+- 外移：`gtim_frame_*→45`；`PWMIN 状态机+量程→09_4（含 g_report_*）`；
+  `usmart 计时→usmart_port`；`videoplayer 帧标志→videoplayer`；`08_3 宽度→app`。
+- 符号冻结（HIL 兼容）：`g_cap_width/g_cap_state`(08_3)、`g_report_*`(09_4)、
+  `g_tpad_default_val`(tpad)。
+
+### CMake
+`bsp_dac/pwmdac/ir/tpad → bsp_tim`；`lib_mjpeg: bsp_btim→bsp_tim`；
+`lib_usmart: bsp_gtim→bsp_tim`；阶段 7 改 `bsp_all`；15 app `BSP→tim`（38 去多余 gtim）。
+
+### 行为变化
+计数 32 位；BASE ARPE=DISABLE；GPIO speed=HIGH；`ir` CC 优先级 (1,3)；运行时无 PERIOD。
+
+### 分阶段
+1 建 `tim.{c,h}`(BASE/PWM/IC) → 2 补 OC/COUNTER/PWMIN/CPLM/NPWM → 3 CMake+迁 07/08
+→ 4 迁 09 → 5 迁 38/45/49/50/fr → 6 折入 pwmdac/ir/tpad/dac/usmart/videoplayer+修 ir.h
+→ 7 删旧文件+bsp_all+全量回归。
+
+### 验证
+每阶段零告警+单独提交；HIL `07/08_1..4/09_1..4/10_tpad`；FreeRTOS `04/11_2` 走
+`freertos_verify`；最终与本节逐条对比。

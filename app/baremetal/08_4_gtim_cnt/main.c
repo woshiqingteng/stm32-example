@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "gtim.h"
+#include "tim.h"
 
 #define GTIM_CNT_PSC       0U
 /* PSC=0: external edges counted 1:1; 32-bit CNT, 64-bit total */
@@ -39,25 +39,33 @@ static void print_u64(uint64_t value)
 
 int main(void)
 {
-    uint64_t old_count = 0;
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+    uint32_t old_count = 0;
     uint32_t blink = 0;
 
     bsp_init();
     printf(APP_BANNER "\r\n");
-    gtim_timx_cnt_chy_init(GTIM_CNT_PSC);
-    gtim_timx_cnt_chy_restart();
+
+    cfg.id      = TIM_ID_2;
+    cfg.mode    = TIM_MODE_COUNTER;
+    cfg.channel = TIM_CH1;
+    cfg.pull    = TIM_PULL_DOWN;
+    cfg.arr     = 0xFFFFFFFFU;
+    cfg.psc     = GTIM_CNT_PSC;
+    tim_init(&cfg);
+    tim_set(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT, 0U);
     printf("KEY0: restart count\r\n");
 
     for (;;)
     {
-        uint64_t count;
+        uint32_t count;
 
         if (key_scan(false) == KEY0)
         {
-            gtim_timx_cnt_chy_restart();
+            tim_set(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT, 0U);
         }
 
-        count = gtim_timx_cnt_chy_get_count();
+        count = tim_get(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT);
         if (count != old_count)
         {
             printf("CNT:");

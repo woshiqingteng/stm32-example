@@ -34,6 +34,9 @@ target_link_libraries(bsp_gtim PUBLIC drv_tim)
 bsp_library(bsp_atim
     atim.c)
 target_link_libraries(bsp_atim PUBLIC drv_tim)
+bsp_library(bsp_tim
+    tim.c)
+target_link_libraries(bsp_tim PUBLIC drv_tim)
 bsp_library(bsp_rtc
     rtc.c)
 target_link_libraries(bsp_rtc PUBLIC drv_rtc)
