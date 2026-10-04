@@ -17,6 +17,17 @@
 #define AT24C02_CHECK_VALUE    0x55U
 #define AT24C02_PAGE_SIZE      8U
 
+/* Device select byte: 7-bit address 0x50 shifted left, R/W bit = 0/1. */
+#define AT24C02_SEL_WRITE      0xA0U
+#define AT24C02_SEL_READ       0xA1U
+
+/* Word (byte) address split into the two bytes sent on the wire. */
+#define AT24C02_WORD_HI(a)     ((uint8_t)((a) >> 8))
+#define AT24C02_WORD_LO(a)     ((uint8_t)((a) % 256U))
+
+/* Devices up to 24C16 fold the upper word-address bits into the select byte. */
+#define AT24C02_SEL_BITS(a)    ((uint8_t)(((a) >> 8) << 1))
+
 /* ---- internal helpers ---- */
 
 /* Send the device (write) address followed by the word address. */
@@ -24,17 +35,17 @@ static void at24c02_send_addr(uint16_t addr)
 {
     if (EE_TYPE > AT24C16)
     {
-        i2c_send_byte(0xA0U);
+        i2c_send_byte(AT24C02_SEL_WRITE);
         i2c_wait_ack();
-        i2c_send_byte((uint8_t)(addr >> 8));
+        i2c_send_byte(AT24C02_WORD_HI(addr));
     }
     else
     {
-        i2c_send_byte((uint8_t)(0xA0U + ((addr >> 8) << 1)));
+        i2c_send_byte((uint8_t)(AT24C02_SEL_WRITE + AT24C02_SEL_BITS(addr)));
     }
 
     i2c_wait_ack();
-    i2c_send_byte((uint8_t)(addr % 256U));
+    i2c_send_byte(AT24C02_WORD_LO(addr));
     i2c_wait_ack();
 }
 
@@ -47,7 +58,7 @@ static uint8_t at24c02_read_byte(uint16_t addr)
     at24c02_send_addr(addr);
 
     i2c_start();
-    i2c_send_byte(0xA1U);
+    i2c_send_byte(AT24C02_SEL_READ);
     i2c_wait_ack();
     temp = i2c_read_byte(0);
     i2c_stop();
@@ -106,7 +117,7 @@ void eeprom_at24c02_read(uint16_t addr, uint8_t *pbuf, uint16_t datalen)
     at24c02_send_addr(addr);
 
     i2c_start();
-    i2c_send_byte(0xA1U);
+    i2c_send_byte(AT24C02_SEL_READ);
     i2c_wait_ack();
 
     for (i = 0U; i < datalen; i++)
