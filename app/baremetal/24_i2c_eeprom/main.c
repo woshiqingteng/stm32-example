@@ -69,17 +69,14 @@ int main(void)
         if (key == KEY1)
         {
             eeprom_write_test();
-            led_toggle(LED1);          /* action indicator */
         }
         else if (key == KEY0)
         {
             eeprom_read_verify();
-            led_toggle(LED1);          /* action indicator */
         }
         else if (key == KEY_WKUP)
         {
             eeprom_clear_test();
-            led_toggle(LED1);          /* action indicator */
         }
 
         if ((++blink % LED_BLINK_TICKS) == 0U)

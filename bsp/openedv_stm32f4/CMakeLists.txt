@@ -42,9 +42,12 @@ target_link_libraries(bsp_i2c PUBLIC drv_i2c bsp_delay)
 bsp_library(bsp_spi
     spi.c)
 target_link_libraries(bsp_spi PUBLIC drv_spi)
+bsp_library(bsp_io_expand_pcf8574t
+    io_expand_pcf8574t.c)
+target_link_libraries(bsp_io_expand_pcf8574t PUBLIC bsp_i2c bsp_delay)
 bsp_library(bsp_io_expand
     io_expand.c)
-target_link_libraries(bsp_io_expand PUBLIC bsp_i2c)
+target_link_libraries(bsp_io_expand PUBLIC bsp_io_expand_pcf8574t)
 bsp_library(bsp_can
     can.c)
 target_link_libraries(bsp_can PUBLIC drv_can)

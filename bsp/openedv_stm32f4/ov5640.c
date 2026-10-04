@@ -193,7 +193,7 @@ uint8_t ov5640_write_reg(uint16_t reg, uint8_t data)
 
 void ov5640_pwdn_set(uint8_t sta)
 {
-    io_expand_write_bit(PCF8574_DCMI_PWDN_IO, sta);
+    io_expand_write_bit(IO_EXPAND_DCMI_PWDN, sta);
 }
 
 uint16_t ov5640_read_id(void)

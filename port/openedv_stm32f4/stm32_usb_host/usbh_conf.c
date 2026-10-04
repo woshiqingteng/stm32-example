@@ -113,9 +113,9 @@ USBH_StatusTypeDef USBH_LL_Init(USBH_HandleTypeDef *phost)
             HAL_GPIO_Init(GPIOA, &gpio_init);
 
             /* Cycle the host VBUS switch so a freshly attached device is reset. */
-            io_expand_write_bit(PCF8574_USB_PWR_IO, 0U);
+            io_expand_write_bit(IO_EXPAND_USB_PWR, 0U);
             delay_ms(500U);
-            io_expand_write_bit(PCF8574_USB_PWR_IO, 1U);
+            io_expand_write_bit(IO_EXPAND_USB_PWR, 1U);
 
             HAL_NVIC_SetPriority(OTG_FS_IRQn, 1U, 0U);
             HAL_NVIC_EnableIRQ(OTG_FS_IRQn);

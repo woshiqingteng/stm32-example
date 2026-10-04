@@ -1,8 +1,9 @@
 /**
  * @file    main.c
- * @brief   25_i2c_extend_io: PCF8574 8-bit IO expander test. Alternating patterns
- *          are written and read back; the expander INT line and the EX_IO input
- *          are also polled. Results are reported over USART1.
+ * @brief   25_i2c_extend_io: PCF8574 8-bit IO expander demo (after the vendor
+ *          example). KEY0 toggles the buzzer; the expander INT line is polled
+ *          and reading EX_IO clears it (LED1 mirrors the EX_IO input). LED0 is
+ *          the run heartbeat. Status is reported over USART1.
  */
 
 #include <stdio.h>
@@ -10,15 +11,42 @@
 #include "bsp.h"
 #include "io_expand.h"
 
-#define PATTERN_PERIOD_MS  500U
+#define LOOP_MS             10U
+#define LED_HEARTBEAT_TICK  20U   /* 20 * 10 ms = 200 ms */
 
-static const uint8_t g_patterns[] = { 0xABU, 0x55U };   /* BEEP (P0) kept high (active low) */
+static uint8_t g_beepsta = 1U;   /* buzzer is active low: 1 = silent */
+static uint8_t g_tick    = 0U;
+
+/* One demo step: KEY0 toggles the buzzer; an asserted INT reads EX_IO (which
+ * clears it) and toggles LED1; LED0 is a 200 ms run heartbeat. */
+static void expand_show(void)
+{
+    if (key_scan(false) == KEY0)
+    {
+        g_beepsta ^= 1U;
+        io_expand_write_bit(IO_EXPAND_BEEP, g_beepsta);
+        printf("BEEP %s\r\n", (g_beepsta == 0U) ? "on" : "off");
+    }
+
+    if (io_expand_int_asserted())                        /* INT low = asserted */
+    {
+        uint8_t ex = io_expand_read_bit(IO_EXPAND_EX);   /* reading clears INT */
+
+        if (ex == 0U)
+        {
+            led_toggle(LED1);
+        }
+    }
+
+    if (++g_tick >= LED_HEARTBEAT_TICK)
+    {
+        g_tick = 0U;
+        led_toggle(LED0);
+    }
+}
 
 int main(void)
 {
-    uint8_t idx = 0U;
-    uint8_t status;
-
     bsp_init();
     printf(APP_BANNER "\r\n");
 
@@ -26,35 +54,12 @@ int main(void)
     {
         printf("PCF8574 check failed\r\n");
     }
-    else
-    {
-        printf("PCF8574 ready\r\n");
-    }
 
-    printf("25_i2c_extend_io ready\r\n");
+    printf("KEY0: BEEP ON/OFF\r\n");
 
     for (;;)
     {
-        uint8_t write_val = g_patterns[idx];
-        uint8_t read_val;
-
-        io_expand_write_byte(write_val);
-        read_val = io_expand_read_byte();
-
-        printf("Write:0x%02X Read:0x%02X\r\n", write_val, read_val);
-
-        status = (io_expand_int_asserted()) ? 1U : 0U;
-        printf("INT:%u EX_IO:%u\r\n", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
-
-        /* Buzzer demo temporarily disabled while testing the I2C transports.
-        io_expand_write_bit(PCF8574_BEEP_IO, 1U);
-        delay_ms(200U);
-        io_expand_write_bit(PCF8574_BEEP_IO, 0U);
-        printf("BEEP pulse\r\n");
-        */
-
-        idx ^= 1U;
-        led_toggle(LED0);
-        delay_ms(PATTERN_PERIOD_MS);
+        expand_show();
+        delay_ms(LOOP_MS);
     }
 }

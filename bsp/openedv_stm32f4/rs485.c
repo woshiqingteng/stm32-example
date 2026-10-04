@@ -1,7 +1,7 @@
 /**
  * @file    rs485.c
  * @brief   RS485 half-duplex driver on USART2. The transceiver direction is
- *          controlled by the PCF8574 expander bit PCF8574_RS485_RE_IO, as in
+ *          controlled by the PCF8574 expander bit IO_EXPAND_RS485_RE, as in
  *          the vendor example. Transport is provided by the unified usart
  *          driver (USART_ID_2, RX interrupt); the per-byte hook fills the local
  *          buffer so rs485_receive() keeps its line-oriented API.
@@ -26,7 +26,7 @@ static void rs485_rx_byte_hook(uint8_t byte);
 
 void rs485_tx_set(uint8_t en)
 {
-    io_expand_write_bit(PCF8574_RS485_RE_IO, en);
+    io_expand_write_bit(IO_EXPAND_RS485_RE, en);
 }
 
 void rs485_init(uint32_t baudrate)

@@ -84,9 +84,9 @@ uint8_t eth_init(uint8_t mac[6])
 {
     /* The on-board PHY reset is driven by the PCF8574 expander (active low). */
     io_expand_init();
-    io_expand_write_bit(PCF8574_ETH_RESET_IO, 0U);
+    io_expand_write_bit(IO_EXPAND_ETH_RESET, 0U);
     delay_ms(100);
-    io_expand_write_bit(PCF8574_ETH_RESET_IO, 1U);
+    io_expand_write_bit(IO_EXPAND_ETH_RESET, 1U);
     delay_ms(100);
 
     g_eth_handle.Instance         = ETH;
