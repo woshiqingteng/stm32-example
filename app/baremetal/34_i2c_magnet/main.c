@@ -1,8 +1,10 @@
 /**
  * @file    main.c
- * @brief   34_i2c_magnet: ST480MC 3-axis magnetometer test. Raw X/Y/Z counts,
- *          the temperature and the compass heading are printed over USART1.
+ * @brief   34_i2c_magnet: ST480MC 3-axis magnetometer test. Raw X/Y/Z counts
+ *          and the compass heading are printed over USART1.
  *          KEY0 runs a horizontal (min/max) compass calibration.
+ *          The temperature channel is not read: on this unit a successful
+ *          temperature read leaves the magnetometer rejecting further reads.
  */
 
 #include <stdio.h>
@@ -88,20 +90,14 @@ static void compass_calibration(void)
     printf("offset x:%d y:%d\r\n", (int)g_magx_offset, (int)g_magy_offset);
 }
 
-/* One report: heading, temperature and the raw X/Y/Z counts. */
+/* One report: heading and the raw X/Y/Z counts. */
 static void mag_show(void)
 {
     int16_t magx;
     int16_t magy;
     int16_t magz;
-    float   temperature;
 
     print_fixed1("Angle: ", "", 360.0f - compass_get_angle());
-
-    if (mag_read_temperature(&temperature) == 0U)
-    {
-        print_fixed1("Temp: ", " C", temperature);
-    }
 
     if (mag_read(&magx, &magy, &magz) == 0U)
     {
