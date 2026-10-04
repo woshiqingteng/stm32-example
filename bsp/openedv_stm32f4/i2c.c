@@ -5,9 +5,10 @@
  *
  * Two backends share one transaction API:
  *   - SW : software bit-bang master (default), half-period derived from speed_hz.
- *   - HW : hardware I2C2 peripheral (PH4/PH5, AF4). The peripheral and every
- *          transfer are driven through the HAL (blocking / interrupt / DMA); the
- *          HAL IRQ dispatch and DMA completion are used as-is.
+ *   - HW : hardware I2C2 peripheral (PH4/PH5, AF4). Configured with
+ *          HAL_I2C_Init; the poll / interrupt / DMA transfers are implemented
+ *          here with the flag macros (mirroring the HAL I2C v1 sequences), so
+ *          the HAL transfer wrappers are not used.
  * All hardware facts live in the static i2c_hw_t descriptor (GPIO + DMA streams).
  * Errors are not latched (usart style): a failed transfer just discards and
  * returns false.
@@ -19,7 +20,7 @@
 #include "gpio_hw.h"
 #include "dma_hw.h"
 
-#define I2C_TIMEOUT_MS  100U  /* HAL blocking / transfer-completion budget */
+#define I2C_TIMEOUT_MS  100U  /* flag wait / transfer-completion budget */
 
 /* ===== 7-bit slave addresses ===== */
 
@@ -103,6 +104,13 @@ static struct
 
 static I2C_HandleTypeDef g_i2c_handle;
 static DMA_HandleTypeDef g_i2c_dma[2];
+static volatile bool     g_dma_done[2];
+static volatile bool     g_dma_err[2];
+
+static uint8_t i2c_ll_dev(uint8_t addr7, uint8_t rw)
+{
+    return (uint8_t)((addr7 << 1) | (rw & 1U));
+}
 
 /* ===================================================================== */
 /*                       software bit-bang backend                       */
@@ -206,7 +214,7 @@ static bool i2c_sw_write(uint8_t addr7, const uint8_t *buf, uint16_t len)
     uint16_t i;
 
     i2c_sw_start();
-    i2c_sw_send((uint8_t)((addr7 << 1) | 0U));
+    i2c_sw_send(i2c_ll_dev(addr7, 0U));
     if (i2c_sw_wait_ack() != 0U)
     {
         i2c_sw_stop();
@@ -230,7 +238,7 @@ static bool i2c_sw_read(uint8_t addr7, uint8_t *buf, uint16_t len)
     uint16_t i;
 
     i2c_sw_start();
-    i2c_sw_send((uint8_t)((addr7 << 1) | 1U));
+    i2c_sw_send(i2c_ll_dev(addr7, 1U));
     if (i2c_sw_wait_ack() != 0U)
     {
         i2c_sw_stop();
@@ -250,7 +258,7 @@ static bool i2c_sw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
     uint16_t i;
 
     i2c_sw_start();
-    i2c_sw_send((uint8_t)((addr7 << 1) | 0U));
+    i2c_sw_send(i2c_ll_dev(addr7, 0U));
     if (i2c_sw_wait_ack() != 0U)
     {
         i2c_sw_stop();
@@ -267,7 +275,7 @@ static bool i2c_sw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
     }
 
     i2c_sw_start();   /* repeated start */
-    i2c_sw_send((uint8_t)((addr7 << 1) | 1U));
+    i2c_sw_send(i2c_ll_dev(addr7, 1U));
     if (i2c_sw_wait_ack() != 0U)
     {
         i2c_sw_stop();
@@ -282,123 +290,825 @@ static bool i2c_sw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
 }
 
 /* ===================================================================== */
-/*                       hardware I2C2 backend (HAL)                     */
+/*                       hardware I2C2 backend (flag macros)             */
 /* ===================================================================== */
 
-/* Wait for an IT/DMA transfer to finish. On timeout the transfer is discarded
- * (DMA aborted, I2C interrupts masked); no error is latched. */
-static bool i2c_hw_wait(void)
+/* Wait until __FLAG__ == WANT (SET/RESET). false on timeout. */
+static bool i2c_hw_wait(uint32_t flag, FlagStatus want)
 {
     uint32_t start = HAL_GetTick();
 
-    while (HAL_I2C_GetState(&g_i2c_handle) != HAL_I2C_STATE_READY)
+    while (__HAL_I2C_GET_FLAG(&g_i2c_handle, flag) != want)
     {
         if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
         {
-            (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_TX]);
-            (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
-            __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_ERR | I2C_IT_EVT | I2C_IT_BUF);
             return false;
         }
     }
-    return (HAL_I2C_GetError(&g_i2c_handle) == HAL_I2C_ERROR_NONE);
+    return true;
 }
 
+/* Wait for the address phase (ADDR set, or NACK with AF). Leaves ADDR set. */
+static bool i2c_hw_wait_addr(void)
+{
+    uint32_t start = HAL_GetTick();
+
+    while ((__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_ADDR) == RESET) &&
+           (__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_AF) == RESET))
+    {
+        if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
+        {
+            return false;
+        }
+    }
+    if (__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_AF) == SET)
+    {
+        __HAL_I2C_CLEAR_FLAG(&g_i2c_handle, I2C_FLAG_AF);
+        return false;
+    }
+    return true;
+}
+
+static void i2c_hw_stop(void)
+{
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+    __HAL_I2C_CLEAR_FLAG(&g_i2c_handle, I2C_FLAG_AF);
+}
+
+/* Probe: is the device present at @p addr7? */
+static bool i2c_hw_probe(uint8_t addr7)
+{
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
+    if (!i2c_hw_wait_addr())
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+    i2c_hw_stop();
+    return true;
+}
+
+/* Master transmit (mirrors HAL_I2C_Master_Transmit). */
 static bool i2c_hw_write(uint8_t addr7, const uint8_t *buf, uint16_t len)
 {
-    uint16_t dev = (uint16_t)(addr7 << 1);
+    uint16_t i   = 0U;
+    uint16_t rem = len;
 
-    if (len == 0U)   /* probe */
+    if (len == 0U)
     {
-        return (HAL_I2C_IsDeviceReady(&g_i2c_handle, dev, 1U, I2C_TIMEOUT_MS) == HAL_OK);
+        return i2c_hw_probe(addr7);
     }
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
 
-    if (g_i2c.xfer == I2C_XFER_IT)
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
     {
-        return (HAL_I2C_Master_Transmit_IT(&g_i2c_handle, dev, (uint8_t *)buf, len) == HAL_OK) &&
-               i2c_hw_wait();
+        i2c_hw_stop();
+        return false;
     }
-    if (g_i2c.xfer == I2C_XFER_DMA)
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
+    if (!i2c_hw_wait_addr())
     {
-        return (HAL_I2C_Master_Transmit_DMA(&g_i2c_handle, dev, (uint8_t *)buf, len) == HAL_OK) &&
-               i2c_hw_wait();
+        i2c_hw_stop();
+        return false;
     }
-    return (HAL_I2C_Master_Transmit(&g_i2c_handle, dev, (uint8_t *)buf, len, I2C_TIMEOUT_MS) == HAL_OK);
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+
+    while (rem > 0U)
+    {
+        if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+        {
+            i2c_hw_stop();
+            return false;
+        }
+        g_i2c_hw.instance->DR = buf[i++];
+        rem--;
+        if ((__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_BTF) == SET) && (rem != 0U))
+        {
+            g_i2c_hw.instance->DR = buf[i++];
+            rem--;
+        }
+        if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
+        {
+            i2c_hw_stop();
+            return false;
+        }
+    }
+    i2c_hw_stop();
+    return true;
 }
 
-static bool i2c_hw_read(uint8_t addr7, uint8_t *buf, uint16_t len)
+/* Master receive tail (mirrors HAL_I2C_Master_Receive): the read address has
+ * been ACKed and ADDR is still set. */
+static bool i2c_hw_read_tail(uint8_t *buf, uint16_t len)
 {
-    uint16_t dev = (uint16_t)(addr7 << 1);
+    uint16_t i = 0U;
+    uint16_t n = len;
 
-    if (g_i2c.xfer == I2C_XFER_IT)
+    if (n == 0U)
     {
-        return (HAL_I2C_Master_Receive_IT(&g_i2c_handle, dev, buf, len) == HAL_OK) &&
-               i2c_hw_wait();
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        i2c_hw_stop();
+        return true;
     }
-    if (g_i2c.xfer == I2C_XFER_DMA)
+    if (n == 1U)
     {
-        return (HAL_I2C_Master_Receive_DMA(&g_i2c_handle, dev, buf, len) == HAL_OK) &&
-               i2c_hw_wait();
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        i2c_hw_stop();
     }
-    return (HAL_I2C_Master_Receive(&g_i2c_handle, dev, buf, len, I2C_TIMEOUT_MS) == HAL_OK);
-}
-
-static bool i2c_hw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
-                              uint8_t *rbuf, uint16_t rlen)
-{
-    uint16_t dev = (uint16_t)(addr7 << 1);
-    uint16_t reg;
-    uint16_t reg_size;
-
-    if (wlen == 1U)
+    else if (n == 2U)
     {
-        reg      = wbuf[0];
-        reg_size = I2C_MEMADD_SIZE_8BIT;
-    }
-    else if (wlen == 2U)
-    {
-        reg      = (uint16_t)(((uint16_t)wbuf[0] << 8) | wbuf[1]);
-        reg_size = I2C_MEMADD_SIZE_16BIT;
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
     }
     else
     {
-        return false;   /* only 1/2-byte register prefixes are used on this bus */
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
     }
 
-    if (g_i2c.xfer == I2C_XFER_IT)
+    while (n > 0U)
     {
-        return (HAL_I2C_Mem_Read_IT(&g_i2c_handle, dev, reg, reg_size, rbuf, rlen) == HAL_OK) &&
-               i2c_hw_wait();
+        if (n <= 3U)
+        {
+            if (n == 1U)
+            {
+                if (!i2c_hw_wait(I2C_FLAG_RXNE, SET))
+                {
+                    return false;
+                }
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n--;
+            }
+            else if (n == 2U)
+            {
+                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
+                {
+                    return false;
+                }
+                i2c_hw_stop();
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n -= 2U;
+            }
+            else /* n == 3 */
+            {
+                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
+                {
+                    return false;
+                }
+                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n--;
+                if (!i2c_hw_wait(I2C_FLAG_BTF, SET))
+                {
+                    return false;
+                }
+                i2c_hw_stop();
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n--;
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n--;
+            }
+        }
+        else
+        {
+            if (!i2c_hw_wait(I2C_FLAG_RXNE, SET))
+            {
+                return false;
+            }
+            buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+            n--;
+            if (__HAL_I2C_GET_FLAG(&g_i2c_handle, I2C_FLAG_BTF) == SET)
+            {
+                if (n == 3U)
+                {
+                    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+                }
+                buf[i++] = (uint8_t)g_i2c_hw.instance->DR;
+                n--;
+            }
+        }
     }
-    if (g_i2c.xfer == I2C_XFER_DMA)
-    {
-        return (HAL_I2C_Mem_Read_DMA(&g_i2c_handle, dev, reg, reg_size, rbuf, rlen) == HAL_OK) &&
-               i2c_hw_wait();
-    }
-    return (HAL_I2C_Mem_Read(&g_i2c_handle, dev, reg, reg_size, rbuf, rlen, I2C_TIMEOUT_MS) == HAL_OK);
+    return true;
 }
 
-/* ---- interrupts (HAL dispatch) ---- */
+/* Master receive (mirrors HAL_I2C_Master_Receive). */
+static bool i2c_hw_read(uint8_t addr7, uint8_t *buf, uint16_t len)
+{
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
+    if (!i2c_hw_wait_addr())
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    return i2c_hw_read_tail(buf, len);
+}
+
+/* Register read: write 1/2-byte prefix then (repeated start) read
+ * (mirrors I2C_RequestMemoryRead + HAL_I2C_Master_Receive). */
+static bool i2c_hw_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
+                              uint8_t *rbuf, uint16_t rlen)
+{
+    if ((wlen != 1U) && (wlen != 2U))
+    {
+        return false;
+    }
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
+    if (!i2c_hw_wait_addr())
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+
+    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = wbuf[0];
+    if (wlen == 2U)
+    {
+        if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+        {
+            i2c_hw_stop();
+            return false;
+        }
+        g_i2c_hw.instance->DR = wbuf[1];
+    }
+    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);   /* repeated start */
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
+    if (!i2c_hw_wait_addr())
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    return i2c_hw_read_tail(rbuf, rlen);
+}
+
+/* ===================================================================== */
+/*                       hardware I2C2 interrupt transport               */
+/* ===================================================================== */
+
+enum { I2C_IT_TX = 0, I2C_IT_RX, I2C_IT_MEMR };
+
+static struct
+{
+    uint8_t        kind;
+    uint8_t        addr7;
+    uint8_t        phase;     /* MEMR: 0 = prefix write, 1 = read */
+    const uint8_t *wbuf;
+    uint16_t       wlen, widx;
+    uint8_t       *rbuf;
+    uint16_t       rlen, ridx;
+    volatile bool  done;
+    volatile bool  error;
+} g_it;
+
+static bool i2c_it_is_read(void)
+{
+    return (g_it.kind == I2C_IT_RX) || ((g_it.kind == I2C_IT_MEMR) && (g_it.phase != 0U));
+}
+
+static void i2c_it_done(void)
+{
+    __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+    g_it.done = true;
+}
+
+/* Read tail for the IT receiver (mirrors I2C_MasterReceive_RXNE/BTF). */
+static void i2c_it_rx_ne(void)
+{
+    uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
+
+    if (n > 3U)
+    {
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+        if ((uint16_t)(g_it.rlen - g_it.ridx) == 3U)
+        {
+            __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+        }
+    }
+    else if (n == 1U)
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+        i2c_it_done();
+    }
+    else
+    {
+        __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+    }
+}
+
+static void i2c_it_rx_btf(void)
+{
+    uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
+
+    if (n == 4U)
+    {
+        __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+    }
+    else if (n == 3U)
+    {
+        __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+    }
+    else if (n == 2U)
+    {
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+        i2c_it_done();
+    }
+    else
+    {
+        g_it.rbuf[g_it.ridx++] = (uint8_t)g_i2c_hw.instance->DR;
+    }
+}
+
+static bool i2c_it_wait(void)
+{
+    uint32_t start = HAL_GetTick();
+
+    while (!g_it.done)
+    {
+        if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
+        {
+            __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+            return false;
+        }
+    }
+    return !g_it.error;
+}
+
+static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
+                        uint8_t *rbuf, uint16_t rlen)
+{
+    g_it.addr7 = addr7;
+    g_it.wbuf  = wbuf;
+    g_it.wlen  = wlen;
+    g_it.widx  = 0U;
+    g_it.rbuf  = rbuf;
+    g_it.rlen  = rlen;
+    g_it.ridx  = 0U;
+    g_it.done  = false;
+    g_it.error = false;
+
+    if (rlen == 0U)
+    {
+        g_it.kind  = I2C_IT_TX;
+        g_it.phase = 0U;
+    }
+    else if (wlen == 0U)
+    {
+        g_it.kind  = I2C_IT_RX;
+        g_it.phase = 1U;
+    }
+    else
+    {
+        g_it.kind  = I2C_IT_MEMR;
+        g_it.phase = 0U;
+    }
+
+    NVIC_ClearPendingIRQ(I2C2_EV_IRQn);
+    NVIC_ClearPendingIRQ(I2C2_ER_IRQn);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+    __HAL_I2C_ENABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+
+    return i2c_it_wait();
+}
 
 void I2C2_EV_IRQHandler(void)
 {
-    HAL_I2C_EV_IRQHandler(&g_i2c_handle);
+    uint32_t sr1 = g_i2c_hw.instance->SR1;
+    uint32_t sr2 = g_i2c_hw.instance->SR2;
+
+    if ((sr1 & I2C_SR1_SB) != 0U)
+    {
+        uint8_t rw = i2c_it_is_read() ? 1U : 0U;
+
+        g_i2c_hw.instance->DR = i2c_ll_dev(g_it.addr7, rw);
+    }
+    else if ((sr1 & I2C_SR1_ADDR) != 0U)
+    {
+        if (i2c_it_is_read())
+        {
+            uint16_t n = (uint16_t)(g_it.rlen - g_it.ridx);
+
+            if (n == 0U)
+            {
+                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+                i2c_it_done();
+            }
+            else if (n == 1U)
+            {
+                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+            }
+            else if (n == 2U)
+            {
+                CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+            }
+            else
+            {
+                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+                __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+            }
+        }
+        else
+        {
+            __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        }
+    }
+    else if ((sr2 & I2C_SR2_TRA) != 0U)   /* transmitter */
+    {
+        if (((sr1 & I2C_SR1_TXE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
+        {
+            if (g_it.widx < g_it.wlen)
+            {
+                g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
+            }
+            else
+            {
+                __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_BUF);
+            }
+        }
+        else if ((sr1 & I2C_SR1_BTF) != 0U)
+        {
+            if (g_it.kind == I2C_IT_TX)
+            {
+                if (g_it.widx < g_it.wlen)
+                {
+                    g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
+                }
+                else
+                {
+                    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+                    i2c_it_done();
+                }
+            }
+            else if (g_it.widx >= g_it.wlen)   /* MEMR prefix sent -> repeated start */
+            {
+                g_it.phase = 1U;
+                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+            }
+        }
+    }
+    else   /* receiver */
+    {
+        if (((sr1 & I2C_SR1_RXNE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
+        {
+            i2c_it_rx_ne();
+        }
+        else if ((sr1 & I2C_SR1_BTF) != 0U)
+        {
+            i2c_it_rx_btf();
+        }
+    }
 }
 
 void I2C2_ER_IRQHandler(void)
 {
-    HAL_I2C_ER_IRQHandler(&g_i2c_handle);
+    uint32_t err = (I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_OVR);
+
+    if ((g_i2c_hw.instance->SR1 & err) != 0U)
+    {
+        g_i2c_hw.instance->SR1 = (uint16_t)~err;
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+        __HAL_I2C_DISABLE_IT(&g_i2c_handle, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+        g_it.error = true;
+        g_it.done  = true;
+    }
+}
+
+/* ===================================================================== */
+/*                       hardware I2C2 DMA transport                     */
+/* ===================================================================== */
+
+/* Complete/abort a stream: record the flags, then stop and reset the handle
+ * (HAL_DMA_Abort clears the flags and sets State back to READY so the next
+ * HAL_DMA_Start does not return HAL_BUSY). */
+static void i2c_dma_stream_irq(uint8_t dir)
+{
+    DMA_HandleTypeDef *hdma = &g_i2c_dma[dir];
+    uint32_t tc = (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma)) != RESET) ? 1U : 0U;
+    uint32_t te = (__HAL_DMA_GET_FLAG(hdma, __HAL_DMA_GET_TE_FLAG_INDEX(hdma)) != RESET) ? 1U : 0U;
+
+    (void)HAL_DMA_Abort(hdma);
+
+    if (tc != 0U)
+    {
+        g_dma_done[dir] = true;
+    }
+    if (te != 0U)
+    {
+        g_dma_err[dir]  = true;
+        g_dma_done[dir] = true;
+    }
 }
 
 void DMA1_Stream7_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&g_i2c_dma[I2C_DMA_TX]);
+    i2c_dma_stream_irq(I2C_DMA_TX);
 }
 
 void DMA1_Stream2_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&g_i2c_dma[I2C_DMA_RX]);
+    i2c_dma_stream_irq(I2C_DMA_RX);
 }
+
+static bool i2c_dma_wait(uint8_t dir)
+{
+    uint32_t start = HAL_GetTick();
+
+    while (!g_dma_done[dir])
+    {
+        if ((HAL_GetTick() - start) >= I2C_TIMEOUT_MS)
+        {
+            (void)HAL_DMA_Abort(&g_i2c_dma[dir]);
+            return false;
+        }
+    }
+    return !g_dma_err[dir];
+}
+
+/* Start a DMA transfer on @p dir into/from @p mem (address phase done). */
+static bool i2c_dma_start(uint8_t dir, const uint8_t *src, uint8_t *dst, uint16_t len)
+{
+    uint32_t addr = (dir == I2C_DMA_TX) ? (uint32_t)src : (uint32_t)&g_i2c_hw.instance->DR;
+    uint32_t mem  = (dir == I2C_DMA_TX) ? (uint32_t)&g_i2c_hw.instance->DR : (uint32_t)dst;
+
+    g_dma_done[dir] = false;
+    g_dma_err[dir]  = false;
+    __HAL_DMA_CLEAR_FLAG(&g_i2c_dma[dir], __HAL_DMA_GET_TC_FLAG_INDEX(&g_i2c_dma[dir]));
+    __HAL_DMA_CLEAR_FLAG(&g_i2c_dma[dir], __HAL_DMA_GET_TE_FLAG_INDEX(&g_i2c_dma[dir]));
+    __HAL_DMA_ENABLE_IT(&g_i2c_dma[dir], DMA_IT_TC | DMA_IT_TE);
+    return (HAL_DMA_Start(&g_i2c_dma[dir], addr, mem, len) == HAL_OK);
+}
+
+static bool i2c_dma_write(uint8_t addr7, const uint8_t *buf, uint16_t len)
+{
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
+    if (!i2c_hw_wait_addr())
+    {
+        i2c_hw_stop();
+        return false;
+    }
+
+    /* Arm the DMA before releasing the address phase. */
+    SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN);
+    if (!i2c_dma_start(I2C_DMA_TX, buf, 0, len))
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN);
+        __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+        i2c_hw_stop();
+        return false;
+    }
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+    if (!i2c_dma_wait(I2C_DMA_TX))
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN);
+        i2c_hw_stop();
+        return false;
+    }
+    (void)i2c_hw_wait(I2C_FLAG_BTF, SET);   /* last byte shifted out */
+    CLEAR_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN);
+    __HAL_DMA_DISABLE_IT(&g_i2c_dma[I2C_DMA_TX], DMA_IT_TC | DMA_IT_TE);
+    i2c_hw_stop();
+    return true;
+}
+
+/* DMA master receive (address phase done, read address ACKed, ADDR set). */
+/* Arm the RX DMA stream (started before the address, like the HAL). */
+static bool i2c_dma_arm_rx(uint8_t *buf, uint16_t len)
+{
+    g_dma_done[I2C_DMA_RX] = false;
+    g_dma_err[I2C_DMA_RX]  = false;
+    __HAL_DMA_CLEAR_FLAG(&g_i2c_dma[I2C_DMA_RX], __HAL_DMA_GET_TC_FLAG_INDEX(&g_i2c_dma[I2C_DMA_RX]));
+    __HAL_DMA_CLEAR_FLAG(&g_i2c_dma[I2C_DMA_RX], __HAL_DMA_GET_TE_FLAG_INDEX(&g_i2c_dma[I2C_DMA_RX]));
+    __HAL_DMA_ENABLE_IT(&g_i2c_dma[I2C_DMA_RX], DMA_IT_TC | DMA_IT_TE);
+    return (HAL_DMA_Start(&g_i2c_dma[I2C_DMA_RX], (uint32_t)&g_i2c_hw.instance->DR,
+                          (uint32_t)buf, len) == HAL_OK);
+}
+
+/* Address phase done (ADDR set): set the per-count ACK/POS/LAST, release ADDR,
+ * wait for the DMA and close the transfer (mirrors I2C_Master_ADDR + the DMA
+ * complete callback). */
+static bool i2c_dma_rx_finish(uint16_t len)
+{
+    if (len == 1U)
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
+    }
+    else if (len == 2U)
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
+    }
+    else
+    {
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+        SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
+    }
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+
+    if (!i2c_dma_wait(I2C_DMA_RX))
+    {
+        CLEAR_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
+        i2c_hw_stop();
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+    CLEAR_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN | I2C_CR2_LAST);
+    __HAL_DMA_DISABLE_IT(&g_i2c_dma[I2C_DMA_RX], DMA_IT_TC | DMA_IT_TE);
+    return true;
+}
+
+static bool i2c_dma_read(uint8_t addr7, uint8_t *buf, uint16_t len)
+{
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+
+    if (!i2c_dma_arm_rx(buf, len))
+    {
+        return false;
+    }
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+    SET_BIT(g_i2c_hw.instance->CR2, I2C_CR2_DMAEN);
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
+    if (!i2c_hw_wait_addr())
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    return i2c_dma_rx_finish(len);
+}
+
+static bool i2c_dma_write_read(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
+                               uint8_t *rbuf, uint16_t rlen)
+{
+    if ((wlen != 1U) && (wlen != 2U))
+    {
+        return false;
+    }
+    if (!i2c_hw_wait(I2C_FLAG_BUSY, RESET))
+    {
+        return false;
+    }
+    CLEAR_BIT(g_i2c_hw.instance->CR1, I2C_CR1_POS);
+
+    if (!i2c_dma_arm_rx(rbuf, rlen))
+    {
+        return false;
+    }
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_ACK);
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 0U);
+    if (!i2c_hw_wait_addr())
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    __HAL_I2C_CLEAR_ADDRFLAG(&g_i2c_handle);
+
+    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = wbuf[0];
+    if (wlen == 2U)
+    {
+        if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+        {
+            (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+            i2c_hw_stop();
+            return false;
+        }
+        g_i2c_hw.instance->DR = wbuf[1];
+    }
+    if (!i2c_hw_wait(I2C_FLAG_TXE, SET))
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+
+    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);   /* repeated start */
+    if (!i2c_hw_wait(I2C_FLAG_SB, SET))
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    g_i2c_hw.instance->DR = i2c_ll_dev(addr7, 1U);
+    if (!i2c_hw_wait_addr())
+    {
+        (void)HAL_DMA_Abort(&g_i2c_dma[I2C_DMA_RX]);
+        i2c_hw_stop();
+        return false;
+    }
+    return i2c_dma_rx_finish(rlen);
+}
+
+/* ===================================================================== */
+/*                       initialisation                                  */
+/* ===================================================================== */
 
 /* Clock SCL to release a slave that holds SDA after an aborted transfer. */
 static void i2c_hw_bus_recover(void)
@@ -430,10 +1140,6 @@ static void i2c_hw_bus_recover(void)
     HAL_GPIO_WritePin(sda.port, sda.pin, GPIO_PIN_SET);
     delay_us(5U);
 }
-
-/* ===================================================================== */
-/*                       initialisation                                  */
-/* ===================================================================== */
 
 void i2c_init(const i2c_cfg_t *cfg)
 {
@@ -476,11 +1182,9 @@ void i2c_init(const i2c_cfg_t *cfg)
         g_i2c_handle.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
         (void)HAL_I2C_Init(&g_i2c_handle);
 
-        /* DMA streams (DMA transport). */
+        /* DMA streams. */
         dma_hw_setup(&g_i2c_dma[I2C_DMA_TX], &g_i2c_hw.dma[I2C_DMA_TX]);
         dma_hw_setup(&g_i2c_dma[I2C_DMA_RX], &g_i2c_hw.dma[I2C_DMA_RX]);
-        __HAL_LINKDMA(&g_i2c_handle, hdmatx, g_i2c_dma[I2C_DMA_TX]);
-        __HAL_LINKDMA(&g_i2c_handle, hdmarx, g_i2c_dma[I2C_DMA_RX]);
 
         /* NVIC: I2C events/errors (IT + DMA) and the two DMA streams. */
         HAL_NVIC_SetPriority(g_i2c_hw.irqn, 3U, 3U);
@@ -527,6 +1231,18 @@ bool i2c_write(i2c_device_t dev, const uint8_t *buf, uint16_t len)
     {
         return i2c_sw_write(addr7, buf, len);
     }
+    if (len == 0U)
+    {
+        return i2c_hw_probe(addr7);
+    }
+    if (g_i2c.xfer == I2C_XFER_IT)
+    {
+        return i2c_it_xfer(addr7, buf, len, 0, 0U);
+    }
+    if (g_i2c.xfer == I2C_XFER_DMA)
+    {
+        return i2c_dma_write(addr7, buf, len);
+    }
     return i2c_hw_write(addr7, buf, len);
 }
 
@@ -547,6 +1263,14 @@ bool i2c_read(i2c_device_t dev, uint8_t *buf, uint16_t len)
     if (g_i2c.backend == I2C_BACKEND_SW)
     {
         return i2c_sw_read(addr7, buf, len);
+    }
+    if (g_i2c.xfer == I2C_XFER_IT)
+    {
+        return i2c_it_xfer(addr7, 0, 0U, buf, len);
+    }
+    if (g_i2c.xfer == I2C_XFER_DMA)
+    {
+        return i2c_dma_read(addr7, buf, len);
     }
     return i2c_hw_read(addr7, buf, len);
 }
@@ -574,6 +1298,14 @@ bool i2c_write_read(i2c_device_t dev,
     if (g_i2c.backend == I2C_BACKEND_SW)
     {
         return i2c_sw_write_read(addr7, wbuf, wlen, rbuf, rlen);
+    }
+    if (g_i2c.xfer == I2C_XFER_IT)
+    {
+        return i2c_it_xfer(addr7, wbuf, wlen, rbuf, rlen);
+    }
+    if (g_i2c.xfer == I2C_XFER_DMA)
+    {
+        return i2c_dma_write_read(addr7, wbuf, wlen, rbuf, rlen);
     }
     return i2c_hw_write_read(addr7, wbuf, wlen, rbuf, rlen);
 }

@@ -12,7 +12,7 @@
 
 #define PATTERN_PERIOD_MS  500U
 
-static const uint8_t g_patterns[] = { 0xAAU, 0x55U };
+static const uint8_t g_patterns[] = { 0xABU, 0x55U };   /* BEEP (P0) kept high (active low) */
 
 int main(void)
 {

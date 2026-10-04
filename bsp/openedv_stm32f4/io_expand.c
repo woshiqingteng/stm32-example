@@ -9,6 +9,8 @@
 #include "delay.h"
 
 #define PCF8574_WRITE_DELAY_MS 10U
+/* All outputs released high. The buzzer (BEEP = P0) is active low, so the
+ * released/pulled-up state keeps it silent. */
 #define PCF8574_IDLE_VALUE  0xFFU
 
 uint8_t io_expand_init(void)
