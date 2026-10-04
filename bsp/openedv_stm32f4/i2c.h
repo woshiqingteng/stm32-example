@@ -40,7 +40,7 @@ typedef enum
 {
     I2C_XFER_POLL = 0, /*!< CPU polled byte-by-byte */
     I2C_XFER_IT,       /*!< interrupt driven */
-    I2C_XFER_DMA       /*!< DMA driven (write/read; write_read falls back to POLL) */
+    I2C_XFER_DMA       /*!< DMA driven (read and write) */
 } i2c_xfer_t;
 
 /** @brief Bus configuration. */

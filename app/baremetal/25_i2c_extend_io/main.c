@@ -46,11 +46,12 @@ int main(void)
         status = (io_expand_int_asserted()) ? 1U : 0U;
         printf("INT:%u EX_IO:%u\r\n", status, (unsigned)io_expand_read_bit(PCF8574_EX_IO));
 
-        /* Buzzer demo: pulse BEEP via the expander bit API. */
+        /* Buzzer demo temporarily disabled while testing the I2C transports.
         io_expand_write_bit(PCF8574_BEEP_IO, 1U);
         delay_ms(200U);
         io_expand_write_bit(PCF8574_BEEP_IO, 0U);
         printf("BEEP pulse\r\n");
+        */
 
         idx ^= 1U;
         led_toggle(LED0);

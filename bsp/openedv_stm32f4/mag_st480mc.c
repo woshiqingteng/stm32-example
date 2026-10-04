@@ -1,7 +1,7 @@
 /**
  * @file    mag_st480mc.c
  * @brief   ST480MC magnetometer driver, ported from the vendor example. Uses
- *          the shared i2c primitive API (SCL = PH4, SDA = PH5).
+ *          the shared i2c bus driver (device id I2C_DEV_MAG, transaction API).
  */
 
 #include "i2c.h"
