@@ -12,8 +12,6 @@
 
 #include <stdint.h>
 
-#define ES8388_ADDR     0x10    /* ES8388 device address, fixed at 0x10 */
-
 /** @brief  Reset and configure the codec. @return 0 on success. */
 uint8_t codec_es8388_init(void);
 

@@ -10,86 +10,33 @@
 
 uint8_t mag_st480mc_read_nbytes(uint8_t addr, uint8_t length, uint8_t *buf)
 {
-    uint8_t i;
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((MAG_ST480MC_ADDR << 1) | 0x00U));   /* address, write */
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_send_byte(addr);                                     /* register/command */
-    (void)i2c_wait_ack();
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((MAG_ST480MC_ADDR << 1) | 0x01U));   /* address, read */
-    (void)i2c_wait_ack();
-
-    for (i = 0U; i < length; i++)
-    {
-        buf[i] = i2c_read_byte(1U);
-    }
-
-    i2c_stop();
-
-    return 0U;
+    return i2c_write_read(I2C_DEV_MAG, &addr, 1U, buf, (uint16_t)length) ? 0U : 1U;
 }
 
 uint8_t mag_st480mc_write_register(uint8_t reg, uint16_t data)
 {
-    i2c_start();
-    i2c_send_byte((uint8_t)((MAG_ST480MC_ADDR << 1) | 0x00U));
+    uint8_t buf[4];
 
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
+    buf[0] = MAG_ST480MC_WRITE_REG;
+    buf[1] = (uint8_t)(data >> 8);
+    buf[2] = (uint8_t)(data & 0xFFU);
+    buf[3] = (uint8_t)(reg << 2);   /* register address, low 2 bits 0 */
 
-    i2c_send_byte(MAG_ST480MC_WRITE_REG);
-    (void)i2c_wait_ack();
-
-    i2c_send_byte((uint8_t)(data >> 8));
-    (void)i2c_wait_ack();
-    i2c_send_byte((uint8_t)(data & 0xFFU));
-    (void)i2c_wait_ack();
-
-    i2c_send_byte((uint8_t)(reg << 2));                      /* address, low 2 bits 0 */
-    (void)i2c_wait_ack();
-
-    i2c_stop();
-
-    return 0U;
+    return i2c_write(I2C_DEV_MAG, buf, 4U) ? 0U : 1U;
 }
 
 uint16_t mag_st480mc_read_register(uint8_t reg)
 {
+    uint8_t wbuf[2];
     uint8_t buf[3];
-    uint8_t i;
 
-    i2c_start();
-    i2c_send_byte((uint8_t)((MAG_ST480MC_ADDR << 1) | 0x00U));
-    (void)i2c_wait_ack();
+    wbuf[0] = MAG_ST480MC_READ_REG;
+    wbuf[1] = (uint8_t)(reg << 2);
 
-    i2c_send_byte(MAG_ST480MC_READ_REG);
-    (void)i2c_wait_ack();
-
-    i2c_send_byte((uint8_t)(reg << 2));
-    (void)i2c_wait_ack();
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((MAG_ST480MC_ADDR << 1) | 0x01U));
-    (void)i2c_wait_ack();
-
-    for (i = 0U; i < 3U; i++)
+    if (!i2c_write_read(I2C_DEV_MAG, wbuf, 2U, buf, 3U))
     {
-        buf[i] = i2c_read_byte(1U);
+        return 0xFFFFU;
     }
-
-    i2c_stop();
 
     if ((buf[0] & 0x10U) != 0U)
     {
@@ -105,7 +52,7 @@ uint8_t mag_st480mc_init(void)
     uint8_t res    = 0xFFU;
     uint8_t retry  = 10U;
 
-    i2c_init();
+    i2c_init(0);
 
     /* Retry until the ST480MC answers with an ACK. */
     while ((retry-- != 0U) && (res != 0U))

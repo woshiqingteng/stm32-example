@@ -16,108 +16,25 @@
 
 static uint8_t imu_sh3001_write_byte(uint8_t reg, uint8_t data)
 {
-    i2c_start();
-    i2c_send_byte((uint8_t)((IMU_SH3001_ADDR << 1) | 0x00U));
+    uint8_t buf[2];
 
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
+    buf[0] = reg;
+    buf[1] = data;
 
-    i2c_send_byte(reg);
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_send_byte(data);
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_stop();
-    return 0U;
+    return i2c_write(I2C_DEV_IMU, buf, 2U) ? 0U : 1U;
 }
 
 static uint8_t imu_sh3001_read_byte(uint8_t reg)
 {
-    uint8_t data;
+    uint8_t data = 0U;
 
-    i2c_start();
-    i2c_send_byte((uint8_t)((IMU_SH3001_ADDR << 1) | 0x00U));
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 0U;
-    }
-
-    i2c_send_byte(reg);
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 0U;
-    }
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((IMU_SH3001_ADDR << 1) | 0x01U));
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 0U;
-    }
-
-    data = i2c_read_byte(0);
-    i2c_stop();
-
+    (void)i2c_write_read(I2C_DEV_IMU, &reg, 1U, &data, 1U);
     return data;
 }
 
 static uint8_t imu_sh3001_read_nbytes(uint8_t reg, uint8_t *buf, uint8_t len)
 {
-    uint8_t i;
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((IMU_SH3001_ADDR << 1) | 0x00U));
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_send_byte(reg);
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_start();
-    i2c_send_byte((uint8_t)((IMU_SH3001_ADDR << 1) | 0x01U));
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    for (i = 0U; i < len; i++)
-    {
-        buf[i] = i2c_read_byte((i == (uint8_t)(len - 1U)) ? 0U : 1U);
-    }
-
-    i2c_stop();
-    return 0U;
+    return i2c_write_read(I2C_DEV_IMU, &reg, 1U, buf, (uint16_t)len) ? 0U : 1U;
 }
 
 static uint8_t imu_sh3001_check_chip_id(void)
@@ -142,7 +59,7 @@ uint8_t imu_sh3001_init(void)
 {
     uint8_t reg;
 
-    i2c_init();
+    i2c_init(0);
 
     if (imu_sh3001_check_chip_id() != 0U)
     {

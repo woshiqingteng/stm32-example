@@ -13,45 +13,19 @@
 
 uint8_t als_ap3216c_write_one_byte(uint8_t reg, uint8_t data)
 {
-    i2c_start();
-    i2c_send_byte(ALS_AP3216C_ADDR | 0x00U);
+    uint8_t buf[2];
 
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
+    buf[0] = reg;
+    buf[1] = data;
 
-    i2c_send_byte(reg);
-    i2c_wait_ack();
-    i2c_send_byte(data);
-
-    if (i2c_wait_ack() != 0U)
-    {
-        i2c_stop();
-        return 1U;
-    }
-
-    i2c_stop();
-    return 0U;
+    return i2c_write(I2C_DEV_ALS, buf, 2U) ? 0U : 1U;
 }
 
 uint8_t als_ap3216c_read_one_byte(uint8_t reg)
 {
-    uint8_t res;
+    uint8_t res = 0U;
 
-    i2c_start();
-    i2c_send_byte(ALS_AP3216C_ADDR | 0x00U);
-    i2c_wait_ack();
-    i2c_send_byte(reg);
-    i2c_wait_ack();
-
-    i2c_start();
-    i2c_send_byte(ALS_AP3216C_ADDR | 0x01U);
-    i2c_wait_ack();
-    res = i2c_read_byte(0);
-    i2c_stop();
-
+    (void)i2c_write_read(I2C_DEV_ALS, &reg, 1U, &res, 1U);
     return res;
 }
 
@@ -59,7 +33,7 @@ uint8_t als_ap3216c_init(void)
 {
     uint8_t temp;
 
-    i2c_init();
+    i2c_init(0);
 
     als_ap3216c_write_one_byte(ALS_AP3216C_SYS_REG, ALS_AP3216C_RESET);
     delay_ms(ALS_AP3216C_RESET_DELAY_MS);

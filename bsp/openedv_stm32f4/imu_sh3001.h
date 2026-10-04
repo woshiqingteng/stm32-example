@@ -9,9 +9,6 @@
 
 #include <stdint.h>
 
-/** @brief  7-bit I2C slave address (SDO pin tied to GND). */
-#define IMU_SH3001_ADDR                 0x36U
-
 /** @brief  Expected value of the CHIP ID register. */
 #define IMU_SH3001_CHIP_ID_VAL          0x61U
 

@@ -38,7 +38,7 @@ target_link_libraries(bsp_wdg PUBLIC drv_iwdg drv_wwdg)
 # comm
 bsp_library(bsp_i2c
     i2c.c)
-target_link_libraries(bsp_i2c PUBLIC drv_i2c)
+target_link_libraries(bsp_i2c PUBLIC drv_i2c bsp_delay)
 bsp_library(bsp_spi
     spi.c)
 target_link_libraries(bsp_spi PUBLIC drv_spi)

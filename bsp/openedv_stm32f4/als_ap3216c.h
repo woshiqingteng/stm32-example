@@ -8,9 +8,6 @@
 
 #include <stdint.h>
 
-/** @brief  8-bit I2C address (R/W bit added on the wire). */
-#define ALS_AP3216C_ADDR    0x3CU
-
 /* Register map. */
 #define ALS_AP3216C_SYS_REG     0x00U
 #define ALS_AP3216C_DATA_REG    0x0AU

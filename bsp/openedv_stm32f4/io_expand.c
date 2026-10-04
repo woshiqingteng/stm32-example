@@ -8,7 +8,6 @@
 #include "io_expand.h"
 #include "delay.h"
 
-#define PCF8574_READ_ACK    0U
 #define PCF8574_WRITE_DELAY_MS 10U
 #define PCF8574_IDLE_VALUE  0xFFU
 
@@ -25,12 +24,9 @@ uint8_t io_expand_init(void)
     gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(PCF8574_GPIO_PORT, &gpio_init);
 
-    i2c_init();
+    i2c_init(0);
 
-    i2c_start();
-    i2c_send_byte(PCF8574_ADDR);
-    temp = i2c_wait_ack();
-    i2c_stop();
+    temp = i2c_write(I2C_DEV_IO_EXPAND, 0, 0U) ? 0U : 1U;   /* probe */
 
     io_expand_write_byte(PCF8574_IDLE_VALUE);
 
@@ -39,14 +35,9 @@ uint8_t io_expand_init(void)
 
 uint8_t io_expand_read_byte(void)
 {
-    uint8_t temp;
+    uint8_t temp = 0U;
 
-    i2c_start();
-    i2c_send_byte(PCF8574_ADDR | 0x01U);
-    i2c_wait_ack();
-    temp = i2c_read_byte(PCF8574_READ_ACK);
-    i2c_stop();
-
+    (void)i2c_read(I2C_DEV_IO_EXPAND, &temp, 1U);
     return temp;
 }
 
@@ -57,13 +48,7 @@ bool io_expand_int_asserted(void)
 
 void io_expand_write_byte(uint8_t data)
 {
-    i2c_start();
-    i2c_send_byte(PCF8574_ADDR | 0x00U);
-    i2c_wait_ack();
-    i2c_send_byte(data);
-    i2c_wait_ack();
-    i2c_stop();
-
+    (void)i2c_write(I2C_DEV_IO_EXPAND, &data, 1U);
     delay_ms(PCF8574_WRITE_DELAY_MS);
 }
 

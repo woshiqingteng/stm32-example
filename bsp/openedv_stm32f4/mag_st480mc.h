@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 
-#define MAG_ST480MC_ADDR            0x0CU   /* 7-bit IIC address (A0 = 0) */
 #define MAG_ST480MC_RESET           0xF0U   /* reset command */
 #define MAG_ST480MC_READ_REG        0x50U   /* read-register command */
 #define MAG_ST480MC_WRITE_REG       0x60U   /* write-register command */

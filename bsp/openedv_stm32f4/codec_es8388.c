@@ -9,7 +9,7 @@
 
 uint8_t codec_es8388_init(void)
 {
-    i2c_init();                     /* initialise the IIC interface */
+    i2c_init(0);                    /* initialise the IIC interface */
 
     codec_es8388_write_reg(0, 0x80);      /* software reset */
     codec_es8388_write_reg(0, 0x00);
@@ -45,59 +45,22 @@ uint8_t codec_es8388_init(void)
 
 uint8_t codec_es8388_write_reg(uint8_t reg, uint8_t val)
 {
-    i2c_start();
+    uint8_t buf[2];
 
-    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
+    buf[0] = reg;
+    buf[1] = (uint8_t)(val & 0xFFU);
 
-    i2c_send_byte(reg);                     /* register address */
-    if (i2c_wait_ack())
-    {
-        return 2;
-    }
-
-    i2c_send_byte(val & 0xFF);              /* data */
-    if (i2c_wait_ack())
-    {
-        return 3;
-    }
-
-    i2c_stop();
-
-    return 0;
+    return i2c_write(I2C_DEV_CODEC, buf, 2U) ? 0U : 1U;
 }
 
 uint8_t codec_es8388_read_reg(uint8_t reg)
 {
-    uint8_t temp = 0;
+    uint8_t temp = 0U;
 
-    i2c_start();
-
-    i2c_send_byte((ES8388_ADDR << 1) | 0);  /* device address + write */
-    if (i2c_wait_ack())
+    if (!i2c_write_read(I2C_DEV_CODEC, &reg, 1U, &temp, 1U))
     {
-        return 1;
+        return 1U;
     }
-
-    i2c_send_byte(reg);                     /* register address */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    i2c_start();
-    i2c_send_byte((ES8388_ADDR << 1) | 1);  /* device address + read */
-    if (i2c_wait_ack())
-    {
-        return 1;
-    }
-
-    temp = i2c_read_byte(0);
-
-    i2c_stop();
 
     return temp;
 }

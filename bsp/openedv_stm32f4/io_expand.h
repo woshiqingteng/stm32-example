@@ -19,9 +19,6 @@
 
 #define PCF8574_INT         HAL_GPIO_ReadPin(PCF8574_GPIO_PORT, PCF8574_GPIO_PIN)
 
-/** @brief  8-bit write address (the R/W bit is added on the wire). */
-#define PCF8574_ADDR        0x40U
-
 /* Expansion port bit assignment on the ALIENTEK F429 board. */
 #define PCF8574_BEEP_IO     0U
 #define PCF8574_AP_INT_IO   1U
