@@ -26,6 +26,30 @@
 #define TIM_IRQ_NONE ((IRQn_Type)0x7FFFFFFF)
 #define TIM_NPWM_BATCH_COUNT 256U
 
+/* ===== option mapping (own enum -> HAL), mirroring the ADC driver ===== */
+
+#define TIM_HAL_OPT(tbl, v, n) ((tbl)[((uint32_t)(v) < (n)) ? (uint32_t)(v) : 0U])
+
+static const uint32_t g_ch_hal[TIM_CH_NUM] =
+{
+    TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4,
+};
+
+static const uint32_t g_pull_hal[3] =
+{
+    GPIO_NOPULL, GPIO_PULLUP, GPIO_PULLDOWN,     /* TIM_PULL_NONE/UP/DOWN */
+};
+
+static const uint32_t g_ocpol_hal[2] =
+{
+    TIM_OCPOLARITY_HIGH, TIM_OCPOLARITY_LOW,     /* TIM_POL_HIGH/LOW */
+};
+
+static const uint32_t g_icpol_hal[2] =
+{
+    TIM_ICPOLARITY_RISING, TIM_ICPOLARITY_FALLING, /* TIM_EDGE_RISING/FALLING */
+};
+
 /* ===== hardware descriptors ===== */
 
 typedef struct
@@ -100,76 +124,47 @@ static const tim_hw_t g_tim_hw[TIM_ID_NUM] =
 
 /* ===== per-instance state ===== */
 
+/* Mode-specific state, shared in a union: only one mode is active per timer. */
+typedef union
+{
+    tim_edge_t                      cap_edge;    /* IC   */
+    uint32_t                        npwm_remain; /* NPWM */
+    TIM_BreakDeadTimeConfigTypeDef  break_cfg;   /* CPLM */
+} tim_mode_state_t;
+
 typedef struct
 {
-    const tim_hw_t *hw;
-    tim_cfg_t       cfg;
+    const tim_hw_t  *hw;
+    tim_cfg_t        cfg;
     TIM_HandleTypeDef htim;
-    tim_edge_t      cap_edge;      /* IC: edge currently armed */
-    uint32_t        npwm_remain;   /* NPWM: pulses left */
-    TIM_BreakDeadTimeConfigTypeDef break_cfg; /* CPLM */
+    tim_mode_state_t  state;
 } tim_handle_t;
 
 static tim_handle_t g_tim[TIM_ID_NUM];
 
 /* ===== helpers ===== */
 
-static uint32_t tim_channel_hal(tim_channel_t ch)
-{
-    switch (ch)
-    {
-        case TIM_CH1: return TIM_CHANNEL_1;
-        case TIM_CH2: return TIM_CHANNEL_2;
-        case TIM_CH3: return TIM_CHANNEL_3;
-        case TIM_CH4: return TIM_CHANNEL_4;
-        default:      return TIM_CHANNEL_1;
-    }
-}
-
-static uint32_t tim_pull_hal(tim_pull_t pull)
-{
-    if (pull == TIM_PULL_UP)
-    {
-        return GPIO_PULLUP;
-    }
-    if (pull == TIM_PULL_DOWN)
-    {
-        return GPIO_PULLDOWN;
-    }
-    return GPIO_NOPULL;
-}
-
-/* Special case (mirrors ADC_TEMP_CH): TIM2_CH1 input capture is wired to PA5
- * (tpad), not the descriptor default PA0 used by the external counter. */
-static bool tim_pin_special(tim_id_t id, tim_channel_t ch, tim_mode_t mode, gpio_hw_t *out)
-{
-    if ((id == TIM_ID_2) && (ch == TIM_CH1) && (mode == TIM_MODE_IC))
-    {
-        out->port      = GPIOA;
-        out->rcc_en    = RCC_AHB1ENR_GPIOAEN;
-        out->pin       = GPIO_PIN_5;
-        out->mode      = GPIO_MODE_AF_PP;
-        out->pull      = GPIO_NOPULL;
-        out->speed     = GPIO_SPEED_FREQ_HIGH;
-        out->alternate = GPIO_AF1_TIM2;
-        return true;
-    }
-    return false;
-}
-
 static void tim_pin_setup(const tim_hw_t *hw, tim_id_t id, tim_channel_t ch,
                           tim_mode_t mode, tim_pull_t pull)
 {
     gpio_hw_t g;
 
-    if (tim_pin_special(id, ch, mode, &g))
+    /* Special case (mirrors ADC_TEMP_CH): TIM2_CH1 input capture is wired to
+     * PA5 (tpad), not the descriptor default PA0 used by the external counter. */
+    if ((id == TIM_ID_2) && (ch == TIM_CH1) && (mode == TIM_MODE_IC))
     {
-        g.pull = tim_pull_hal(pull);
-        gpio_hw_setup(&g);
-        return;
+        g.port      = GPIOA;
+        g.rcc_en    = RCC_AHB1ENR_GPIOAEN;
+        g.pin       = GPIO_PIN_5;
+        g.mode      = GPIO_MODE_AF_PP;
+        g.speed     = GPIO_SPEED_FREQ_HIGH;
+        g.alternate = GPIO_AF1_TIM2;
     }
-    g = hw->gpio[ch];
-    g.pull = tim_pull_hal(pull);
+    else
+    {
+        g = hw->gpio[ch];
+    }
+    g.pull = TIM_HAL_OPT(g_pull_hal, pull, 3U);
     gpio_hw_setup(&g);
 }
 
@@ -193,49 +188,20 @@ static void tim_base_fields(tim_handle_t *h, uint32_t clock_div, uint32_t arpe)
     h->htim.Init.AutoReloadPreload = arpe;
 }
 
-/* ---- input capture arming (IC) ---- */
-
-static void tim_cap_arm(tim_handle_t *h, tim_edge_t edge)
-{
-    uint32_t pol = (edge == TIM_EDGE_RISING) ? TIM_ICPOLARITY_RISING
-                                             : TIM_ICPOLARITY_FALLING;
-
-    TIM_RESET_CAPTUREPOLARITY(&h->htim, TIM_CHANNEL_1);
-    TIM_SET_CAPTUREPOLARITY(&h->htim, TIM_CHANNEL_1, pol);
-    h->cap_edge = edge;
-}
-
-static void tim_cap_reset(tim_handle_t *h)
-{
-    __HAL_TIM_DISABLE(&h->htim);
-    __HAL_TIM_SET_COUNTER(&h->htim, 0U);
-    __HAL_TIM_ENABLE(&h->htim);
-}
-
-/* ---- CPLM dead time ---- */
-
-static void tim_cplm_dtg(tim_handle_t *h, uint8_t dtg)
-{
-    h->break_cfg.DeadTime = dtg;
-    (void)HAL_TIMEx_ConfigBreakDeadTime(&h->htim, &h->break_cfg);
-    __HAL_TIM_MOE_ENABLE(&h->htim);
-}
-
-/* ---- NPWM burst ---- */
-
+/* NPWM: chain the pulse burst in batches of TIM_NPWM_BATCH_COUNT. */
 static void tim_npwm_isr(tim_handle_t *h)
 {
     uint16_t npwm = 0U;
 
-    if (h->npwm_remain >= TIM_NPWM_BATCH_COUNT)
+    if (h->state.npwm_remain >= TIM_NPWM_BATCH_COUNT)
     {
-        h->npwm_remain -= TIM_NPWM_BATCH_COUNT;
+        h->state.npwm_remain -= TIM_NPWM_BATCH_COUNT;
         npwm = TIM_NPWM_BATCH_COUNT;
     }
-    else if ((h->npwm_remain % TIM_NPWM_BATCH_COUNT) != 0U)
+    else if ((h->state.npwm_remain % TIM_NPWM_BATCH_COUNT) != 0U)
     {
-        npwm = (uint16_t)h->npwm_remain;
-        h->npwm_remain = 0U;
+        npwm = (uint16_t)h->state.npwm_remain;
+        h->state.npwm_remain = 0U;
     }
 
     if (npwm != 0U)
@@ -249,17 +215,6 @@ static void tim_npwm_isr(tim_handle_t *h)
         __HAL_TIM_DISABLE(&h->htim);
     }
     __HAL_TIM_CLEAR_IT(&h->htim, TIM_IT_UPDATE);
-}
-
-static void tim_npwm_trigger(tim_handle_t *h, uint32_t npwm)
-{
-    if (npwm == 0U)
-    {
-        return;
-    }
-    h->npwm_remain = npwm;
-    HAL_TIM_GenerateEvent(&h->htim, TIM_EVENTSOURCE_UPDATE);
-    __HAL_TIM_ENABLE(&h->htim);
 }
 
 /* ===== per-mode configuration ===== */
@@ -289,7 +244,7 @@ static void tim_cfg_base(tim_handle_t *h)
 static void tim_cfg_pwm(tim_handle_t *h)
 {
     TIM_OC_InitTypeDef oc = {0};
-    uint32_t ch = tim_channel_hal(h->cfg.channel);
+    uint32_t ch = TIM_HAL_OPT(g_ch_hal, h->cfg.channel, TIM_CH_NUM);
 
     tim_base_fields(h, TIM_CLOCKDIVISION_DIV1, TIM_AUTORELOAD_PRELOAD_DISABLE);
     (void)HAL_TIM_PWM_Init(&h->htim);
@@ -298,8 +253,7 @@ static void tim_cfg_pwm(tim_handle_t *h)
 
     oc.OCMode     = TIM_OCMODE_PWM1;
     oc.Pulse      = h->cfg.arr / 2U;
-    oc.OCPolarity = (h->cfg.polarity == TIM_POL_LOW) ? TIM_OCPOLARITY_LOW
-                                                     : TIM_OCPOLARITY_HIGH;
+    oc.OCPolarity = TIM_HAL_OPT(g_ocpol_hal, h->cfg.polarity, 2U);
     oc.OCFastMode = TIM_OCFAST_DISABLE;
     (void)HAL_TIM_PWM_ConfigChannel(&h->htim, &oc, ch);
     (void)HAL_TIM_PWM_Start(&h->htim, ch);
@@ -314,11 +268,11 @@ static void tim_cfg_oc(tim_handle_t *h)
     (void)HAL_TIM_OC_Init(&h->htim);
 
     oc.OCMode     = TIM_OCMODE_TOGGLE;
-    oc.OCPolarity = (h->cfg.polarity == TIM_POL_LOW) ? TIM_OCPOLARITY_LOW
-                                                     : TIM_OCPOLARITY_HIGH;
+    oc.OCPolarity = TIM_HAL_OPT(g_ocpol_hal, h->cfg.polarity, 2U);
     for (ch = TIM_CH1; ch < TIM_CH_NUM; ch++)
     {
-        uint32_t hal = tim_channel_hal(ch);
+        uint32_t hal = TIM_HAL_OPT(g_ch_hal, ch, TIM_CH_NUM);
+
         tim_pin_setup(h->hw, h->cfg.id, ch, TIM_MODE_OC, h->cfg.pull);
         oc.Pulse = h->cfg.arr / 2U;
         if (ch == TIM_CH4)
@@ -334,7 +288,7 @@ static void tim_cfg_oc(tim_handle_t *h)
 static void tim_cfg_ic(tim_handle_t *h)
 {
     TIM_IC_InitTypeDef ic = {0};
-    uint32_t ch = tim_channel_hal(h->cfg.channel);
+    uint32_t ch = TIM_HAL_OPT(g_ch_hal, h->cfg.channel, TIM_CH_NUM);
     tim_edge_t edge = (h->cfg.polarity == TIM_POL_LOW) ? TIM_EDGE_FALLING
                                                        : TIM_EDGE_RISING;
 
@@ -343,14 +297,13 @@ static void tim_cfg_ic(tim_handle_t *h)
 
     tim_pin_setup(h->hw, h->cfg.id, h->cfg.channel, TIM_MODE_IC, h->cfg.pull);
 
-    ic.ICPolarity  = (edge == TIM_EDGE_RISING) ? TIM_ICPOLARITY_RISING
-                                               : TIM_ICPOLARITY_FALLING;
+    ic.ICPolarity  = TIM_HAL_OPT(g_icpol_hal, edge, 2U);
     ic.ICSelection = TIM_ICSELECTION_DIRECTTI;
     ic.ICPrescaler = TIM_ICPSC_DIV1;
     ic.ICFilter    = h->cfg.ic_filter;
     (void)HAL_TIM_IC_ConfigChannel(&h->htim, &ic, ch);
 
-    h->cap_edge = edge;
+    h->state.cap_edge = edge;
 
     if (h->cfg.capture_cb != 0)
     {
@@ -368,7 +321,7 @@ static void tim_cfg_ic(tim_handle_t *h)
 static void tim_cfg_counter(tim_handle_t *h)
 {
     TIM_SlaveConfigTypeDef slave = {0};
-    uint32_t ch = tim_channel_hal(h->cfg.channel);
+    uint32_t ch = TIM_HAL_OPT(g_ch_hal, h->cfg.channel, TIM_CH_NUM);
 
     tim_base_fields(h, TIM_CLOCKDIVISION_DIV1, TIM_AUTORELOAD_PRELOAD_DISABLE);
     (void)HAL_TIM_IC_Init(&h->htim);
@@ -435,7 +388,7 @@ static void tim_cfg_cplm(tim_handle_t *h)
     tim_base_fields(h, TIM_CLOCKDIVISION_DIV4, TIM_AUTORELOAD_PRELOAD_ENABLE);
     (void)HAL_TIM_PWM_Init(&h->htim);
 
-    pe.pull = tim_pull_hal(h->cfg.pull);
+    pe.pull = TIM_HAL_OPT(g_pull_hal, h->cfg.pull, 3U);
     pe.pin = GPIO_PIN_9;  gpio_hw_setup(&pe);   /* CH1  */
     pe.pin = GPIO_PIN_8;  gpio_hw_setup(&pe);   /* CH1N */
     pe.pin = GPIO_PIN_15; gpio_hw_setup(&pe);   /* BKIN */
@@ -447,14 +400,14 @@ static void tim_cfg_cplm(tim_handle_t *h)
     oc.OCNIdleState = TIM_OCNIDLESTATE_SET;
     (void)HAL_TIM_PWM_ConfigChannel(&h->htim, &oc, TIM_CHANNEL_1);
 
-    h->break_cfg.OffStateRunMode  = TIM_OSSR_DISABLE;
-    h->break_cfg.OffStateIDLEMode = TIM_OSSI_DISABLE;
-    h->break_cfg.LockLevel        = TIM_LOCKLEVEL_OFF;
-    h->break_cfg.BreakState       = TIM_BREAK_ENABLE;
-    h->break_cfg.BreakPolarity    = TIM_BREAKPOLARITY_LOW;
-    h->break_cfg.AutomaticOutput  = TIM_AUTOMATICOUTPUT_ENABLE;
-    h->break_cfg.DeadTime         = 0U;
-    (void)HAL_TIMEx_ConfigBreakDeadTime(&h->htim, &h->break_cfg);
+    h->state.break_cfg.OffStateRunMode  = TIM_OSSR_DISABLE;
+    h->state.break_cfg.OffStateIDLEMode = TIM_OSSI_DISABLE;
+    h->state.break_cfg.LockLevel        = TIM_LOCKLEVEL_OFF;
+    h->state.break_cfg.BreakState       = TIM_BREAK_ENABLE;
+    h->state.break_cfg.BreakPolarity    = TIM_BREAKPOLARITY_LOW;
+    h->state.break_cfg.AutomaticOutput  = TIM_AUTOMATICOUTPUT_ENABLE;
+    h->state.break_cfg.DeadTime         = 0U;
+    (void)HAL_TIMEx_ConfigBreakDeadTime(&h->htim, &h->state.break_cfg);
 
     (void)HAL_TIM_PWM_Start(&h->htim, TIM_CHANNEL_1);
     (void)HAL_TIMEx_PWMN_Start(&h->htim, TIM_CHANNEL_1);
@@ -475,7 +428,7 @@ static void tim_cfg_npwm(tim_handle_t *h)
     oc.OCPolarity = TIM_OCPOLARITY_HIGH;
     (void)HAL_TIM_PWM_ConfigChannel(&h->htim, &oc, TIM_CHANNEL_1);
 
-    h->npwm_remain = 0U;
+    h->state.npwm_remain = 0U;
     tim_nvic(h->hw->irqn, &h->cfg);
     __HAL_TIM_ENABLE_IT(&h->htim, TIM_IT_UPDATE);
     (void)HAL_TIM_PWM_Start(&h->htim, TIM_CHANNEL_1);
@@ -553,7 +506,7 @@ void tim_set(tim_id_t id, tim_channel_t ch, tim_param_t param, uint32_t value)
     switch (param)
     {
         case TIM_PARAM_CCR:
-            __HAL_TIM_SET_COMPARE(&h->htim, tim_channel_hal(ch), value);
+            __HAL_TIM_SET_COMPARE(&h->htim, TIM_HAL_OPT(g_ch_hal, ch, TIM_CH_NUM), value);
             break;
         case TIM_PARAM_COUNT:
             __HAL_TIM_SET_COUNTER(&h->htim, value);
@@ -576,10 +529,17 @@ void tim_set(tim_id_t id, tim_channel_t ch, tim_param_t param, uint32_t value)
             __HAL_TIM_SET_PRESCALER(&h->htim, (uint16_t)value);
             break;
         case TIM_PARAM_DTG:
-            tim_cplm_dtg(h, (uint8_t)value);
+            h->state.break_cfg.DeadTime = (uint8_t)value;
+            (void)HAL_TIMEx_ConfigBreakDeadTime(&h->htim, &h->state.break_cfg);
+            __HAL_TIM_MOE_ENABLE(&h->htim);
             break;
         case TIM_PARAM_BURST:
-            tim_npwm_trigger(h, value);
+            if (value != 0U)
+            {
+                h->state.npwm_remain = value;
+                HAL_TIM_GenerateEvent(&h->htim, TIM_EVENTSOURCE_UPDATE);
+                __HAL_TIM_ENABLE(&h->htim);
+            }
             break;
         default:
             break;
@@ -603,7 +563,7 @@ uint32_t tim_get(tim_id_t id, tim_channel_t ch, tim_param_t param)
     switch (param)
     {
         case TIM_PARAM_CCR:
-            return HAL_TIM_ReadCapturedValue(&h->htim, tim_channel_hal(ch));
+            return HAL_TIM_ReadCapturedValue(&h->htim, TIM_HAL_OPT(g_ch_hal, ch, TIM_CH_NUM));
         case TIM_PARAM_COUNT:
             return __HAL_TIM_GET_COUNTER(&h->htim);
         case TIM_PARAM_FLAG:
@@ -660,23 +620,28 @@ static void tim_cc_irq(tim_id_t id)
 
     if (__HAL_TIM_GET_FLAG(&h->htim, TIM_FLAG_CC1) != RESET)
     {
-        uint32_t value = HAL_TIM_ReadCapturedValue(&h->htim, TIM_CHANNEL_1);
+        uint32_t cch   = TIM_HAL_OPT(g_ch_hal, h->cfg.channel, TIM_CH_NUM);
+        uint32_t value = HAL_TIM_ReadCapturedValue(&h->htim, cch);
         __HAL_TIM_CLEAR_FLAG(&h->htim, TIM_FLAG_CC1);
 
         if (h->cfg.mode == TIM_MODE_IC)
         {
-            tim_edge_t edge = h->cap_edge;
+            tim_edge_t edge = h->state.cap_edge;
             tim_edge_t next = edge;
 
-            if (edge == TIM_EDGE_RISING)
+            if (edge == TIM_EDGE_RISING)     /* zero CNT without a capture in between */
             {
-                tim_cap_reset(h);
+                __HAL_TIM_DISABLE(&h->htim);
+                __HAL_TIM_SET_COUNTER(&h->htim, 0U);
+                __HAL_TIM_ENABLE(&h->htim);
             }
             if (h->cfg.capture_cb != 0)
             {
                 next = h->cfg.capture_cb(TIM_CAP_CH1, value, edge);
             }
-            tim_cap_arm(h, next);
+            TIM_RESET_CAPTUREPOLARITY(&h->htim, cch);
+            TIM_SET_CAPTUREPOLARITY(&h->htim, cch, TIM_HAL_OPT(g_icpol_hal, next, 2U));
+            h->state.cap_edge = next;
         }
         else if (h->cfg.mode == TIM_MODE_PWMIN)
         {
