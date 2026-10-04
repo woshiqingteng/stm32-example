@@ -18,12 +18,17 @@
 #define ALS_AP3216C_RESET       0x04U   /* software reset       */
 #define ALS_AP3216C_ALS_PS_IR   0x03U   /* enable ALS + PS + IR */
 
-/* Data registers (0x0A..0x0F). Each channel's high bits sit in the low
- * register's spare bits:
+/* Data registers 0x0A..0x0F, read in order into buf[0..5]:
+ *   0x0A IR  Data Low  : bit7 = IR_OF (1 = invalid), bits[1:0] = IR[1:0]
+ *   0x0B IR  Data High : bits[7:0] = IR[9:2]
+ *   0x0C ALS Data Low  : bits[7:0] = ALS[7:0]
+ *   0x0D ALS Data High : bits[7:0] = ALS[15:8]
+ *   0x0E PS  Data Low  : bit6 = PS_OF (1 = invalid), bits[3:0] = PS[3:0]
+ *   0x0F PS  Data High : bits[5:0] = PS[9:4]
+ * IR/PS are 10-bit, ALS is 16-bit; the low register holds the low bits:
  *   IR  = (IR_H  << 2) | (IR_L  & 0x03)
  *   ALS = (ALS_H << 8) |  ALS_L
- *   PS  = ((PS_H & 0x3F) << 4) | (PS_L & 0x0F)
- *   IR_OF = IR_L.bit7 (1 = invalid), PS_OF = PS_L.bit6 (1 = invalid). */
+ *   PS  = ((PS_H & 0x3F) << 4) | (PS_L & 0x0F) */
 #define AP3216C_IR_OF     0x80U
 #define AP3216C_PS_OF     0x40U
 #define AP3216C_IR_L_MASK 0x03U
