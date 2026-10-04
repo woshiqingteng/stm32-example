@@ -5,6 +5,8 @@
  *          I2C bus driver (device id I2C_DEV_EEPROM, 7-bit address 0x50).
  */
 
+#include <stddef.h>
+
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "eeprom_at24c02.h"
@@ -60,7 +62,7 @@ static void at24c02_page_write(uint16_t addr, const uint8_t *pbuf, uint8_t n)
 
 void eeprom_at24c02_init(void)
 {
-    i2c_init(0);
+    i2c_init(NULL);
 }
 
 /* Sequential read: the address auto-increments (wrapping at the 256-byte end). */

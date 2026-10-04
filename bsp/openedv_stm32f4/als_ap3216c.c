@@ -3,6 +3,8 @@
  * @brief   AP3216C ambient light / proximity sensor driver.
  */
 
+#include <stddef.h>
+
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "als_ap3216c.h"
@@ -33,7 +35,7 @@ uint8_t als_ap3216c_init(void)
 {
     uint8_t temp;
 
-    i2c_init(0);
+    i2c_init(NULL);
 
     als_ap3216c_write_one_byte(ALS_AP3216C_SYS_REG, ALS_AP3216C_RESET);
     delay_ms(ALS_AP3216C_RESET_DELAY_MS);

@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /** @brief I2C slave device selector (7-bit address lives in i2c.c). */
 typedef enum

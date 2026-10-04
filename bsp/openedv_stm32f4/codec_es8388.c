@@ -3,13 +3,15 @@
  * @brief   ES8388 audio codec chip driver over the bit-bang IIC bus.
  */
 
+#include <stddef.h>
+
 #include "codec_es8388.h"
 #include "i2c.h"
 #include "delay.h"
 
 uint8_t codec_es8388_init(void)
 {
-    i2c_init(0);                    /* initialise the IIC interface */
+    i2c_init(NULL);                 /* initialise the IIC interface */
 
     codec_es8388_write_reg(0, 0x80);      /* software reset */
     codec_es8388_write_reg(0, 0x00);

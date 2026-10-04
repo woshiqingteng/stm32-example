@@ -1031,11 +1031,11 @@ static bool i2c_dma_xfer(i2c_handle_t *h, uint8_t addr7, const uint8_t *wbuf, ui
 void i2c_init(const i2c_cfg_t *cfg)
 {
     static const i2c_cfg_t cfg_default = { I2C_CFG_DEFAULT(I2C_ID_1) };
-    const i2c_cfg_t *c = (cfg != 0) ? cfg : &cfg_default;
+    const i2c_cfg_t *c = (cfg != NULL) ? cfg : &cfg_default;
     i2c_handle_t    *h;
     uint32_t         speed;
 
-    if ((c->id >= I2C_ID_NUM) || ((cfg == 0) && g_i2c[c->id].ready))
+    if ((c->id >= I2C_ID_NUM) || ((cfg == NULL) && g_i2c[c->id].ready))
     {
         return;   /* unknown bus, or a NULL cfg after the first initialisation */
     }

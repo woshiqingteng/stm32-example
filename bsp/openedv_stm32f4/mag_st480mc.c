@@ -4,6 +4,8 @@
  *          the shared i2c bus driver (device id I2C_DEV_MAG, transaction API).
  */
 
+#include <stddef.h>
+
 #include "i2c.h"
 #include "delay.h"
 #include "mag_st480mc.h"
@@ -52,7 +54,7 @@ uint8_t mag_st480mc_init(void)
     uint8_t res    = 0xFFU;
     uint8_t retry  = 10U;
 
-    i2c_init(0);
+    i2c_init(NULL);
 
     /* Retry until the ST480MC answers with an ACK. */
     while ((retry-- != 0U) && (res != 0U))

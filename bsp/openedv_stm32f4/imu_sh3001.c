@@ -7,6 +7,8 @@
  * gyroscope for +/-500dps, both at 500Hz.
  */
 
+#include <stddef.h>
+
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include "imu_sh3001.h"
@@ -59,7 +61,7 @@ uint8_t imu_sh3001_init(void)
 {
     uint8_t reg;
 
-    i2c_init(0);
+    i2c_init(NULL);
 
     if (imu_sh3001_check_chip_id() != 0U)
     {

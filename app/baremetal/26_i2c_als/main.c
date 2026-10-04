@@ -9,7 +9,7 @@
 #include "bsp.h"
 #include "als.h"
 
-#define SAMPLE_PERIOD_MS   120U
+#define SAMPLE_PERIOD_MS   200U
 
 int main(void)
 {
@@ -24,18 +24,12 @@ int main(void)
     {
         printf("AP3216C check failed\r\n");
     }
-    else
-    {
-        printf("AP3216C ready\r\n");
-    }
-
-    printf("26_i2c_als ready\r\n");
 
     for (;;)
     {
         als_read(&ir, &ps, &als);
 
-        printf("IR:%u PS:%u ALS:%u\r\n", (unsigned)ir, (unsigned)ps, (unsigned)als);
+        printf("IR:%u PS:%u ALS:%u\r\n", ir, ps, als);
 
         led_toggle(LED0);
         delay_ms(SAMPLE_PERIOD_MS);

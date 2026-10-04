@@ -4,6 +4,8 @@
  *          through the shared I2C bus driver (device id I2C_DEV_IO_EXPAND).
  */
 
+#include <stddef.h>
+
 #include "io_expand_pcf8574t.h"
 #include "gpio_hw.h"
 #include "i2c.h"
@@ -40,7 +42,7 @@ uint8_t io_expand_pcf8574t_init(void)
     uint8_t present;
 
     gpio_hw_setup(&g_hw.int_gpio);
-    i2c_init(0);
+    i2c_init(NULL);
 
     present = i2c_write(g_hw.dev, 0, 0U) ? 0U : 1U;   /* probe */
     io_expand_pcf8574t_write(PCF8574T_IDLE_VALUE);
