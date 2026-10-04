@@ -13,17 +13,22 @@
 #define ALS_AP3216C_RESET_DELAY_MS  50U
 #define ALS_AP3216C_DATA_LEN_BYTE        6U
 
-uint8_t als_ap3216c_write_one_byte(uint8_t reg, uint8_t data)
+/* Register map. */
+#define ALS_AP3216C_SYS_REG     0x00U
+#define ALS_AP3216C_DATA_REG    0x0AU
+#define ALS_AP3216C_RESET       0x04U   /* software reset       */
+#define ALS_AP3216C_ALS_PS_IR   0x03U   /* enable ALS + PS + IR */
+
+static void ap3216c_write_reg(uint8_t reg, uint8_t data)
 {
     uint8_t buf[2];
 
     buf[0] = reg;
     buf[1] = data;
-
-    return i2c_write(I2C_DEV_ALS, buf, 2U) ? 0U : 1U;
+    (void)i2c_write(I2C_DEV_ALS, buf, 2U);
 }
 
-uint8_t als_ap3216c_read_one_byte(uint8_t reg)
+static uint8_t ap3216c_read_reg(uint8_t reg)
 {
     uint8_t res = 0U;
 
@@ -37,11 +42,11 @@ uint8_t als_ap3216c_init(void)
 
     i2c_init(NULL);
 
-    als_ap3216c_write_one_byte(ALS_AP3216C_SYS_REG, ALS_AP3216C_RESET);
+    ap3216c_write_reg(ALS_AP3216C_SYS_REG, ALS_AP3216C_RESET);
     delay_ms(ALS_AP3216C_RESET_DELAY_MS);
-    als_ap3216c_write_one_byte(ALS_AP3216C_SYS_REG, ALS_AP3216C_ALS_PS_IR);
+    ap3216c_write_reg(ALS_AP3216C_SYS_REG, ALS_AP3216C_ALS_PS_IR);
 
-    temp = als_ap3216c_read_one_byte(ALS_AP3216C_SYS_REG);
+    temp = ap3216c_read_reg(ALS_AP3216C_SYS_REG);
 
     return (temp == ALS_AP3216C_ALS_PS_IR) ? 0U : 1U;
 }
@@ -53,12 +58,12 @@ void als_ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als)
 
     for (i = 0U; i < ALS_AP3216C_DATA_LEN_BYTE; i++)
     {
-        buf[i] = als_ap3216c_read_one_byte((uint8_t)(ALS_AP3216C_DATA_REG + i));
+        buf[i] = ap3216c_read_reg((uint8_t)(ALS_AP3216C_DATA_REG + i));
     }
 
     if ((buf[0] & 0x80U) != 0U)
     {
-        *ir = 0U;
+        *ir = 0U;   /* IR_OF set: IR reading invalid */
     }
     else
     {
@@ -69,7 +74,7 @@ void als_ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als)
 
     if ((buf[4] & 0x40U) != 0U)
     {
-        *ps = 0U;
+        *ps = 0U;   /* PS data invalid */
     }
     else
     {

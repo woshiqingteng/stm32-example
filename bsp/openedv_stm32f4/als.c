@@ -11,7 +11,7 @@ uint8_t als_init(void)
     return als_ap3216c_init();
 }
 
-void als_read(uint16_t *ir, uint16_t *ps, uint16_t *light)
+void als_read(uint16_t *ir, uint16_t *ps, uint16_t *als)
 {
-    als_ap3216c_read_data(ir, ps, light);
+    als_ap3216c_read_data(ir, ps, als);
 }

@@ -11,7 +11,8 @@
 
 #define SAMPLE_PERIOD_MS   200U
 
-/* Read one IR/PS/ALS sample and report it. */
+/* Read one sample and report the raw IR (infrared), PS (proximity) and ALS
+ * (ambient light) channel counts. */
 static void als_show(void)
 {
     uint16_t ir;

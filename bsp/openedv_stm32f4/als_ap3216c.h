@@ -8,21 +8,16 @@
 
 #include <stdint.h>
 
-/* Register map. */
-#define ALS_AP3216C_SYS_REG     0x00U
-#define ALS_AP3216C_DATA_REG    0x0AU
-
-#define ALS_AP3216C_RESET       0x04U
-#define ALS_AP3216C_ALS_PS_IR   0x03U
-
 /** @brief  Reset and configure the sensor.
  *  @return 0 on success, 1 if the system register did not read back. */
 uint8_t als_ap3216c_init(void);
 
-uint8_t als_ap3216c_write_one_byte(uint8_t reg, uint8_t data);
-uint8_t als_ap3216c_read_one_byte(uint8_t reg);
-
-/** @brief  Read the raw IR, PS and ALS channels. */
+/**
+ * @brief  Read the raw IR, PS and ALS channels (raw ADC counts, not physical).
+ * @param  ir   infrared channel (reflection / IR intensity)
+ * @param  ps   proximity channel (object proximity)
+ * @param  als  ambient-light channel (illumination)
+ */
 void als_ap3216c_read_data(uint16_t *ir, uint16_t *ps, uint16_t *als);
 
 #endif /* BSP_ALS_AP3216C_H */
