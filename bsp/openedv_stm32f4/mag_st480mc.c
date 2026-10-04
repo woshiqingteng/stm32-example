@@ -10,6 +10,15 @@
 #include "delay.h"
 #include "mag_st480mc.h"
 
+/* Command bytes. */
+#define MAG_ST480MC_RESET        0xF0U   /* reset (RT) */
+#define MAG_ST480MC_READ_DATA    0x4FU   /* read measurement, all (zyxt) */
+#define MAG_ST480MC_SINGLE_MODE  0x3FU   /* start single measurement, all (zyxt) */
+
+/* Single measurement needs ~20-30 ms to settle on this board; waiting only
+ * 15 ms made the read-back report ERROR (status bit4) with 0xFF data. */
+#define MAG_ST480MC_CONVERSION_MS  30U
+
 static uint8_t mag_read_nbytes(uint8_t addr, uint8_t length, uint8_t *buf)
 {
     return i2c_write_read(I2C_DEV_MAG, &addr, 1U, buf, (uint16_t)length) ? 0U : 1U;
@@ -38,7 +47,7 @@ uint8_t mag_st480mc_read_magdata(int16_t *pmagx, int16_t *pmagy, int16_t *pmagz)
     uint8_t buf[7];
 
     (void)mag_read_nbytes((uint8_t)(MAG_ST480MC_SINGLE_MODE & 0xFEU), 1U, buf); /* single-shot, no temp */
-    delay_ms(15U);
+    delay_ms(MAG_ST480MC_CONVERSION_MS);
     (void)mag_read_nbytes((uint8_t)(MAG_ST480MC_READ_DATA & 0xFEU), 7U, buf);   /* read mag data */
 
     if ((buf[0] & 0x10U) != 0U)
@@ -53,13 +62,13 @@ uint8_t mag_st480mc_read_magdata(int16_t *pmagx, int16_t *pmagy, int16_t *pmagz)
     return 0U;
 }
 
-uint8_t mag_st480mc_read_temperature(float *ptemp)
+uint8_t mag_st480mc_read_temp(float *temp)
 {
     uint8_t buf[9];
     uint16_t raw;
 
     (void)mag_read_nbytes(MAG_ST480MC_SINGLE_MODE, 1U, buf);   /* single-shot, with temp */
-    delay_ms(15U);
+    delay_ms(MAG_ST480MC_CONVERSION_MS);
     (void)mag_read_nbytes(MAG_ST480MC_READ_DATA, 9U, buf);     /* read data + temp */
 
     if ((buf[0] & 0x10U) != 0U)
@@ -68,44 +77,7 @@ uint8_t mag_st480mc_read_temperature(float *ptemp)
     }
 
     raw   = (uint16_t)(((uint16_t)buf[1] << 8) | buf[2]);
-    *ptemp = ((float)raw - 46244.0f) / 45.2f + 25.0f;          /* vendor formula */
-
-    return 0U;
-}
-
-uint8_t mag_st480mc_read_magdata_average(int16_t *pmagx, int16_t *pmagy, int16_t *pmagz, uint8_t times)
-{
-    uint8_t i = 0U;
-    uint8_t error_cnt = 0U;
-    int32_t magx = 0;
-    int32_t magy = 0;
-    int32_t magz = 0;
-
-    while (i < times)
-    {
-        if (mag_st480mc_read_magdata(pmagx, pmagy, pmagz) == 0U)
-        {
-            magx += *pmagx;
-            magy += *pmagy;
-            magz += *pmagz;
-            i++;
-            error_cnt = 0U;
-        }
-        else
-        {
-            error_cnt++;
-            delay_ms(10U);
-
-            if (error_cnt > 100U)
-            {
-                return 0xFFU;
-            }
-        }
-    }
-
-    *pmagx = (int16_t)(magx / times);
-    *pmagy = (int16_t)(magy / times);
-    *pmagz = (int16_t)(magz / times);
+    *temp = ((float)raw - 46244.0f) / 45.2f + 25.0f;          /* vendor transfer function */
 
     return 0U;
 }

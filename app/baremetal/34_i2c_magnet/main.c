@@ -1,10 +1,8 @@
 /**
  * @file    main.c
- * @brief   34_i2c_magnet: ST480MC 3-axis magnetometer test. Raw X/Y/Z counts
- *          and the compass heading are printed over USART1.
+ * @brief   34_i2c_magnet: ST480MC 3-axis magnetometer test. Raw X/Y/Z counts,
+ *          the temperature and the compass heading are printed over USART1.
  *          KEY0 runs a horizontal (min/max) compass calibration.
- *          The temperature channel is not read: on this unit a successful
- *          temperature read leaves the magnetometer rejecting further reads.
  */
 
 #include <stdio.h>
@@ -29,6 +27,47 @@ static void print_fixed1(const char *label, const char *unit, float value)
 
     printf("%s%s%d.%d%s\r\n", label, (x10 < 0) ? "-" : "",
            (int)(mag / 10), (int)(mag % 10), unit);
+}
+
+/* Average @p times single-shot samples (retrying transient read errors). */
+static uint8_t mag_read_average(int16_t *x, int16_t *y, int16_t *z, uint8_t times)
+{
+    int32_t sx = 0;
+    int32_t sy = 0;
+    int32_t sz = 0;
+    uint8_t got = 0U;
+    uint8_t err = 0U;
+    int16_t mx;
+    int16_t my;
+    int16_t mz;
+
+    while (got < times)
+    {
+        if (mag_read(&mx, &my, &mz) == 0U)
+        {
+            sx += mx;
+            sy += my;
+            sz += mz;
+            got++;
+            err = 0U;
+        }
+        else
+        {
+            err++;
+            delay_ms(10U);
+
+            if (err > 100U)
+            {
+                return 0xFFU;
+            }
+        }
+    }
+
+    *x = (int16_t)(sx / times);
+    *y = (int16_t)(sy / times);
+    *z = (int16_t)(sz / times);
+
+    return 0U;
 }
 
 /* Compass heading [0, 360): atan2 of the offset-corrected X/Y. */
@@ -90,14 +129,20 @@ static void compass_calibration(void)
     printf("offset x:%d y:%d\r\n", (int)g_magx_offset, (int)g_magy_offset);
 }
 
-/* One report: heading and the raw X/Y/Z counts. */
+/* One report: heading, temperature and the raw X/Y/Z counts. */
 static void mag_show(void)
 {
     int16_t magx;
     int16_t magy;
     int16_t magz;
+    float   temperature;
 
     print_fixed1("Angle: ", "", 360.0f - compass_get_angle());
+
+    if (mag_read_temp(&temperature) == 0U)
+    {
+        print_fixed1("Temp: ", " C", temperature);
+    }
 
     if (mag_read(&magx, &magy, &magz) == 0U)
     {
