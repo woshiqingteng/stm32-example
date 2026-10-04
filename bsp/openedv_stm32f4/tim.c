@@ -355,6 +355,7 @@ static void tim_cfg_ic(tim_handle_t *h)
     if (h->cfg.capture_cb != 0)
     {
         tim_nvic(h->hw->irqn, &h->cfg);
+        tim_nvic(h->hw->cc_irqn, &h->cfg);   /* TIM1 capture is a separate vector */
         __HAL_TIM_ENABLE_IT(&h->htim, TIM_IT_UPDATE);
         (void)HAL_TIM_IC_Start_IT(&h->htim, ch);
     }

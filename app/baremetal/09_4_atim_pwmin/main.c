@@ -70,6 +70,11 @@ static tim_edge_t pwmin_capture(tim_cap_ch_t ch, uint32_t value, tim_edge_t edge
 
             if (g_hval < cval)
             {
+                if (g_psc == 0U)   /* vendor correction when the divider is 1 */
+                {
+                    g_hval++;
+                    cval++;
+                }
                 g_report_psc   = g_psc;
                 g_report_hval  = g_hval;
                 g_report_cval  = cval;
