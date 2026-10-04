@@ -12,6 +12,7 @@
 #include "usmart.h"
 #include "usmart_port.h"
 #include "usart.h"
+#include "tim.h"
 
 #define USMART_RX_BUF_LEN PARM_LEN /*!< command line buffer, must cover PARM_LEN */
 #define USMART_HZ_PER_MHZ 1000000U
@@ -27,7 +28,6 @@ typedef enum
     USMART_RX_READY     /*!< complete line waiting to be consumed */
 } usmart_rx_state_t;
 
-static TIM_HandleTypeDef g_usmart_timx;
 static uint8_t           g_usmart_rx_buf[USMART_RX_BUF_LEN + 1U];
 static uint16_t          g_usmart_rx_len;
 static usmart_rx_state_t g_usmart_rx_state;
@@ -74,15 +74,13 @@ char *usmart_get_input_string(void)
 
 static void usmart_timx_init(uint16_t arr, uint16_t psc)
 {
-    __HAL_RCC_TIM4_CLK_ENABLE();
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
 
-    g_usmart_timx.Instance           = USMART_TIMX;
-    g_usmart_timx.Init.Prescaler     = psc;
-    g_usmart_timx.Init.CounterMode   = TIM_COUNTERMODE_UP;
-    g_usmart_timx.Init.Period        = arr;
-    g_usmart_timx.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    (void)HAL_TIM_Base_Init(&g_usmart_timx);
-    (void)HAL_TIM_Base_Start(&g_usmart_timx);
+    cfg.id   = TIM_ID_4;
+    cfg.mode = TIM_MODE_BASE;
+    cfg.arr  = arr;
+    cfg.psc  = psc;
+    tim_init(&cfg);
 }
 
 void usmart_port_init(uint16_t tclk)
@@ -106,19 +104,18 @@ void usmart_port_init(uint16_t tclk)
 
 void usmart_timx_reset_time(void)
 {
-    __HAL_TIM_CLEAR_FLAG(&g_usmart_timx, TIM_FLAG_UPDATE);
-    __HAL_TIM_SET_AUTORELOAD(&g_usmart_timx, USMART_TIMX_PERIOD);
-    __HAL_TIM_SET_COUNTER(&g_usmart_timx, 0U);
+    tim_set(TIM_ID_4, TIM_CH1, TIM_PARAM_FLAG, TIM_PEND_UPDATE);
+    tim_set(TIM_ID_4, TIM_CH1, TIM_PARAM_COUNT, 0U);
     usmart_dev.runtime = 0U;
 }
 
 uint32_t usmart_timx_get_time(void)
 {
-    if (__HAL_TIM_GET_FLAG(&g_usmart_timx, TIM_FLAG_UPDATE) == SET)
+    if ((tim_get(TIM_ID_4, TIM_CH1, TIM_PARAM_FLAG) & TIM_PEND_UPDATE) != 0U)
     {
         usmart_dev.runtime += (USMART_TIMX_PERIOD + 1U);
     }
 
-    usmart_dev.runtime += __HAL_TIM_GET_COUNTER(&g_usmart_timx);
+    usmart_dev.runtime += tim_get(TIM_ID_4, TIM_CH1, TIM_PARAM_COUNT);
     return usmart_dev.runtime;
 }

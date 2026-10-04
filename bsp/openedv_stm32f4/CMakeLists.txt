@@ -25,15 +25,6 @@ bsp_library(bsp_core
 target_link_libraries(bsp_core PUBLIC bsp_sys bsp_delay bsp_led bsp_key bsp_usart)
 
 # time
-bsp_library(bsp_btim
-    btim.c)
-target_link_libraries(bsp_btim PUBLIC drv_tim)
-bsp_library(bsp_gtim
-    gtim.c)
-target_link_libraries(bsp_gtim PUBLIC drv_tim)
-bsp_library(bsp_atim
-    atim.c)
-target_link_libraries(bsp_atim PUBLIC drv_tim)
 bsp_library(bsp_tim
     tim.c)
 target_link_libraries(bsp_tim PUBLIC drv_tim)
@@ -68,7 +59,7 @@ bsp_library(bsp_wireless
 target_link_libraries(bsp_wireless PUBLIC bsp_wireless_nrf24l01)
 bsp_library(bsp_ir
     ir.c)
-target_link_libraries(bsp_ir PUBLIC drv_tim)
+target_link_libraries(bsp_ir PUBLIC bsp_tim)
 
 # analog
 bsp_library(bsp_adc
@@ -76,10 +67,10 @@ bsp_library(bsp_adc
 target_link_libraries(bsp_adc PUBLIC drv_adc)
 bsp_library(bsp_dac
     dac.c)
-target_link_libraries(bsp_dac PUBLIC drv_dac drv_tim m)
+target_link_libraries(bsp_dac PUBLIC drv_dac bsp_tim m)
 bsp_library(bsp_pwmdac
     pwmdac.c)
-target_link_libraries(bsp_pwmdac PUBLIC bsp_dac drv_tim)
+target_link_libraries(bsp_pwmdac PUBLIC bsp_tim)
 
 # memory
 bsp_library(bsp_internal_flash
@@ -132,7 +123,7 @@ bsp_library(bsp_touch
 target_link_libraries(bsp_touch PUBLIC bsp_touch_gt9xxx bsp_lcd)
 bsp_library(bsp_tpad
     tpad.c)
-target_link_libraries(bsp_tpad PUBLIC drv_tim)
+target_link_libraries(bsp_tpad PUBLIC bsp_tim)
 
 # multimedia
 bsp_library(bsp_dcmi
@@ -211,7 +202,7 @@ target_link_libraries(bsp_iap PUBLIC bsp_usart drv_flash)
 add_library(bsp_all INTERFACE)
 target_link_libraries(bsp_all INTERFACE
     bsp_core
-    bsp_btim bsp_gtim bsp_atim bsp_rtc bsp_wdg
+    bsp_tim bsp_rtc bsp_wdg
     bsp_i2c bsp_spi bsp_io_expand
     bsp_can bsp_rs485 bsp_wireless bsp_ir
     bsp_adc bsp_dac bsp_pwmdac

@@ -8,14 +8,6 @@
 
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
-
-#define IR_IN_GPIO_PORT GPIOA
-#define IR_IN_GPIO_PIN  GPIO_PIN_8
-#define IR_IN_GPIO_AF   GPIO_AF1_TIM1
-#define IR_IN_TIMX      TIM1
-#define IR_IN_TIMX_CHY  TIM_CHANNEL_1
-
 /** @brief  Ir control identification byte expected in the frame. */
 #define IR_ID           0U
 

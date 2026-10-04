@@ -6,12 +6,15 @@
  * an external resistor; input capture times the charge until the threshold.
  * Touching the pad adds capacitance, so the count grows. The driver only
  * returns raw counts; the touch decision/latch lives in the application.
+ * Built on the unified tim driver (polling, no interrupts).
  */
 
 #include <stdio.h>
 
 #include "stm32f4xx_hal.h"
 #include "tpad.h"
+#include "tim.h"
+#include "gpio_hw.h"
 #include "delay.h"
 
 #define TPAD_GPIO_PORT   GPIOA
@@ -30,29 +33,22 @@
 
 volatile uint16_t g_tpad_default_val;
 
-static TIM_HandleTypeDef g_tpad_handle;
-
 /* Discharge the pad (drive it low), then release it to the capture input. */
 static void tpad_reset(void)
 {
-    GPIO_InitTypeDef gpio_init = {0};
+    gpio_hw_t out = { TPAD_GPIO_PORT, RCC_AHB1ENR_GPIOAEN, TPAD_GPIO_PIN,
+                      GPIO_MODE_OUTPUT_PP, GPIO_PULLDOWN, GPIO_SPEED_FREQ_HIGH, 0U };
+    gpio_hw_t af  = { TPAD_GPIO_PORT, RCC_AHB1ENR_GPIOAEN, TPAD_GPIO_PIN,
+                      GPIO_MODE_AF_PP, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH, TPAD_GPIO_AF };
 
-    gpio_init.Pin   = TPAD_GPIO_PIN;
-    gpio_init.Mode  = GPIO_MODE_OUTPUT_PP;
-    gpio_init.Pull  = GPIO_PULLDOWN;
-    gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
-
+    gpio_hw_setup(&out);
     HAL_GPIO_WritePin(TPAD_GPIO_PORT, TPAD_GPIO_PIN, GPIO_PIN_RESET);
     delay_ms(TPAD_DISCHARGE_MS);
 
-    __HAL_TIM_CLEAR_FLAG(&g_tpad_handle, TIM_FLAG_UPDATE | TIM_FLAG_CC1);
-    __HAL_TIM_SET_COUNTER(&g_tpad_handle, 0U);
+    tim_set(TIM_ID_2, TIM_CH1, TIM_PARAM_FLAG, TIM_PEND_UPDATE | TIM_PEND_CC);
+    tim_set(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT, 0U);
 
-    gpio_init.Mode      = GPIO_MODE_AF_PP;
-    gpio_init.Pull      = GPIO_NOPULL;
-    gpio_init.Alternate = TPAD_GPIO_AF;
-    HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
+    gpio_hw_setup(&af);
 }
 
 /* One charge-time measurement: captured count, or CNT when it times out. */
@@ -60,15 +56,15 @@ static uint32_t tpad_get_val(void)
 {
     tpad_reset();
 
-    while (__HAL_TIM_GET_FLAG(&g_tpad_handle, TIM_FLAG_CC1) == RESET)
+    while ((tim_get(TIM_ID_2, TIM_CH1, TIM_PARAM_FLAG) & TIM_PEND_CC) == 0U)
     {
-        if (__HAL_TIM_GET_COUNTER(&g_tpad_handle) > (TPAD_ARR_MAX_VAL - TPAD_TIMEOUT_MARGIN))
+        if (tim_get(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT) > (TPAD_ARR_MAX_VAL - TPAD_TIMEOUT_MARGIN))
         {
-            return __HAL_TIM_GET_COUNTER(&g_tpad_handle);
+            return tim_get(TIM_ID_2, TIM_CH1, TIM_PARAM_COUNT);
         }
     }
 
-    return __HAL_TIM_GET_COMPARE(&g_tpad_handle, TIM_CHANNEL_1);
+    return tim_get(TIM_ID_2, TIM_CH1, TIM_PARAM_CCR);
 }
 
 /* Max of n charge-time measurements (a finger adds capacitance -> larger). */
@@ -91,32 +87,16 @@ uint32_t tpad_get_maxval(uint8_t n)
 /* TIM2 (APB1): charge time = count * psc / 90 MHz (psc is the counter divider). */
 static void tpad_timx_cap_init(uint32_t arr, uint16_t psc)
 {
-    GPIO_InitTypeDef gpio_init = {0};
-    TIM_IC_InitTypeDef ic      = {0};
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
 
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_TIM2_CLK_ENABLE();
-
-    gpio_init.Pin       = TPAD_GPIO_PIN;
-    gpio_init.Mode      = GPIO_MODE_AF_PP;
-    gpio_init.Pull      = GPIO_NOPULL;
-    gpio_init.Speed     = GPIO_SPEED_FREQ_HIGH;
-    gpio_init.Alternate = TPAD_GPIO_AF;
-    HAL_GPIO_Init(TPAD_GPIO_PORT, &gpio_init);
-
-    g_tpad_handle.Instance               = TIM2;
-    g_tpad_handle.Init.Prescaler         = psc;
-    g_tpad_handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    g_tpad_handle.Init.Period            = arr;
-    g_tpad_handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
-    HAL_TIM_IC_Init(&g_tpad_handle);
-
-    ic.ICPolarity  = TIM_ICPOLARITY_RISING;
-    ic.ICSelection = TIM_ICSELECTION_DIRECTTI;
-    ic.ICPrescaler = TIM_ICPSC_DIV1;
-    ic.ICFilter    = 0;
-    HAL_TIM_IC_ConfigChannel(&g_tpad_handle, &ic, TIM_CHANNEL_1);
-    HAL_TIM_IC_Start(&g_tpad_handle, TIM_CHANNEL_1);
+    cfg.id       = TIM_ID_2;
+    cfg.mode     = TIM_MODE_IC;
+    cfg.channel  = TIM_CH1;
+    cfg.polarity = TIM_POL_HIGH;
+    cfg.pull     = TIM_PULL_NONE;
+    cfg.arr      = arr;
+    cfg.psc      = psc;
+    tim_init(&cfg);
 }
 
 /* Calibrate the no-touch baseline. psc is the counter divider (>= 1). */

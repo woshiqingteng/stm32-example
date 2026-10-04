@@ -13,6 +13,7 @@
 #include "dac.h"
 #include "gpio_hw.h"
 #include "dma_hw.h"
+#include "tim.h"
 
 /* ===== hardware descriptors ===== */
 
@@ -72,18 +73,10 @@ static const dac_hw_t g_dac_hw =
     },
 };
 
-typedef struct
-{
-    TIM_TypeDef *instance; /* TIM6 / TIM7 */
-    uint32_t     rcc_en;   /* RCC_APB1ENR_TIM6EN / TIM7EN */
-    uint32_t     trig_hal; /* DAC_TRIGGER_T6_TRGO / T7_TRGO */
-} dac_tim_hw_t;
-
-static const dac_tim_hw_t g_dac_tim[DAC_TIMER_NUM] =
-{
-    { TIM6, RCC_APB1ENR_TIM6EN, DAC_TRIGGER_T6_TRGO },
-    { TIM7, RCC_APB1ENR_TIM7EN, DAC_TRIGGER_T7_TRGO },
-};
+/* Wave trigger timer (TIM6/TIM7) mapped onto the unified tim driver. */
+static const tim_id_t g_dac_tim_id[DAC_TIMER_NUM] = { TIM_ID_6, TIM_ID_7 };
+static const uint32_t g_dac_trig[DAC_TIMER_NUM]   = { DAC_TRIGGER_T6_TRGO,
+                                                      DAC_TRIGGER_T7_TRGO };
 
 /* ===== per-instance state ===== */
 
@@ -94,7 +87,6 @@ typedef struct
     DAC_HandleTypeDef dac;
     DMA_HandleTypeDef dma;
     dma_hw_t          dma_cfg; /* runtime working copy */
-    TIM_HandleTypeDef tim;
 } dac_handle_t;
 
 static dac_handle_t g_dac;
@@ -111,7 +103,7 @@ static void dac_channel_config(dac_handle_t *h)
 
     if (h->cfg.mode == DAC_MODE_WAVE)
     {
-        trigger = g_dac_tim[h->cfg.timer].trig_hal;
+        trigger = g_dac_trig[h->cfg.timer];
     }
     else
     {
@@ -134,22 +126,13 @@ static void dac_channel_config(dac_handle_t *h)
 
 static void dac_timer_config(dac_handle_t *h)
 {
-    TIM_MasterConfigTypeDef master = {0};
-    const dac_tim_hw_t     *tim    = &g_dac_tim[h->cfg.timer];
+    tim_cfg_t tcfg = { TIM_CFG_DEFAULT };
 
-    SET_BIT(RCC->APB1ENR, tim->rcc_en);
-
-    h->tim.Instance               = tim->instance;
-    h->tim.Init.Prescaler         = h->cfg.psc;
-    h->tim.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    h->tim.Init.Period            = h->cfg.arr;
-    h->tim.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
-    h->tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-    (void)HAL_TIM_Base_Init(&h->tim);
-
-    master.MasterOutputTrigger = TIM_TRGO_UPDATE;
-    master.MasterSlaveMode     = TIM_MASTERSLAVEMODE_DISABLE;
-    (void)HAL_TIMEx_MasterConfigSynchronization(&h->tim, &master);
+    tcfg.id   = g_dac_tim_id[h->cfg.timer];
+    tcfg.mode = TIM_MODE_BASE;
+    tcfg.arr  = h->cfg.arr;
+    tcfg.psc  = h->cfg.psc;
+    tim_init(&tcfg);   /* BASE sets TRGO=UPDATE and starts the timer */
 }
 
 /* ===== public API ===== */
@@ -221,7 +204,7 @@ void dac_start(void)
         CLEAR_BIT(h->hw->instance->CR, dmaen);
         return;
     }
-    (void)HAL_TIM_Base_Start(&h->tim);
+    tim_enable(g_dac_tim_id[h->cfg.timer], true);
 }
 
 void dac_stop(void)
@@ -243,7 +226,7 @@ void dac_stop(void)
         dmaen = DAC_CR_DMAEN2;
     }
 
-    (void)HAL_TIM_Base_Stop(&h->tim);
+    tim_enable(g_dac_tim_id[h->cfg.timer], false);
     (void)HAL_DMA_Abort(&h->dma);
     CLEAR_BIT(h->hw->instance->CR, dmaen);
     (void)HAL_DAC_Stop(&h->dac, h->hw->ch_hal[h->cfg.channel]);

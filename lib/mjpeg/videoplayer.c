@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "bsp.h"
+#include "tim.h"
 #include "codec.h"
 #include "lcd.h"
 #include "sai.h"
@@ -28,8 +29,7 @@
 #define VIDEO_MAX_FILES     32U
 #define VIDEO_NAME_LEN      64U
 
-/* TIM7 video frame pacing. */
-static TIM_HandleTypeDef g_vtim_handle;
+/* TIM7 video frame pacing (via the unified tim driver). */
 uint16_t                 g_avi_frame;
 volatile bool            g_avi_frameup;
 
@@ -40,35 +40,29 @@ uint8_t         *p_avi_sai_buf[AVI_AUDIO_BUF_NUM];
 static char g_video_names[VIDEO_MAX_FILES][VIDEO_NAME_LEN];
 static uint16_t g_video_count;
 
+static void vtimer_tick(void)
+{
+    g_avi_frameup = true;
+    led_toggle(LED1);
+}
+
 static void vtimer_init(uint16_t arr, uint16_t psc)
 {
-    __HAL_RCC_TIM7_CLK_ENABLE();
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
 
-    g_vtim_handle.Instance = TIM7;
-    g_vtim_handle.Init.Prescaler = psc;
-    g_vtim_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    g_vtim_handle.Init.Period = arr;
-    g_vtim_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    (void)HAL_TIM_Base_Init(&g_vtim_handle);
-
-    HAL_NVIC_SetPriority(TIM7_IRQn, 0, 3);
-    HAL_NVIC_EnableIRQ(TIM7_IRQn);
-    (void)HAL_TIM_Base_Start_IT(&g_vtim_handle);
+    cfg.id        = TIM_ID_7;
+    cfg.mode      = TIM_MODE_BASE;
+    cfg.arr       = arr;
+    cfg.psc       = psc;
+    cfg.irq_prio  = 0U;
+    cfg.irq_sub   = 3U;
+    cfg.update_cb = &vtimer_tick;
+    tim_init(&cfg);
 }
 
 static void vtimer_stop(void)
 {
-    __HAL_TIM_DISABLE(&g_vtim_handle);
-}
-
-void TIM7_IRQHandler(void)
-{
-    if (__HAL_TIM_GET_FLAG(&g_vtim_handle, TIM_FLAG_UPDATE) != RESET)
-    {
-        __HAL_TIM_CLEAR_FLAG(&g_vtim_handle, TIM_FLAG_UPDATE);
-        g_avi_frameup = true;
-        led_toggle(LED1);
-    }
+    tim_enable(TIM_ID_7, false);
 }
 
 void audio_sai_dma_callback(void)

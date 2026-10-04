@@ -7,4 +7,4 @@ set(USMART_SRC
 add_library(lib_usmart STATIC EXCLUDE_FROM_ALL ${USMART_SRC})
 
 target_include_directories(lib_usmart PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(lib_usmart PUBLIC bsp_sdram bsp_gtim bsp_dcmi bsp_ov5640)
+target_link_libraries(lib_usmart PUBLIC bsp_sdram bsp_tim bsp_dcmi bsp_ov5640)
