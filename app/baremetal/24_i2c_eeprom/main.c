@@ -26,6 +26,9 @@ static const uint8_t g_pattern[] =
 
 static const char g_text[] = "STM32 IIC TEST";
 
+/* Zero fill covering the whole test region (pattern + string). */
+static const uint8_t g_zero[sizeof(g_pattern) + sizeof(g_text)] = { 0U };
+
 /* Write the test data: the byte pattern followed by the string. */
 static void eeprom_write_test(void)
 {
@@ -62,6 +65,13 @@ static void eeprom_read_verify(void)
     printf("String: %s (%s)\r\n", text_read, text_ok ? "OK" : "FAIL");
 }
 
+/* Erase the test region (write zeros) so a read no longer matches. */
+static void eeprom_clear_test(void)
+{
+    eeprom_write(EEPROM_TEST_ADDR, g_zero, (uint16_t)sizeof(g_zero));
+    printf("24C02 cleared\r\n");
+}
+
 int main(void)
 {
     uint32_t blink = 0U;
@@ -77,7 +87,7 @@ int main(void)
         led_toggle(LED0);
         delay_ms(500U);
     }
-    printf("24C02 ready\r\nKEY1: write  KEY0: read\r\n");
+    printf("24C02 ready\r\nKEY1: write  KEY0: read  WKUP: clear\r\n");
 
     for (;;)
     {
@@ -91,6 +101,11 @@ int main(void)
         else if (key == KEY0)
         {
             eeprom_read_verify();
+            led_toggle(LED1);          /* action indicator */
+        }
+        else if (key == KEY_WKUP)
+        {
+            eeprom_clear_test();
             led_toggle(LED1);          /* action indicator */
         }
 
