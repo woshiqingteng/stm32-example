@@ -1,10 +1,9 @@
 /**
  * @file    i2c.h
  * @brief   Shared IIC master bus of the ALIENTEK F429 board (SCL = PH4,
- *          SDA = PH5). Two backends are selectable at run time: a software
- *          bit-bang master (default) or the hardware I2C2 peripheral; the
- *          hardware transfers are polled / interrupt / DMA driven.
- *          This interface is HAL-free (own enums).
+ *          SDA = PH5). One runtime selector (i2c_io_t) chooses either the
+ *          software bit-bang master (default) or a hardware I2C2 transport
+ *          (polled / interrupt / DMA). This interface is HAL-free (own enums).
  *
  * The bus enumerates the on-board I2C slaves; every transaction only deals
  * with a device id and data (the 7-bit addresses live in i2c.c).
@@ -28,32 +27,26 @@ typedef enum
     I2C_DEV_NUM
 } i2c_device_t;
 
-/** @brief Backend. */
+/** @brief Transfer transport (mirrors usart_io_t): one runtime path selects
+ *         either the software bit-bang master or a hardware I2C2 transport. */
 typedef enum
 {
-    I2C_BACKEND_SW = 0, /*!< software bit-bang master (default) */
-    I2C_BACKEND_HW      /*!< hardware I2C2 peripheral (PH4/PH5, AF4) */
-} i2c_backend_t;
-
-/** @brief Hardware transfer transport (ignored by the SW backend). */
-typedef enum
-{
-    I2C_XFER_POLL = 0, /*!< CPU polled byte-by-byte */
-    I2C_XFER_IT,       /*!< interrupt driven */
-    I2C_XFER_DMA       /*!< DMA driven (read and write) */
-} i2c_xfer_t;
+    I2C_IO_SW = 0, /*!< software bit-bang master, fixed 100 kHz */
+    I2C_IO_POLL,   /*!< hardware I2C2, CPU polled */
+    I2C_IO_IT,     /*!< hardware I2C2, interrupt driven */
+    I2C_IO_DMA     /*!< hardware I2C2, DMA driven */
+} i2c_io_t;
 
 /** @brief Bus configuration. */
 typedef struct
 {
-    i2c_backend_t backend;  /*!< bit-bang or hardware peripheral */
-    i2c_xfer_t    xfer;     /*!< hardware transport (ignored for the SW backend) */
-    uint32_t      speed_hz; /*!< target bus speed (SW derives its half-period from it) */
+    i2c_io_t io;        /*!< transfer transport */
+    uint32_t speed_hz;  /*!< hardware bus speed (the SW backend is fixed 100 kHz) */
 } i2c_cfg_t;
 
 /** @brief Software bit-bang at 100 kHz (safe for every device on the bus). */
 #define I2C_CFG_DEFAULT \
-    .backend = I2C_BACKEND_SW, .xfer = I2C_XFER_DMA, .speed_hz = 100000U
+    .io = I2C_IO_SW, .speed_hz = 100000U
 
 /**
  * @brief  Initialise the bus according to @p cfg (NULL selects I2C_CFG_DEFAULT).
