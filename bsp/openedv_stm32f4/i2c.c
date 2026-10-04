@@ -608,6 +608,7 @@ static struct
     uint8_t        kind;
     uint8_t        addr7;
     uint8_t        phase;     /* MEMR: 0 = prefix write, 1 = read */
+    uint8_t        event;     /* MEMR prefix: HAL-style EventCount */
     const uint8_t *wbuf;
     uint16_t       wlen, widx;
     uint8_t       *rbuf;
@@ -706,6 +707,7 @@ static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
     g_it.rbuf  = rbuf;
     g_it.rlen  = rlen;
     g_it.ridx  = 0U;
+    g_it.event = 0U;
     g_it.done  = false;
     g_it.error = false;
 
@@ -732,6 +734,38 @@ static bool i2c_it_xfer(uint8_t addr7, const uint8_t *wbuf, uint16_t wlen,
     SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
 
     return i2c_it_wait();
+}
+
+/* MEM register-prefix state machine (mirrors I2C_MemoryTransmit_TXE_BTF): send
+ * the address bytes, then a repeated start, then flush. Driven by a TXE or BTF
+ * event. */
+static void i2c_it_mem_prefix(void)
+{
+    if (g_it.event == 0U)
+    {
+        g_i2c_hw.instance->DR = g_it.wbuf[0];
+        g_it.widx  = 1U;
+        g_it.event = (g_it.wlen == 2U) ? 1U : 2U;
+    }
+    else if (g_it.event == 1U)
+    {
+        g_i2c_hw.instance->DR = g_it.wbuf[1];
+        g_it.widx  = 2U;
+        g_it.event = 2U;
+    }
+    else if (g_it.event == 2U)
+    {
+        g_it.phase = 1U;
+        g_it.event = 3U;
+        SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+    }
+    else
+    {
+        (void)g_i2c_hw.instance->SR1;   /* flush BTF/TXE */
+        (void)g_i2c_hw.instance->DR;
+        (void)g_i2c_hw.instance->SR1;
+        (void)g_i2c_hw.instance->DR;
+    }
 }
 
 void I2C2_EV_IRQHandler(void)
@@ -781,7 +815,11 @@ void I2C2_EV_IRQHandler(void)
     }
     else if ((sr2 & I2C_SR2_TRA) != 0U)   /* transmitter */
     {
-        if (((sr1 & I2C_SR1_TXE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
+        if ((g_it.kind == I2C_IT_MEMR) && (g_it.phase == 0U))
+        {
+            i2c_it_mem_prefix();   /* driven by a TXE or BTF event */
+        }
+        else if (((sr1 & I2C_SR1_TXE) != 0U) && ((sr1 & I2C_SR1_BTF) == 0U))
         {
             if (g_it.widx < g_it.wlen)
             {
@@ -794,22 +832,14 @@ void I2C2_EV_IRQHandler(void)
         }
         else if ((sr1 & I2C_SR1_BTF) != 0U)
         {
-            if (g_it.kind == I2C_IT_TX)
+            if (g_it.widx < g_it.wlen)
             {
-                if (g_it.widx < g_it.wlen)
-                {
-                    g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
-                }
-                else
-                {
-                    SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
-                    i2c_it_done();
-                }
+                g_i2c_hw.instance->DR = g_it.wbuf[g_it.widx++];
             }
-            else if (g_it.widx >= g_it.wlen)   /* MEMR prefix sent -> repeated start */
+            else
             {
-                g_it.phase = 1U;
-                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_START);
+                SET_BIT(g_i2c_hw.instance->CR1, I2C_CR1_STOP);
+                i2c_it_done();
             }
         }
     }
