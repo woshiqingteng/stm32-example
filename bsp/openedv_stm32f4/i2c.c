@@ -47,6 +47,7 @@ typedef struct
     I2C_TypeDef *instance;      /*!< I2C2 */
     IRQn_Type    ev_irqn;       /*!< I2C2_EV_IRQn */
     IRQn_Type    er_irqn;       /*!< I2C2_ER_IRQn */
+    uint32_t     rcc_en;        /*!< RCC_APB1ENR_I2C2EN */
     gpio_hw_t    scl;           /*!< PH4 */
     gpio_hw_t    sda;           /*!< PH5 */
     dma_hw_t     dma[2];        /*!< [0] TX, [1] RX (8-bit, normal mode) */
@@ -58,6 +59,7 @@ static const i2c_hw_t g_hw[I2C_ID_NUM] =
         .instance = I2C2,
         .ev_irqn  = I2C2_EV_IRQn,
         .er_irqn  = I2C2_ER_IRQn,
+        .rcc_en   = RCC_APB1ENR_I2C2EN,
         .scl      = { GPIOH, RCC_AHB1ENR_GPIOHEN, GPIO_PIN_4, GPIO_MODE_AF_OD, GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF4_I2C2 },
         .sda      = { GPIOH, RCC_AHB1ENR_GPIOHEN, GPIO_PIN_5, GPIO_MODE_AF_OD, GPIO_PULLUP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_AF4_I2C2 },
         .dma      = {
@@ -1071,19 +1073,19 @@ void i2c_init(const i2c_cfg_t *cfg)
     {
         /* Hardware I2C2: configure first, then recover the bus only if it is
          * actually held (BUSY) - never unconditionally before init. */
-        __HAL_RCC_I2C2_CLK_ENABLE();
+        SET_BIT(RCC->APB1ENR, h->hw->rcc_en);   /* was __HAL_RCC_I2C2_CLK_ENABLE() */
         gpio_hw_setup(&h->hw->scl);
         gpio_hw_setup(&h->hw->sda);
 
         h->hi2c.Instance             = h->hw->instance;
         h->hi2c.Init.ClockSpeed      = h->speed_hz;
-        h->hi2c.Init.DutyCycle       = I2C_DUTYCYCLE_2;
-        h->hi2c.Init.OwnAddress1     = 0U;
-        h->hi2c.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
-        h->hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-        h->hi2c.Init.OwnAddress2     = 0U;
-        h->hi2c.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-        h->hi2c.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
+        h->hi2c.Init.DutyCycle       = (c->duty_cycle == I2C_DUTY_16_9) ? I2C_DUTYCYCLE_16_9 : I2C_DUTYCYCLE_2;
+        h->hi2c.Init.OwnAddress1     = c->own_address1;
+        h->hi2c.Init.AddressingMode  = (c->addressing_mode == I2C_ADDR_10BIT) ? I2C_ADDRESSINGMODE_10BIT : I2C_ADDRESSINGMODE_7BIT;
+        h->hi2c.Init.DualAddressMode = (c->dual_address_mode == I2C_DUAL_ENABLE) ? I2C_DUALADDRESS_ENABLE : I2C_DUALADDRESS_DISABLE;
+        h->hi2c.Init.OwnAddress2     = c->own_address2;
+        h->hi2c.Init.GeneralCallMode = (c->general_call_mode == I2C_GCALL_ENABLE) ? I2C_GENERALCALL_ENABLE : I2C_GENERALCALL_DISABLE;
+        h->hi2c.Init.NoStretchMode   = (c->stretch == I2C_STRETCH_DISABLE) ? I2C_NOSTRETCH_ENABLE : I2C_NOSTRETCH_DISABLE;
         (void)HAL_I2C_Init(&h->hi2c);
 
         if ((h->hw->instance->SR2 & I2C_SR2_BUSY) != 0U)
@@ -1095,13 +1097,13 @@ void i2c_init(const i2c_cfg_t *cfg)
         dma_hw_setup(&h->hdma[I2C_DMA_TX], &h->hw->dma[I2C_DMA_TX]);
         dma_hw_setup(&h->hdma[I2C_DMA_RX], &h->hw->dma[I2C_DMA_RX]);
 
-        HAL_NVIC_SetPriority(h->hw->ev_irqn, 3U, 3U);
+        HAL_NVIC_SetPriority(h->hw->ev_irqn, c->irq_preempt, c->irq_sub);
         HAL_NVIC_EnableIRQ(h->hw->ev_irqn);
-        HAL_NVIC_SetPriority(h->hw->er_irqn, 3U, 3U);
+        HAL_NVIC_SetPriority(h->hw->er_irqn, c->irq_preempt, c->irq_sub);
         HAL_NVIC_EnableIRQ(h->hw->er_irqn);
-        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_TX].irqn, 3U, 3U);
+        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_TX].irqn, c->irq_preempt, c->irq_sub);
         HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_TX].irqn);
-        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_RX].irqn, 3U, 3U);
+        HAL_NVIC_SetPriority(h->hw->dma[I2C_DMA_RX].irqn, c->irq_preempt, c->irq_sub);
         HAL_NVIC_EnableIRQ(h->hw->dma[I2C_DMA_RX].irqn);
     }
 

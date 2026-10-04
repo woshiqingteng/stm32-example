@@ -45,17 +45,40 @@ typedef enum
     I2C_ID_NUM
 } i2c_id_t;
 
-/** @brief Bus configuration. */
+/** @brief Init frame options (HAL-free mirrors of the HAL I2C Init enums). */
+typedef enum { I2C_DUTY_2 = 0, I2C_DUTY_16_9 }                  i2c_duty_t;
+typedef enum { I2C_ADDR_7BIT = 0, I2C_ADDR_10BIT }             i2c_addr_mode_t;
+typedef enum { I2C_DUAL_DISABLE = 0, I2C_DUAL_ENABLE }         i2c_dual_addr_t;
+typedef enum { I2C_GCALL_DISABLE = 0, I2C_GCALL_ENABLE }       i2c_general_call_t;
+typedef enum { I2C_STRETCH_ENABLE = 0, I2C_STRETCH_DISABLE }   i2c_stretch_t;
+
+/** @brief Bus configuration (settable): transport + the I2C Init frame options. */
 typedef struct
 {
-    i2c_id_t id;        /*!< bus instance */
-    i2c_io_t io;        /*!< transfer transport */
-    uint32_t speed_hz;  /*!< hardware bus speed (the SW backend is fixed 100 kHz) */
+    i2c_id_t id;            /*!< bus instance */
+    i2c_io_t io;            /*!< transfer transport */
+    uint32_t speed_hz;      /*!< -> Init.ClockSpeed (SW backend is fixed 100 kHz) */
+
+    i2c_duty_t         duty_cycle;         /*!< -> Init.DutyCycle       */
+    uint16_t           own_address1;       /*!< -> Init.OwnAddress1     */
+    i2c_addr_mode_t    addressing_mode;    /*!< -> Init.AddressingMode  */
+    i2c_dual_addr_t    dual_address_mode;  /*!< -> Init.DualAddressMode */
+    uint8_t            own_address2;       /*!< -> Init.OwnAddress2     */
+    i2c_general_call_t general_call_mode;  /*!< -> Init.GeneralCallMode */
+    i2c_stretch_t      stretch;            /*!< -> Init.NoStretchMode   */
+
+    uint32_t irq_preempt;   /*!< NVIC preemption priority */
+    uint32_t irq_sub;       /*!< NVIC subpriority */
 } i2c_cfg_t;
 
 /** @brief Software bit-bang at 100 kHz (safe for every device on the bus). */
 #define I2C_CFG_DEFAULT(inst) \
-    .id = (inst), .io = I2C_IO_SW, .speed_hz = 100000U
+    .id = (inst), .io = I2C_IO_SW, .speed_hz = 100000U, \
+    .duty_cycle = I2C_DUTY_2, .own_address1 = 0U, \
+    .addressing_mode = I2C_ADDR_7BIT, .dual_address_mode = I2C_DUAL_DISABLE, \
+    .own_address2 = 0U, .general_call_mode = I2C_GCALL_DISABLE, \
+    .stretch = I2C_STRETCH_ENABLE, \
+    .irq_preempt = 3U, .irq_sub = 3U
 
 /**
  * @brief  Initialise the bus according to @p cfg (NULL selects I2C_CFG_DEFAULT).
