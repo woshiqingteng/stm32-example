@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "atim.h"
+#include "tim.h"
 
 #define ATIM_NPWM_ARR     10000U
 #define ATIM_NPWM_PSC     9000U
@@ -17,21 +17,30 @@
 
 int main(void)
 {
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     bsp_init();
     printf(APP_BANNER "\r\n");
 
     /* Free PB0 (LED1) and use it as the pulse observation input. */
     led_set_input(LED1);
 
-    atim_timx_npwm_chy_init(ATIM_NPWM_ARR - 1U, ATIM_NPWM_PSC - 1U);
-    atim_timx_npwm_chy_set(ATIM_NPWM_PULSE_COUNT);
+    cfg.id       = TIM_ID_8;
+    cfg.mode     = TIM_MODE_NPWM;
+    cfg.channel  = TIM_CH1;
+    cfg.polarity = TIM_POL_HIGH;
+    cfg.pull     = TIM_PULL_UP;
+    cfg.arr      = ATIM_NPWM_ARR - 1U;
+    cfg.psc      = ATIM_NPWM_PSC - 1U;
+    tim_init(&cfg);
+    tim_set(TIM_ID_8, TIM_CH1, TIM_PARAM_BURST, ATIM_NPWM_PULSE_COUNT);
     printf("KEY0: reset pulse count\r\n");
 
     for (;;)
     {
         if (key_scan(false) == KEY0)
         {
-            atim_timx_npwm_chy_set(ATIM_NPWM_PULSE_COUNT);
+            tim_set(TIM_ID_8, TIM_CH1, TIM_PARAM_BURST, ATIM_NPWM_PULSE_COUNT);
         }
 
         led_toggle(LED0);

@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "atim.h"
+#include "tim.h"
 
 #define ATIM_CPLM_ARR     1000U
 #define ATIM_CPLM_PSC     180U
@@ -26,10 +26,21 @@
 
 int main(void)
 {
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     bsp_init();
     printf(APP_BANNER "\r\n");
-    atim_timx_cplm_pwm_init(ATIM_CPLM_ARR - 1U, ATIM_CPLM_PSC - 1U);
-    atim_timx_cplm_pwm_set(ATIM_CPLM_CCR, ATIM_CPLM_DTG);
+
+    cfg.id       = TIM_ID_1;
+    cfg.mode     = TIM_MODE_CPLM;
+    cfg.channel  = TIM_CH1;
+    cfg.polarity = TIM_POL_LOW;
+    cfg.pull     = TIM_PULL_UP;
+    cfg.arr      = ATIM_CPLM_ARR - 1U;
+    cfg.psc      = ATIM_CPLM_PSC - 1U;
+    tim_init(&cfg);
+    tim_set(TIM_ID_1, TIM_CH1, TIM_PARAM_CCR, ATIM_CPLM_CCR);
+    tim_set(TIM_ID_1, TIM_CH1, TIM_PARAM_DTG, ATIM_CPLM_DTG);
 
     for (;;)
     {

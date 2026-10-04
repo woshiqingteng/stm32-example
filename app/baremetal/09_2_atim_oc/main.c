@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include "bsp.h"
-#include "atim.h"
+#include "tim.h"
 
 #define ATIM_OC_ARR     1000U
 #define ATIM_OC_PSC     180U
@@ -20,14 +20,24 @@
 
 int main(void)
 {
+    tim_cfg_t cfg = { TIM_CFG_DEFAULT };
+
     bsp_init();
     printf(APP_BANNER "\r\n");
-    atim_timx_comp_pwm_init(ATIM_OC_ARR - 1U, ATIM_OC_PSC - 1U);
 
-    atim_timx_comp_pwm_set(ATIM_CH1, ATIM_OC_CCR_CH1 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH2, ATIM_OC_CCR_CH2 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH3, ATIM_OC_CCR_CH3 - 1U);
-    atim_timx_comp_pwm_set(ATIM_CH4, ATIM_OC_CCR_CH4 - 1U);
+    cfg.id       = TIM_ID_8;
+    cfg.mode     = TIM_MODE_OC;
+    cfg.channel  = TIM_CH1;
+    cfg.polarity = TIM_POL_HIGH;
+    cfg.pull     = TIM_PULL_NONE;
+    cfg.arr      = ATIM_OC_ARR - 1U;
+    cfg.psc      = ATIM_OC_PSC - 1U;
+    tim_init(&cfg);
+
+    tim_set(TIM_ID_8, TIM_CH1, TIM_PARAM_CCR, ATIM_OC_CCR_CH1 - 1U);
+    tim_set(TIM_ID_8, TIM_CH2, TIM_PARAM_CCR, ATIM_OC_CCR_CH2 - 1U);
+    tim_set(TIM_ID_8, TIM_CH3, TIM_PARAM_CCR, ATIM_OC_CCR_CH3 - 1U);
+    tim_set(TIM_ID_8, TIM_CH4, TIM_PARAM_CCR, ATIM_OC_CCR_CH4 - 1U);
 
     for (;;)
     {
