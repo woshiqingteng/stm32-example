@@ -37,16 +37,25 @@ typedef enum
     I2C_IO_DMA     /*!< hardware I2C2, DMA driven */
 } i2c_io_t;
 
+/** @brief Bus instance selector (one bus today; the id leaves room for more,
+ *         mirroring usart_id_t). Selected by i2c_init, not by the runtime API. */
+typedef enum
+{
+    I2C_ID_1 = 0, /*!< I2C2: PH4 SCL / PH5 SDA (shared by all on-board slaves) */
+    I2C_ID_NUM
+} i2c_id_t;
+
 /** @brief Bus configuration. */
 typedef struct
 {
+    i2c_id_t id;        /*!< bus instance */
     i2c_io_t io;        /*!< transfer transport */
     uint32_t speed_hz;  /*!< hardware bus speed (the SW backend is fixed 100 kHz) */
 } i2c_cfg_t;
 
 /** @brief Software bit-bang at 100 kHz (safe for every device on the bus). */
-#define I2C_CFG_DEFAULT \
-    .io = I2C_IO_SW, .speed_hz = 100000U
+#define I2C_CFG_DEFAULT(inst) \
+    .id = (inst), .io = I2C_IO_SW, .speed_hz = 100000U
 
 /**
  * @brief  Initialise the bus according to @p cfg (NULL selects I2C_CFG_DEFAULT).
