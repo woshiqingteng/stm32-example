@@ -12,6 +12,9 @@
 #include "mag.h"
 
 #define SAMPLE_PERIOD_MS   200U
+#define REPORT_TICK        5U            /* 5 * 200 ms = 1 s */
+#define AVERAGE_TIMES      10U
+#define PI_F               3.14159265f
 
 static int16_t g_magx_offset;
 static int16_t g_magy_offset;
@@ -26,56 +29,23 @@ static void print_fixed1(const char *label, const char *unit, float value)
            (int)(mag / 10), (int)(mag % 10), unit);
 }
 
+/* Compass heading [0, 360): atan2 of the offset-corrected X/Y. */
 static float compass_get_angle(void)
 {
-    float   angle = 0.0f;
     int16_t magx;
     int16_t magy;
     int16_t magz;
+    float   angle;
 
-    if (mag_read_average(&magx, &magy, &magz, 10U) != 0U)
+    if (mag_read_average(&magx, &magy, &magz, AVERAGE_TIMES) != 0U)
     {
         return 0.0f;
     }
 
-    magx = (int16_t)(magx - g_magx_offset);
-    magy = (int16_t)(magy - g_magy_offset);
+    angle = atan2f((float)(magy - g_magy_offset),
+                   (float)(magx - g_magx_offset)) * (180.0f / PI_F);
 
-    if ((magx > 0) && (magy > 0))
-    {
-        angle = (float)((atan((double)magy / (double)magx) * 180.0) / 3.14159);
-    }
-    else if ((magx > 0) && (magy < 0))
-    {
-        angle = 360.0f + (float)((atan((double)magy / (double)magx) * 180.0) / 3.14159);
-    }
-    else if ((magx == 0) && (magy > 0))
-    {
-        angle = 90.0f;
-    }
-    else if ((magx == 0) && (magy < 0))
-    {
-        angle = 270.0f;
-    }
-    else if (magx < 0)
-    {
-        angle = 180.0f + (float)((atan((double)magy / (double)magx) * 180.0) / 3.14159);
-    }
-    else
-    {
-        angle = 0.0f;
-    }
-
-    if (angle > 360.0f)
-    {
-        angle = 360.0f;
-    }
-    if (angle < 0.0f)
-    {
-        angle = 0.0f;
-    }
-
-    return angle;
+    return (angle < 0.0f) ? (angle + 360.0f) : angle;
 }
 
 /* Horizontal min/max calibration: rotate a full turn, then press KEY0. */
@@ -118,13 +88,31 @@ static void compass_calibration(void)
     printf("offset x:%d y:%d\r\n", (int)g_magx_offset, (int)g_magy_offset);
 }
 
-int main(void)
+/* One report: heading, temperature and the raw X/Y/Z counts. */
+static void mag_show(void)
 {
     int16_t magx;
     int16_t magy;
     int16_t magz;
     float   temperature;
-    float   angle;
+
+    print_fixed1("Angle: ", "", 360.0f - compass_get_angle());
+
+    if (mag_read_temperature(&temperature) == 0U)
+    {
+        print_fixed1("Temp: ", " C", temperature);
+    }
+
+    if (mag_read(&magx, &magy, &magz) == 0U)
+    {
+        printf("MagX:%d\r\n", (int)magx);
+        printf("MagY:%d\r\n", (int)magy);
+        printf("MagZ:%d\r\n", (int)magz);
+    }
+}
+
+int main(void)
+{
     uint8_t t = 0U;
 
     bsp_init();
@@ -134,12 +122,6 @@ int main(void)
     {
         printf("ST480MC check failed\r\n");
     }
-    else
-    {
-        printf("ST480MC ready\r\n");
-    }
-
-    printf("34_i2c_magnet ready\r\n");
 
     for (;;)
     {
@@ -148,27 +130,10 @@ int main(void)
             compass_calibration();
         }
 
-        t++;
-
-        if (t >= 5U)                                /* ~1 s */
+        if (++t >= REPORT_TICK)
         {
             t = 0U;
-
-            angle = compass_get_angle();
-            print_fixed1("Angle: ", "", 360.0f - angle);
-
-            if (mag_read_temperature(&temperature) == 0U)
-            {
-                print_fixed1("Temp: ", " C", temperature);
-            }
-
-            if (mag_read(&magx, &magy, &magz) == 0U)
-            {
-                printf("MagX:%d\r\n", (int)magx);
-                printf("MagY:%d\r\n", (int)magy);
-                printf("MagZ:%d\r\n", (int)magz);
-            }
-
+            mag_show();
             led_toggle(LED0);
         }
 
