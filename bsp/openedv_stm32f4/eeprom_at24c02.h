@@ -11,19 +11,6 @@
 
 #include <stdint.h>
 
-#define AT24C01     127U
-#define AT24C02     255U
-#define AT24C04     511U
-#define AT24C08     1023U
-#define AT24C16     2047U
-#define AT24C32     4095U
-#define AT24C64     8191U
-#define AT24C128    16383U
-#define AT24C256    32767U
-
-/** @brief  Device fitted on the ALIENTEK F429 board. */
-#define EE_TYPE     AT24C02
-
 /** @brief  Bring up the shared software IIC bus. */
 void eeprom_at24c02_init(void);
 

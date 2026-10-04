@@ -14,7 +14,7 @@
 
 /* ===================== hardware I2C2 backend ===================== */
 
-#define I2C_HW_TIMEOUT_COUNT   0x000FFFFFU
+#define I2C_HW_TIMEOUT_COUNT   0x0000FFFFU
 
 static I2C_HandleTypeDef g_i2c_handle;
 static uint8_t           g_i2c_addr_phase;
@@ -77,14 +77,29 @@ void i2c_start(void)
 
 void i2c_stop(void)
 {
+    uint32_t time = I2C_HW_TIMEOUT_COUNT;
+
     I2C2->CR1 &= ~I2C_CR1_ACK;
     I2C2->CR1 |= I2C_CR1_STOP;
     __HAL_I2C_CLEAR_FLAG(&g_i2c_handle, I2C_SR1_AF);   /* clear a pending NACK */
+
+    /* Wait for the STOP to complete (BUSY clears) so the next START is not
+     * issued while the bus is still busy. */
+    while (((I2C2->SR2 & I2C_SR2_BUSY) != 0U) && (time-- != 0U))
+    {
+    }
 }
 
 void i2c_send_byte(uint8_t data)
 {
-    (void)i2c_hw_wait_any(I2C_SR1_TXE, 0U);
+    /* The byte right after a START is the slave address: the peripheral expects
+     * it as soon as SB is set (writing DR clears SB); only data bytes wait for
+     * TXE. Waiting TXE for the address stalls because TXE is not set right after
+     * SB (matches the HAL I2C_MasterRequestWrite sequence). */
+    if (g_i2c_addr_phase == 0U)
+    {
+        (void)i2c_hw_wait_any(I2C_SR1_TXE, 0U);
+    }
     I2C2->DR = data;
 }
 
@@ -131,19 +146,26 @@ void i2c_nack(void)
 
 uint8_t i2c_read_byte(uint8_t ack)
 {
+    uint8_t data;
+
     /* The ACK bit present while a byte is received is the ACK/NACK sent after
      * it, so program it before waiting for the data. */
     if (ack != 0U)
     {
         I2C2->CR1 |= I2C_CR1_ACK;
+        (void)i2c_hw_wait_any(I2C_SR1_RXNE, 0U);
+        data = (uint8_t)I2C2->DR;
     }
     else
     {
+        /* Last byte: NACK it, wait for the byte to arrive (RXNE; BTF is only set
+         * when a second byte is still pending), program STOP, then read DR. */
         I2C2->CR1 &= ~I2C_CR1_ACK;
+        (void)i2c_hw_wait_any(I2C_SR1_RXNE, 0U);
+        I2C2->CR1 |= I2C_CR1_STOP;
+        data = (uint8_t)I2C2->DR;
     }
-
-    (void)i2c_hw_wait_any(I2C_SR1_RXNE, 0U);
-    return (uint8_t)I2C2->DR;
+    return data;
 }
 
 #else  /* software bit-bang backend */

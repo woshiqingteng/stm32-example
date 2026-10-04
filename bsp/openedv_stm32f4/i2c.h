@@ -16,8 +16,8 @@
 /* 0 = software bit-bang (default), 1 = hardware I2C2 (PH4/PH5, AF4). */
 #define BSP_I2C_USE_HARDWARE    0
 
-/* Hardware backend bus speed (I2C2). 100 kHz standard mode. */
-#define BSP_I2C_SPEED_HZ        100000U
+/* Hardware backend bus speed (I2C2). AT24C02 supports up to 400 kHz. */
+#define BSP_I2C_SPEED_HZ        400000U
 
 #define I2C_SCL_GPIO_PORT   GPIOH
 #define I2C_SCL_GPIO_PIN    GPIO_PIN_4
