@@ -15,12 +15,15 @@
  * fusion axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1); applies to
  * both the accelerometer and the gyroscope.
  *
- * Raw SH3001 axes (board flat, face up): +X = toward the user (back), +Y = right,
- * +Z = up. Resulting body frame: +X = back (toward user), +Y = left, +Z = down. */
+ * Raw SH3001 axes on this board (board laid flat, face up):
+ *   +X = across the board (from the IIC edge to the opposite edge),
+ *   +Y = along the long edge, +Z = out of the top face (up).
+ * Resulting body frame: +X = toward the IIC edge (back), +Y = along the long
+ * edge, +Z = down. */
 #define FUSION_REMAP_X_AXIS   0
-#define FUSION_REMAP_X_SIGN   (+1)
+#define FUSION_REMAP_X_SIGN   (-1)
 #define FUSION_REMAP_Y_AXIS   1
-#define FUSION_REMAP_Y_SIGN   (-1)
+#define FUSION_REMAP_Y_SIGN   (+1)
 #define FUSION_REMAP_Z_AXIS   2
 #define FUSION_REMAP_Z_SIGN   (-1)
 
