@@ -79,28 +79,6 @@ static void app_init(void)
     printf("KEY0: recalibrate\r\n");
 }
 
-/* Poll the latched motion interrupt status and report edges. */
-static void motion_show(void)
-{
-    uint8_t st = imu_motion_int_status();
-    uint8_t nb = (uint8_t)(st & (uint8_t)~g_int_prev);
-
-    if ((nb & IMU_STATUS_TAP) != 0U)
-    {
-        printf("EVENT: TAP\r\n");
-    }
-    if ((nb & IMU_STATUS_FREEFALL) != 0U)
-    {
-        printf("EVENT: FREE-FALL\r\n");
-    }
-    if ((nb & IMU_STATUS_ACTIVITY) != 0U)
-    {
-        printf("EVENT: ACTIVITY\r\n");
-    }
-
-    g_int_prev = st;
-}
-
 /* Read the sensor, track the bias and update the attitude estimate. */
 static void imu_update(void)
 {
@@ -142,6 +120,32 @@ static void key_handle(void)
     }
 }
 
+/* One loop pass: report motion-interrupt edges, update the attitude and handle
+ * the key. */
+static void motion_show(void)
+{
+    uint8_t st = imu_motion_int_status();
+    uint8_t nb = (uint8_t)(st & (uint8_t)~g_int_prev);
+
+    if ((nb & IMU_STATUS_TAP) != 0U)
+    {
+        printf("EVENT: TAP\r\n");
+    }
+    if ((nb & IMU_STATUS_FREEFALL) != 0U)
+    {
+        printf("EVENT: FREE-FALL\r\n");
+    }
+    if ((nb & IMU_STATUS_ACTIVITY) != 0U)
+    {
+        printf("EVENT: ACTIVITY\r\n");
+    }
+
+    g_int_prev = st;
+
+    imu_update();
+    key_handle();
+}
+
 /* Print temperature, attitude and the raw accelerometer/gyroscope values. */
 static void report_show(void)
 {
@@ -171,8 +175,6 @@ int main(void)
     for (;;)
     {
         motion_show();
-        imu_update();
-        key_handle();
 
         if (++g_ticks >= REPORT_TICKS)
         {
