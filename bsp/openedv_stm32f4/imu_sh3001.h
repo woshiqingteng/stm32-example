@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 /* SH3001 native (raw) axes on this board (board laid flat, face up):
- *   +X = left, +Y = toward the user (back), +Z = up.
+ *   +X = toward the user (back), +Y = right, +Z = up.
  * An axis held pointing up reads +1 g on the accelerometer. */
 
 /* Data layout (16-bit little-endian per axis, low byte first):

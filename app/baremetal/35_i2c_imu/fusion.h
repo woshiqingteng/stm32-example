@@ -15,11 +15,11 @@
  * fusion axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1); applies to
  * both the accelerometer and the gyroscope.
  *
- * Raw SH3001 axes (board flat, face up): +X = left, +Y = toward the user (back),
- * +Z = up. Resulting NED body frame: +X = forward, +Y = right, +Z = down. */
-#define FUSION_REMAP_X_AXIS   1
-#define FUSION_REMAP_X_SIGN   (-1)
-#define FUSION_REMAP_Y_AXIS   0
+ * Raw SH3001 axes (board flat, face up): +X = toward the user (back), +Y = right,
+ * +Z = up. Resulting body frame: +X = back (toward user), +Y = left, +Z = down. */
+#define FUSION_REMAP_X_AXIS   0
+#define FUSION_REMAP_X_SIGN   (+1)
+#define FUSION_REMAP_Y_AXIS   1
 #define FUSION_REMAP_Y_SIGN   (-1)
 #define FUSION_REMAP_Z_AXIS   2
 #define FUSION_REMAP_Z_SIGN   (-1)
@@ -27,7 +27,7 @@
 /* Body axis that points up at the start-up calibration pose (board flat, face
  * up). The accelerometer reads +1 g along it, so the calibration applies the
  * 1 g reference on this axis. Axis: 0=X, 1=Y, 2=Z. Sign: +1 if the body axis
- * points up, -1 if it points down. With the NED frame above, up is -Z. */
+ * points up, -1 if it points down. The body +Z points down, so up is -Z. */
 #define FUSION_UP_AXIS        2
 #define FUSION_UP_SIGN        (-1)
 
