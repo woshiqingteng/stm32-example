@@ -110,15 +110,24 @@ void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     int16_t raw_acc[3];
     int16_t raw_gyro[3];
+    int16_t cal_acc[3];
+    int16_t cal_gyro[3];
     uint8_t i;
 
     (void)imu_read_raw(raw_acc, raw_gyro);
 
     for (i = 0U; i < 3U; i++)
     {
-        acc[i]  = (int16_t)((float)raw_acc[i] - g_acc_offset[i]);
-        gyro[i] = (int16_t)((float)raw_gyro[i] - g_gyro_bias[i]);
+        cal_acc[i]  = (int16_t)((float)raw_acc[i] - g_acc_offset[i]);
+        cal_gyro[i] = (int16_t)((float)raw_gyro[i] - g_gyro_bias[i]);
     }
+
+    acc[0]  = (int16_t)(FUSION_REMAP_X_SIGN * cal_acc[FUSION_REMAP_X_AXIS]);
+    acc[1]  = (int16_t)(FUSION_REMAP_Y_SIGN * cal_acc[FUSION_REMAP_Y_AXIS]);
+    acc[2]  = (int16_t)(FUSION_REMAP_Z_SIGN * cal_acc[FUSION_REMAP_Z_AXIS]);
+    gyro[0] = (int16_t)(FUSION_REMAP_X_SIGN * cal_gyro[FUSION_REMAP_X_AXIS]);
+    gyro[1] = (int16_t)(FUSION_REMAP_Y_SIGN * cal_gyro[FUSION_REMAP_Y_AXIS]);
+    gyro[2] = (int16_t)(FUSION_REMAP_Z_SIGN * cal_gyro[FUSION_REMAP_Z_AXIS]);
 }
 
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
@@ -225,8 +234,8 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
         float yaw   = RAD2DEG * atan2f(g_q1 * g_q2 + g_q0 * g_q3,
                                        g_q0 * g_q0 + g_q1 * g_q1 - 0.5f);
 
-        rpy[0] = pitch;
-        rpy[1] = roll;
-        rpy[2] = yaw;
+        rpy[0] = FUSION_PITCH_SIGN * pitch;
+        rpy[1] = FUSION_ROLL_SIGN  * roll;
+        rpy[2] = FUSION_YAW_SIGN   * yaw;
     }
 }

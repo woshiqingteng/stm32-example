@@ -11,6 +11,21 @@
 #define DEG2RAD   0.017453293f    /* pi / 180 */
 #define RAD2DEG   57.29578f       /* 180 / pi */
 
+/* Board orientation: map the raw sensor axes to the fusion axes. Each fusion
+ * axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1). Adjust one axis
+ * at a time to correct the direction (applies to accelerometer and gyroscope). */
+#define FUSION_REMAP_X_AXIS   0
+#define FUSION_REMAP_X_SIGN   (+1)
+#define FUSION_REMAP_Y_AXIS   1
+#define FUSION_REMAP_Y_SIGN   (+1)
+#define FUSION_REMAP_Z_AXIS   2
+#define FUSION_REMAP_Z_SIGN   (+1)
+
+/* Euler output signs (degrees): rpy[0] = pitch, rpy[1] = roll, rpy[2] = yaw. */
+#define FUSION_PITCH_SIGN     (+1)
+#define FUSION_ROLL_SIGN      (+1)
+#define FUSION_YAW_SIGN       (+1)
+
 /**
  * @brief  Start-up zero-bias calibration. Called once at boot with the board
  *         still and level: 100 samples are averaged; the accelerometer Z offset
