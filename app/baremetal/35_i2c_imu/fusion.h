@@ -49,6 +49,9 @@ void fusion_calibrate(void);
 /** @brief  Read the accelerometer/gyroscope counts (bias/offset corrected). */
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3]);
 
+/** @brief  Die temperature (degC) from the latest fusion_read_xyz() sample. */
+float fusion_get_temperature(void);
+
 /** @brief  Slowly track the gyro bias while the board is stationary (call every
  *          sample with the values from fusion_read_xyz()). */
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3]);

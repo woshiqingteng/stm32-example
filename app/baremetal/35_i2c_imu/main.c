@@ -97,7 +97,7 @@ static void report_show(void)
     g_report_n = 0U;
 
     printf("Temp : ");
-    print_x100((int32_t)(imu_read_temperature() * 100.0f));
+    print_x100((int32_t)(fusion_get_temperature() * 100.0f));
     printf(" C\r\n");
 
     printf("Pitch: ");

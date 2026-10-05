@@ -93,9 +93,14 @@ uint8_t imu_sh3001_init(void)
     return 0U;
 }
 
-uint8_t imu_sh3001_read_raw(int16_t acc[3], int16_t gyro[3])
+uint8_t imu_sh3001_read(int16_t acc[3], int16_t gyro[3], float *temperature)
 {
+    static uint16_t room = 0xFFFFU;   /* factory room offset, read from the chip once */
     uint8_t buf[IMU_SH3001_DATA_LEN_BYTE];
+    uint8_t tbuf[IMU_SH3001_TEMP_LEN_BYTE];
+    uint16_t temp;
+
+    *temperature = 0.0f;
 
     if (imu_sh3001_read_nbytes(IMU_SH3001_REG_ACC_X_L, buf, IMU_SH3001_DATA_LEN_BYTE) != 0U)
     {
@@ -110,27 +115,17 @@ uint8_t imu_sh3001_read_raw(int16_t acc[3], int16_t gyro[3])
     gyro[1] = IMU_SH3001_MK16(buf[8], buf[9]);
     gyro[2] = IMU_SH3001_MK16(buf[10], buf[11]);
 
+    if (imu_sh3001_read_nbytes(IMU_SH3001_REG_TEMP_L, tbuf, IMU_SH3001_TEMP_LEN_BYTE) == 0U)
+    {
+        if (room == 0xFFFFU)
+        {
+            room = (uint16_t)(((uint16_t)(imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG0) & 0x0FU) << 8) |
+                              imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG1));
+        }
+
+        temp = (uint16_t)(((uint16_t)(tbuf[1] & 0x0FU) << 8) | tbuf[0]);
+        *temperature = ((float)temp - (float)room) / IMU_SH3001_TEMP_DIVISOR + IMU_SH3001_TEMP_OFFSET_C;
+    }
+
     return 0U;
-}
-
-float imu_sh3001_read_temperature(void)
-{
-    static uint16_t room = 0xFFFFU;   /* factory room offset, read from the chip once */
-    uint8_t buf[IMU_SH3001_TEMP_LEN_BYTE];
-    uint16_t temp;
-
-    if (imu_sh3001_read_nbytes(IMU_SH3001_REG_TEMP_L, buf, IMU_SH3001_TEMP_LEN_BYTE) != 0U)
-    {
-        return 0.0f;
-    }
-
-    if (room == 0xFFFFU)
-    {
-        room = (uint16_t)(((uint16_t)(imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG0) & 0x0FU) << 8) |
-                          imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG1));
-    }
-
-    temp = (uint16_t)(((uint16_t)(buf[1] & 0x0FU) << 8) | buf[0]);
-
-    return ((float)temp - (float)room) / IMU_SH3001_TEMP_DIVISOR + IMU_SH3001_TEMP_OFFSET_C;
 }

@@ -36,6 +36,7 @@ static float g_gain = FUSION_INITIAL_GAIN; /* ramps down to FUSION_GAIN */
 
 static float g_acc_offset[3];
 static float g_gyro_bias[3];
+static float g_temperature;
 
 /* Fast inverse square root (FusionMath.h: FusionFastInverseSqrt). */
 static float fusion_inv_sqrt(float x)
@@ -89,8 +90,7 @@ void fusion_calibrate(void)
 {
     int32_t sum_acc[3] = { 0, 0, 0 };
     int32_t sum_gyro[3] = { 0, 0, 0 };
-    int16_t raw_acc[3];
-    int16_t raw_gyro[3];
+    imu_data_t imu;
     int16_t acc[3];
     int16_t gyro[3];
     uint8_t i;
@@ -98,9 +98,9 @@ void fusion_calibrate(void)
 
     for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
     {
-        (void)imu_read_raw(raw_acc, raw_gyro);
-        fusion_remap(raw_acc, acc);
-        fusion_remap(raw_gyro, gyro);
+        (void)imu_read(&imu);
+        fusion_remap(imu.acc, acc);
+        fusion_remap(imu.gyro, gyro);
 
         for (a = 0U; a < 3U; a++)
         {
@@ -120,13 +120,13 @@ void fusion_calibrate(void)
 
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
-    int16_t raw_acc[3];
-    int16_t raw_gyro[3];
+    imu_data_t imu;
     uint8_t i;
 
-    (void)imu_read_raw(raw_acc, raw_gyro);
-    fusion_remap(raw_acc, acc);
-    fusion_remap(raw_gyro, gyro);
+    (void)imu_read(&imu);
+    g_temperature = imu.temperature;
+    fusion_remap(imu.acc, acc);
+    fusion_remap(imu.gyro, gyro);
 
     for (i = 0U; i < 3U; i++)
     {
@@ -160,6 +160,11 @@ void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
     {
         g_gyro_bias[i] += FUSION_DYN_BIAS_ALPHA * (float)gyro[i];
     }
+}
+
+float fusion_get_temperature(void)
+{
+    return g_temperature;
 }
 
 void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *rpy, float dt)

@@ -60,10 +60,8 @@
  *  @return 0 on success, 1 if the chip id does not match. */
 uint8_t imu_sh3001_init(void);
 
-/** @brief  Read raw accelerometer and gyroscope counts. @return 0 on success. */
-uint8_t imu_sh3001_read_raw(int16_t acc[3], int16_t gyro[3]);
-
-/** @brief  Read the die temperature in degrees Celsius. */
-float imu_sh3001_read_temperature(void);
+/** @brief  Read raw accelerometer/gyroscope counts and the die temperature.
+ *  @return 0 on success. */
+uint8_t imu_sh3001_read(int16_t acc[3], int16_t gyro[3], float *temperature);
 
 #endif /* BSP_IMU_SH3001_H */
