@@ -138,8 +138,14 @@ int main(void)
     {
         printf("SH3001 ready\r\n");
         printf("Calibrating: keep the board still and level...\r\n");
-        fusion_calibrate();
-        printf("Calibration done\r\n");
+        if (fusion_calibrate() != 0U)
+        {
+            printf("Calibration MOVED - keep the board still!\r\n");
+        }
+        else
+        {
+            printf("Calibration done\r\n");
+        }
     }
     else
     {

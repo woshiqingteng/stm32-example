@@ -42,9 +42,10 @@
 /**
  * @brief  Start-up zero-bias calibration. Called once at boot with the board
  *         still and level: 100 samples are averaged; the accelerometer Z offset
- *         is measured relative to 1g.
+ *         is measured relative to 1g. Retries while the board is being moved.
+ *  @return 0 if the board was still, 1 if it kept moving (bias not reliable).
  */
-void fusion_calibrate(void);
+uint8_t fusion_calibrate(void);
 
 /** @brief  Read the accelerometer/gyroscope counts (bias/offset corrected). */
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3]);
