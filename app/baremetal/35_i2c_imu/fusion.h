@@ -11,9 +11,12 @@
 #define DEG2RAD   0.017453293f    /* pi / 180 */
 #define RAD2DEG   57.29578f       /* 180 / pi */
 
-/* Board orientation: map the raw sensor axes to the fusion axes. Each fusion
- * axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1). Adjust one axis
- * at a time to correct the direction (applies to accelerometer and gyroscope). */
+/* Board orientation: map the raw sensor axes to the fusion (body) axes. Each
+ * fusion axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1); applies to
+ * both the accelerometer and the gyroscope.
+ *
+ * Raw SH3001 axes (board flat, face up): +X = left, +Y = toward the user (back),
+ * +Z = up. Resulting body frame: +X = back, +Y = right, +Z = up. */
 #define FUSION_REMAP_X_AXIS   1
 #define FUSION_REMAP_X_SIGN   (+1)
 #define FUSION_REMAP_Y_AXIS   0

@@ -9,6 +9,10 @@
 
 #include <stdint.h>
 
+/* SH3001 native (raw) axes on this board (board laid flat, face up):
+ *   +X = left, +Y = toward the user (back), +Z = up.
+ * An axis held pointing up reads +1 g on the accelerometer. */
+
 /* Data layout (16-bit little-endian per axis, low byte first):
  *   0x00/01 X, 0x02/03 Y, 0x04/05 Z : accelerometer (+/-8g, 4096 LSB/g)
  *   0x06/07 X, 0x08/09 Y, 0x0A/0B Z : gyroscope (+/-500dps, 65.5 LSB/dps)
