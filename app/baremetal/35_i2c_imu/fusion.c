@@ -65,11 +65,11 @@ static float fusion_asin(float v)
     return asinf(v);
 }
 
-/* Normalise a quaternion in place. */
+/* Normalise a quaternion in place (exact reciprocal square root). */
 static void fusion_normalise(void)
 {
     float n = g_q0 * g_q0 + g_q1 * g_q1 + g_q2 * g_q2 + g_q3 * g_q3;
-    float inv = fusion_inv_sqrt(n);
+    float inv = 1.0f / sqrtf(n);
 
     g_q0 *= inv;
     g_q1 *= inv;
@@ -77,18 +77,32 @@ static void fusion_normalise(void)
     g_q3 *= inv;
 }
 
+/* Remap the raw sensor axes to the body frame (acc and gyro share the map). */
+static void fusion_remap(const int16_t in[3], int16_t out[3])
+{
+    out[0] = (int16_t)(FUSION_REMAP_X_SIGN * in[FUSION_REMAP_X_AXIS]);
+    out[1] = (int16_t)(FUSION_REMAP_Y_SIGN * in[FUSION_REMAP_Y_AXIS]);
+    out[2] = (int16_t)(FUSION_REMAP_Z_SIGN * in[FUSION_REMAP_Z_AXIS]);
+}
+
 void fusion_calibrate(void)
 {
     int32_t sum_acc[3] = { 0, 0, 0 };
     int32_t sum_gyro[3] = { 0, 0, 0 };
+    int16_t raw_acc[3];
+    int16_t raw_gyro[3];
     int16_t acc[3];
     int16_t gyro[3];
     uint8_t i;
     uint8_t a;
 
+    /* Calibrate in the body frame so it matches fusion_read_xyz /
+     * fusion_update_dynamic_bias. */
     for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
     {
-        (void)imu_read_raw(acc, gyro);
+        (void)imu_read_raw(raw_acc, raw_gyro);
+        fusion_remap(raw_acc, acc);
+        fusion_remap(raw_gyro, gyro);
 
         for (a = 0U; a < 3U; a++)
         {
@@ -103,31 +117,24 @@ void fusion_calibrate(void)
         g_acc_offset[a] = (float)sum_acc[a] / (float)FUSION_CAL_SAMPLE_COUNT;
     }
 
-    g_acc_offset[2] -= FUSION_ACC_1G_COUNT;   /* Z relative to 1g (official) */
+    g_acc_offset[2] -= FUSION_ACC_1G_COUNT;   /* body +Z relative to 1g */
 }
 
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     int16_t raw_acc[3];
     int16_t raw_gyro[3];
-    int16_t cal_acc[3];
-    int16_t cal_gyro[3];
     uint8_t i;
 
     (void)imu_read_raw(raw_acc, raw_gyro);
+    fusion_remap(raw_acc, acc);
+    fusion_remap(raw_gyro, gyro);
 
     for (i = 0U; i < 3U; i++)
     {
-        cal_acc[i]  = (int16_t)((float)raw_acc[i] - g_acc_offset[i]);
-        cal_gyro[i] = (int16_t)((float)raw_gyro[i] - g_gyro_bias[i]);
+        acc[i]  = (int16_t)((float)acc[i]  - g_acc_offset[i]);
+        gyro[i] = (int16_t)((float)gyro[i] - g_gyro_bias[i]);
     }
-
-    acc[0]  = (int16_t)(FUSION_REMAP_X_SIGN * cal_acc[FUSION_REMAP_X_AXIS]);
-    acc[1]  = (int16_t)(FUSION_REMAP_Y_SIGN * cal_acc[FUSION_REMAP_Y_AXIS]);
-    acc[2]  = (int16_t)(FUSION_REMAP_Z_SIGN * cal_acc[FUSION_REMAP_Z_AXIS]);
-    gyro[0] = (int16_t)(FUSION_REMAP_X_SIGN * cal_gyro[FUSION_REMAP_X_AXIS]);
-    gyro[1] = (int16_t)(FUSION_REMAP_Y_SIGN * cal_gyro[FUSION_REMAP_Y_AXIS]);
-    gyro[2] = (int16_t)(FUSION_REMAP_Z_SIGN * cal_gyro[FUSION_REMAP_Z_AXIS]);
 }
 
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
