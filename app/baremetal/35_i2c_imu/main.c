@@ -17,7 +17,7 @@
 #define SAMPLE_PERIOD_MS    1U
 #define REPORT_TICKS        200U       /* 200 * 1 ms = 0.2 s report period */
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
-#define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
+#define GYRO_LSB_PER_DPS    262.144f   /* gyroscope configured for +/-125dps  */
 
 static int16_t  g_acc[3];
 static int16_t  g_gyro[3];

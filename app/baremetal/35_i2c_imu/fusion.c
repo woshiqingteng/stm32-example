@@ -25,7 +25,7 @@
 #define FUSION_CAL_SAMPLE_COUNT 100U     /* start-up calibration samples */
 #define FUSION_DYN_ACC_MIN_G    0.9f     /* still detection: |acc| lower bound (g) */
 #define FUSION_DYN_ACC_MAX_G    1.1f     /* still detection: |acc| upper bound (g) */
-#define FUSION_DYN_GYRO_THR     200      /* still detection: |gyro| limit (~3 dps) */
+#define FUSION_DYN_GYRO_THR     786      /* still detection: |gyro| limit (~3 dps) */
 #define FUSION_DYN_BIAS_ALPHA   0.01f    /* bias tracking gain when still */
 
 static float g_q0 = 1.0f;                /* quaternion (w, x, y, z) */

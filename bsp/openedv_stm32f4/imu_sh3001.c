@@ -4,7 +4,7 @@
  *
  * Only raw sensor access is provided: accelerometer and gyroscope counts plus
  * the die temperature. The accelerometer is configured for +/-8g and the
- * gyroscope for +/-500dps, both at 125Hz.
+ * gyroscope for +/-125dps, both at 125Hz.
  */
 
 #include <stddef.h>
@@ -83,9 +83,9 @@ uint8_t imu_sh3001_init(void)
                                 (uint8_t)((reg & (uint8_t)~0xE0U) | IMU_SH3001_ACC_LPF_ODR_025));
 
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG1, IMU_SH3001_GYRO_ODR_125HZ);
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_X, IMU_SH3001_GYRO_RANGE_500DPS);
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_Y, IMU_SH3001_GYRO_RANGE_500DPS);
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_Z, IMU_SH3001_GYRO_RANGE_500DPS);
+    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_X, IMU_SH3001_GYRO_RANGE_125DPS);
+    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_Y, IMU_SH3001_GYRO_RANGE_125DPS);
+    (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_Z, IMU_SH3001_GYRO_RANGE_125DPS);
     reg = imu_sh3001_read_byte(IMU_SH3001_REG_GYRO_CONFIG2);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG2,
                                 (uint8_t)((reg & (uint8_t)~0x0CU) | IMU_SH3001_GYRO_LPF_01));
