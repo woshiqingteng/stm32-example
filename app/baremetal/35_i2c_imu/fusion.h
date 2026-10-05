@@ -18,21 +18,21 @@
  * Raw SH3001 axes on this board (board laid flat, face up):
  *   +X = across the board (from the IIC edge to the opposite edge),
  *   +Y = along the long edge, +Z = out of the top face (up).
- * Resulting body frame: +X = toward the IIC edge (back), +Y = along the long
- * edge, +Z = down. */
+ * Resulting body frame (NWU, +Z up): +X = toward the IIC edge (back),
+ * +Y = along the long edge (opposite), +Z = up. */
 #define FUSION_REMAP_X_AXIS   0
 #define FUSION_REMAP_X_SIGN   (-1)
 #define FUSION_REMAP_Y_AXIS   1
-#define FUSION_REMAP_Y_SIGN   (+1)
+#define FUSION_REMAP_Y_SIGN   (-1)
 #define FUSION_REMAP_Z_AXIS   2
-#define FUSION_REMAP_Z_SIGN   (-1)
+#define FUSION_REMAP_Z_SIGN   (+1)
 
 /* Body axis that points up at the start-up calibration pose (board flat, face
  * up). The accelerometer reads +1 g along it, so the calibration applies the
  * 1 g reference on this axis. Axis: 0=X, 1=Y, 2=Z. Sign: +1 if the body axis
- * points up, -1 if it points down. The body +Z points down, so up is -Z. */
+ * points up, -1 if it points down. The body +Z points up, so up is +Z. */
 #define FUSION_UP_AXIS        2
-#define FUSION_UP_SIGN        (-1)
+#define FUSION_UP_SIGN        (+1)
 
 /* Euler output signs (degrees): rpy[0] = pitch, rpy[1] = roll, rpy[2] = yaw. */
 #define FUSION_PITCH_SIGN     (+1)

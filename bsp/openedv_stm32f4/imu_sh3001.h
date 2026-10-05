@@ -41,14 +41,14 @@
 #define IMU_SH3001_REG_TEMP_CONFIG2     0xD5U
 
 /* Register field values. */
-#define IMU_SH3001_TEMP_ENABLE          0x80U   /*!< TEMP_CONFIG0[7]: digital sensor enable */
-#define IMU_SH3001_TEMP_ANALOG_MASK     0x04U   /*!< TEMP_CONFIG2[2]: 0 = analog sensor enable */
-#define IMU_SH3001_ACC_ODR_500HZ        0x01U   /*!< ACC_CONFIG1[3:0] */
-#define IMU_SH3001_ACC_RANGE_8G         0x03U   /*!< ACC_CONFIG2[2:0] */
-#define IMU_SH3001_GYRO_ODR_500HZ       0x01U   /*!< GYRO_CONFIG1[3:0] */
-#define IMU_SH3001_GYRO_RANGE_500DPS    0x04U   /*!< GYRO_CONFIG3[2:0] */
+#define IMU_SH3001_TEMP_ENABLE          0x80U
+#define IMU_SH3001_TEMP_ANALOG_MASK     0x04U
+#define IMU_SH3001_ACC_ODR_500HZ        0x01U
+#define IMU_SH3001_ACC_RANGE_8G         0x03U
+#define IMU_SH3001_GYRO_ODR_500HZ       0x01U
+#define IMU_SH3001_GYRO_RANGE_500DPS    0x04U
 
-#define IMU_SH3001_DATA_LEN_BYTE        12U     /*!< ACC (6) + GYRO (6) burst size */
+#define IMU_SH3001_DATA_LEN_BYTE        12U
 #define IMU_SH3001_TEMP_LEN_BYTE        2U
 #define IMU_SH3001_PROBE_RETRY_COUNT    5U
 

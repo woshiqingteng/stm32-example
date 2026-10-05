@@ -68,20 +68,17 @@ uint8_t imu_sh3001_init(void)
         return 1U;
     }
 
-    /* Temperature: enable the digital sensor and keep the factory room-temp offset. */
     reg = imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG0);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_TEMP_CONFIG0, (uint8_t)(reg | IMU_SH3001_TEMP_ENABLE));
 
     reg = imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG2);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_TEMP_CONFIG2, (uint8_t)(reg & (uint8_t)~IMU_SH3001_TEMP_ANALOG_MASK));
 
-    /* Accelerometer: 500Hz, +/-8g, digital filter enabled. */
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_ACC_CONFIG1, IMU_SH3001_ACC_ODR_500HZ);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_ACC_CONFIG2, IMU_SH3001_ACC_RANGE_8G);
     reg = imu_sh3001_read_byte(IMU_SH3001_REG_ACC_CONFIG0);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_ACC_CONFIG0, (uint8_t)(reg | 0x01U));
 
-    /* Gyroscope: 500Hz, +/-500dps, digital filter enabled. */
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG1, IMU_SH3001_GYRO_ODR_500HZ);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_X, IMU_SH3001_GYRO_RANGE_500DPS);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_GYRO_CONFIG3_Y, IMU_SH3001_GYRO_RANGE_500DPS);

@@ -182,13 +182,13 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
 
     /* Inclination feedback = residual(normalise(accelerometer), halfGravity).
      * halfGravity is the third column of the transposed rotation matrix scaled
-     * by 0.5 (FusionAhrs.c: HalfGravity(), NED convention). */
+     * by 0.5 (FusionAhrs.c: HalfGravity(), NWU convention). */
     norm = acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2];
     if (norm > 0.0f)
     {
-        float hgx = g_q0 * g_q2 - g_q1 * g_q3;
-        float hgy = -(g_q2 * g_q3 + g_q0 * g_q1);
-        float hgz = 0.5f - g_q0 * g_q0 - g_q2 * g_q2;
+        float hgx = g_q1 * g_q3 - g_q0 * g_q2;
+        float hgy = g_q2 * g_q3 + g_q0 * g_q1;
+        float hgz = g_q0 * g_q0 - 0.5f + g_q2 * g_q2;
         float inv = fusion_inv_sqrt(norm);
         float ax = acc[0] * inv;
         float ay = acc[1] * inv;

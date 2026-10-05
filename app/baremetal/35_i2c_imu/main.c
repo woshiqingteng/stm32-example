@@ -81,8 +81,7 @@ static void imu_update(void)
         g_gdps[i] = (float)g_gyro[i] / GYRO_LSB_PER_DPS;
     }
 
-    /* fusion_get_eulerian_angles expects the gyroscope in degrees per second.
-     * Measure the real update period (adaptive to the running mode). */
+    /* Measure the real update period (the loop rate varies with the mode). */
     {
         uint32_t now = delay_us_now();
         float    dt  = (float)(now - g_last_us) * 1e-6f;
