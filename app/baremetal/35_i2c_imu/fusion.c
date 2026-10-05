@@ -1,118 +1,262 @@
 /**
  * @file    fusion.c
- * @brief   Attitude fusion for a 6-axis IMU, ported from the ALIENTEK
- *          QMI8658A experiment (imu.c). A Mahony-style complementary filter
- *          integrates the gyroscope and corrects with the accelerometer.
+ * @brief   Attitude fusion: 6-axis Madgwick AHRS plus accelerometer/gyroscope
+ *          zero-bias calibration.
+ *
+ * The AHRS core is adapted from the MIT-licensed Fusion library by Seb Madgwick
+ * (xio Technologies), https://github.com/xioTechnologies/Fusion, commit
+ * a8d7224f36a0ec82345ef49a3db50e65f8d3bab8 (Fusion/FusionAhrs.c and
+ * Fusion/FusionMath.h). Earth axes use the NWU convention and the Euler angles
+ * are produced by FusionQuaternionToEuler(); the fixed sample rate of the
+ * original is replaced by the dt passed to fusion_get_eulerian_angles().
  */
 
 #include <math.h>
 
 #include "fusion.h"
+#include "imu.h"
+#include "delay.h"
 
-#define FUSION_KP_INIT      20.0f   /* high gain while settling */
-#define FUSION_KP_NORMAL    1.0f
-#define FUSION_KI           0.01f
-#define FUSION_SETTLE_SAMPLE 200U   /* samples with the high gain */
+/* x-io default settings. */
+#define FUSION_GAIN             0.5f     /* FusionAhrsSettings.gain */
+#define FUSION_INITIAL_GAIN     10.0f    /* INITIAL_STARTUP_GAIN */
+#define FUSION_STARTUP_PERIOD   3.0f     /* STARTUP_PERIOD (s) */
 
-static float q0 = 1.0f;
-static float q1 = 0.0f;
-static float q2 = 0.0f;
-static float q3 = 0.0f;
-static float rMat[3][3];
+/* Calibration / dynamic-bias parameters. */
+#define FUSION_ACC_1G_COUNT     4096.0f  /* counts per g at the configured +/-8g */
+#define FUSION_CAL_SAMPLE_COUNT 200U     /* samples averaged while calibrating */
+#define FUSION_CAL_DELAY_MS     2U       /* settle delay between samples */
+#define FUSION_DYN_ACC_MIN_G    0.9f     /* still detection: |acc| lower bound (g) */
+#define FUSION_DYN_ACC_MAX_G    1.1f     /* still detection: |acc| upper bound (g) */
+#define FUSION_DYN_GYRO_THR     200      /* still detection: |gyro| limit (~3 dps) */
+#define FUSION_DYN_BIAS_ALPHA   0.01f    /* bias tracking gain when still */
 
-static float exInt = 0.0f;
-static float eyInt = 0.0f;
-static float ezInt = 0.0f;
+static float g_q0 = 1.0f;                /* quaternion (w, x, y, z) */
+static float g_q1 = 0.0f;
+static float g_q2 = 0.0f;
+static float g_q3 = 0.0f;
+static float g_gain = FUSION_INITIAL_GAIN; /* ramps down to FUSION_GAIN */
 
+static float g_acc_bias[3];
+static float g_gyro_bias[3];
+
+/* Fast inverse square root (FusionMath.h: FusionFastInverseSqrt). */
 static float fusion_inv_sqrt(float x)
 {
-    float halfx = 0.5f * x;
-    float y = x;
-    long  i = *(long *)&y;
+    union {
+        float   f;
+        int32_t i;
+    } u;
 
-    i = 0x5f3759df - (i >> 1);
-    y = *(float *)&i;
-    y = y * (1.5f - (halfx * y * y));
+    u.f = x;
+    u.i = 0x5F1F1412 - (u.i >> 1);
 
-    return y;
+    return u.f * (1.69000231f - 0.714158168f * x * u.f * u.f);
 }
 
-static void fusion_computerotationmatrix(void)
+/* Arc sine with clamping to avoid NaN (FusionMath.h: FusionArcSin). */
+static float fusion_asin(float v)
 {
-    float q1q1 = q1 * q1;
-    float q2q2 = q2 * q2;
-    float q3q3 = q3 * q3;
-
-    float q0q1 = q0 * q1;
-    float q0q2 = q0 * q2;
-    float q0q3 = q0 * q3;
-    float q1q2 = q1 * q2;
-    float q1q3 = q1 * q3;
-    float q2q3 = q2 * q3;
-
-    rMat[0][0] = 1.0f - 2.0f * q2q2 - 2.0f * q3q3;
-    rMat[0][1] = 2.0f * (q1q2 + -q0q3);
-    rMat[0][2] = 2.0f * (q1q3 - -q0q2);
-
-    rMat[1][0] = 2.0f * (q1q2 - -q0q3);
-    rMat[1][1] = 1.0f - 2.0f * q1q1 - 2.0f * q3q3;
-    rMat[1][2] = 2.0f * (q2q3 + -q0q1);
-
-    rMat[2][0] = 2.0f * (q1q3 + -q0q2);
-    rMat[2][1] = 2.0f * (q2q3 - -q0q1);
-    rMat[2][2] = 1.0f - 2.0f * q1q1 - 2.0f * q2q2;
-}
-
-void fusion_get_eulerian_angles(float acc[3], float gyro[3], float *rpy, float dt)
-{
-    static unsigned short settle = FUSION_SETTLE_SAMPLE;
-
-    float normalise;
-    float ex, ey, ez;
-    float halfT = 0.5f * dt;
-    float q0Last, q1Last, q2Last, q3Last;
-    float kp;
-
-    kp = (settle > 0U) ? (settle--, FUSION_KP_INIT) : FUSION_KP_NORMAL;
-
-    if ((acc[0] != 0.0f) || (acc[1] != 0.0f) || (acc[2] != 0.0f))
+    if (v <= -1.0f)
     {
-        normalise = fusion_inv_sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
-        acc[0] *= normalise;
-        acc[1] *= normalise;
-        acc[2] *= normalise;
+        return -1.57079633f;
+    }
+    if (v >= 1.0f)
+    {
+        return 1.57079633f;
+    }
+    return asinf(v);
+}
 
-        ex = (acc[1] * rMat[2][2] - acc[2] * rMat[2][1]);
-        ey = (acc[2] * rMat[2][0] - acc[0] * rMat[2][2]);
-        ez = (acc[0] * rMat[2][1] - acc[1] * rMat[2][0]);
+/* Normalise a quaternion in place. */
+static void fusion_normalise(void)
+{
+    float n = g_q0 * g_q0 + g_q1 * g_q1 + g_q2 * g_q2 + g_q3 * g_q3;
+    float inv = fusion_inv_sqrt(n);
 
-        exInt += FUSION_KI * ex * dt;
-        eyInt += FUSION_KI * ey * dt;
-        ezInt += FUSION_KI * ez * dt;
+    g_q0 *= inv;
+    g_q1 *= inv;
+    g_q2 *= inv;
+    g_q3 *= inv;
+}
 
-        gyro[0] += kp * ex + exInt;
-        gyro[1] += kp * ey + eyInt;
-        gyro[2] += kp * ez + ezInt;
+void fusion_calibrate(void)
+{
+    int32_t sum_acc[3] = { 0, 0, 0 };
+    int32_t sum_gyro[3] = { 0, 0, 0 };
+    int16_t acc[3];
+    int16_t gyro[3];
+    float   ax, ay, az;
+    float   mag;
+    float   scale;
+    uint16_t i;
+
+    for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
+    {
+        (void)imu_read_raw(acc, gyro);
+
+        sum_acc[0] += acc[0];
+        sum_acc[1] += acc[1];
+        sum_acc[2] += acc[2];
+        sum_gyro[0] += gyro[0];
+        sum_gyro[1] += gyro[1];
+        sum_gyro[2] += gyro[2];
+
+        delay_ms(FUSION_CAL_DELAY_MS);
     }
 
-    q0Last = q0;
-    q1Last = q1;
-    q2Last = q2;
-    q3Last = q3;
-    q0 += (-q1Last * gyro[0] - q2Last * gyro[1] - q3Last * gyro[2]) * halfT;
-    q1 += (q0Last * gyro[0] + q2Last * gyro[2] - q3Last * gyro[1]) * halfT;
-    q2 += (q0Last * gyro[1] - q1Last * gyro[2] + q3Last * gyro[0]) * halfT;
-    q3 += (q0Last * gyro[2] + q1Last * gyro[1] - q2Last * gyro[0]) * halfT;
+    g_gyro_bias[0] = (float)sum_gyro[0] / (float)FUSION_CAL_SAMPLE_COUNT;
+    g_gyro_bias[1] = (float)sum_gyro[1] / (float)FUSION_CAL_SAMPLE_COUNT;
+    g_gyro_bias[2] = (float)sum_gyro[2] / (float)FUSION_CAL_SAMPLE_COUNT;
 
-    normalise = fusion_inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    q0 *= normalise;
-    q1 *= normalise;
-    q2 *= normalise;
-    q3 *= normalise;
+    /* Keep the measured gravity vector at 1g (orientation independent). */
+    ax = (float)sum_acc[0] / (float)FUSION_CAL_SAMPLE_COUNT;
+    ay = (float)sum_acc[1] / (float)FUSION_CAL_SAMPLE_COUNT;
+    az = (float)sum_acc[2] / (float)FUSION_CAL_SAMPLE_COUNT;
+    mag = sqrtf(ax * ax + ay * ay + az * az);
 
-    fusion_computerotationmatrix();
+    if (mag > 1.0f)
+    {
+        scale = FUSION_ACC_1G_COUNT / mag;
+        g_acc_bias[0] = ax * (1.0f - scale);
+        g_acc_bias[1] = ay * (1.0f - scale);
+        g_acc_bias[2] = az * (1.0f - scale);
+    }
+    else
+    {
+        g_acc_bias[0] = 0.0f;
+        g_acc_bias[1] = 0.0f;
+        g_acc_bias[2] = 0.0f;
+    }
 
-    rpy[0] = asinf(rMat[2][0]) * RAD2DEG;
-    rpy[1] = atan2f(rMat[2][1], rMat[2][2]) * RAD2DEG;
-    rpy[2] = atan2f(rMat[1][0], rMat[0][0]) * RAD2DEG;
+    g_q0 = 1.0f;
+    g_q1 = 0.0f;
+    g_q2 = 0.0f;
+    g_q3 = 0.0f;
+    g_gain = FUSION_INITIAL_GAIN;
+}
+
+void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
+{
+    int16_t raw_acc[3];
+    int16_t raw_gyro[3];
+
+    (void)imu_read_raw(raw_acc, raw_gyro);
+
+    acc[0]  = (int16_t)((float)raw_acc[0] - g_acc_bias[0]);
+    acc[1]  = (int16_t)((float)raw_acc[1] - g_acc_bias[1]);
+    acc[2]  = (int16_t)((float)raw_acc[2] - g_acc_bias[2]);
+    gyro[0] = (int16_t)((float)raw_gyro[0] - g_gyro_bias[0]);
+    gyro[1] = (int16_t)((float)raw_gyro[1] - g_gyro_bias[1]);
+    gyro[2] = (int16_t)((float)raw_gyro[2] - g_gyro_bias[2]);
+}
+
+void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
+{
+    float   ax = (float)acc[0] / FUSION_ACC_1G_COUNT;
+    float   ay = (float)acc[1] / FUSION_ACC_1G_COUNT;
+    float   az = (float)acc[2] / FUSION_ACC_1G_COUNT;
+    float   mag = sqrtf(ax * ax + ay * ay + az * az);
+    uint8_t i;
+
+    if ((mag < FUSION_DYN_ACC_MIN_G) || (mag > FUSION_DYN_ACC_MAX_G))
+    {
+        return;
+    }
+
+    for (i = 0U; i < 3U; i++)
+    {
+        if (((gyro[i] < 0) ? -gyro[i] : gyro[i]) >= FUSION_DYN_GYRO_THR)
+        {
+            return;
+        }
+    }
+
+    for (i = 0U; i < 3U; i++)
+    {
+        g_gyro_bias[i] += FUSION_DYN_BIAS_ALPHA * (float)gyro[i];
+    }
+}
+
+void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *rpy, float dt)
+{
+    float rate;
+    float norm;
+    float hfx = 0.0f, hfy = 0.0f, hfz = 0.0f;
+    float hx, hy, hz, sx, sy, sz, dq0, dq1, dq2, dq3;
+
+    /* Startup gain ramp (FusionAhrs.c: Startup()). */
+    rate = ((FUSION_INITIAL_GAIN - FUSION_GAIN) / FUSION_STARTUP_PERIOD) * dt;
+    g_gain -= rate;
+    if (g_gain < FUSION_GAIN)
+    {
+        g_gain = FUSION_GAIN;
+    }
+
+    /* Inclination feedback = residual(normalise(accelerometer), halfGravity).
+     * halfGravity is the third column of the transposed rotation matrix scaled
+     * by 0.5 (FusionAhrs.c: HalfGravity(), NWU). */
+    norm = acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2];
+    if (norm > 0.0f)
+    {
+        float hgx = g_q1 * g_q3 - g_q0 * g_q2;
+        float hgy = g_q2 * g_q3 + g_q0 * g_q1;
+        float hgz = g_q0 * g_q0 - 0.5f + g_q2 * g_q2;
+        float inv = fusion_inv_sqrt(norm);
+        float ax = acc[0] * inv;
+        float ay = acc[1] * inv;
+        float az = acc[2] * inv;
+        float cx = ay * hgz - az * hgy;
+        float cy = az * hgx - ax * hgz;
+        float cz = ax * hgy - ay * hgx;
+
+        if ((ax * hgx + ay * hgy + az * hgz) > 0.0f)
+        {
+            hfx = cx;                       /* error < 90 degrees */
+            hfy = cy;
+            hfz = cz;
+        }
+        else if ((cx * cx + cy * cy + cz * cz) > 0.0f)
+        {
+            float cinv = fusion_inv_sqrt(cx * cx + cy * cy + cz * cz);
+            hfx = cx * cinv;
+            hfy = cy * cinv;
+            hfz = cz * cinv;
+        }
+    }
+
+    /* halfAngularRate = halfGyro + halfFeedback * gain, then integrate:
+     * q += q (x) (halfAngularRate * dt). */
+    hx = gyro[0] * (0.5f * DEG2RAD) + hfx * g_gain;
+    hy = gyro[1] * (0.5f * DEG2RAD) + hfy * g_gain;
+    hz = gyro[2] * (0.5f * DEG2RAD) + hfz * g_gain;
+
+    sx = hx * dt;
+    sy = hy * dt;
+    sz = hz * dt;
+
+    dq0 = -g_q1 * sx - g_q2 * sy - g_q3 * sz;
+    dq1 =  g_q0 * sx + g_q2 * sz - g_q3 * sy;
+    dq2 =  g_q0 * sy - g_q1 * sz + g_q3 * sx;
+    dq3 =  g_q0 * sz + g_q1 * sy - g_q2 * sx;
+
+    g_q0 += dq0;
+    g_q1 += dq1;
+    g_q2 += dq2;
+    g_q3 += dq3;
+
+    fusion_normalise();
+
+    /* ZYX Euler angles in degrees (FusionMath.h: FusionQuaternionToEuler()). */
+    {
+        float roll  = RAD2DEG * atan2f(g_q2 * g_q3 + g_q0 * g_q1,
+                                       g_q0 * g_q0 + g_q3 * g_q3 - 0.5f);
+        float pitch = RAD2DEG * fusion_asin(2.0f * (g_q0 * g_q2 - g_q1 * g_q3));
+        float yaw   = RAD2DEG * atan2f(g_q1 * g_q2 + g_q0 * g_q3,
+                                       g_q0 * g_q0 + g_q1 * g_q1 - 0.5f);
+
+        rpy[0] = pitch;
+        rpy[1] = roll;
+        rpy[2] = yaw;
+    }
 }

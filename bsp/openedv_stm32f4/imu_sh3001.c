@@ -99,31 +99,35 @@ uint8_t imu_sh3001_read_raw(int16_t acc[3], int16_t gyro[3])
         return 1U;
     }
 
-    acc[0] = (int16_t)(((uint16_t)buf[1] << 8) | buf[0]);
-    acc[1] = (int16_t)(((uint16_t)buf[3] << 8) | buf[2]);
-    acc[2] = (int16_t)(((uint16_t)buf[5] << 8) | buf[4]);
+    acc[0]  = IMU_SH3001_MK16(buf[0], buf[1]);
+    acc[1]  = IMU_SH3001_MK16(buf[2], buf[3]);
+    acc[2]  = IMU_SH3001_MK16(buf[4], buf[5]);
 
-    gyro[0] = (int16_t)(((uint16_t)buf[7] << 8) | buf[6]);
-    gyro[1] = (int16_t)(((uint16_t)buf[9] << 8) | buf[8]);
-    gyro[2] = (int16_t)(((uint16_t)buf[11] << 8) | buf[10]);
+    gyro[0] = IMU_SH3001_MK16(buf[6], buf[7]);
+    gyro[1] = IMU_SH3001_MK16(buf[8], buf[9]);
+    gyro[2] = IMU_SH3001_MK16(buf[10], buf[11]);
 
     return 0U;
 }
 
 float imu_sh3001_read_temperature(void)
 {
+    static uint16_t room = 0xFFFFU;   /* factory room offset, read from the chip once */
     uint8_t buf[IMU_SH3001_TEMP_LEN_BYTE];
     uint16_t temp;
-    uint16_t room;
 
     if (imu_sh3001_read_nbytes(IMU_SH3001_REG_TEMP_L, buf, IMU_SH3001_TEMP_LEN_BYTE) != 0U)
     {
         return 0.0f;
     }
 
+    if (room == 0xFFFFU)
+    {
+        room = (uint16_t)(((uint16_t)(imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG0) & 0x0FU) << 8) |
+                          imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG1));
+    }
+
     temp = (uint16_t)(((uint16_t)(buf[1] & 0x0FU) << 8) | buf[0]);
-    room = (uint16_t)(((uint16_t)(imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG0) & 0x0FU) << 8) |
-                      imu_sh3001_read_byte(IMU_SH3001_REG_TEMP_CONFIG1));
 
     return ((float)temp - (float)room) / IMU_SH3001_TEMP_DIVISOR + IMU_SH3001_TEMP_OFFSET_C;
 }
@@ -147,8 +151,8 @@ void imu_sh3001_motion_int_enable(void)
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_ACT_THR, 0x20U);
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_ACT_TIME, 0x03U);
 
-    /* Interrupt config: latched, active high, normal output (cleared by
-     * reading the interrupt status register). */
+    /* Interrupt config 0x44 = 0x05: [6]=0 latched, [4]=0 status-read clear,
+     * [2]/[0]=1 open-drain output, [7]=0 active high. */
     (void)imu_sh3001_write_byte(IMU_SH3001_REG_INT_CONFIG, 0x05U);
 
     /* The SH3001 keeps its configuration across an MCU reset, so write the
@@ -166,26 +170,4 @@ uint8_t imu_sh3001_motion_int_status(void)
     (void)imu_sh3001_read_byte(IMU_SH3001_REG_TAP_STATUS);
 
     return status0;
-}
-
-void imu_sh3001_fifo_init(void)
-{
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_FIFO_CFG_MODE, 0x80U);                 /* reset FIFO */
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_FIFO_CFG_WM_L, (uint8_t)(IMU_SH3001_FIFO_WATERMARK & 0xFFU));
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_FIFO_CFG_WM_H, (uint8_t)((IMU_SH3001_FIFO_WATERMARK >> 8) & 0x07U));
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_FIFO_CFG_DATA, IMU_SH3001_FIFO_DATA_ACC_GYRO);
-    (void)imu_sh3001_write_byte(IMU_SH3001_REG_FIFO_CFG_MODE, 0x02U);                 /* stream mode */
-}
-
-uint16_t imu_sh3001_fifo_level(void)
-{
-    uint8_t lo = imu_sh3001_read_byte(IMU_SH3001_REG_FIFO_STATUS0);
-    uint8_t hi = imu_sh3001_read_byte(IMU_SH3001_REG_FIFO_STATUS1);
-
-    return (uint16_t)(((uint16_t)(hi & 0x07U) << 8) | lo);
-}
-
-uint8_t imu_sh3001_fifo_read(uint8_t *buf, uint16_t len)
-{
-    return imu_sh3001_read_nbytes(IMU_SH3001_REG_FIFO_DATA, buf, (uint8_t)len);
 }

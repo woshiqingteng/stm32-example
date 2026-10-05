@@ -1,28 +1,32 @@
 /**
  * @file    main.c
- * @brief   35_i2c_imu: SH3001 six-axis fusion (Mahony) + ST480MC compass.
- *          Temperature, Euler angles (x100), acc (g), gyro (dps) and the
- *          tilt-compensated heading are printed on USART1 (115200) every
- *          500 ms. KEY0 re-runs the gyro/acc zero-bias calibration.
+ * @brief   35_i2c_imu: SH3001 six-axis attitude (Madgwick) test. Temperature,
+ *          Euler angles, accelerometer (g) and gyroscope (dps) are printed on
+ *          USART1 (115200) every 2 s. KEY0 re-runs the zero-bias calibration.
  */
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "bsp.h"
 #include "imu.h"
-#include "mag.h"
 #include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U
 #define REPORT_TICKS        200U       /* 200 * 10 ms = 2 s report period */
-#define PI_F                3.14159265f
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
 #define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
-#define MAG_LSB_PER_GAUSS_XY 667.0f    /* ST480MC X/Y sensitivity */
-#define MAG_LSB_PER_GAUSS_Z  400.0f    /* ST480MC Z sensitivity   */
+
+static int16_t  g_acc[3];
+static int16_t  g_gyro[3];
+static float    g_af[3];               /* accelerometer, g */
+static float    g_gf[3];               /* gyroscope, rad/s */
+static float    g_gdps[3];             /* gyroscope, degrees/s */
+static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
+static bool     g_imu_ok;
+static uint8_t  g_int_prev;
+static uint16_t g_ticks;
 
 /* Print a signed value scaled by 100 as "<int>.<frac>" (e.g. -123 -> -1.23). */
 static void print_x100(int32_t v)
@@ -41,28 +45,25 @@ static int32_t scale100(float v)
     return (int32_t)((v < 0.0f) ? (v * 100.0f - 0.5f) : (v * 100.0f + 0.5f));
 }
 
-int main(void)
+/* Print three values as x100. */
+static void print_vec_x100(float x, float y, float z)
 {
-    int16_t  acc[3];
-    int16_t  gyro[3];
-    mag_data_t mag;
-    float    af[3];
-    float    gf[3];
-    float    rpy[3] = { 0.0f, 0.0f, 0.0f };
-    int16_t  r100[3];
-    uint16_t i;
-    uint16_t ticks = 0U;
-    bool     imu_ok;
-    bool     mag_ok;
-    bool     fifo_on = false;
-    uint8_t  st_prev = 0U;
+    print_x100(scale100(x));
+    printf(" ");
+    print_x100(scale100(y));
+    printf(" ");
+    print_x100(scale100(z));
+}
 
+/* Initialise the board and the sensor, then run the zero-bias calibration. */
+static void app_init(void)
+{
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    imu_ok = (imu_init() == 0U);
+    g_imu_ok = (imu_init() == 0U);
 
-    if (!imu_ok)
+    if (!g_imu_ok)
     {
         printf("SH3001 check failed\r\n");
     }
@@ -70,200 +71,113 @@ int main(void)
     {
         printf("SH3001 ready\r\n");
         printf("Calibrating: keep the board still...\r\n");
-        imu_calibrate();
+        fusion_calibrate();
         printf("Calibration done\r\n");
-    }
-
-    mag_ok = (mag_init() == 0U);
-
-    if (!mag_ok)
-    {
-        printf("ST480MC check failed\r\n");
-    }
-    else
-    {
-        printf("ST480MC ready\r\n");
-    }
-
-    if (imu_ok)
-    {
         imu_motion_int_enable();
-        imu_fifo_init();
     }
 
     printf("KEY0: recalibrate\r\n");
+}
+
+/* Poll the latched motion interrupt status and report edges. */
+static void motion_show(void)
+{
+    uint8_t st = imu_motion_int_status();
+    uint8_t nb = (uint8_t)(st & (uint8_t)~g_int_prev);
+
+    if ((nb & IMU_STATUS_TAP) != 0U)
+    {
+        printf("EVENT: TAP\r\n");
+    }
+    if ((nb & IMU_STATUS_FREEFALL) != 0U)
+    {
+        printf("EVENT: FREE-FALL\r\n");
+    }
+    if ((nb & IMU_STATUS_ACTIVITY) != 0U)
+    {
+        printf("EVENT: ACTIVITY\r\n");
+    }
+
+    g_int_prev = st;
+}
+
+/* Read the sensor, track the bias and update the attitude estimate. */
+static void imu_update(void)
+{
+    uint8_t i;
+
+    if (g_imu_ok)
+    {
+        fusion_read_xyz(g_acc, g_gyro);
+        fusion_update_dynamic_bias(g_acc, g_gyro);
+    }
+    else
+    {
+        for (i = 0U; i < 3U; i++)
+        {
+            g_acc[i] = 0;
+            g_gyro[i] = 0;
+        }
+    }
+
+    for (i = 0U; i < 3U; i++)
+    {
+        g_af[i]   = (float)g_acc[i] / ACC_LSB_PER_G;
+        g_gdps[i] = (float)g_gyro[i] / GYRO_LSB_PER_DPS;
+        g_gf[i]   = g_gdps[i] * DEG2RAD;
+    }
+
+    fusion_get_eulerian_angles(g_af, g_gf, g_rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
+}
+
+/* KEY0 re-runs the zero-bias calibration. */
+static void key_handle(void)
+{
+    if ((key_scan(false) == KEY0) && g_imu_ok)
+    {
+        printf("Recalibrating: keep the board still...\r\n");
+        delay_ms(100);
+        fusion_calibrate();
+        printf("Calibration done\r\n");
+    }
+}
+
+/* Print temperature, attitude and the raw accelerometer/gyroscope values. */
+static void report_show(void)
+{
+    printf("Temp : ");
+    print_x100(g_imu_ok ? (int32_t)(imu_read_temperature() * 100.0f) : 0);
+    printf(" C\r\n");
+
+    printf("Pitch: ");
+    print_x100(scale100(g_rpy[0]));
+    printf("  Roll: ");
+    print_x100(scale100(g_rpy[1]));
+    printf("  Yaw: ");
+    print_x100(scale100(g_rpy[2]));
+    printf("\r\n");
+
+    printf("acc(g):    ");
+    print_vec_x100(g_af[0], g_af[1], g_af[2]);
+    printf("   gyro(dps): ");
+    print_vec_x100(g_gdps[0], g_gdps[1], g_gdps[2]);
+    printf("\r\n");
+}
+
+int main(void)
+{
+    app_init();
 
     for (;;)
     {
-        /* SH3001 motion engine: poll the latched interrupt status register. */
+        motion_show();
+        imu_update();
+        key_handle();
+
+        if (++g_ticks >= REPORT_TICKS)
         {
-            uint8_t st = imu_motion_int_status();
-            uint8_t nb = (uint8_t)(st & (uint8_t)~st_prev);
-
-            if ((nb & IMU_STATUS_TAP) != 0U)
-            {
-                printf("EVENT: TAP\r\n");
-            }
-            if ((nb & IMU_STATUS_FREEFALL) != 0U)
-            {
-                printf("EVENT: FREE-FALL\r\n");
-            }
-            if ((nb & IMU_STATUS_ACTIVITY) != 0U)
-            {
-                printf("EVENT: ACTIVITY\r\n");
-            }
-
-            st_prev = st;
-        }
-
-        if (imu_ok)
-        {
-            imu_read_xyz(acc, gyro);
-            imu_update_dynamic_bias(acc, gyro);
-        }
-        else
-        {
-            for (i = 0U; i < 3U; i++)
-            {
-                acc[i] = 0;
-                gyro[i] = 0;
-            }
-        }
-
-        for (i = 0U; i < 3U; i++)
-        {
-            af[i] = (float)acc[i] / ACC_LSB_PER_G;
-            gf[i] = ((float)gyro[i] * PI_F) / (GYRO_LSB_PER_DPS * 180.0f);
-        }
-
-        fusion_get_eulerian_angles(af, gf, rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
-
-        for (i = 0U; i < 3U; i++)
-        {
-            r100[i] = (int16_t)(rpy[i] * 100.0f);
-        }
-
-        {
-            key_id_t key = key_scan(false);
-
-            if (key == KEY0)
-            {
-                if (imu_ok)
-                {
-                    printf("Recalibrating: keep the board still...\r\n");
-                    delay_ms(100);
-                    imu_calibrate();
-                    printf("Calibration done\r\n");
-                }
-            }
-            else if (key == KEY2)
-            {
-                fifo_on = !fifo_on;
-                printf("FIFO %s\r\n", fifo_on ? "on" : "off");
-            }
-        }
-
-        ticks++;
-
-        if (ticks >= REPORT_TICKS)
-        {
-            uint8_t mag_ret = 1U;
-
-            ticks = 0U;
-
-            if (mag_ok)
-            {
-                uint8_t k;
-
-                for (k = 0U; (k < 20U) && (mag_ret != 0U); k++)
-                {
-                    mag_ret = mag_read(&mag);
-                }
-            }
-
-            printf("Temp : ");
-            print_x100(imu_ok ? (int32_t)(imu_read_temperature() * 100.0f) : 0);
-            printf(" C\r\n");
-
-            printf("Pitch: %d  Roll: %d  Yaw: %d\r\n",
-                   (int)r100[0], (int)r100[1], (int)r100[2]);
-
-            printf("acc(g): ");
-            print_x100(scale100(af[0]));
-            printf(" ");
-            print_x100(scale100(af[1]));
-            printf(" ");
-            print_x100(scale100(af[2]));
-            printf("   gyro(dps): ");
-            print_x100(scale100((float)gyro[0] / GYRO_LSB_PER_DPS));
-            printf(" ");
-            print_x100(scale100((float)gyro[1] / GYRO_LSB_PER_DPS));
-            printf(" ");
-            print_x100(scale100((float)gyro[2] / GYRO_LSB_PER_DPS));
-            printf("\r\n");
-
-            if (mag_ret == 0U)
-            {
-                float pitch = rpy[0] * DEG2RAD;
-                float roll = rpy[1] * DEG2RAD;
-                float mxg = (float)mag.x / MAG_LSB_PER_GAUSS_XY;
-                float myg = (float)mag.y / MAG_LSB_PER_GAUSS_XY;
-                float mzg = (float)mag.z / MAG_LSB_PER_GAUSS_Z;
-                float xh = mxg * cosf(pitch) + mzg * sinf(pitch);
-                float yh = mxg * sinf(roll) * sinf(pitch) + myg * cosf(roll) -
-                           mzg * sinf(roll) * cosf(pitch);
-                float heading = atan2f(-yh, xh) * RAD2DEG;
-
-                if (heading < 0.0f)
-                {
-                    heading += 360.0f;
-                }
-
-                printf("Heading: ");
-                print_x100(scale100(heading));
-                printf("\r\n");
-            }
-
-            if (fifo_on)
-            {
-                uint8_t  n;
-                uint8_t  buf[20U * IMU_FIFO_SAMPLE_LEN];
-                uint16_t lvl;
-
-                imu_fifo_init();          /* reset + stream: read frame-aligned data */
-                delay_ms(50);
-
-                lvl = imu_fifo_level();
-                printf("FIFO level: %u\r\n", (unsigned)lvl);
-
-                n = (lvl > 20U) ? 20U : (uint8_t)lvl;
-
-                if ((n > 0U) && (imu_fifo_read(buf, (uint16_t)n * IMU_FIFO_SAMPLE_LEN) == 0U))
-                {
-                    uint8_t *p = buf;     /* first (frame-aligned) sample */
-                    int16_t fax = (int16_t)(((uint16_t)p[1] << 8) | p[0]);
-                    int16_t fay = (int16_t)(((uint16_t)p[3] << 8) | p[2]);
-                    int16_t faz = (int16_t)(((uint16_t)p[5] << 8) | p[4]);
-                    int16_t fgx = (int16_t)(((uint16_t)p[7] << 8) | p[6]);
-                    int16_t fgy = (int16_t)(((uint16_t)p[9] << 8) | p[8]);
-                    int16_t fgz = (int16_t)(((uint16_t)p[11] << 8) | p[10]);
-
-                    printf("FIFO acc(g): ");
-                    print_x100(scale100((float)fax / ACC_LSB_PER_G));
-                    printf(" ");
-                    print_x100(scale100((float)fay / ACC_LSB_PER_G));
-                    printf(" ");
-                    print_x100(scale100((float)faz / ACC_LSB_PER_G));
-                    printf("   gyro(dps): ");
-                    print_x100(scale100((float)fgx / GYRO_LSB_PER_DPS));
-                    printf(" ");
-                    print_x100(scale100((float)fgy / GYRO_LSB_PER_DPS));
-                    printf(" ");
-                    print_x100(scale100((float)fgz / GYRO_LSB_PER_DPS));
-                    printf("\r\n");
-                }
-            }
-
+            g_ticks = 0U;
+            report_show();
             led_toggle(LED0);
         }
 
