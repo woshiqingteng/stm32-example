@@ -14,10 +14,10 @@
 /* Board orientation: map the raw sensor axes to the fusion axes. Each fusion
  * axis selects a raw axis (0=X, 1=Y, 2=Z) and a sign (+1/-1). Adjust one axis
  * at a time to correct the direction (applies to accelerometer and gyroscope). */
-#define FUSION_REMAP_X_AXIS   0
+#define FUSION_REMAP_X_AXIS   1
 #define FUSION_REMAP_X_SIGN   (+1)
-#define FUSION_REMAP_Y_AXIS   1
-#define FUSION_REMAP_Y_SIGN   (+1)
+#define FUSION_REMAP_Y_AXIS   0
+#define FUSION_REMAP_Y_SIGN   (-1)
 #define FUSION_REMAP_Z_AXIS   2
 #define FUSION_REMAP_Z_SIGN   (+1)
 

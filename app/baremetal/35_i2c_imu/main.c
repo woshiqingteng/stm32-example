@@ -22,7 +22,6 @@
 static int16_t  g_acc[3];
 static int16_t  g_gyro[3];
 static float    g_af[3];               /* accelerometer, g */
-static float    g_gf[3];               /* gyroscope, rad/s */
 static float    g_gdps[3];             /* gyroscope, degrees/s */
 static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
 static bool     g_imu_ok;
@@ -79,10 +78,10 @@ static void imu_update(void)
     {
         g_af[i]   = (float)g_acc[i] / ACC_LSB_PER_G;
         g_gdps[i] = (float)g_gyro[i] / GYRO_LSB_PER_DPS;
-        g_gf[i]   = g_gdps[i] * DEG2RAD;
     }
 
-    fusion_get_eulerian_angles(g_af, g_gf, g_rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
+    /* fusion_get_eulerian_angles expects the gyroscope in degrees per second. */
+    fusion_get_eulerian_angles(g_af, g_gdps, g_rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
 }
 
 /* Print temperature, attitude and the raw accelerometer/gyroscope values. */
