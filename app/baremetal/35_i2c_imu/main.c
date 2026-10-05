@@ -113,7 +113,19 @@ int main(void)
     printf(APP_BANNER "\r\n");
 
     g_imu_ok = (imu_init() == 0U);
-    printf(g_imu_ok ? "SH3001 ready\r\n" : "SH3001 check failed\r\n");
+
+    if (g_imu_ok)
+    {
+        printf("SH3001 ready\r\n");
+        printf("Calibrating: keep the board still and level...\r\n");
+        fusion_calibrate();
+        printf("Calibration done\r\n");
+    }
+    else
+    {
+        printf("SH3001 check failed\r\n");
+    }
+
     printf("KEY0: toggle ANO upload\r\n");
 
     for (;;)

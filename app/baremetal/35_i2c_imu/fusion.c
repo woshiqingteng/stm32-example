@@ -20,8 +20,9 @@
 #define FUSION_INITIAL_GAIN     10.0f    /* INITIAL_STARTUP_GAIN */
 #define FUSION_STARTUP_PERIOD   3.0f     /* STARTUP_PERIOD (s) */
 
-/* Dynamic gyro-bias parameters. */
+/* Calibration / dynamic-bias parameters. */
 #define FUSION_ACC_1G_COUNT     4096.0f  /* counts per g at the configured +/-8g */
+#define FUSION_CAL_SAMPLE_COUNT 100U     /* start-up calibration samples */
 #define FUSION_DYN_ACC_MIN_G    0.9f     /* still detection: |acc| lower bound (g) */
 #define FUSION_DYN_ACC_MAX_G    1.1f     /* still detection: |acc| upper bound (g) */
 #define FUSION_DYN_GYRO_THR     200      /* still detection: |gyro| limit (~3 dps) */
@@ -33,6 +34,7 @@ static float g_q2 = 0.0f;
 static float g_q3 = 0.0f;
 static float g_gain = FUSION_INITIAL_GAIN; /* ramps down to FUSION_GAIN */
 
+static float g_acc_offset[3];
 static float g_gyro_bias[3];
 
 /* Fast inverse square root (FusionMath.h: FusionFastInverseSqrt). */
@@ -75,24 +77,48 @@ static void fusion_normalise(void)
     g_q3 *= inv;
 }
 
+void fusion_calibrate(void)
+{
+    int32_t sum_acc[3] = { 0, 0, 0 };
+    int32_t sum_gyro[3] = { 0, 0, 0 };
+    int16_t acc[3];
+    int16_t gyro[3];
+    uint8_t i;
+    uint8_t a;
+
+    for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
+    {
+        (void)imu_read_raw(acc, gyro);
+
+        for (a = 0U; a < 3U; a++)
+        {
+            sum_acc[a] += acc[a];
+            sum_gyro[a] += gyro[a];
+        }
+    }
+
+    for (a = 0U; a < 3U; a++)
+    {
+        g_gyro_bias[a]  = (float)sum_gyro[a] / (float)FUSION_CAL_SAMPLE_COUNT;
+        g_acc_offset[a] = (float)sum_acc[a] / (float)FUSION_CAL_SAMPLE_COUNT;
+    }
+
+    g_acc_offset[2] -= FUSION_ACC_1G_COUNT;   /* Z relative to 1g (official) */
+}
+
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     int16_t raw_acc[3];
     int16_t raw_gyro[3];
-    float   bias;
+    uint8_t i;
 
     (void)imu_read_raw(raw_acc, raw_gyro);
 
-    acc[0] = raw_acc[0];
-    acc[1] = raw_acc[1];
-    acc[2] = raw_acc[2];
-
-    bias    = g_gyro_bias[0];
-    gyro[0] = (int16_t)((float)raw_gyro[0] - bias);
-    bias    = g_gyro_bias[1];
-    gyro[1] = (int16_t)((float)raw_gyro[1] - bias);
-    bias    = g_gyro_bias[2];
-    gyro[2] = (int16_t)((float)raw_gyro[2] - bias);
+    for (i = 0U; i < 3U; i++)
+    {
+        acc[i]  = (int16_t)((float)raw_acc[i] - g_acc_offset[i]);
+        gyro[i] = (int16_t)((float)raw_gyro[i] - g_gyro_bias[i]);
+    }
 }
 
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])
