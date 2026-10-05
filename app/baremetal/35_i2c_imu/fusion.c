@@ -190,7 +190,7 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
     {
         float hgx = g_q1 * g_q3 - g_q0 * g_q2;
         float hgy = g_q2 * g_q3 + g_q0 * g_q1;
-        float hgz = g_q0 * g_q0 - 0.5f + g_q2 * g_q2;
+        float hgz = g_q0 * g_q0 - 0.5f + g_q3 * g_q3;
         float inv = fusion_inv_sqrt(norm);
         float ax = acc[0] * inv;
         float ay = acc[1] * inv;
