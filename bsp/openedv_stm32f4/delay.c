@@ -87,6 +87,24 @@ void delay_ms(uint16_t nms)
     delay_us((uint32_t)nms * US_PER_MS);
 }
 
+uint32_t delay_us_now(void)
+{
+    uint32_t ms   = HAL_GetTick();
+    uint32_t val  = SysTick->VAL;
+    uint32_t load = SysTick->LOAD;
+
+    /* Re-read if the millisecond ticked during the read (avoid a 1 ms glitch). */
+    if (ms != HAL_GetTick())
+    {
+        ms  = HAL_GetTick();
+        val = SysTick->VAL;
+    }
+
+    /* SysTick runs at 1 ms; (LOAD - VAL) is the cycles elapsed in this ms and
+     * g_fac_us is the number of core cycles per microsecond. */
+    return (ms * 1000U) + ((load - val) / g_fac_us);
+}
+
 void HAL_Delay(uint32_t Delay)
 {
     while (Delay > 0xFFFFU)

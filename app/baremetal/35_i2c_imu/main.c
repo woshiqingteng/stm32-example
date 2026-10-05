@@ -27,6 +27,7 @@ static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
 static bool     g_imu_ok;
 static bool     g_ano_on;
 static uint16_t g_ticks;
+static uint32_t g_last_us;             /* delay_us_now() at the previous update */
 
 /* Print a signed value scaled by 100 as "<int>.<frac>" (e.g. -123 -> -1.23). */
 static void print_x100(int32_t v)
@@ -80,8 +81,15 @@ static void imu_update(void)
         g_gdps[i] = (float)g_gyro[i] / GYRO_LSB_PER_DPS;
     }
 
-    /* fusion_get_eulerian_angles expects the gyroscope in degrees per second. */
-    fusion_get_eulerian_angles(g_af, g_gdps, g_rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
+    /* fusion_get_eulerian_angles expects the gyroscope in degrees per second.
+     * Measure the real update period (adaptive to the running mode). */
+    {
+        uint32_t now = delay_us_now();
+        float    dt  = (float)(now - g_last_us) * 1e-6f;
+
+        g_last_us = now;
+        fusion_get_eulerian_angles(g_af, g_gdps, g_rpy, dt);
+    }
 }
 
 /* Print temperature, attitude and the raw accelerometer/gyroscope values. */
@@ -126,6 +134,8 @@ int main(void)
     }
 
     printf("KEY0: toggle ANO upload\r\n");
+
+    g_last_us = delay_us_now();
 
     for (;;)
     {
