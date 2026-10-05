@@ -154,7 +154,7 @@ static void mag_show(void)
     }
     else
     {
-        printf("Temp: --\r\n");
+        printf("Temp: -- C\r\n");
     }
 
     if (mag_read(&magx, &magy, &magz) == 0U)
