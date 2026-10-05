@@ -24,6 +24,8 @@ static int16_t  g_gyro[3];
 static float    g_af[3];               /* accelerometer, g */
 static float    g_gdps[3];             /* gyroscope, degrees/s */
 static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
+static float    g_gyro_sum[3];         /* report-window sum of gyro (dps) */
+static uint16_t g_report_n;            /* samples summed over the report window */
 static bool     g_imu_ok;
 static bool     g_ano_on;
 static uint16_t g_ticks;
@@ -79,7 +81,9 @@ static void imu_update(void)
     {
         g_af[i]   = (float)g_acc[i] / ACC_LSB_PER_G;
         g_gdps[i] = (float)g_gyro[i] / GYRO_LSB_PER_DPS;
+        g_gyro_sum[i] += g_gdps[i];
     }
+    g_report_n++;
 
     /* Measure the real update period (the loop rate varies with the mode). */
     {
@@ -94,6 +98,16 @@ static void imu_update(void)
 /* Print temperature, attitude and the raw accelerometer/gyroscope values. */
 static void report_show(void)
 {
+    float   gy[3];
+    uint8_t i;
+
+    for (i = 0U; i < 3U; i++)
+    {
+        gy[i] = (g_report_n != 0U) ? (g_gyro_sum[i] / (float)g_report_n) : 0.0f;
+        g_gyro_sum[i] = 0.0f;
+    }
+    g_report_n = 0U;
+
     printf("Temp : ");
     print_x100(g_imu_ok ? (int32_t)(imu_read_temperature() * 100.0f) : 0);
     printf(" C\r\n");
@@ -109,7 +123,7 @@ static void report_show(void)
     printf("acc(g):    ");
     print_vec_x100(g_af[0], g_af[1], g_af[2]);
     printf("   gyro(dps): ");
-    print_vec_x100(g_gdps[0], g_gdps[1], g_gdps[2]);
+    print_vec_x100(gy[0], gy[1], gy[2]);
     printf("\r\n");
 }
 
