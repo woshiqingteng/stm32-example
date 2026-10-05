@@ -21,9 +21,9 @@
  * Resulting body frame (NWU, +Z up): +X = toward the IIC edge (back),
  * +Y = along the long edge (opposite), +Z = up. */
 #define FUSION_REMAP_X_AXIS   0
-#define FUSION_REMAP_X_SIGN   (+1)
+#define FUSION_REMAP_X_SIGN   (-1)
 #define FUSION_REMAP_Y_AXIS   1
-#define FUSION_REMAP_Y_SIGN   (+1)
+#define FUSION_REMAP_Y_SIGN   (-1)
 #define FUSION_REMAP_Z_AXIS   2
 #define FUSION_REMAP_Z_SIGN   (+1)
 
