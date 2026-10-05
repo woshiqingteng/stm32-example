@@ -28,6 +28,10 @@
 #define FUSION_DYN_GYRO_THR     786      /* still detection: |gyro| limit (~3 dps) */
 #define FUSION_DYN_BIAS_ALPHA   0.01f    /* bias tracking gain when still */
 
+/* ZYX Euler gimbal-lock handling: latch roll/yaw when |pitch| approaches 90. */
+#define FUSION_GIMBAL_LOCK_DEG  89.0f    /* enter the latch above this |pitch| (deg) */
+#define FUSION_GIMBAL_HYST_DEG  1.5f     /* release the latch below lock-hysteresis */
+
 static float g_q0 = 1.0f;                /* quaternion (w, x, y, z) */
 static float g_q1 = 0.0f;
 static float g_q2 = 0.0f;
@@ -37,6 +41,10 @@ static float g_gain = FUSION_INITIAL_GAIN; /* ramps down to FUSION_GAIN */
 static float g_acc_offset[3];
 static float g_gyro_bias[3];
 static float g_temperature;
+
+static uint8_t g_gimbal_locked;          /* ZYX Euler pitch near +/-90 */
+static float g_latch_roll;
+static float g_latch_yaw;
 
 /* Fast inverse square root (FusionMath.h: FusionFastInverseSqrt). */
 static float fusion_inv_sqrt(float x)
@@ -236,13 +244,39 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
 
     fusion_normalise();
 
-    /* ZYX Euler angles in degrees (FusionMath.h: FusionQuaternionToEuler()). */
+    /* ZYX Euler angles in degrees (FusionMath.h: FusionQuaternionToEuler()).
+     * Near the gimbal lock (|pitch| -> 90 deg) roll and yaw become degenerate,
+     * so latch them to the last valid values to keep the output stable. */
     {
         float roll  = RAD2DEG * atan2f(g_q2 * g_q3 + g_q0 * g_q1,
                                        g_q0 * g_q0 + g_q3 * g_q3 - 0.5f);
         float pitch = RAD2DEG * fusion_asin(2.0f * (g_q0 * g_q2 - g_q1 * g_q3));
         float yaw   = RAD2DEG * atan2f(g_q1 * g_q2 + g_q0 * g_q3,
                                        g_q0 * g_q0 + g_q1 * g_q1 - 0.5f);
+        float ap = (pitch < 0.0f) ? -pitch : pitch;
+
+        if (g_gimbal_locked != 0U)
+        {
+            if (ap < (FUSION_GIMBAL_LOCK_DEG - FUSION_GIMBAL_HYST_DEG))
+            {
+                g_gimbal_locked = 0U;
+            }
+        }
+        else if (ap > FUSION_GIMBAL_LOCK_DEG)
+        {
+            g_gimbal_locked = 1U;
+        }
+
+        if (g_gimbal_locked != 0U)
+        {
+            roll = g_latch_roll;
+            yaw  = g_latch_yaw;
+        }
+        else
+        {
+            g_latch_roll = roll;
+            g_latch_yaw  = yaw;
+        }
 
         rpy[0] = FUSION_PITCH_SIGN * pitch;
         rpy[1] = FUSION_ROLL_SIGN  * roll;
