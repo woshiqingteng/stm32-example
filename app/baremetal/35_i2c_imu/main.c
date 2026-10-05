@@ -14,8 +14,8 @@
 #include "fusion.h"
 #include "ano.h"
 
-#define SAMPLE_PERIOD_MS    10U
-#define REPORT_TICKS        50U        /* 50 * 10 ms = 0.5 s report period */
+#define SAMPLE_PERIOD_MS    1U
+#define REPORT_TICKS        200U       /* 200 * 1 ms = 0.2 s report period */
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
 #define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
 
@@ -135,7 +135,10 @@ int main(void)
         if (key_scan(false) == KEY0)
         {
             g_ano_on = !g_ano_on;
-            printf("ANO upload %s\r\n", g_ano_on ? "on" : "off");
+
+            /* KEY0 also switches the baud rate used for the ANO frames. */
+            usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1),
+                                       .baudrate = g_ano_on ? 921600U : 115200U });
         }
 
         if (g_ano_on)
