@@ -145,9 +145,13 @@ int main(void)
 
         if (g_ano_on)
         {
+            float q[4];
+
             /* ~100 Hz ANO_TC telemetry (suppresses the text report). */
             ano_report_raw(g_acc, g_gyro);
             ano_report_imu(g_rpy[1], g_rpy[0], g_rpy[2]);   /* roll, pitch, yaw */
+            fusion_get_quaternion(q);
+            ano_report_quat(q[0], q[1], q[2], q[3]);        /* w, x, y, z */
         }
         else if (++g_ticks >= REPORT_TICKS)
         {

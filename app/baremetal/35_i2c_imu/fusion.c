@@ -249,3 +249,24 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
         rpy[2] = FUSION_YAW_SIGN   * yaw;
     }
 }
+
+void fusion_get_quaternion(float q[4])
+{
+    q[0] = g_q0;
+    q[1] = g_q1;
+    q[2] = g_q2;
+    q[3] = g_q3;
+}
+
+void fusion_get_rotation(float r[3][3])
+{
+    r[0][0] = 1.0f - 2.0f * g_q2 * g_q2 - 2.0f * g_q3 * g_q3;
+    r[0][1] = 2.0f * (g_q1 * g_q2 - g_q0 * g_q3);
+    r[0][2] = 2.0f * (g_q1 * g_q3 + g_q0 * g_q2);
+    r[1][0] = 2.0f * (g_q1 * g_q2 + g_q0 * g_q3);
+    r[1][1] = 1.0f - 2.0f * g_q1 * g_q1 - 2.0f * g_q3 * g_q3;
+    r[1][2] = 2.0f * (g_q2 * g_q3 - g_q0 * g_q1);
+    r[2][0] = 2.0f * (g_q1 * g_q3 - g_q0 * g_q2);
+    r[2][1] = 2.0f * (g_q2 * g_q3 + g_q0 * g_q1);
+    r[2][2] = 1.0f - 2.0f * g_q1 * g_q1 - 2.0f * g_q2 * g_q2;
+}

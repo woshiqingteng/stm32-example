@@ -93,3 +93,29 @@ void ano_report_raw(const int16_t acc[3], const int16_t gyro[3])
 
     ano_send(0x02U, data, 18U);
 }
+
+void ano_report_quat(float w, float x, float y, float z)
+{
+    /* fun 0x04: orientation quaternion w/x/y/z (big-endian int16, x10000) + 10 x 0. */
+    int16_t q[4];
+    uint8_t data[18];
+    uint8_t i;
+
+    q[0] = (int16_t)(w * 10000.0f);
+    q[1] = (int16_t)(x * 10000.0f);
+    q[2] = (int16_t)(y * 10000.0f);
+    q[3] = (int16_t)(z * 10000.0f);
+
+    for (i = 0U; i < 4U; i++)
+    {
+        data[i * 2U]      = (uint8_t)(q[i] >> 8);
+        data[i * 2U + 1U] = (uint8_t)q[i];
+    }
+
+    for (i = 8U; i < 18U; i++)
+    {
+        data[i] = 0U;
+    }
+
+    ano_send(0x04U, data, 18U);
+}
