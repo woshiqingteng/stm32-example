@@ -14,7 +14,7 @@
 #include "fusion.h"
 
 #define SAMPLE_PERIOD_MS    10U
-#define REPORT_TICKS        200U       /* 200 * 10 ms = 2 s report period */
+#define REPORT_TICKS        50U        /* 50 * 10 ms = 0.5 s report period */
 #define ACC_LSB_PER_G       4096.0f    /* accelerometer configured for +/-8g  */
 #define GYRO_LSB_PER_DPS    65.536f    /* gyroscope configured for +/-500dps  */
 
