@@ -45,7 +45,7 @@ int main(void)
 {
     int16_t  acc[3];
     int16_t  gyro[3];
-    int16_t  mag[3];
+    mag_data_t mag;
     float    af[3];
     float    gf[3];
     float    rpy[3] = { 0.0f, 0.0f, 0.0f };
@@ -177,7 +177,7 @@ int main(void)
 
                 for (k = 0U; (k < 20U) && (mag_ret != 0U); k++)
                 {
-                    mag_ret = mag_read(&mag[0], &mag[1], &mag[2]);
+                    mag_ret = mag_read(&mag);
                 }
             }
 
@@ -206,9 +206,9 @@ int main(void)
             {
                 float pitch = rpy[0] * DEG2RAD;
                 float roll = rpy[1] * DEG2RAD;
-                float mxg = (float)mag[0] / MAG_LSB_PER_GAUSS_XY;
-                float myg = (float)mag[1] / MAG_LSB_PER_GAUSS_XY;
-                float mzg = (float)mag[2] / MAG_LSB_PER_GAUSS_Z;
+                float mxg = (float)mag.x / MAG_LSB_PER_GAUSS_XY;
+                float myg = (float)mag.y / MAG_LSB_PER_GAUSS_XY;
+                float mzg = (float)mag.z / MAG_LSB_PER_GAUSS_Z;
                 float xh = mxg * cosf(pitch) + mzg * sinf(pitch);
                 float yh = mxg * sinf(roll) * sinf(pitch) + myg * cosf(roll) -
                            mzg * sinf(roll) * cosf(pitch);

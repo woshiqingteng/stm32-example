@@ -12,10 +12,8 @@
 /** @brief  Reset the ST480MC and probe its IIC address. 0 on success. */
 uint8_t mag_st480mc_init(void);
 
-/** @brief  Read one raw magnetic sample (single-shot). 0 on success. */
-uint8_t mag_st480mc_read_magdata(int16_t *pmagx, int16_t *pmagy, int16_t *pmagz);
-
-/** @brief  Read the temperature in Celsius (single-shot). 0 on success. */
-uint8_t mag_st480mc_read_temp(float *temp);
+/** @brief  One single measurement: temperature (Celsius) and X/Y/Z counts.
+ *  @return 0 on success. */
+uint8_t mag_st480mc_read(int16_t *x, int16_t *y, int16_t *z, float *temp);
 
 #endif /* BSP_MAG_ST480MC_H */

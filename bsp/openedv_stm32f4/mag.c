@@ -11,12 +11,7 @@ uint8_t mag_init(void)
     return mag_st480mc_init();
 }
 
-uint8_t mag_read(int16_t *x, int16_t *y, int16_t *z)
+uint8_t mag_read(mag_data_t *data)
 {
-    return mag_st480mc_read_magdata(x, y, z);
-}
-
-uint8_t mag_read_temp(float *temp)
-{
-    return mag_st480mc_read_temp(temp);
+    return mag_st480mc_read(&data->x, &data->y, &data->z, &data->temperature);
 }

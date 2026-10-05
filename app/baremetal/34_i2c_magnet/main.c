@@ -30,24 +30,24 @@ static void print_fixed1(const char *label, const char *unit, float value)
 }
 
 /* Average @p times single-shot samples (retrying transient read errors). */
-static uint8_t mag_read_average(int16_t *x, int16_t *y, int16_t *z, uint8_t times)
+static uint8_t mag_read_average(mag_data_t *avg, uint8_t times)
 {
     int32_t sx = 0;
     int32_t sy = 0;
     int32_t sz = 0;
+    float   st = 0.0f;
     uint8_t got = 0U;
     uint8_t err = 0U;
-    int16_t mx;
-    int16_t my;
-    int16_t mz;
+    mag_data_t d;
 
     while (got < times)
     {
-        if (mag_read(&mx, &my, &mz) == 0U)
+        if (mag_read(&d) == 0U)
         {
-            sx += mx;
-            sy += my;
-            sz += mz;
+            sx += d.x;
+            sy += d.y;
+            sz += d.z;
+            st += d.temperature;
             got++;
             err = 0U;
         }
@@ -63,31 +63,21 @@ static uint8_t mag_read_average(int16_t *x, int16_t *y, int16_t *z, uint8_t time
         }
     }
 
-    *x = (int16_t)(sx / times);
-    *y = (int16_t)(sy / times);
-    *z = (int16_t)(sz / times);
+    avg->x = (int16_t)(sx / times);
+    avg->y = (int16_t)(sy / times);
+    avg->z = (int16_t)(sz / times);
+    avg->temperature = st / (float)times;
 
     return 0U;
 }
 
-/* Compass heading [0, 360) via atan2 of offset-corrected X/Y; 0 on success. */
-static uint8_t compass_get_angle(float *angle)
+/* Compass heading [0, 360) from the offset-corrected X/Y. */
+static float compass_get_angle(const mag_data_t *d)
 {
-    int16_t magx;
-    int16_t magy;
-    int16_t magz;
-    float   heading;
+    float heading = atan2f((float)(d->y - g_magy_offset),
+                           (float)(d->x - g_magx_offset)) * (180.0f / PI_F);
 
-    if (mag_read_average(&magx, &magy, &magz, AVERAGE_TIMES) != 0U)
-    {
-        return 0xFFU;
-    }
-
-    heading = atan2f((float)(magy - g_magy_offset),
-                     (float)(magx - g_magx_offset)) * (180.0f / PI_F);
-    *angle = (heading < 0.0f) ? (heading + 360.0f) : heading;
-
-    return 0U;
+    return (heading < 0.0f) ? (heading + 360.0f) : heading;
 }
 
 /* Horizontal min/max calibration: rotate a full turn, then press KEY0. */
@@ -97,9 +87,7 @@ static void compass_calibration(void)
     int16_t x_max = 0;
     int16_t y_min = 0;
     int16_t y_max = 0;
-    int16_t magx;
-    int16_t magy;
-    int16_t magz;
+    mag_data_t d;
 
     printf("Compass calibration: rotate horizontally, press KEY0 when done\r\n");
 
@@ -110,12 +98,12 @@ static void compass_calibration(void)
             break;
         }
 
-        if (mag_read(&magx, &magy, &magz) == 0U)
+        if (mag_read(&d) == 0U)
         {
-            if (magx > x_max) { x_max = magx; }
-            if (magx < x_min) { x_min = magx; }
-            if (magy > y_max) { y_max = magy; }
-            if (magy < y_min) { y_min = magy; }
+            if (d.x > x_max) { x_max = d.x; }
+            if (d.x < x_min) { x_min = d.x; }
+            if (d.y > y_max) { y_max = d.y; }
+            if (d.y < y_min) { y_min = d.y; }
             led_toggle(LED0);
         }
 
@@ -130,45 +118,26 @@ static void compass_calibration(void)
     printf("offset x:%d y:%d\r\n", (int)g_magx_offset, (int)g_magy_offset);
 }
 
-/* One report: heading, temperature and the raw X/Y/Z counts. */
+/* One report: heading, temperature and the averaged raw X/Y/Z counts. */
 static void mag_show(void)
 {
-    int16_t magx;
-    int16_t magy;
-    int16_t magz;
-    float   angle;
-    float   temperature;
+    mag_data_t d;
 
-    if (compass_get_angle(&angle) == 0U)
-    {
-        print_fixed1("Angle: ", "", 360.0f - angle);
-    }
-    else
+    if (mag_read_average(&d, AVERAGE_TIMES) != 0U)
     {
         printf("Angle: --\r\n");
-    }
-
-    if (mag_read_temp(&temperature) == 0U)
-    {
-        print_fixed1("Temp: ", " C", temperature);
-    }
-    else
-    {
         printf("Temp: -- C\r\n");
-    }
-
-    if (mag_read(&magx, &magy, &magz) == 0U)
-    {
-        printf("MagX:%d\r\n", (int)magx);
-        printf("MagY:%d\r\n", (int)magy);
-        printf("MagZ:%d\r\n", (int)magz);
-    }
-    else
-    {
         printf("MagX:--\r\n");
         printf("MagY:--\r\n");
         printf("MagZ:--\r\n");
+        return;
     }
+
+    print_fixed1("Angle: ", "", 360.0f - compass_get_angle(&d));
+    print_fixed1("Temp: ", " C", d.temperature);
+    printf("MagX:%d\r\n", (int)d.x);
+    printf("MagY:%d\r\n", (int)d.y);
+    printf("MagZ:%d\r\n", (int)d.z);
 }
 
 int main(void)
