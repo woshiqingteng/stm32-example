@@ -16,7 +16,7 @@
 
 /* Data layout (16-bit little-endian per axis, low byte first):
  *   0x00/01 X, 0x02/03 Y, 0x04/05 Z : accelerometer (+/-8g, 4096 LSB/g)
- *   0x06/07 X, 0x08/09 Y, 0x0A/0B Z : gyroscope (+/-500dps, 65.5 LSB/dps)
+ *   0x06/07 X, 0x08/09 Y, 0x0A/0B Z : gyroscope (+/-125dps, 262 LSB/dps)
  *   0x0C low8 + 0x0D[3:0] high     : temperature (16 LSB/degC)
  *   0x0F chip id = 0x61. */
 #define IMU_SH3001_MK16(lo, hi)         ((int16_t)(((uint16_t)(hi) << 8) | (uint8_t)(lo)))
@@ -27,7 +27,6 @@
 /* Register map. */
 #define IMU_SH3001_REG_ACC_X_L          0x00U
 #define IMU_SH3001_REG_TEMP_L           0x0CU
-#define IMU_SH3001_REG_TEMP_H           0x0DU
 #define IMU_SH3001_REG_CHIP_ID          0x0FU
 #define IMU_SH3001_REG_TEMP_CONFIG0     0x20U
 #define IMU_SH3001_REG_TEMP_CONFIG1     0x21U

@@ -69,7 +69,4 @@ void fusion_get_eulerian_angles(const float acc[3], const float gyro[3], float *
 /** @brief  Current orientation as a unit quaternion (w, x, y, z). */
 void fusion_get_quaternion(float q[4]);
 
-/** @brief  Current orientation as a 3x3 rotation matrix (row-major). */
-void fusion_get_rotation(float r[3][3]);
-
 #endif /* FUSION_H */

@@ -7,8 +7,6 @@
  * can be viewed with the ANO_TC host software.
  */
 
-#include <stddef.h>
-
 #include "usart.h"
 #include "ano.h"
 
