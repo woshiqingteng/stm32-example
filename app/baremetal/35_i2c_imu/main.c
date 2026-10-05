@@ -138,7 +138,7 @@ int main(void)
 
             /* KEY0 also switches the baud rate used for the ANO frames. */
             usart_init(&(usart_cfg_t){ USART_CFG_DEFAULT(USART_ID_1),
-                                       .baudrate = g_ano_on ? 921600U : 115200U });
+                                       .baudrate = g_ano_on ? 500000U : 115200U });
         }
 
         if (g_ano_on)
