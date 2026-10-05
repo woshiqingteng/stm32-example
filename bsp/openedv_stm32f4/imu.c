@@ -20,13 +20,3 @@ float imu_read_temperature(void)
 {
     return imu_sh3001_read_temperature();
 }
-
-void imu_motion_int_enable(void)
-{
-    imu_sh3001_motion_int_enable();
-}
-
-uint8_t imu_motion_int_status(void)
-{
-    return imu_sh3001_motion_int_status();
-}

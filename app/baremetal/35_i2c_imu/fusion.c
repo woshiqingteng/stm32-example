@@ -1,7 +1,6 @@
 /**
  * @file    fusion.c
- * @brief   Attitude fusion: 6-axis Madgwick AHRS plus accelerometer/gyroscope
- *          zero-bias calibration.
+ * @brief   Attitude fusion: 6-axis Madgwick AHRS.
  *
  * The AHRS core is adapted from the MIT-licensed Fusion library by Seb Madgwick
  * (xio Technologies), https://github.com/xioTechnologies/Fusion, commit
@@ -15,17 +14,14 @@
 
 #include "fusion.h"
 #include "imu.h"
-#include "delay.h"
 
 /* x-io default settings. */
 #define FUSION_GAIN             0.5f     /* FusionAhrsSettings.gain */
 #define FUSION_INITIAL_GAIN     10.0f    /* INITIAL_STARTUP_GAIN */
 #define FUSION_STARTUP_PERIOD   3.0f     /* STARTUP_PERIOD (s) */
 
-/* Calibration / dynamic-bias parameters. */
+/* Dynamic gyro-bias parameters. */
 #define FUSION_ACC_1G_COUNT     4096.0f  /* counts per g at the configured +/-8g */
-#define FUSION_CAL_SAMPLE_COUNT 200U     /* samples averaged while calibrating */
-#define FUSION_CAL_DELAY_MS     2U       /* settle delay between samples */
 #define FUSION_DYN_ACC_MIN_G    0.9f     /* still detection: |acc| lower bound (g) */
 #define FUSION_DYN_ACC_MAX_G    1.1f     /* still detection: |acc| upper bound (g) */
 #define FUSION_DYN_GYRO_THR     200      /* still detection: |gyro| limit (~3 dps) */
@@ -37,7 +33,6 @@ static float g_q2 = 0.0f;
 static float g_q3 = 0.0f;
 static float g_gain = FUSION_INITIAL_GAIN; /* ramps down to FUSION_GAIN */
 
-static float g_acc_bias[3];
 static float g_gyro_bias[3];
 
 /* Fast inverse square root (FusionMath.h: FusionFastInverseSqrt). */
@@ -80,75 +75,24 @@ static void fusion_normalise(void)
     g_q3 *= inv;
 }
 
-void fusion_calibrate(void)
-{
-    int32_t sum_acc[3] = { 0, 0, 0 };
-    int32_t sum_gyro[3] = { 0, 0, 0 };
-    int16_t acc[3];
-    int16_t gyro[3];
-    float   ax, ay, az;
-    float   mag;
-    float   scale;
-    uint16_t i;
-
-    for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
-    {
-        (void)imu_read_raw(acc, gyro);
-
-        sum_acc[0] += acc[0];
-        sum_acc[1] += acc[1];
-        sum_acc[2] += acc[2];
-        sum_gyro[0] += gyro[0];
-        sum_gyro[1] += gyro[1];
-        sum_gyro[2] += gyro[2];
-
-        delay_ms(FUSION_CAL_DELAY_MS);
-    }
-
-    g_gyro_bias[0] = (float)sum_gyro[0] / (float)FUSION_CAL_SAMPLE_COUNT;
-    g_gyro_bias[1] = (float)sum_gyro[1] / (float)FUSION_CAL_SAMPLE_COUNT;
-    g_gyro_bias[2] = (float)sum_gyro[2] / (float)FUSION_CAL_SAMPLE_COUNT;
-
-    /* Keep the measured gravity vector at 1g (orientation independent). */
-    ax = (float)sum_acc[0] / (float)FUSION_CAL_SAMPLE_COUNT;
-    ay = (float)sum_acc[1] / (float)FUSION_CAL_SAMPLE_COUNT;
-    az = (float)sum_acc[2] / (float)FUSION_CAL_SAMPLE_COUNT;
-    mag = sqrtf(ax * ax + ay * ay + az * az);
-
-    if (mag > 1.0f)
-    {
-        scale = FUSION_ACC_1G_COUNT / mag;
-        g_acc_bias[0] = ax * (1.0f - scale);
-        g_acc_bias[1] = ay * (1.0f - scale);
-        g_acc_bias[2] = az * (1.0f - scale);
-    }
-    else
-    {
-        g_acc_bias[0] = 0.0f;
-        g_acc_bias[1] = 0.0f;
-        g_acc_bias[2] = 0.0f;
-    }
-
-    g_q0 = 1.0f;
-    g_q1 = 0.0f;
-    g_q2 = 0.0f;
-    g_q3 = 0.0f;
-    g_gain = FUSION_INITIAL_GAIN;
-}
-
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])
 {
     int16_t raw_acc[3];
     int16_t raw_gyro[3];
+    float   bias;
 
     (void)imu_read_raw(raw_acc, raw_gyro);
 
-    acc[0]  = (int16_t)((float)raw_acc[0] - g_acc_bias[0]);
-    acc[1]  = (int16_t)((float)raw_acc[1] - g_acc_bias[1]);
-    acc[2]  = (int16_t)((float)raw_acc[2] - g_acc_bias[2]);
-    gyro[0] = (int16_t)((float)raw_gyro[0] - g_gyro_bias[0]);
-    gyro[1] = (int16_t)((float)raw_gyro[1] - g_gyro_bias[1]);
-    gyro[2] = (int16_t)((float)raw_gyro[2] - g_gyro_bias[2]);
+    acc[0] = raw_acc[0];
+    acc[1] = raw_acc[1];
+    acc[2] = raw_acc[2];
+
+    bias    = g_gyro_bias[0];
+    gyro[0] = (int16_t)((float)raw_gyro[0] - bias);
+    bias    = g_gyro_bias[1];
+    gyro[1] = (int16_t)((float)raw_gyro[1] - bias);
+    bias    = g_gyro_bias[2];
+    gyro[2] = (int16_t)((float)raw_gyro[2] - bias);
 }
 
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3])

@@ -2,7 +2,7 @@
  * @file    main.c
  * @brief   35_i2c_imu: SH3001 six-axis attitude (Madgwick) test. Temperature,
  *          Euler angles, accelerometer (g) and gyroscope (dps) are printed on
- *          USART1 (115200) every 2 s. KEY0 re-runs the zero-bias calibration.
+ *          USART1 (115200). KEY0 toggles the ANO_TC telemetry upload.
  */
 
 #include <stdbool.h>
@@ -12,6 +12,7 @@
 #include "bsp.h"
 #include "imu.h"
 #include "fusion.h"
+#include "ano.h"
 
 #define SAMPLE_PERIOD_MS    10U
 #define REPORT_TICKS        50U        /* 50 * 10 ms = 0.5 s report period */
@@ -25,7 +26,7 @@ static float    g_gf[3];               /* gyroscope, rad/s */
 static float    g_gdps[3];             /* gyroscope, degrees/s */
 static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
 static bool     g_imu_ok;
-static uint8_t  g_int_prev;
+static bool     g_ano_on;
 static uint16_t g_ticks;
 
 /* Print a signed value scaled by 100 as "<int>.<frac>" (e.g. -123 -> -1.23). */
@@ -53,30 +54,6 @@ static void print_vec_x100(float x, float y, float z)
     print_x100(scale100(y));
     printf(" ");
     print_x100(scale100(z));
-}
-
-/* Initialise the board and the sensor, then run the zero-bias calibration. */
-static void app_init(void)
-{
-    bsp_init();
-    printf(APP_BANNER "\r\n");
-
-    g_imu_ok = (imu_init() == 0U);
-
-    if (!g_imu_ok)
-    {
-        printf("SH3001 check failed\r\n");
-    }
-    else
-    {
-        printf("SH3001 ready\r\n");
-        printf("Calibrating: keep the board still...\r\n");
-        fusion_calibrate();
-        printf("Calibration done\r\n");
-        imu_motion_int_enable();
-    }
-
-    printf("KEY0: recalibrate\r\n");
 }
 
 /* Read the sensor, track the bias and update the attitude estimate. */
@@ -108,44 +85,6 @@ static void imu_update(void)
     fusion_get_eulerian_angles(g_af, g_gf, g_rpy, (float)SAMPLE_PERIOD_MS / 1000.0f);
 }
 
-/* KEY0 re-runs the zero-bias calibration. */
-static void key_handle(void)
-{
-    if ((key_scan(false) == KEY0) && g_imu_ok)
-    {
-        printf("Recalibrating: keep the board still...\r\n");
-        delay_ms(100);
-        fusion_calibrate();
-        printf("Calibration done\r\n");
-    }
-}
-
-/* One loop pass: report motion-interrupt edges, update the attitude and handle
- * the key. */
-static void motion_show(void)
-{
-    uint8_t st = imu_motion_int_status();
-    uint8_t nb = (uint8_t)(st & (uint8_t)~g_int_prev);
-
-    if ((nb & IMU_STATUS_TAP) != 0U)
-    {
-        printf("EVENT: TAP\r\n");
-    }
-    if ((nb & IMU_STATUS_FREEFALL) != 0U)
-    {
-        printf("EVENT: FREE-FALL\r\n");
-    }
-    if ((nb & IMU_STATUS_ACTIVITY) != 0U)
-    {
-        printf("EVENT: ACTIVITY\r\n");
-    }
-
-    g_int_prev = st;
-
-    imu_update();
-    key_handle();
-}
-
 /* Print temperature, attitude and the raw accelerometer/gyroscope values. */
 static void report_show(void)
 {
@@ -170,13 +109,30 @@ static void report_show(void)
 
 int main(void)
 {
-    app_init();
+    bsp_init();
+    printf(APP_BANNER "\r\n");
+
+    g_imu_ok = (imu_init() == 0U);
+    printf(g_imu_ok ? "SH3001 ready\r\n" : "SH3001 check failed\r\n");
+    printf("KEY0: toggle ANO upload\r\n");
 
     for (;;)
     {
-        motion_show();
+        imu_update();
 
-        if (++g_ticks >= REPORT_TICKS)
+        if (key_scan(false) == KEY0)
+        {
+            g_ano_on = !g_ano_on;
+            printf("ANO upload %s\r\n", g_ano_on ? "on" : "off");
+        }
+
+        if (g_ano_on)
+        {
+            /* ~100 Hz ANO_TC telemetry (suppresses the text report). */
+            ano_report_raw(g_acc, g_gyro);
+            ano_report_imu(g_rpy[1], g_rpy[0], g_rpy[2]);   /* roll, pitch, yaw */
+        }
+        else if (++g_ticks >= REPORT_TICKS)
         {
             g_ticks = 0U;
             report_show();

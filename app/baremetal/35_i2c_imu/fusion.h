@@ -1,6 +1,6 @@
 /**
  * @file    fusion.h
- * @brief   Attitude fusion: 6-axis Madgwick AHRS and IMU bias calibration.
+ * @brief   Attitude fusion: 6-axis Madgwick AHRS.
  */
 
 #ifndef FUSION_H
@@ -11,18 +11,11 @@
 #define DEG2RAD   0.017453293f    /* pi / 180 */
 #define RAD2DEG   57.29578f       /* 180 / pi */
 
-/**
- * @brief  Zero-bias calibration. Keep the board still and level while it runs:
- *         the gyro bias is the averaged rate and the acc bias keeps |acc| = 1g
- *         along the measured gravity direction.
- */
-void fusion_calibrate(void);
-
-/** @brief  Read the bias-corrected accelerometer/gyroscope counts. */
+/** @brief  Read the accelerometer/gyroscope counts (gyro bias corrected). */
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3]);
 
 /** @brief  Slowly track the gyro bias while the board is stationary (call every
- *          sample with the bias-corrected values from fusion_read_xyz()). */
+ *          sample with the values from fusion_read_xyz()). */
 void fusion_update_dynamic_bias(const int16_t acc[3], const int16_t gyro[3]);
 
 /**

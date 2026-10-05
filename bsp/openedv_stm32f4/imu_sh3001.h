@@ -13,8 +13,7 @@
  *   0x00/01 X, 0x02/03 Y, 0x04/05 Z : accelerometer (+/-8g, 4096 LSB/g)
  *   0x06/07 X, 0x08/09 Y, 0x0A/0B Z : gyroscope (+/-500dps, 65.5 LSB/dps)
  *   0x0C low8 + 0x0D[3:0] high     : temperature (16 LSB/degC)
- *   0x0F chip id = 0x61; 0x10 interrupt status (bit7 free-fall, bit4 tap,
- *        bit1 activity). */
+ *   0x0F chip id = 0x61. */
 #define IMU_SH3001_MK16(lo, hi)         ((int16_t)(((uint16_t)(hi) << 8) | (uint8_t)(lo)))
 
 /** @brief  Expected value of the CHIP ID register. */
@@ -25,29 +24,12 @@
 #define IMU_SH3001_REG_TEMP_L           0x0CU
 #define IMU_SH3001_REG_TEMP_H           0x0DU
 #define IMU_SH3001_REG_CHIP_ID          0x0FU
-#define IMU_SH3001_REG_INT_STATUS0      0x10U
-#define IMU_SH3001_REG_INT_STATUS1      0x11U
-#define IMU_SH3001_REG_INT_STATUS2      0x12U
-#define IMU_SH3001_REG_TAP_STATUS       0x14U
 #define IMU_SH3001_REG_TEMP_CONFIG0     0x20U
 #define IMU_SH3001_REG_TEMP_CONFIG1     0x21U
 #define IMU_SH3001_REG_ACC_CONFIG0      0x22U
 #define IMU_SH3001_REG_ACC_CONFIG1      0x23U
 #define IMU_SH3001_REG_ACC_CONFIG2      0x25U
 #define IMU_SH3001_REG_GYRO_CONFIG1     0x29U
-#define IMU_SH3001_REG_INT_EN0          0x40U
-#define IMU_SH3001_REG_INT_EN1          0x41U
-#define IMU_SH3001_REG_INT_CONFIG       0x44U
-#define IMU_SH3001_REG_ACT_AXIS         0x4FU
-#define IMU_SH3001_REG_TAP_AXIS         0x50U
-#define IMU_SH3001_REG_TAP_THR          0x51U
-#define IMU_SH3001_REG_TAP_DUR          0x52U
-#define IMU_SH3001_REG_TAP_LAT          0x53U
-#define IMU_SH3001_REG_TAP_WIN          0x54U
-#define IMU_SH3001_REG_ACT_THR          0x55U
-#define IMU_SH3001_REG_ACT_TIME         0x56U
-#define IMU_SH3001_REG_FREEFALL_THR     0x5EU
-#define IMU_SH3001_REG_FREEFALL_TIME    0x5FU
 #define IMU_SH3001_REG_GYRO_CONFIG3_X   0x8FU
 #define IMU_SH3001_REG_GYRO_CONFIG3_Y   0x9FU
 #define IMU_SH3001_REG_GYRO_CONFIG3_Z   0xAFU
@@ -60,11 +42,6 @@
 #define IMU_SH3001_ACC_RANGE_8G         0x03U   /*!< ACC_CONFIG2[2:0] */
 #define IMU_SH3001_GYRO_ODR_500HZ       0x01U   /*!< GYRO_CONFIG1[3:0] */
 #define IMU_SH3001_GYRO_RANGE_500DPS    0x04U   /*!< GYRO_CONFIG3[2:0] */
-
-/* Motion interrupt enable bits. */
-#define IMU_SH3001_INT_TAP_ENABLE       0x04U   /*!< INT_EN0[2] */
-#define IMU_SH3001_INT_ACTIVITY_ENABLE  0x10U   /*!< INT_EN0[4] */
-#define IMU_SH3001_INT_FREEFALL_ENABLE  0x01U   /*!< INT_EN1[0] */
 
 #define IMU_SH3001_DATA_LEN_BYTE        12U     /*!< ACC (6) + GYRO (6) burst size */
 #define IMU_SH3001_TEMP_LEN_BYTE        2U
@@ -79,12 +56,5 @@ uint8_t imu_sh3001_read_raw(int16_t acc[3], int16_t gyro[3]);
 
 /** @brief  Read the die temperature in degrees Celsius. */
 float imu_sh3001_read_temperature(void);
-
-/** @brief  Configure and enable the tap, free-fall and activity interrupts
- *          (routed to the INT pin). */
-void imu_sh3001_motion_int_enable(void);
-
-/** @brief  Read and clear the motion interrupt status. */
-uint8_t imu_sh3001_motion_int_status(void);
 
 #endif /* BSP_IMU_SH3001_H */

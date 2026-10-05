@@ -1,5 +1,5 @@
 add_baremetal_app(35_i2c_imu
-    SOURCE  main.c fusion.c
+    SOURCE  main.c fusion.c ano.c
     BSP     imu
     LIB     dsp
 )
