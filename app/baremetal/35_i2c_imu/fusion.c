@@ -23,8 +23,6 @@
 /* Calibration / dynamic-bias parameters. */
 #define FUSION_ACC_1G_COUNT     4096.0f  /* counts per g at the configured +/-8g */
 #define FUSION_CAL_SAMPLE_COUNT 100U     /* start-up calibration samples */
-#define FUSION_CAL_MAX_SPREAD   262      /* max gyro spread (counts, ~1 dps) to accept */
-#define FUSION_CAL_RETRY        20U      /* retry the calibration while the board moves */
 #define FUSION_DYN_ACC_MIN_G    0.9f     /* still detection: |acc| lower bound (g) */
 #define FUSION_DYN_ACC_MAX_G    1.1f     /* still detection: |acc| upper bound (g) */
 #define FUSION_DYN_GYRO_THR     786      /* still detection: |gyro| limit (~3 dps) */
@@ -87,64 +85,37 @@ static void fusion_remap(const int16_t in[3], int16_t out[3])
     out[2] = (int16_t)(FUSION_REMAP_Z_SIGN * in[FUSION_REMAP_Z_AXIS]);
 }
 
-uint8_t fusion_calibrate(void)
+void fusion_calibrate(void)
 {
+    int32_t sum_acc[3] = { 0, 0, 0 };
+    int32_t sum_gyro[3] = { 0, 0, 0 };
     int16_t raw_acc[3];
     int16_t raw_gyro[3];
     int16_t acc[3];
     int16_t gyro[3];
     uint8_t i;
     uint8_t a;
-    uint8_t attempt;
 
-    /* Calibrate in the body frame so it matches fusion_read_xyz /
-     * fusion_update_dynamic_bias. Retry while the board is being moved: the
-     * gyro spread over the window must stay below FUSION_CAL_MAX_SPREAD. */
-    for (attempt = 0U; attempt < FUSION_CAL_RETRY; attempt++)
+    for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
     {
-        int32_t sum_acc[3] = { 0, 0, 0 };
-        int32_t sum_gyro[3] = { 0, 0, 0 };
-        int16_t gyro_min[3] = { 32767, 32767, 32767 };
-        int16_t gyro_max[3] = { -32768, -32768, -32768 };
-        int16_t spread = 0;
-
-        for (i = 0U; i < FUSION_CAL_SAMPLE_COUNT; i++)
-        {
-            (void)imu_read_raw(raw_acc, raw_gyro);
-            fusion_remap(raw_acc, acc);
-            fusion_remap(raw_gyro, gyro);
-
-            for (a = 0U; a < 3U; a++)
-            {
-                sum_acc[a] += acc[a];
-                sum_gyro[a] += gyro[a];
-                if (gyro[a] < gyro_min[a]) { gyro_min[a] = gyro[a]; }
-                if (gyro[a] > gyro_max[a]) { gyro_max[a] = gyro[a]; }
-            }
-        }
+        (void)imu_read_raw(raw_acc, raw_gyro);
+        fusion_remap(raw_acc, acc);
+        fusion_remap(raw_gyro, gyro);
 
         for (a = 0U; a < 3U; a++)
         {
-            int16_t s = (int16_t)(gyro_max[a] - gyro_min[a]);
-            if (s > spread) { spread = s; }
-        }
-
-        if (spread <= FUSION_CAL_MAX_SPREAD)
-        {
-            for (a = 0U; a < 3U; a++)
-            {
-                g_gyro_bias[a]  = (float)sum_gyro[a] / (float)FUSION_CAL_SAMPLE_COUNT;
-                g_acc_offset[a] = (float)sum_acc[a] / (float)FUSION_CAL_SAMPLE_COUNT;
-            }
-
-            /* 1 g reference on the body axis that points up at the calibration pose. */
-            g_acc_offset[FUSION_UP_AXIS] -= (FUSION_UP_SIGN * FUSION_ACC_1G_COUNT);
-
-            return 0U;
+            sum_acc[a] += acc[a];
+            sum_gyro[a] += gyro[a];
         }
     }
 
-    return 1U;   /* board kept moving: bias not reliable */
+    for (a = 0U; a < 3U; a++)
+    {
+        g_gyro_bias[a]  = (float)sum_gyro[a] / (float)FUSION_CAL_SAMPLE_COUNT;
+        g_acc_offset[a] = (float)sum_acc[a] / (float)FUSION_CAL_SAMPLE_COUNT;
+    }
+
+    g_acc_offset[FUSION_UP_AXIS] -= (FUSION_UP_SIGN * FUSION_ACC_1G_COUNT);
 }
 
 void fusion_read_xyz(int16_t acc[3], int16_t gyro[3])

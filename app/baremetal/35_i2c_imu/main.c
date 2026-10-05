@@ -26,7 +26,6 @@ static float    g_gdps[3];             /* gyroscope, degrees/s */
 static float    g_rpy[3];              /* pitch, roll, yaw (degrees) */
 static float    g_gyro_sum[3];         /* report-window sum of gyro (dps) */
 static uint16_t g_report_n;            /* samples summed over the report window */
-static bool     g_imu_ok;
 static bool     g_ano_on;
 static uint16_t g_ticks;
 static uint32_t g_last_us;             /* delay_us_now() at the previous update */
@@ -63,19 +62,8 @@ static void imu_update(void)
 {
     uint8_t i;
 
-    if (g_imu_ok)
-    {
-        fusion_read_xyz(g_acc, g_gyro);
-        fusion_update_dynamic_bias(g_acc, g_gyro);
-    }
-    else
-    {
-        for (i = 0U; i < 3U; i++)
-        {
-            g_acc[i] = 0;
-            g_gyro[i] = 0;
-        }
-    }
+    fusion_read_xyz(g_acc, g_gyro);
+    fusion_update_dynamic_bias(g_acc, g_gyro);
 
     for (i = 0U; i < 3U; i++)
     {
@@ -109,7 +97,7 @@ static void report_show(void)
     g_report_n = 0U;
 
     printf("Temp : ");
-    print_x100(g_imu_ok ? (int32_t)(imu_read_temperature() * 100.0f) : 0);
+    print_x100((int32_t)(imu_read_temperature() * 100.0f));
     printf(" C\r\n");
 
     printf("Pitch: ");
@@ -132,24 +120,10 @@ int main(void)
     bsp_init();
     printf(APP_BANNER "\r\n");
 
-    g_imu_ok = (imu_init() == 0U);
-
-    if (g_imu_ok)
+    if (imu_init() == 0U)
     {
-        printf("SH3001 ready\r\n");
-        printf("Calibrating: keep the board still and level...\r\n");
-        if (fusion_calibrate() != 0U)
-        {
-            printf("Calibration MOVED - keep the board still!\r\n");
-        }
-        else
-        {
-            printf("Calibration done\r\n");
-        }
-    }
-    else
-    {
-        printf("SH3001 check failed\r\n");
+        fusion_calibrate();
+        printf("Calibration done\r\n");
     }
 
     printf("KEY0: toggle ANO upload\r\n");
