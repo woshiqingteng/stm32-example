@@ -35,8 +35,9 @@
  * the SD/NOR/NAND I/O never runs inside the USB ISR. */
 #define CONFIG_USBDEV_MSC_THREAD
 
+/* Three logical units: SPI NOR, NAND (via the FTL) and the SD card. */
 #ifndef CONFIG_USBDEV_MSC_MAX_LUN
-#define CONFIG_USBDEV_MSC_MAX_LUN 1
+#define CONFIG_USBDEV_MSC_MAX_LUN 3
 #endif
 
 #ifndef CONFIG_USBDEV_MSC_MAX_BUFSIZE
@@ -48,7 +49,7 @@
 #endif
 
 #ifndef CONFIG_USBDEV_MSC_STACKSIZE
-#define CONFIG_USBDEV_MSC_STACKSIZE 2048
+#define CONFIG_USBDEV_MSC_STACKSIZE 4096
 #endif
 
 /* SCSI INQUIRY vendor / product / revision strings (fixed-width fields). */
