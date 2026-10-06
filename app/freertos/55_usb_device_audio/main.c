@@ -16,13 +16,13 @@
 
 #include "usbd_core.h"
 #include "usbd_audio.h"
+#include "usb_device.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 #define AUDIO_OUT_EP   0x01U
 
-#define USBD_VID       0x0483U
 #define USBD_PID       0x5730U
 #define USBD_MAX_POWER 500U
 
@@ -87,9 +87,6 @@ static const uint8_t other_speed_config_descriptor_fs[] = {
                              (AUDIO_FREQ & 0xFFU), ((AUDIO_FREQ >> 8) & 0xFFU), ((AUDIO_FREQ >> 16) & 0xFFU)),
 };
 
-static const char s_langid[] = { (char)0x09, (char)0x04 };
-static char s_serial[25];
-
 static const uint8_t *device_descriptor_callback(uint8_t speed) { (void)speed; return device_descriptor; }
 static const uint8_t *config_descriptor_callback(uint8_t speed) { (void)speed; return config_descriptor_fs; }
 static const uint8_t *device_quality_descriptor_callback(uint8_t speed) { (void)speed; return device_quality_descriptor; }
@@ -97,24 +94,12 @@ static const uint8_t *other_speed_descriptor_callback(uint8_t speed) { (void)spe
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
-    (void)speed;
-
-    switch (index)
+    if (index == 2U)
     {
-        case 0U:
-            return s_langid;
-        case 1U:
-            return "STMicroelectronics";
-        case 2U:
-            return "ALIENTEK STM32F4 USB Audio";
-        case 3U:
-            (void)snprintf(s_serial, sizeof(s_serial), "%08lX%08lX",
-                           (unsigned long)(*(const uint32_t *)0x1FFF7A10U),
-                           (unsigned long)(*(const uint32_t *)0x1FFF7A14U));
-            return s_serial;
-        default:
-            return NULL;
+        return "ALIENTEK STM32F4 USB Audio";
     }
+
+    return usb_device_string_desc(speed, index);
 }
 
 static const struct usb_descriptor audio_descriptor = {
@@ -129,7 +114,6 @@ static const struct usb_descriptor audio_descriptor = {
 /* Audio playback                                                      */
 /* ------------------------------------------------------------------ */
 
-static volatile bool     g_connected;
 static volatile bool     g_streaming;
 static volatile uint8_t  g_volume = 70U;
 
@@ -139,19 +123,11 @@ static uint8_t s_sai_buf[2][AUDIO_MON_BUF_LEN] __attribute__((aligned(4)));
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     (void)busid;
+    usb_device_event(event);
 
-    switch (event)
+    if ((event == USBD_EVENT_RESET) || (event == USBD_EVENT_DISCONNECTED))
     {
-        case USBD_EVENT_RESET:
-        case USBD_EVENT_DISCONNECTED:
-            g_connected = false;
-            g_streaming = false;
-            break;
-        case USBD_EVENT_CONFIGURED:
-            g_connected = true;
-            break;
-        default:
-            break;
+        g_streaming = false;
     }
 }
 
@@ -298,9 +274,11 @@ static void audio_monitor_task(void *argument)
 
     for (;;)
     {
-        if (g_connected != connected)
+        bool now = usb_device_connected();
+
+        if (now != connected)
         {
-            connected = g_connected;
+            connected = now;
             printf(connected ? "USB Connected\r\n" : "USB DisConnected\r\n");
             connected ? led_on(LED1) : led_off(LED1);
         }

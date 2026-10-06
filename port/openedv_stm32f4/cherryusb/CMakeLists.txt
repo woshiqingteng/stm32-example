@@ -5,10 +5,13 @@
 target_include_directories(cherryusb PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(cherryusb_port STATIC EXCLUDE_FROM_ALL
-    ${CMAKE_CURRENT_SOURCE_DIR}/cherryusb_glue.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/cherryusb_glue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/usb_device.c)
 
 target_include_directories(cherryusb_port PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
+# The board port owns the STM32 HAL dependency (the vendor glue in the cherryusb
+# module only needs it to compile).
 target_link_libraries(cherryusb_port PUBLIC
     cherryusb drv_usb)
 

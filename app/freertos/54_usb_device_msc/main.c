@@ -17,6 +17,7 @@
 
 #include "usbd_core.h"
 #include "usbd_msc.h"
+#include "usb_device.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -24,7 +25,6 @@
 #define MSC_IN_EP    0x81U
 #define MSC_OUT_EP   0x01U
 
-#define USBD_VID       0x0483U
 #define USBD_PID       0x5720U
 #define USBD_MAX_POWER 500U
 
@@ -62,9 +62,6 @@ static const uint8_t other_speed_config_descriptor_fs[] = {
     MSC_DESCRIPTOR_INIT(0x00, MSC_OUT_EP, MSC_IN_EP, USB_BULK_EP_MPS_FS, 0x00),
 };
 
-static const char s_langid[] = { (char)0x09, (char)0x04 };
-static char s_serial[25];
-
 static const uint8_t *device_descriptor_callback(uint8_t speed) { (void)speed; return device_descriptor; }
 static const uint8_t *config_descriptor_callback(uint8_t speed) { (void)speed; return config_descriptor_fs; }
 static const uint8_t *device_quality_descriptor_callback(uint8_t speed) { (void)speed; return device_quality_descriptor; }
@@ -72,24 +69,12 @@ static const uint8_t *other_speed_descriptor_callback(uint8_t speed) { (void)spe
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
-    (void)speed;
-
-    switch (index)
+    if (index == 2U)
     {
-        case 0U:
-            return s_langid;
-        case 1U:
-            return "STMicroelectronics";
-        case 2U:
-            return "ALIENTEK STM32F4 Mass Storage";
-        case 3U:
-            (void)snprintf(s_serial, sizeof(s_serial), "%08lX%08lX",
-                           (unsigned long)(*(const uint32_t *)0x1FFF7A10U),
-                           (unsigned long)(*(const uint32_t *)0x1FFF7A14U));
-            return s_serial;
-        default:
-            return NULL;
+        return "ALIENTEK STM32F4 Mass Storage";
     }
+
+    return usb_device_string_desc(speed, index);
 }
 
 static const struct usb_descriptor msc_descriptor = {
@@ -106,26 +91,13 @@ static const struct usb_descriptor msc_descriptor = {
 
 typedef enum { ACT_IDLE, ACT_READING, ACT_WRITING } activity_t;
 
-static volatile bool       g_connected;
 static volatile activity_t g_activity = ACT_IDLE;
 static volatile bool       g_error;
 
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
     (void)busid;
-
-    switch (event)
-    {
-        case USBD_EVENT_RESET:
-        case USBD_EVENT_DISCONNECTED:
-            g_connected = false;
-            break;
-        case USBD_EVENT_CONFIGURED:
-            g_connected = true;
-            break;
-        default:
-            break;
-    }
+    usb_device_event(event);
 }
 
 void usbd_msc_get_cap(uint8_t busid, uint8_t lun, uint32_t *block_num, uint32_t *block_size)
@@ -241,9 +213,11 @@ static void msc_monitor_task(void *argument)
 
     for (;;)
     {
-        if (g_connected != connected)
+        bool now = usb_device_connected();
+
+        if (now != connected)
         {
-            connected = g_connected;
+            connected = now;
             printf(connected ? "USB Connected\r\n" : "USB DisConnected\r\n");
             connected ? led_on(LED1) : led_off(LED1);
         }

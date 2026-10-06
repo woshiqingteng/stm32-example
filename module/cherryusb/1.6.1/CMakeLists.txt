@@ -27,8 +27,11 @@ target_include_directories(cherryusb PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/port/dwc2)
 
 # drv_usb provides the STM32 HAL (HAL_PCD_* / the register definitions used by
-# the DWC2 glue). freertos provides the OSAL underneath usb_osal_freertos.c.
-target_link_libraries(cherryusb PUBLIC drv_usb drv_core)
+# the DWC2 glue). PRIVATE: the HAL dependency is owned by the board port, not
+# leaked to the applications. freertos provides the OSAL underneath
+# usb_osal_freertos.c.
+target_link_libraries(cherryusb PRIVATE drv_usb)
+target_link_libraries(cherryusb PUBLIC drv_core)
 
 if(TARGET freertos)
     target_link_libraries(cherryusb PUBLIC freertos)

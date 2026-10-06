@@ -13,6 +13,7 @@
 #include "bsp.h"
 #include "usbd_core.h"
 #include "usbd_cdc_acm.h"
+#include "usb_device.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -22,17 +23,12 @@
 #define CDC_OUT_EP   0x01U
 #define CDC_INT_EP   0x83U
 
-#define USBD_VID       0x0483U
 #define USBD_PID       0x5740U
 #define USBD_MAX_POWER 500U
 
 #define CDC_RX_BUFFER_SIZE 256U
 #define CDC_TASK_STK_SIZE  512U
 #define CDC_TASK_PRIO      3U
-
-/* STM32 unique device ID registers (used for the serial number string). */
-#define DEVICE_UID0  (*(const uint32_t *)0x1FFF7A10U)
-#define DEVICE_UID1  (*(const uint32_t *)0x1FFF7A14U)
 
 /* ------------------------------------------------------------------ */
 /* USB descriptors                                                     */
@@ -57,9 +53,6 @@ static const uint8_t other_speed_config_descriptor_fs[] = {
     USB_OTHER_SPEED_CONFIG_DESCRIPTOR_INIT(USB_CONFIG_SIZE, 0x02, 0x01, USB_CONFIG_BUS_POWERED, USBD_MAX_POWER),
     CDC_ACM_DESCRIPTOR_INIT(0x00, CDC_INT_EP, CDC_OUT_EP, CDC_IN_EP, USB_BULK_EP_MPS_FS, 0x00),
 };
-
-static const char s_langid[] = { (char)0x09, (char)0x04 };
-static char s_serial[25];
 
 static const uint8_t *device_descriptor_callback(uint8_t speed)
 {
@@ -87,23 +80,12 @@ static const uint8_t *other_speed_descriptor_callback(uint8_t speed)
 
 static const char *string_descriptor_callback(uint8_t speed, uint8_t index)
 {
-    (void)speed;
-
-    switch (index)
+    if (index == 2U)
     {
-        case 0U:
-            return s_langid;
-        case 1U:
-            return "STMicroelectronics";
-        case 2U:
-            return "ALIENTEK STM32F4 Virtual COM";
-        case 3U:
-            (void)snprintf(s_serial, sizeof(s_serial), "%08lX%08lX",
-                           (unsigned long)DEVICE_UID0, (unsigned long)DEVICE_UID1);
-            return s_serial;
-        default:
-            return NULL;
+        return "ALIENTEK STM32F4 Virtual COM";
     }
+
+    return usb_device_string_desc(speed, index);
 }
 
 static const struct usb_descriptor cdc_descriptor = {
@@ -122,22 +104,21 @@ static uint8_t g_rx_buffer[CDC_RX_BUFFER_SIZE];
 static uint8_t g_tx_buffer[CDC_RX_BUFFER_SIZE];
 static volatile uint32_t g_rx_len;
 static volatile bool g_tx_busy;
-static volatile bool g_connected;
 
 static SemaphoreHandle_t g_rx_sem;
 
 static void usbd_event_handler(uint8_t busid, uint8_t event)
 {
+    usb_device_event(event);
+
     switch (event)
     {
         case USBD_EVENT_RESET:
         case USBD_EVENT_DISCONNECTED:
             g_tx_busy = false;
-            g_connected = false;
             break;
 
         case USBD_EVENT_CONFIGURED:
-            g_connected = true;
             usbd_ep_start_read(busid, CDC_OUT_EP, g_rx_buffer, CDC_RX_BUFFER_SIZE);
             break;
 
@@ -235,9 +216,11 @@ static void cdc_task(void *argument)
             cdc_handle_rx();
         }
 
-        if (g_connected != connected)
+        bool now = usb_device_connected();
+
+        if (now != connected)
         {
-            connected = g_connected;
+            connected = now;
             printf(connected ? "USB Connected\r\n" : "USB DisConnected\r\n");
         }
 
