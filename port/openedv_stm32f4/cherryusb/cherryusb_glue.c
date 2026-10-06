@@ -8,11 +8,12 @@
  */
 
 #include "stm32f4xx_hal.h"
+#include "FreeRTOSConfig.h"
 
 /* The USB ISR drives the CherryUSB class callbacks, which post to FreeRTOS
  * (message queues / semaphores) from interrupt context, so the NVIC priority
- * must be numerically >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY (= 5). */
-#define CHERRYUSB_IRQ_PRIORITY   5U
+ * must be numerically >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY. */
+#define CHERRYUSB_IRQ_PRIORITY    configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
 #define CHERRYUSB_IRQ_SUBPRIORITY 0U
 
 /* Anchor referenced by the linker (-Wl,-u) so this object is always pulled out

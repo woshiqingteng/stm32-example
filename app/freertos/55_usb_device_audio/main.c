@@ -49,9 +49,13 @@ static struct audio_entity_info s_audio_entity_table[] = {
 /* USB descriptors                                                     */
 /* ------------------------------------------------------------------ */
 
-#define AUDIO_AC_WTOTAL (AUDIO_AC_DESCRIPTOR_LEN(1) + 12U + 10U + 9U)
-#define AUDIO_AS_TOTAL  AUDIO_AS_DESCRIPTOR_LEN(1)
-#define USB_CONFIG_SIZE (9U + AUDIO_AC_WTOTAL + AUDIO_AS_TOTAL)
+/* AC header wTotalLength = size of the class-specific AudioControl descriptors
+ * only (header + input terminal + feature unit + output terminal), i.e. it must
+ * NOT include the IAD or the standard AC interface descriptor. */
+#define AUDIO_FU_LEN       10U                                  /* 7 + 3 bmaControls   */
+#define AUDIO_AC_CLASS_LEN (9U + 12U + AUDIO_FU_LEN + 9U)       /* header + IT + FU + OT */
+#define AUDIO_AS_TOTAL     AUDIO_AS_DESCRIPTOR_LEN(1)
+#define USB_CONFIG_SIZE    (9U + AUDIO_AC_DESCRIPTOR_LEN(1) + 12U + AUDIO_FU_LEN + 9U + AUDIO_AS_TOTAL)
 
 static const uint8_t device_descriptor[] = {
     USB_DEVICE_DESCRIPTOR_INIT(USB_2_0, 0xEF, 0x02, 0x01, USBD_VID, USBD_PID, 0x0100, 0x01),
@@ -59,7 +63,7 @@ static const uint8_t device_descriptor[] = {
 
 static const uint8_t config_descriptor_fs[] = {
     USB_CONFIG_DESCRIPTOR_INIT(USB_CONFIG_SIZE, 0x02, 0x01, USB_CONFIG_BUS_POWERED, USBD_MAX_POWER),
-    AUDIO_AC_DESCRIPTOR_INIT(0x00, 0x02, AUDIO_AC_WTOTAL, 0x00, 0x01),
+    AUDIO_AC_DESCRIPTOR_INIT(0x00, 0x02, AUDIO_AC_CLASS_LEN, 0x00, 0x01),
     AUDIO_AC_INPUT_TERMINAL_DESCRIPTOR_INIT(AUDIO_ENTITY_IT, 0x0101, AUDIO_CHANNELS, 0x0003),
     AUDIO_AC_FEATURE_UNIT_DESCRIPTOR_INIT(AUDIO_ENTITY_FU, AUDIO_ENTITY_IT, 0x01, 0x03, 0x00, 0x00),
     AUDIO_AC_OUTPUT_TERMINAL_DESCRIPTOR_INIT(AUDIO_ENTITY_OT, 0x0301, AUDIO_ENTITY_FU),
@@ -74,7 +78,7 @@ static const uint8_t device_quality_descriptor[] = {
 
 static const uint8_t other_speed_config_descriptor_fs[] = {
     USB_OTHER_SPEED_CONFIG_DESCRIPTOR_INIT(USB_CONFIG_SIZE, 0x02, 0x01, USB_CONFIG_BUS_POWERED, USBD_MAX_POWER),
-    AUDIO_AC_DESCRIPTOR_INIT(0x00, 0x02, AUDIO_AC_WTOTAL, 0x00, 0x01),
+    AUDIO_AC_DESCRIPTOR_INIT(0x00, 0x02, AUDIO_AC_CLASS_LEN, 0x00, 0x01),
     AUDIO_AC_INPUT_TERMINAL_DESCRIPTOR_INIT(AUDIO_ENTITY_IT, 0x0101, AUDIO_CHANNELS, 0x0003),
     AUDIO_AC_FEATURE_UNIT_DESCRIPTOR_INIT(AUDIO_ENTITY_FU, AUDIO_ENTITY_IT, 0x01, 0x03, 0x00, 0x00),
     AUDIO_AC_OUTPUT_TERMINAL_DESCRIPTOR_INIT(AUDIO_ENTITY_OT, 0x0301, AUDIO_ENTITY_FU),
@@ -156,9 +160,14 @@ static void audio_out_ep_cb(uint8_t busid, uint8_t ep, uint32_t nbytes)
     if (g_streaming && (nbytes > 0U))
     {
         uint32_t n = (nbytes > AUDIO_MON_BUF_LEN) ? AUDIO_MON_BUF_LEN : nbytes;
+        /* Fill whichever SAI buffer is not currently being played. NOTE: if the
+         * DMA transfer-complete callback is ever used, the SAI TX DMA IRQ
+         * priority (set in bsp/sai.c) must be >= the FreeRTOS max-syscall
+         * priority. */
+        uint8_t *dst = (sai1_tx_dma_target() == 0U) ? s_sai_buf[1] : s_sai_buf[0];
 
-        (void)memcpy(s_sai_buf[0], s_usb_buf, n);
-        sai1_tx_dma_set_inactive_buffer(s_sai_buf[0]);
+        (void)memcpy(dst, s_usb_buf, n);
+        sai1_tx_dma_set_inactive_buffer(dst);
     }
 
     (void)usbd_ep_start_read(busid, ep, s_usb_buf, AUDIO_PKT_SIZE);

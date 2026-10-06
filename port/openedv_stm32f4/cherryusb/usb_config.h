@@ -15,7 +15,7 @@
 #define CONFIG_USB_PRINTF(...) printf(__VA_ARGS__)
 
 #ifndef CONFIG_USB_DBG_LEVEL
-#define CONFIG_USB_DBG_LEVEL USB_DBG_INFO
+#define CONFIG_USB_DBG_LEVEL USB_DBG_WARNING
 #endif
 
 /* No D-Cache on this MCU: keep the "nocache" buffers in normal RAM. */

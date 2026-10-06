@@ -119,6 +119,7 @@ static const struct usb_descriptor cdc_descriptor = {
 /* ------------------------------------------------------------------ */
 
 static uint8_t g_rx_buffer[CDC_RX_BUFFER_SIZE];
+static uint8_t g_tx_buffer[CDC_RX_BUFFER_SIZE];
 static volatile uint32_t g_rx_len;
 static volatile bool g_tx_busy;
 static volatile bool g_connected;
@@ -208,12 +209,16 @@ static void cdc_handle_rx(void)
     (void)memcpy(line, (const void *)g_rx_buffer, len);
     line[len] = '\0';
 
+    /* Copy out of the RX buffer first, then re-arm the OUT transfer; echo from
+     * a separate buffer so the IN write and the fresh OUT read never share
+     * memory. */
+    (void)memcpy(g_tx_buffer, (const void *)g_rx_buffer, len);
+    g_rx_len = 0U;
+
     printf("usb rx %u bytes: %s\r\n", (unsigned)len, line);
 
-    cdc_send(g_rx_buffer, len);
-
-    g_rx_len = 0U;
     (void)usbd_ep_start_read(0, CDC_OUT_EP, g_rx_buffer, CDC_RX_BUFFER_SIZE);
+    cdc_send(g_tx_buffer, len);
 }
 
 static void cdc_task(void *argument)
