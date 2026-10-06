@@ -27,6 +27,8 @@ lib_wrapper(lib_stm32_usb_host_hid
     stm32_usb_host stm32_usb_host_conf_port)
 lib_wrapper(lib_stm32_usb_host_msc
     stm32_usb_host stm32_usb_host_conf_port stm32_usb_host_msc_port)
+lib_wrapper(lib_cherryusb_device
+    cherryusb cherryusb_port)
 lib_wrapper(lib_dsp
     cmsis_dsp)
 lib_wrapper(lib_lvgl

@@ -1,23 +1,35 @@
-# CherryUSB v1.6.1 source (vendored, third_party/ excluded). NOT wired into the
-# build yet. This file is only a starting point for a future port.
-
-file(GLOB_RECURSE CHERRYUSB_SRC CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/common/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/class/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/osal/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/platform/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/port/*.c)
-
-add_library(cherryusb STATIC EXCLUDE_FROM_ALL ${CHERRYUSB_SRC})
+# CherryUSB v1.6.1 source (vendored). Device-only build: the device core, the
+# MSC / CDC-ACM / audio classes and the DWC2 device port. The host stack and
+# the other ports are not compiled (the board's OTG_FS core is device-only in
+# this bring-up). The FreeRTOS OSAL is used as the RTOS glue.
+#
+# The board port (port/<board>/cherryusb) adds "usb_config.h" to this target's
+# include path and links the low-level glue (cherryusb_port).
+add_library(cherryusb STATIC EXCLUDE_FROM_ALL
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/usbd_core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/msc/usbd_msc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/cdc/usbd_cdc_acm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/audio/usbd_audio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/port/dwc2/usb_dc_dwc2.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/port/dwc2/usb_glue_st.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/osal/usb_osal_freertos.c)
 
 target_include_directories(cherryusb PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/class
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/cdc
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/msc
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/audio
+    ${CMAKE_CURRENT_SOURCE_DIR}/class/hub
     ${CMAKE_CURRENT_SOURCE_DIR}/osal
-    ${CMAKE_CURRENT_SOURCE_DIR}/port)
+    ${CMAKE_CURRENT_SOURCE_DIR}/port/dwc2)
 
-# cherryusb_config.h + the MCU port sources are chosen by the future port.
-target_link_libraries(cherryusb PUBLIC drv_core)
+# drv_usb provides the STM32 HAL (HAL_PCD_* / the register definitions used by
+# the DWC2 glue). freertos provides the OSAL underneath usb_osal_freertos.c.
+target_link_libraries(cherryusb PUBLIC drv_usb drv_core)
+
+if(TARGET freertos)
+    target_link_libraries(cherryusb PUBLIC freertos)
+endif()
